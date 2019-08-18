@@ -1,0 +1,56 @@
+July 14, 2011 Morgan McGuire modified the model from Crytek's OBJ
+export to correct some small errors.  He computed bump maps from the
+normal maps using normal2bump.cpp (http://cs.williams.edu/~morgan/code/), 
+put the "mask" textures into the alpha channel of the associated diffuse 
+texture, cleaned up noise in the masks, created the missing gi_flag.tga 
+texture, and removed the long untextured banner floating in the middle 
+of the atrium that appears in the file but in none of the published images 
+of the model.  The banner is in banner.obj.
+
+============================================================================
+sponza.obj
+============================================================================
+
+Sponza Model
+August 19, 2010
+The Atrium Sponza Palace, Dubrovnik, is an elegant and improved model created 
+by Frank Meinl. The original Sponza model was created by Marko Dabrovic in 
+early 2002. Over the years, the Sponza Atrium scene has become one of the 
+most popular 3D scenes for testing global illumination and radiosity due to 
+it's specific architectural structure which is particularly complex for global 
+illumination light.
+
+However, nowadays it is considered as a simple model, thus it was decided to 
+crate a new model with highly improved appearance and scene complexity. It is 
+donated to the public for  radiosity and is represented in several different 
+formats (3ds, Obj) for use with various commercial 3D applications and renderers.
+
+License: CC BY 3.0
+https://creativecommons.org/licenses/by/3.0/
+
+(c) 2010 Frank Meinl, Crytek
+
+============================================================================
+
+Modifications to Sponza Model by Frank Meinl by Johannes Unterguggenberger, 
+February 2018:
+
+Split sponza.obj into three different model files, each containing parts of 
+the original model file:
+sponza_structure.obj
+sponza_plants.obj
+sponza_fabric.obj
+
+Modified one of the doors to lead out of the building: Removed the door and
+added a passage which leads all the way through the outside walls.
+This modification is contained in sponza_structure.obj.
+
+Created normal maps for several materials. 
+These are also referenced from the materials file.
+
+License: CC BY 3.0
+https://creativecommons.org/licenses/by/3.0/
+
+(c) 2018 Johannes Unterguggenberger, Vienna University of Technology
+
+============================================================================

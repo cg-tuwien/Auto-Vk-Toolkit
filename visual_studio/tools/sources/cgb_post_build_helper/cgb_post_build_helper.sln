@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28531.58
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cgb_post_build_helper", "cgb_post_build_helper\cgb_post_build_helper.csproj", "{19AA2AE8-BA38-425D-B762-69260DDAD854}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotifyIconWpf", "NotifyIconWpf\NotifyIconWpf.csproj", "{7AC63864-7638-41C4-969C-D3197EF2BED9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{19AA2AE8-BA38-425D-B762-69260DDAD854}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19AA2AE8-BA38-425D-B762-69260DDAD854}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19AA2AE8-BA38-425D-B762-69260DDAD854}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19AA2AE8-BA38-425D-B762-69260DDAD854}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AC63864-7638-41C4-969C-D3197EF2BED9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AC63864-7638-41C4-969C-D3197EF2BED9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AC63864-7638-41C4-969C-D3197EF2BED9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AC63864-7638-41C4-969C-D3197EF2BED9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ADE00E7F-678C-4374-BD3D-1A081B48AE25}
+	EndGlobalSection
+EndGlobal

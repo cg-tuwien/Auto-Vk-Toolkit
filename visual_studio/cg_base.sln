@@ -1,0 +1,94 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28531.58
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cg_base", "cg_base\cg_base.vcxproj", "{602F842F-50C1-466D-8696-1707937D8AB9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{42ECE233-FCB5-4525-BBC9-024CE075FC38}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_world", "examples\hello_world\hello_world.vcxproj", "{AAAC1485-846C-4F30-8824-125E8584D038}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hello_world", "hello_world", "{08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "vertex_buffers", "vertex_buffers", "{990D83B1-144C-4EC4-A22E-7D59170AE513}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vertex_buffers", "examples\vertex_buffers\vertex_buffers.vcxproj", "{8E7CC991-65C1-4B5B-9F18-F650A5378404}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_loader", "examples\model_loader\model_loader.vcxproj", "{017E78C0-EA95-4C68-866B-51664926D8C9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "model_loader", "model_loader", "{B883882B-129A-4528-86E3-68638929D9EC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_OpenGL|x64 = Debug_OpenGL|x64
+		Debug_Vulkan|x64 = Debug_Vulkan|x64
+		Publish_OpenGL|x64 = Publish_OpenGL|x64
+		Publish_Vulkan|x64 = Publish_Vulkan|x64
+		Release_OpenGL|x64 = Release_OpenGL|x64
+		Release_Vulkan|x64 = Release_Vulkan|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{602F842F-50C1-466D-8696-1707937D8AB9}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{AAAC1485-846C-4F30-8824-125E8584D038}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AAAC1485-846C-4F30-8824-125E8584D038} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
+		{08A10CAA-9B1B-41DB-9EB5-8547AC3077EA} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{990D83B1-144C-4EC4-A22E-7D59170AE513} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404} = {990D83B1-144C-4EC4-A22E-7D59170AE513}
+		{017E78C0-EA95-4C68-866B-51664926D8C9} = {B883882B-129A-4528-86E3-68638929D9EC}
+		{B883882B-129A-4528-86E3-68638929D9EC} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}
+	EndGlobalSection
+EndGlobal

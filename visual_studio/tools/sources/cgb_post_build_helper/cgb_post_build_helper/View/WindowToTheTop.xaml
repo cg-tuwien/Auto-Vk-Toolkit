@@ -1,0 +1,65 @@
+﻿<Window x:Class="CgbPostBuildHelper.View.WindowToTheTop"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CgbPostBuildHelper.View"
+        mc:Ignorable="d"
+        Title="WindowToTheTop" Height="450" Width="800">
+    <Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<Grid Grid.Row="0">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+			<Image Grid.Column="0" Source="/cg_footer_klecks.gif" Width="26"/>
+			<StackPanel Grid.Column="2" Orientation="Vertical">
+				<Button  FontSize="9"
+					Margin="2" VerticalAlignment="Top" HorizontalAlignment="Right"
+					Padding="3,1" Click="Button_Click">
+						<TextBlock Text="Toggle: Keep Window Topmost" HorizontalAlignment="Center"/>
+				</Button>
+			</StackPanel>
+			<TextBlock Grid.Column="1" Margin="1,3" FontSize="10"
+					   Text="cgb_post_process_helper" Foreground="#c32d9b"
+					   HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+
+			<Grid Grid.Row="0" Grid.Column="1"
+						VerticalAlignment="Top" HorizontalAlignment="Right"
+						Margin="0,0,10,0">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock Grid.Row="0" Grid.Column="0" Text="Strg + T" Foreground="#bbb" HorizontalAlignment="Left" FontSize="8"/>
+				<TextBlock Grid.Row="0" Grid.Column="1" Text="... Toggle Topmost" Foreground="#bbb" HorizontalAlignment="Left" FontSize="8" Margin="2,0"/>
+				<TextBlock Grid.Row="1" Grid.Column="0" Text="Strg + W" Foreground="#bbb" HorizontalAlignment="Left" FontSize="8"/>
+				<TextBlock Grid.Row="1" Grid.Column="1" Text="... Close Window" Foreground="#bbb" HorizontalAlignment="Left" FontSize="8" Margin="2,0"/>
+			</Grid>
+			
+			<Rectangle Grid.Row="1" Grid.ColumnSpan="3" Height="2" Fill="#d0d0d0" />
+		</Grid>
+
+		<ContentControl Grid.Row="1" x:Name="InnerContent">
+			
+		</ContentControl>
+
+		<!--<Grid Grid.Row="1" x:Name="InnerContent" />-->
+		
+	</Grid>
+</Window>

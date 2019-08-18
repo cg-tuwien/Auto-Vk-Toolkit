@@ -1,0 +1,125 @@
+﻿<Window x:Class="CreateNewProject.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CreateNewProject"
+        mc:Ignorable="d"
+        Title="Create new cg_base project!" Height="650" Width="940" FontSize="14">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="2*" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="2*" />
+		</Grid.ColumnDefinitions>
+
+		<GroupBox Grid.Row="0" Grid.Column="0">
+			<GroupBox.Header>
+				Source Project to copy from
+			</GroupBox.Header>
+
+			<StackPanel Orientation="Vertical" Margin="4">
+				<TextBlock Text="Selected source:" FontSize="10" FontWeight="Bold" Foreground="Orange" />
+				<Grid>
+					<Rectangle Height="40" Fill="LightGoldenrodYellow"></Rectangle>
+					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="Orange"
+							   Text="{Binding SourceProject, FallbackValue=source.vcxproj}" />
+				</Grid>
+
+				<TextBlock Text="1) Select a source project, OR..." Margin="0,10,0,0" />
+				<ComboBox SelectedItem="{Binding SelectedProject}" ItemsSource="{Binding ProjectProposals}" Padding="2">
+					<ComboBox.ItemTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding PathRelativeToSln}" />
+						</DataTemplate>
+					</ComboBox.ItemTemplate>
+				</ComboBox>
+
+				<TextBlock Text="2) Enter a path manually" Margin="0,10,0,0" />
+					<TextBox Text="{Binding OriginalVsProjFile, UpdateSourceTrigger=PropertyChanged}" Padding="2" />
+
+			</StackPanel>
+		</GroupBox>
+
+		<GroupBox Grid.Row="0" Grid.Column="2">
+			<GroupBox.Header>
+				New Project
+			</GroupBox.Header>
+
+			<StackPanel Orientation="Vertical" Margin="4">
+				<TextBlock Text="Target:" FontSize="10" FontWeight="Bold" Foreground="DodgerBlue" />
+				<Grid>
+					<Rectangle Height="40" Fill="#ddeeff"></Rectangle>
+					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="DodgerBlue"
+							   Text="{Binding TargetProject, FallbackValue=target.vcxproj}" />
+				</Grid>
+
+				<TextBlock Margin="0,10,0,0">
+					<Run>1) Enter the</Run>
+					<Run FontWeight="Bold">target folder</Run>
+					<Run>of your new project, AND...</Run>
+				</TextBlock>
+				<TextBox Margin="0,0,0,0" Text="{Binding TargetCopyProjFolder, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Padding="2" />
+
+				<TextBlock Margin="0,10,0,0">
+					<Run>2) Enter the</Run>
+					<Run FontWeight="Bold">name</Run>
+					<Run>of your new project</Run>
+				</TextBlock>
+				<TextBox Margin="0,0,0,0" Text="{Binding NameOfNewProject, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Padding="2" />
+
+				<TextBlock Text="Solution:" FontSize="10" FontWeight="Bold" Foreground="DarkMagenta" Margin="0,10,0,0" />
+				<Grid>
+					<Rectangle Height="40" Fill="#ffccee"></Rectangle>
+					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="DarkMagenta"
+							   Text="{Binding TargetSolution, FallbackValue=&lt;none&gt;}" />
+				</Grid>
+
+				<TextBlock Text="Optional 3) Add to Solution:" Margin="0,4,0,0" />
+				<CheckBox IsChecked="{Binding DoModifySln}" HorizontalAlignment="Left" Margin="0,4,0,0" >
+					<TextBlock Text="Also add new project to the .sln file" />
+				</CheckBox>
+				<TextBlock Text="     3.1) Enter path to your .sln file" HorizontalAlignment="Left" IsEnabled="{Binding DoModifySln}" />
+				<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PathToSln, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Padding="2" IsEnabled="{Binding DoModifySln}" />
+
+			</StackPanel>
+		</GroupBox>
+
+
+		<Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto" />
+				<RowDefinition Height="Auto" />
+			</Grid.RowDefinitions>
+
+			<TextBlock Grid.Row="0" Text="🡆" Margin="10" FontSize="34" HorizontalAlignment="Center" />
+			<Button Grid.Row="1" Content="Create it!" FontWeight="Bold" Margin="10" Padding="20,5" 
+					Command="{Binding CloneProject}" />
+
+		</Grid>
+		
+
+		<GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
+			<GroupBox.Header>
+				Messages/Errors
+			</GroupBox.Header>
+			<ListBox ItemsSource="{Binding Messages}" Margin="4" BorderThickness="0">
+				<ListBox.ItemTemplate>
+					<DataTemplate>
+						<TextBlock TextWrapping="Wrap" Text="{Binding MessageText}" Foreground="{Binding MessageColor}" />
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+				<ListBox.ItemContainerStyle>
+					<Style TargetType="ListBoxItem">
+						<Setter Property="HorizontalAlignment" Value="Stretch" />
+					</Style>
+				</ListBox.ItemContainerStyle>
+			</ListBox>
+		</GroupBox>
+        
+    </Grid>
+</Window>

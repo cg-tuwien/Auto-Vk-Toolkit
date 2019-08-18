@@ -1,0 +1,30 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="CgbPostBuildHelper.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="AlwaysDeployReleaseDlls" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="AlwaysCopyNeverSymlink" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="DoNotMonitorFiles" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ShowWindowForVkShaderDeployment" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ShowWindowForGlShaderDeployment" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ShowWindowForModelDeployment" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ReleaseSubPathInExternals" Type="System.String" Scope="User">
+      <Value Profile="(Default)">release</Value>
+    </Setting>
+    <Setting Name="DebugSubPathInExternals" Type="System.String" Scope="User">
+      <Value Profile="(Default)">debug</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

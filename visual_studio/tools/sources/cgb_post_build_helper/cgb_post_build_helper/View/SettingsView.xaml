@@ -1,0 +1,82 @@
+﻿<Window x:Class="CgbPostBuildHelper.View.SettingsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CgbPostBuildHelper.View"
+        mc:Ignorable="d" FontSize="14"
+        Title="SettingsView" Height="480" Width="410">
+    <Grid>
+		<StackPanel Orientation="Vertical" Margin="20">
+			<TextBlock FontSize="20" Margin="0">
+				<Run>cgb_post_process_helper</Run>
+				<Run FontWeight="Bold">settings</Run>
+			</TextBlock>
+			<TextBlock FontSize="10">Tick/untick/enter to change cgb_post_process_helper's behavior!</TextBlock>
+			<TextBlock FontSize="10">Changes take effect immediately.</TextBlock>
+
+			<StackPanel Margin="0,15,0,0" Orientation="Vertical">
+				<CheckBox IsChecked="{Binding AlwaysDeployReleaseDlls}">
+					<StackPanel Orientation="Vertical">
+						<TextBlock Text="Always deploy Release DLLs" />
+						<TextBlock FontSize="10" Text="(instead of Debug DLLs for Debug-builds)" />
+					</StackPanel>
+				</CheckBox>
+				<Grid Margin="20,4,0,0">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="Auto" MinWidth="120"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Row="0" Grid.Column="0" FontSize="12" Text="Release path: " VerticalAlignment="Center"/>
+					<TextBlock Grid.Row="1" Grid.Column="0" FontSize="12" Text="Debug path: " VerticalAlignment="Center"/>
+					<TextBox Grid.Row="0" Grid.Column="1" FontSize="12" 
+							 Text="{Binding ExternalsReleaseSubPath, UpdateSourceTrigger=PropertyChanged}" Margin="2,1" VerticalAlignment="Center"/>
+					<TextBox Grid.Row="1" Grid.Column="1" FontSize="12" 
+							 Text="{Binding ExternalsDebugSubPath, UpdateSourceTrigger=PropertyChanged}" Margin="2,1" VerticalAlignment="Center"/>
+					<TextBox IsReadOnly="True" Grid.Row="0" Grid.Column="2" FontSize="10" Foreground="#aaa" BorderThickness="0"
+							 Text="(default: &quot;release&quot;)" VerticalAlignment="Center"/>
+					<TextBox IsReadOnly="True" Grid.Row="1" Grid.Column="2" FontSize="10" Foreground="#aaa" BorderThickness="0"
+							 Text="(default: &quot;debug&quot;)" VerticalAlignment="Center"/>
+				</Grid>
+			</StackPanel>
+
+			<CheckBox Margin="0,15,0,0" IsChecked="{Binding CopyAssetsToOutputDirectory}">
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="Always copy assets to output directory" />
+					<TextBlock FontSize="10" Text="(never try to create Symlinks for Debug/Release builds)" />
+				</StackPanel>
+			</CheckBox>
+
+			<CheckBox Margin="0,15,0,0" IsChecked="{Binding DoNotMonitorFiles}">
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="Do not monitor files during app execution" />
+					<TextBlock FontSize="10" Text="(i.e. files might not get updated at runtime)" />
+				</StackPanel>
+			</CheckBox>
+
+			<TextBlock Margin="0,15,0,0" Text="Immediately open a window showing errors and warnings" />
+			<TextBlock Margin="0,0,0,0" Text="that happen during deployment of the following types:" />
+			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForVulkanShaders}">
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="Shader files for Vulkan configurations" />
+				</StackPanel>
+			</CheckBox>
+			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForGlShaders}">
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="Shader files for OpenGL configurations" />
+				</StackPanel>
+			</CheckBox>
+			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForModels}">
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="3D Model files" />
+				</StackPanel>
+			</CheckBox>
+
+		</StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,17 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:CgbPostBuildHelper">
+
+	<ContextMenu x:Shared="false" x:Key="SysTrayMenu">
+		<MenuItem Header="Show Instances (all specific builds)" Command="{Binding ShowInstances}" />
+		<Separator />
+		<MenuItem Header="Show Messages List" Command="{Binding ShowMessages}" />
+		<MenuItem Header="Clear Messages List" Command="{Binding ClearMessages}" />
+		<Separator />
+		<MenuItem Header="Open Settings" Command="{Binding OpenSettings}" />
+		<MenuItem Header="About" Command="{Binding OpenAbout}" />
+		<Separator />
+		<MenuItem Header="Exit" Command="{Binding ExitApplicationCommand}" />
+	</ContextMenu>
+
+</ResourceDictionary>

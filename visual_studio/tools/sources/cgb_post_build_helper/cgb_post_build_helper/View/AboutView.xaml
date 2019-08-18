@@ -1,0 +1,48 @@
+﻿<Window x:Class="CgbPostBuildHelper.View.AboutView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CgbPostBuildHelper.View"
+        mc:Ignorable="d"
+        Title="AboutView" Height="240" Width="400">
+    <Grid>
+		<Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<Image Grid.Column="0" Source="/cg_footer_klecks.gif" Width="50" VerticalAlignment="Top"/>
+			<StackPanel Orientation="Vertical" Grid.Column="1" VerticalAlignment="Top" Margin="5">
+				<TextBlock>
+					<Run Text="Developed at" FontStyle="Italic"/>
+					<Run Text="TU Wien" FontWeight="Bold"/>
+				</TextBlock>
+				<TextBlock>
+					<Hyperlink NavigateUri="https://www.cg.tuwien.ac.at/" RequestNavigate="Hyperlink_RequestNavigate">
+						Research Division of Computer Graphics
+					</Hyperlink>
+				</TextBlock>
+				<TextBlock Text="Created by" Margin="0,8,0,0" FontStyle="Italic" />
+				<TextBlock Text="Johannes Unterguggenberger in 2019"/>
+				<TextBlock Margin="0,8,0,0">
+					<Run Text="cgb_post_build_helper" FontStyle="Italic" />
+					<Run Text="is used as a custom build step" />
+				</TextBlock>
+				<TextBlock>
+					<Run Text="for Visual Studio projects which are based on the" />
+				</TextBlock>
+				<TextBlock>
+					<Run Text="real-time rendering framework" />
+					<Run Text="cg_base," FontWeight="Bold"/>
+					<Run Text="available at:" />
+				</TextBlock>
+				<TextBlock>
+					<Hyperlink NavigateUri="https://github.com/johannesugb/CG-Base" RequestNavigate="Hyperlink_RequestNavigate">
+						johannesugb/CG-Base on GitHub
+					</Hyperlink>
+				</TextBlock>
+			</StackPanel>
+		</Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,117 @@
+﻿<UserControl x:Class="CgbPostBuildHelper.View.EventFilesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:CgbPostBuildHelper.View"
+             mc:Ignorable="d"  FontSize="12"
+             d:DesignHeight="450" d:DesignWidth="800">
+
+	<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock Grid.Row="0" FontSize="20" FontWeight="Bold" Padding="8"
+				   Background="#ccf2ff" Foreground="#0099cc"
+				   Text="{Binding ShortPath}" />
+
+		<ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+			<ItemsControl ItemsSource="{Binding AllEventsEver}" >
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<Border BorderBrush="{Binding EventColor}" BorderThickness="4" Margin="8,4" Padding="4">
+							<StackPanel Name="EventContainer">
+
+								<TextBlock FontSize="12" FontWeight="Bold" Margin="4,10,4,0"
+								Text="{Binding Path=CreateDate, StringFormat={x:Static local:Constants.DateTimeUiFormat}, FallbackValue=14.03.2019 15:10}" />
+
+								<TextBlock FontSize="20" FontWeight="Bold" Margin="4,0,4,2"
+								Text="{Binding Path=TypeDescription}" />
+
+								<Grid Margin="24,2,4,0"  Background="LightGray">
+									<StackPanel Orientation="Horizontal">
+										<TextBlock FontSize="14"  Text="🠗 Files 🠗" VerticalAlignment="Center" Margin="4,3,10,4" FontWeight="Bold" />
+										<TextBlock Text="Filters:" Foreground="DimGray" VerticalAlignment="Center" Margin="10,2,2,2" />
+										<TextBox MinWidth="120" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="2" />
+										<CheckBox IsChecked="{Binding FilterErrors}" Content="Errors" Foreground="{x:Static local:Constants.ErrorBrushDark}" VerticalAlignment="Center" Margin="2" />
+										<CheckBox IsChecked="{Binding FilterWarnings}" Content="Warnings" Foreground="{x:Static local:Constants.WarningBrushDark}" VerticalAlignment="Center" Margin="2" />
+										<CheckBox IsChecked="{Binding FilterInfos}" Content="Infos" Foreground="{x:Static local:Constants.InfoBrushDark}" VerticalAlignment="Center" Margin="2" />
+										<CheckBox IsChecked="{Binding FilterSuccesses}" Content="Successes" Foreground="{x:Static local:Constants.SuccessBrushDark}" VerticalAlignment="Center" Margin="2" />
+									</StackPanel>
+								</Grid>
+
+								<ItemsControl ItemsSource="{Binding FilesFiltered}" AlternationCount="2" Margin="24,0,4,10">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+
+											<StackPanel Name="FileContainer">
+												<Grid Margin="4">
+													<Grid.RowDefinitions>
+														<RowDefinition />
+														<RowDefinition />
+														<RowDefinition />
+														<RowDefinition />
+														<RowDefinition />
+														<RowDefinition />
+													</Grid.RowDefinitions>
+													<Grid.ColumnDefinitions>
+														<ColumnDefinition Width="Auto"/>
+														<ColumnDefinition Width="Auto"/>
+													</Grid.ColumnDefinitions>
+
+													<TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+															FontSize="16" FontWeight="Bold"
+															Text="{Binding FilterPathPlusFileName}" />
+													<TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="File type:" Foreground="DimGray" Margin="0,0,4,0" />
+													<TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="{Binding FileTypeDescription}" />
+													<TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Deployed as:" Foreground="DimGray" Margin="0,0,4,0" />
+													<TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Text="{Binding DeploymentTypeDescription}" />
+													<TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Source:" Foreground="DimGray" Margin="0,0,4,0" />
+													<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+														<Button Margin="0,1,3,1" Padding="2,1" Content="-&gt; File" VerticalAlignment="Center" Command="{Binding OpenFileCommand}" CommandParameter="{Binding InputFilePath}" />
+														<Button Margin="0,1,3,1" Padding="2,1" Content="-&gt; Dir" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding InputFilePath}" />
+														<TextBox IsReadOnly="True" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Text="{Binding InputFilePath}" />
+													</StackPanel>
+													<TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Destination:" Foreground="DimGray" Margin="0,0,4,0" />
+													<StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+														<Button Margin="0,1,3,1" Padding="2,1" Content="-&gt; File" VerticalAlignment="Center" Command="{Binding OpenFileCommand}" CommandParameter="{Binding OutputFilePath}" />
+														<Button Margin="0,1,3,1" Padding="2,1" Content="-&gt; Dir" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding OutputFilePath}" />
+														<TextBox IsReadOnly="True" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Text="{Binding OutputFilePath}" />
+													</StackPanel>
+													<StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,1,0,0"
+															Orientation="Horizontal">
+														<TextBlock FontSize="14" VerticalAlignment="Center" Text="{Binding MessagesErrorInfo}" Foreground="{Binding MessagesErrorInfoColor}" />
+														<TextBlock FontSize="13" VerticalAlignment="Center" Margin="4,0" Text="|" Foreground="Gray" />
+														<TextBlock FontSize="14" VerticalAlignment="Center" Text="{Binding MessagesWarningInfo}" Foreground="{Binding MessagesWarningInfoColor}" />
+														<TextBlock FontSize="13" VerticalAlignment="Center" Margin="4,0" Text="|" Foreground="Gray" />
+														<TextBlock FontSize="14" VerticalAlignment="Center" Text="{Binding MessagesInformationInfo}" Foreground="{Binding MessagesInformationInfoColor}" />
+														<TextBlock FontSize="13" VerticalAlignment="Center" Margin="4,0" Text="|" Foreground="Gray" />
+														<TextBlock FontSize="14" VerticalAlignment="Center" Text="{Binding MessagesSuccessInfo}" Foreground="{Binding MessagesSuccessInfoColor}" />
+														<Button Margin="10,0,0,4" VerticalAlignment="Center" Content="Show details..." Command="{Binding ShowFileMessagesCommand}" />
+													</StackPanel>
+
+												</Grid>
+											</StackPanel>
+
+											<DataTemplate.Triggers>
+												<Trigger Property="ItemsControl.AlternationIndex" Value="0">
+													<Setter Property="Background" Value="#FFEFEFEF" TargetName="FileContainer"/>
+												</Trigger>
+												<Trigger Property="ItemsControl.AlternationIndex" Value="1">
+													<Setter Property="Background" Value="#FFF8F8F8" TargetName="FileContainer"/>
+												</Trigger>
+											</DataTemplate.Triggers>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+
+							</StackPanel>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+	</Grid>
+</UserControl>

@@ -1,0 +1,39 @@
+# User-specific files
+*.suo
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+# except build/, which is used as an MSBuild target.
+!**/packages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/packages/repositories.config
+# NuGet v3's project.json files produces more ignoreable files
+*.nuget.props
+*.nuget.targets
+
+# Build results within the visual_studio folder (framework and examples)
+temp/
+examples/**/[Tt]emp/
+examples/**/[Bb]in/
+
+# Visual Studio cache/options directory
+.vs/
+
+# Ignore temporary MS-Office files
+~$*.doc*
+~$*.dot*
+~$*.xls*
+~$*.xlt*
+~$*.ppt*
+~$*.pot*
+
+# Ignore files produced by LaTeX
+/_additional_documents/*/*.aux
+/_additional_documents/*/*.bbl
+/_additional_documents/*/*.blg
+/_additional_documents/*/*.log
+/_additional_documents/*/*.out
+/_additional_documents/*/*.pdf
+/_additional_documents/*/*.synctex.gz

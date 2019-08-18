@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\examples\hello_world\source\hello_world.cpp" />
+    <ClCompile Include="cg_stdafx.cpp">
+      <Filter>precompiled_headers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="assets">
+      <UniqueIdentifier>{24240a51-8fdb-478f-8c1c-27cbca7adc3f}</UniqueIdentifier>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{1d345cf5-0451-42e0-83a8-6a3f5a7203ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="precompiled_headers">
+      <UniqueIdentifier>{a5a0acc4-5b25-43eb-9da9-e70b5bd5a21e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\examples\hello_world\shaders\a_triangle.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\hello_world\shaders\a_triangle.vert">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cg_stdafx.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_targetver.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

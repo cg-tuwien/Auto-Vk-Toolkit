@@ -1,0 +1,297 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{19AA2AE8-BA38-425D-B762-69260DDAD854}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>CgbPostBuildHelper</RootNamespace>
+    <AssemblyName>cgb_post_build_helper</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>..\..\..\executables\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <SupportUrl>https://github.com/johannesugb/CG-Base</SupportUrl>
+    <ErrorReportUrl>https://github.com/johannesugb/CG-Base</ErrorReportUrl>
+    <ProductName>CG-Base Post Build Helper</ProductName>
+    <PublisherName>TU Wien</PublisherName>
+    <SuiteName>CG-Base</SuiteName>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>false</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>post_build_helper_test_cert.pfx</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>13FB3DBDA413BC4C2E05A0B65367846C446DFBBF</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>post_build_helper_test_cert.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AssimpNet, Version=4.1.0.0, Culture=neutral, PublicKeyToken=0d51b391f59f42a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\AssimpNet.4.1.0\lib\net40\AssimpNet.dll</HintPath>
+    </Reference>
+    <Reference Include="envdte, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="envdte80, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Microsoft.VisualStudio.Shell.15.0, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Converter\NullToVisibilityConverter.cs" />
+    <Compile Include="Deployers\CopyFileDeployment.cs" />
+    <Compile Include="Deployers\DeploymentBase.cs" />
+    <Compile Include="Deployers\GlShaderDeployment.cs" />
+    <Compile Include="Deployers\ModelDeployment.cs" />
+    <Compile Include="Deployers\ObjModelDeployment.cs" />
+    <Compile Include="Deployers\VkShaderDeployment.cs" />
+    <Compile Include="Model\FileDeploymentData.cs" />
+    <Compile Include="Model\Message.cs" />
+    <Compile Include="Utils\VsUtils.cs" />
+    <Compile Include="Utils\WpfUtils.cs" />
+    <Compile Include="ViewModel\FileVM.cs" />
+    <Compile Include="ViewModel\FileDeploymentDataVM.cs" />
+    <Compile Include="ViewModel\ContextMenuActionsVM.cs" />
+    <Compile Include="ViewModel\CgbAppInstanceVM.cs" />
+    <Compile Include="Model\InvocationParams.cs" />
+    <Compile Include="SingleApplicationInstance.cs" />
+    <Compile Include="Utils\BindableBase.cs" />
+    <Compile Include="Utils\CgbUtils.cs" />
+    <Compile Include="Utils\DelegateCommand.cs" />
+    <Compile Include="Deployers\IFileDeployment.cs" />
+    <Compile Include="Utils\IRaiseCanExecuteChanged.cs" />
+    <Compile Include="ViewModel\CgbEventVM.cs" />
+    <Compile Include="ViewModel\IMessageListLifetimeHandler.cs" />
+    <Compile Include="ViewModel\MessagesListVM.cs" />
+    <Compile Include="ViewModel\MessageVM.cs" />
+    <Compile Include="ViewModel\SettingsVM.cs" />
+    <Compile Include="ViewModel\WatchedFileVM.cs" />
+    <Compile Include="ViewModel\WatchedDirectoryVM.cs" />
+    <Compile Include="View\AboutView.xaml.cs">
+      <DependentUpon>AboutView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Constants.cs" />
+    <Compile Include="View\EventFilesView.xaml.cs">
+      <DependentUpon>EventFilesView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\InstancesList.xaml.cs">
+      <DependentUpon>InstancesList.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\MessageControl.xaml.cs">
+      <DependentUpon>MessageControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\MessagesList.xaml.cs">
+      <DependentUpon>MessagesList.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\SettingsView.xaml.cs">
+      <DependentUpon>SettingsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\WindowToTheTop.xaml.cs">
+      <DependentUpon>WindowToTheTop.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WpfApplication.cs" />
+    <Page Include="ContextMenuResources.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="View\AboutView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\EventFilesView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\InstancesList.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\MessageControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\MessagesList.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\SettingsView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\WindowToTheTop.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="app.manifest" />
+    <None Include="packages.config" />
+    <None Include="post_build_helper_test_cert.pfx" />
+    <None Include="Properties\app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="tray_icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="FodyWeavers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="tray_icon_dot1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="tray_icon_dot2.ico" />
+    <Resource Include="tray_icon_dot3.ico" />
+    <Resource Include="tray_icon_dot4.ico" />
+    <Resource Include="tray_icon_dot5.ico" />
+    <Resource Include="tray_icon_dot6.ico" />
+    <Resource Include="tray_icon_dot7.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="cg_footer_klecks.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NotifyIconWpf\NotifyIconWpf.csproj">
+      <Project>{7ac63864-7638-41c4-969c-d3197ef2bed9}</Project>
+      <Name>NotifyIconWpf</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\AssimpNet.4.1.0\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.4.1.0\build\AssimpNet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\AssimpNet.4.1.0\build\AssimpNet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\AssimpNet.4.1.0\build\AssimpNet.targets'))" />
+  </Target>
+  <PropertyGroup>
+    <PostBuildEvent>xcopy $(TargetPath) $(SolutionDir)..\..\executables\ /R /Y
+xcopy $(TargetDir)AssimpNet.dll $(SolutionDir)..\..\executables\ /R /Y
+xcopy $(TargetDir)EnvDTE.dll $(SolutionDir)..\..\executables\ /R /Y
+xcopy $(TargetDir)EnvDTE80.dll $(SolutionDir)..\..\executables\ /R /Y
+xcopy $(TargetDir)Hardcodet.Wpf.TaskbarNotification.dll $(SolutionDir)..\..\executables\ /R /Y
+</PostBuildEvent>
+  </PropertyGroup>
+</Project>
