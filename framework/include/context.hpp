@@ -50,10 +50,10 @@ namespace cgb
 		extern uint32_t gDescriptorPoolSizeFactor;
 	}
 
-#if defined(USE_OPENGL46_CONTEXT)
-	inline opengl46& context()
+#if defined(USE_OPENGL_CONTEXT)
+	inline opengl& context()
 	{
-		static opengl46 instance;
+		static opengl instance;
 		return instance;
 	}
 #elif defined(USE_VULKAN_CONTEXT)

@@ -32,13 +32,13 @@ namespace cgb
 		static void check_vk_result(VkResult err);
 
 		template <typename T>
-		void track_creation(T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in context::track_creation", typeid(T).name())); }
+		void track_creation(T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in vulkan::track_creation", typeid(T).name())); }
 		template <typename T>
-		void track_copy(T*, T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in context::track_copy", typeid(T).name())); }
+		void track_copy(T*, T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in vulkan::track_copy", typeid(T).name())); }
 		template <typename T>
-		void track_move(T*, T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in context::track_move", typeid(T).name())); }
+		void track_move(T*, T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in vulkan::track_move", typeid(T).name())); }
 		template <typename T>
-		void track_destruction(T*)	{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in context::track_destruction", typeid(T).name())); }
+		void track_destruction(T*)	{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in vulkan::track_destruction", typeid(T).name())); }
 
 		vk::Instance& vulkan_instance() { return mInstance; }
 		vk::PhysicalDevice& physical_device() { return mPhysicalDevice; }

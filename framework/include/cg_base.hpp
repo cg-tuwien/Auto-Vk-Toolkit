@@ -94,6 +94,10 @@
 #include "shader_info.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
+#include <glad/glad.h>
+#include "buffer_member_format_opengl.hpp"
+#include "image_opengl.hpp"
+#include "image_view_opengl.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
 #include <vulkan/vulkan.hpp>
 #include "buffer_member_format_vulkan.hpp"
@@ -106,13 +110,33 @@
 #include "buffer.hpp"
 #include "input_description.hpp"
 #include "push_constants.hpp"
+#include "filter_mode.hpp"
+#include "border_handling_mode.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
+#include "context_generic_glfw_types.hpp"
+#include "window_base.hpp"
+#include "context_generic_glfw.hpp"
+#include "sampler_opengl.hpp"
+#include "image_sampler_opengl.hpp"
+#include "command_buffer_opengl.hpp"
+#include "semaphore_opengl.hpp"
+#include "fence_opengl.hpp"
+#include "buffer_opengl.hpp"
+#include "renderpass_opengl.hpp"
+#include "framebuffer_opengl.hpp"
+#include "window_opengl.hpp"
+#include "shader_opengl.hpp"
+#include "binding_data_opengl.hpp"
+#include "graphics_pipeline_config.hpp"
+#include "pipeline_opengl.hpp"
+#include "bindings_opengl.hpp"
+
+#include "imgui_impl_opengl3.h"
 
 #include "context_opengl.hpp"
-
+#include "context.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
-
 #include "context_generic_glfw_types.hpp"
 #include "window_base.hpp"
 #include "context_generic_glfw.hpp"
@@ -142,15 +166,13 @@
 
 #include "context_vulkan.hpp"
 #include "context.hpp"
-
-#include "vulkan_convenience_functions.hpp"
-
 // [1] Vulkan Tutorial, Rendering and presentation, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
 // [2] Vulkan Tutorial, Vertex buffer creation, https://vulkan-tutorial.com/Vertex_buffers/Vertex_buffer_creation
 // [3] Vulkan Tutorial, Images, https://vulkan-tutorial.com/Texture_mapping/Images
 // [4] Vulkan Tutorial, Image view and sampler, https://vulkan-tutorial.com/Texture_mapping/Image_view_and_sampler
-
 #endif
+
+#include "graphics_pipeline_config_convenience_functions.hpp"
 
 #include "image.hpp"
 #include "various_utils.hpp"

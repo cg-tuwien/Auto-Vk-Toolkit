@@ -7,17 +7,11 @@
     <ClCompile Include="..\..\framework\src\context.cpp">
       <Filter>Source Files\context_and_context_specific_functionality</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\context_opengl.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\glfw</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\context_opengl_types.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\model.cpp">
       <Filter>Source Files\data_buffers_images</Filter>
@@ -169,6 +163,45 @@
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\buffer_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\fence_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\framebuffer_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\image_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\image_sampler_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\image_view_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\pipeline_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\sampler_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\semaphore_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\shader_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\window_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\renderpass_opengl.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -197,12 +230,6 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\key_state.hpp">
       <Filter>Header Files\application_structure_and_general_stuff\input</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_opengl.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_opengl_types.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\glfw</Filter>
@@ -258,12 +285,6 @@
     <ClInclude Include="..\..\framework\include\buffer.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\window_opengl.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\synchronization_opengl.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\memory_usage.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
@@ -275,9 +296,6 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\shader_type.hpp">
       <Filter>Header Files\pipeline_and_shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\vulkan_convenience_functions.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\composition.hpp">
       <Filter>Header Files\application_structure_and_general_stuff</Filter>
@@ -377,6 +395,66 @@
     </ClInclude>
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\binding_data_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\bindings_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\buffer_member_format_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\buffer_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\command_buffer_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\fence_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\framebuffer_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\image_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\image_sampler_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\image_view_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\pipeline_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\sampler_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\semaphore_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\shader_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\window_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\renderpass_opengl.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\filter_mode.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\border_handling_mode.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\graphics_pipeline_config_convenience_functions.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

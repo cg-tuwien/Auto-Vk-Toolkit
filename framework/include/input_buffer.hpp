@@ -9,9 +9,9 @@ namespace cgb
 	 */
 	class input_buffer
 	{
-#if defined(USE_OPENGL46_CONTEXT)
+#if defined(USE_OPENGL_CONTEXT)
 		friend class generic_glfw;
-		friend class opengl46;
+		friend class opengl;
 #elif defined(USE_VULKAN_CONTEXT)
 		friend class generic_glfw;
 		friend class vulkan;

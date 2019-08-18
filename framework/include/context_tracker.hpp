@@ -4,9 +4,9 @@ namespace cgb
 {
 	// The context_tracker gets included before the context. Therefore, we need
 	// to forward-declare the context methods
-#if defined(USE_OPENGL46_CONTEXT)
-	class opengl46;
-	inline opengl46& context();
+#if defined(USE_OPENGL_CONTEXT)
+	class opengl;
+	inline opengl& context();
 #elif defined(USE_VULKAN_CONTEXT)
 	class vulkan;
 	inline vulkan& context();

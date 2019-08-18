@@ -65,7 +65,7 @@ namespace cgb
 		}
 	};
 
-#if defined(USE_OPENGL46_CONTEXT)
+#if defined(USE_OPENGL_CONTEXT)
 #define GL_ONLY(x) x
 #define VK_ONLY(x) 
 #define GL_FUNC(x) set_function(x)

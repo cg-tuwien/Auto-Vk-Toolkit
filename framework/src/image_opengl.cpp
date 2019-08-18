@@ -1,141 +1,13 @@
-#include "context_opengl46_types.h"
 #include <set>
 
 namespace cgb
 {
-	window::window() 
-		: window_base()
-		, mPreCreateActions()
-	{}
+	image_format::image_format() noexcept
+	{ }
 
-	window::~window() 
-	{
-		if (mHandle) {
-			context().close_window(*this);
-			mHandle = std::nullopt;
-		}
-	}
-
-	window::window(window&& other) noexcept 
-		: window_base(std::move(other))
-		, mPreCreateActions(std::move(other.mPreCreateActions))
-	{
-	}
-
-	window& window::operator= (window&& other) noexcept
-	{
-		window_base::operator=(std::move(other));
-		mPreCreateActions = std::move(other.mPreCreateActions);
-		return *this;
-	}
-
-	void window::request_srgb_framebuffer(bool pRequestSrgb)
-	{
-		switch (pRequestSrgb) {
-		case true:
-			mPreCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-			});
-			break;
-		default:
-			mPreCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_FALSE);
-			});
-			break;
-		}
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
-		if (is_alive()) {
-			mRecreationRequired = true;
-		}
-	}
-
-	void set_number_of_presentable_images(uint32_t pNumImages)
-	{
-		// NOP
-		LOG_WARNING("set_number_of_presentable_images is not supported by the OpenGL context.");
-	}
-
-	void window::set_presentaton_mode(cgb::presentation_mode pMode)
-	{
-		switch (pMode) {
-		case cgb::presentation_mode::immediate:
-			mPreCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
-			});
-			mPostCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwSwapInterval(0);
-			});
-			break;
-		case cgb::presentation_mode::vsync:
-			mPreCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-			});
-			mPostCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwSwapInterval(1);
-			});
-			break;
-		default:
-			mPreCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-			});
-			mPostCreateActions.push_back(
-				[](cgb::window & w) {
-				glfwSwapInterval(0);
-			});
-			break;
-		}
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
-		if (is_alive()) {
-			mRecreationRequired = true;
-		}
-	}
-
-	void window::set_number_of_samples(int pNumSamples)
-	{
-		mPreCreateActions.push_back(
-			[samples = pNumSamples](cgb::window & w) {
-			glfwWindowHint(GLFW_SAMPLES, samples);
-		});
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
-		if (is_alive()) {
-			mRecreationRequired = true;
-		}
-	}
-
-	void window::open()
-	{
-		for (const auto& fu : mPreCreateActions) {
-			fu(*this);
-		}
-
-		// Share the graphics context between all windows
-		auto* sharedContex = context().get_window_for_shared_context();
-		// Bring window into existance:
-		auto* handle = glfwCreateWindow(mRequestedSize.mWidth, mRequestedSize.mHeight,
-						 mTitle.c_str(),
-						 mMonitor.has_value() ? mMonitor->mHandle : nullptr,
-						 sharedContex);
-		if (nullptr == handle) {
-			// No point in continuing
-			throw new std::runtime_error("Failed to create window with the title '" + mTitle + "'");
-		}
-		mHandle = window_handle{ handle };
-
-		// Finish initialization of the window:
-		for (const auto& action : mPostCreateActions) {
-			action(*this);
-		}
-	}
+	image_format::image_format(GLenum pFormat) noexcept
+		: mFormat{ pFormat }
+	{ }
 
 	bool is_srgb_format(const image_format& pImageFormat)
 	{
@@ -337,5 +209,33 @@ namespace cgb
 		};
 		auto it = std::find(std::begin(abgrFormats), std::end(abgrFormats), pImageFormat.mFormat);
 		return it != abgrFormats.end();
+	}
+
+	bool has_stencil_component(const image_format& pImageFormat)
+	{
+		throw std::runtime_error("not implemented");
+	}
+
+	bool is_depth_format(const image_format& pImageFormat)
+	{
+		throw std::runtime_error("not implemented");
+	}
+
+	owning_resource<image_t> image_t::create(int pWidth, int pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	{
+		image_t result;
+		return result;
+	}
+
+	owning_resource<image_t> image_t::create_depth(int pWidth, int pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	{
+		image_t result;
+		return result;
+	}
+
+	owning_resource<image_t> image_t::create_depth_stencil(int pWidth, int pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	{
+		image_t result;
+		return result;
 	}
 }

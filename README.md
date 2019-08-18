@@ -1,4 +1,4 @@
-# _CG-Base_ Rendering Framework
+# cg_base Rendering Framework
 
 cg_base is a modern C++ rendering framework, abstracting several rendering APIs without sacrificing on understandability and offering some nifty features to get you into gears quickly. 
 
