@@ -9,12 +9,12 @@ Strive to write as modern C++ as possible!
 
 Some examples:
 * Never use plain C-style arrays, but use `std::array` instead!
-* Never use `new` but (in most cases/where appropriate) instead `std::unique_ptr`
-* Do not use a `bool` return value plus an 'out'-parameter to return a value, but instead use `std::optional<my_out_type>`
+* Never use `new` but (in most cases/where appropriate) use `std::unique_ptr` instead
+* Do not use a `bool` return value plus an 'out'-parameter to return a value, but use `std::optional<my_out_type>` instead
 
 ### Vulkan HPP
 
-Especially for Vulkan, try to use the C-interface as little as possible and fall back to it only if there are good reasons to do so. Always use the C++ equivalents if available! E.g. don't use `VkInstance` but use `vk::Instance`! Using the C++ bindings makes your life so much easier.
+Especially for Vulkan, try to use the C-interface as little as possible and fall back to it only if there are good reasons to do so. Always use the C++ equivalents if available! E.g. don't use `VkInstance` but use `vk::Instance`!
 
 ## Naming Conventions
 
@@ -47,15 +47,12 @@ namespace namespace_name_lower_case_separated_by_underscores
 
         /** Setter of member variable mValue is called set_value 
          *
-         *  Parameters can be prefixed with 'p' and are always named in camel case.
-         *  The 'p' does NOT mean pointer, there is no pointer-prefix. The 'p', instead, 
-         *  means just "parameter". The 'p'-prefix is optional but is encouraged if it 
-	 *  might be confused with a member of the same name, like here.
-	 *  With prefixes, all names are distinct: mValue, pValue, value(), set_value()
+         *  Parameters should be prefixed with '_' and are always named in camel case.
+         *  With prefixes, all names are distinct: mValue, _Value, value(), set_value()
          */
-        void set_value(const complex_type& pValue)
+        void set_value(const complex_type& _Value)
         {
-            mValue = pValue ; // no conflict with mValue or value here
+            mValue = _Value ; // no conflict with mValue or value here
         }
 
     protected:
