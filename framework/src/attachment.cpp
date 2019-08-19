@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	attachment attachment::create_color(image_format pFormat, std::optional<uint32_t> pLocation)

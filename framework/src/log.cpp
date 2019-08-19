@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
 #include <Windows.h>
 #include <DbgHelp.h>

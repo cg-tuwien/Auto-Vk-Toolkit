@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	std::deque<device_queue> device_queue::sPreparedQueues;

@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	buffer_member_format format_4x_fp16()	{ return buffer_member_format{ vk::Format::eR16G16B16A16Sfloat }; }

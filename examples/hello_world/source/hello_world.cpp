@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 class draw_a_triangle_app : public cgb::cg_element
 {
 	/*void createGraphicsPipeline() {

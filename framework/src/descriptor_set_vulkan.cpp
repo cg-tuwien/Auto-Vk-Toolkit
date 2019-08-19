@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	descriptor_set_layout descriptor_set_layout::prepare(std::vector<binding_data> pBindings)

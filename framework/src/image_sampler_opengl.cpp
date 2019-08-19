@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	owning_resource<image_sampler_t> image_sampler_t::create(image_view pImageView, sampler pSampler)

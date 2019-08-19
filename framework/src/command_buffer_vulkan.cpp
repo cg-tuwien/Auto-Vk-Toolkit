@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	std::vector<command_buffer> command_buffer::create_many(uint32_t pCount, command_pool& pPool, vk::CommandBufferUsageFlags pUsageFlags)

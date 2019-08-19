@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	shader_info shader_info::create(std::string pPath, std::string pEntryPoint, bool pDontMonitorFile, std::optional<cgb::shader_type> pShaderType)

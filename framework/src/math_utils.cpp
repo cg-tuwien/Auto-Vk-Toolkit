@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	glm::vec2 get_angles_from_direction_yaw_pitch(const glm::vec3& direction)

@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	uint32_t window_base::mNextWindowId = 0u;

@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	shader_binding_table::shader_binding_table() noexcept

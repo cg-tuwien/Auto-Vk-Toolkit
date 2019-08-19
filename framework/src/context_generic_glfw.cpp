@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	window* generic_glfw::sWindowInFocus = nullptr;

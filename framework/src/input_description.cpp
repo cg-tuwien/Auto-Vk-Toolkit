@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	input_description input_description::create(std::initializer_list<input_binding_location_data> pBindings)

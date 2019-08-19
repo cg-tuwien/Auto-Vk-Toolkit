@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	command_pool command_pool::create(uint32_t pQueueFamilyIndex, vk::CommandPoolCreateFlags pCreateFlags)

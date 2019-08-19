@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	void window::request_srgb_framebuffer(bool pRequestSrgb)

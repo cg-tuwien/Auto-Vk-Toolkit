@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 #include <sstream>
 
 namespace cgb

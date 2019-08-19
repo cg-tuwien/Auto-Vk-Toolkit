@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 class vertex_buffers_app : public cgb::cg_element
 {
 	void initialize() override

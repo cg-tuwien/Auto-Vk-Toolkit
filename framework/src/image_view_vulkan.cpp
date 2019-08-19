@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	const vk::Image& image_view_t::image_handle() const

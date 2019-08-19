@@ -1,3 +1,5 @@
+#include <cg_base.hpp>
+
 namespace cgb
 {
 	descriptor_alloc_request descriptor_alloc_request::create(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts)
