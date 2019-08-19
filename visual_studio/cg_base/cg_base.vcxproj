@@ -586,78 +586,80 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\linked_libs_debug.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\extra_debug_dependencies.props" />
+    <Import Project="..\props\linked_libs_debug.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_vulkan.props" />
-    <Import Project="..\props\linked_libs_debug.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\extra_debug_dependencies.props" />
+    <Import Project="..\props\linked_libs_debug.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\linked_libs_release.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\linked_libs_release.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_vulkan.props" />
-    <Import Project="..\props\linked_libs_release.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_vulkan.props" />
-    <Import Project="..\props\linked_libs_release.props" />
     <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FrameworkRoot)include;$(IncludePath)</IncludePath>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
@@ -671,7 +673,6 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -683,12 +684,6 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
     <ClCompile>
@@ -699,7 +694,6 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -711,12 +705,6 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">
     <ClCompile>
@@ -729,7 +717,6 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -743,12 +730,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">
     <ClCompile>
@@ -761,7 +742,6 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -775,12 +755,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
     <ClCompile>
@@ -793,7 +767,6 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -807,12 +780,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
     <ClCompile>
@@ -825,7 +792,6 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -839,12 +805,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

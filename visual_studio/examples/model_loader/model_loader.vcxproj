@@ -113,42 +113,44 @@
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_debug.props" />
     <Import Project="..\..\props\rendering_api_vulkan.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
+    <Import Project="..\..\props\extra_debug_dependencies.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_debug.props" />
     <Import Project="..\..\props\rendering_api_opengl.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
+    <Import Project="..\..\props\extra_debug_dependencies.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_release.props" />
     <Import Project="..\..\props\rendering_api_opengl.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_release.props" />
     <Import Project="..\..\props\rendering_api_opengl.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_release.props" />
     <Import Project="..\..\props\rendering_api_vulkan.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\props\solution_directories.props" />
     <Import Project="..\..\props\linked_libs_release.props" />
     <Import Project="..\..\props\rendering_api_vulkan.props" />
-    <Import Project="..\..\props\cg_base_universal.props" />
+    <Import Project="..\..\props\external_dependencies.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">
@@ -197,7 +199,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -208,16 +209,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -231,7 +225,6 @@ echo  %(Filename).c</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -242,16 +235,9 @@ echo  %(Filename).c</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -265,7 +251,6 @@ echo  %(Filename).c</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -276,16 +261,9 @@ echo  %(Filename).c</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -299,7 +277,6 @@ echo  %(Filename).c</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -310,16 +287,9 @@ echo  %(Filename).c</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -331,7 +301,6 @@ echo  %(Filename).c</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -340,16 +309,9 @@ echo  %(Filename).c</Command>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -361,7 +323,6 @@ echo  %(Filename).c</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
@@ -370,16 +331,9 @@ echo  %(Filename).c</Command>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuild>
-      <Command>cmd
-echo %(FullPath)
-echo  %(Filename).c</Command>
-    </CustomBuild>
     <CustomBuildStep>
-      <Command>$(FrameworkRoot)..\visual_studio\tools\executables\cmdow.exe /RUN $(FrameworkRoot)..\visual_studio\tools\executables\cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
+      <Command>$(ToolsBin)cmdow.exe /RUN $(ToolsBin)cgb_post_build_helper.exe -configuration "$(Configuration)" -framework "$(FrameworkRoot)\"  -platform "$(Platform)" -vcxproj "$(ProjectPath)" -filters "$(ProjectPath).filters" -output "$(OutputPath)\" -executable "$(TargetPath)" -external "$(ExternalRoot)\"</Command>
       <Outputs>some-non-existant-file-to-always-run-the-custom-build-step.txt;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>

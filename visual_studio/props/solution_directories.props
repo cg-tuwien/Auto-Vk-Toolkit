@@ -5,19 +5,11 @@
     <FrameworkRoot>$(MSBuildThisFileDirectory)..\..\framework\</FrameworkRoot>
     <ExternalRoot>$(MSBuildThisFileDirectory)..\..\external\</ExternalRoot>
     <ExamplesRoot>$(MSBuildThisFileDirectory)..\..\examples\</ExamplesRoot>
+    <AssetsRoot>$(MSBuildThisFileDirectory)..\..\assets\</AssetsRoot>
+    <ToolsRoot>$(MSBuildThisFileDirectory)..\tools\</ToolsRoot>
+    <ToolsBin>$(MSBuildThisFileDirectory)..\tools\executables\</ToolsBin>
+    <PropsDirectory>$(MSBuildThisFileDirectory)</PropsDirectory>
   </PropertyGroup>
-  <PropertyGroup>
-    <_PropertySheetDisplayName>solution_directories</_PropertySheetDisplayName>
-  </PropertyGroup>
-  <ItemDefinitionGroup>
-    <Link>
-      <AdditionalDependencies>assimp-vc140-mt.lib;glfw3.lib;stb.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\;$(ExternalRoot)$(LibraryConfigurationType)\lib\$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(FrameworkRoot)include_stst\;$(FrameworkRoot)include\;$(ExternalRoot)universal\include\;$(ExternalRoot)$(LibraryConfigurationType)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="FrameworkRoot">
       <Value>$(FrameworkRoot)</Value>
@@ -27,6 +19,18 @@
     </BuildMacro>
     <BuildMacro Include="ExamplesRoot">
       <Value>$(ExamplesRoot)</Value>
+    </BuildMacro>
+    <BuildMacro Include="AssetsRoot">
+      <Value>$(AssetsRoot)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ToolsRoot">
+      <Value>$(ToolsRoot)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ToolsBin">
+      <Value>$(ToolsBin)</Value>
+    </BuildMacro>
+    <BuildMacro Include="PropsDirectory">
+      <Value>$(PropsDirectory)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

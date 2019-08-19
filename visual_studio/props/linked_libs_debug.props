@@ -4,11 +4,6 @@
   <PropertyGroup Label="UserMacros">
     <LibraryConfigurationType>debug</LibraryConfigurationType>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <Lib>
-      <AdditionalDependencies>DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Lib>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="LibraryConfigurationType">
       <Value>$(LibraryConfigurationType)</Value>

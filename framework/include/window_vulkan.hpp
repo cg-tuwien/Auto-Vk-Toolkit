@@ -278,7 +278,7 @@ namespace cgb
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
 		// Extra dependency semaphores will be waited on along with the mImageAvailableSemaphores
-		std::vector<std::tuple<uint64_t, semaphore>> mExtraSemaphoreDependencies;
+		std::list<std::tuple<uint64_t, semaphore>> mExtraSemaphoreDependencies;
 		 
 		// Number of extra semaphores to generate per frame upon fininshing the rendering of a frame
 		uint32_t mNumExtraRenderFinishedSemaphoresPerFrame;
@@ -286,7 +286,7 @@ namespace cgb
 		// Contains the extra semaphores to be signalled per frame
 		// The length of this vector will be: number_of_concurrent_frames() * mNumExtraSemaphoresPerFrame
 		// These semaphores will be signalled together with the mRenderFinishedSemaphores
-		std::deque<semaphore> mExtraRenderFinishedSemaphores;
+		std::list<semaphore> mExtraRenderFinishedSemaphores;
 #pragma endregion
 
 		// The renderpass used for the back buffers
@@ -299,6 +299,6 @@ namespace cgb
 		vk::RenderPass mUiRenderPass;
 
 		// Command buffers which are only submitted once; taking their ownership, handling their lifetime.
-		std::vector<std::tuple<uint64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
+		std::list<std::tuple<uint64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
 	};
 }

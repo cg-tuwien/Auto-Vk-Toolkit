@@ -19,12 +19,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\framework\assets\models\sponza\sponza_structure.obj" />
     <None Include="..\..\..\examples\model_loader\shaders\color.frag">
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\..\examples\model_loader\shaders\passthrough.vert">
       <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+      <Filter>assets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -34,10 +36,5 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <Filter>assets</Filter>
-    </Object>
   </ItemGroup>
 </Project>

@@ -236,6 +236,8 @@ namespace cgb
 			});
 		// return ownership of all the semaphores to remove to the caller
 		std::vector<semaphore> moved_semaphores;
+		// TODO: Remove the following line, once the noexcept-horror is fixed:
+		moved_semaphores.reserve(mExtraSemaphoreDependencies.size());
 		for (decltype(to_remove) it = to_remove; it != std::end(mExtraSemaphoreDependencies); ++it) {
 			moved_semaphores.push_back(std::move(std::get<semaphore>(*it)));
 		}
@@ -274,10 +276,11 @@ namespace cgb
 	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& pSemaphores, uint64_t pFrameId)
 	{
 		// TODO: Fill mExtraRenderFinishedSemaphores with meaningful data
-		auto si = sync_index_for_frame();
-		for (auto i = si; i < si + mNumExtraRenderFinishedSemaphoresPerFrame; ++i) {
-			pSemaphores.push_back(mExtraRenderFinishedSemaphores[i]->handle());
-		}
+		// TODO: Implement
+		//auto si = sync_index_for_frame();
+		//for (auto i = si; i < si + mNumExtraRenderFinishedSemaphoresPerFrame; ++i) {
+		//	pSemaphores.push_back(mExtraRenderFinishedSemaphores. [i]->handle());
+		//}
 	}
 
 	/*std::vector<semaphore> window::set_num_extra_semaphores_to_generate_per_frame(uint32_t pNumExtraSemaphores)
