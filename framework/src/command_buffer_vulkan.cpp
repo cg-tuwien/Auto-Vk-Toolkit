@@ -48,7 +48,7 @@ namespace cgb
 	{
 		std::array clearValues = {
 			vk::ClearValue(vk::ClearColorValue{ make_array<float>( 0.5f, 0.0f, 0.5f, 1.0f ) }),
-			//vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 })
+			vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 })
 		};
 		// TODO: how to determine the number of attachments => and the number of clear-values? omg...
 

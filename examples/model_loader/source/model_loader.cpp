@@ -5,10 +5,10 @@ class vertex_buffers_app : public cgb::cg_element
 	void initialize() override
 	{
 		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
-		auto theChosenOne = 2;
-		auto positions = sponza->positions_for_mesh(theChosenOne);
-		auto colors = sponza->normals_for_mesh(theChosenOne);
-		auto indices = sponza->indices_for_mesh(theChosenOne);
+		auto allMeshes = sponza->select_all_meshes();
+		auto positions = sponza->positions_for_meshes(allMeshes);
+		auto colors = sponza->normals_for_meshes(allMeshes);
+		auto indices = sponza->indices_for_meshes<uint32_t>(allMeshes); // TODO: Shift indices when combining the meshes!!
 
 		mPositionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positions),
@@ -58,6 +58,7 @@ class vertex_buffers_app : public cgb::cg_element
 			//cgb::renderpass(cgb::renderpass_t::create_good_renderpass((VkFormat)cgb::context().main_window()->swap_chain_image_format().mFormat))
 			//std::get<std::shared_ptr<cgb::renderpass_t>>(cgb::context().main_window()->getrenderpass())
 			cgb::attachment::create_color(swapChainFormat),
+			cgb::attachment::create_depth(),
 			//cgb::attachment::create_depth(cgb::image_format{ vk::Format::eD32Sfloat }),
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(glm::mat4) }
 		);

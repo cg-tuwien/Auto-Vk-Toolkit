@@ -9,6 +9,9 @@ namespace cgb
 		image_format(const vk::Format& pFormat) noexcept;
 		image_format(const vk::SurfaceFormatKHR& pSrfFrmt) noexcept;
 
+		static image_format default_depth_format() noexcept;
+		static image_format default_depth_stencil_format() noexcept;
+
 		vk::Format mFormat;
 	};
 

@@ -860,15 +860,23 @@ namespace cgb
 		}
 
 		// Create a renderpass for the back buffers
-		pWindow->mBackBufferRenderpass = renderpass_t::create({ attachment::create_for(pWindow->mSwapChainImageViews[0]) });
-		//pWindow->mBackBufferRenderpass = renderpass_t::create_good_renderpass((VkFormat)pWindow->mSwapChainImageViews[0]->config().format);
+		pWindow->mBackBufferRenderpass = renderpass_t::create({ 
+			attachment::create_for(pWindow->mSwapChainImageViews[0]),
+			attachment::create_depth(image_format::default_depth_format()),
+		});
 		pWindow->mBackBufferRenderpass.enable_shared_ownership();
 
 		// Create a back buffer per image
 		pWindow->mBackBuffers.reserve(pWindow->mSwapChainImageViews.size());
 		for (auto& imView: pWindow->mSwapChainImageViews) {
 			auto imExtent = imView->image_config().extent;
-			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, { imView }, imExtent.width, imExtent.height));
+
+			auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, image_format::default_depth_format(), memory_usage::device, false, 1, 
+				[](image_t& imageToConfig) { imageToConfig.config().setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment); })); // TODO: can setting this usage be somehow abstracted?! e.g. by moving it into the framebuffer class (or a framebuffer's ::create method)
+			// TODO: Disable shared ownership, once the noexcept-hell has been resolved
+			depthView.enable_shared_ownership();
+
+			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, { imView, std::move(depthView) }, imExtent.width, imExtent.height));
 		}
 
 		// ============= SYNCHRONIZATION OBJECTS ===========

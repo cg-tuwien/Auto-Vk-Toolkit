@@ -22,16 +22,20 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_depth(image_format pFormat, std::optional<uint32_t> pLocation)
+	attachment attachment::create_depth(std::optional<image_format> pFormat, std::optional<uint32_t> pLocation)
 	{
+		if (!pFormat.has_value()) {
+			pFormat = image_format::default_depth_format();
+		}
+
 #if defined(_DEBUG)
-		if (!is_depth_format(pFormat)) {
+		if (!is_depth_format(pFormat.value())) {
 			LOG_WARNING("The specified image_format is probably not a depth format, but is used for a depth attachment.");
 		}
 #endif
 		return attachment{
 			pLocation,
-			pFormat,
+			pFormat.value(),
 			cfg::attachment_load_operation::clear,
 			cfg::attachment_store_operation::store,
 			1,				// num samples
@@ -40,6 +44,14 @@ namespace cgb
 			false,			// => no need to resolve
 			false	// => not a shader input attachment
 		};
+	}
+
+	attachment attachment::create_depth_stencil(std::optional<image_format> pFormat, std::optional<uint32_t> pLocation)
+	{
+		if (!pFormat.has_value()) {
+			pFormat = image_format::default_depth_stencil_format();
+		}
+		return create_depth(std::move(pFormat), std::move(pLocation));
 	}
 
 	attachment attachment::create_shader_input(image_format pFormat, std::optional<uint32_t> pLocation)

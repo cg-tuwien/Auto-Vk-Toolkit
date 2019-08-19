@@ -61,13 +61,82 @@ namespace cgb
 
 		std::vector<glm::vec3> positions_for_mesh(size_t _MeshIndex);
 		std::vector<glm::vec3> normals_for_mesh(size_t _MeshIndex);
-		std::vector<uint32_t> indices_for_mesh(size_t _MeshIndex);
+		std::vector<glm::vec3> tangents_for_mesh(size_t _MeshIndex);
+		std::vector<glm::vec3> bitangents_for_mesh(size_t _MeshIndex);
+		std::vector<glm::vec4> colors_for_mesh(size_t _MeshIndex, int _Set = 0);
+		int num_uv_components_for_mesh(size_t _MeshIndex, int _Set = 0);
+		template <typename T> std::vector<T> texture_coordinates_for_mesh(size_t _MeshIndex, int _Set = 0) { static_assert(false, "unsupported type T"); }
+		int num_indices_for_mesh(size_t _MeshIndex);
+		
+		template <typename T> 
+		std::vector<T> indices_for_mesh(size_t _MeshIndex) 
+		{ 
+			const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+			size_t indicesCount = num_indices_for_mesh(_MeshIndex);
+			std::vector<T> result;
+			result.reserve(indicesCount);
+			for (unsigned int i = 0; i < paiMesh->mNumFaces; ++i) {
+				// we're working with triangulated meshes only
+				const aiFace& paiFace = paiMesh->mFaces[i];
+				for (unsigned int f = 0; f < paiFace.mNumIndices; ++f) {
+					result.emplace_back(static_cast<T>(paiFace.mIndices[f]));
+				}
+			}
+			return result;
+		}
+
+		/** Return the indices of all meshes which the given _Predicate evaluates true for.
+		 *	Function-signature: bool(size_t, const aiMesh*) where the first parameter is the 
+		 *									mesh index and the second the pointer to the data
+		 */
+		template <typename F>
+		std::vector<size_t> select_meshes(F _Predicate)
+		{
+			std::vector<size_t> result;
+			for (size_t i = 0; i < mScene->mNumMeshes; ++i) {
+				const aiMesh* paiMesh = mScene->mMeshes[i];
+				if (_Predicate(i, paiMesh)) {
+					result.push_back(i);
+				}
+			}
+			return result;
+		}
+
+		std::vector<size_t> select_all_meshes();
+
+		std::vector<glm::vec3> positions_for_meshes(std::vector<size_t> _MeshIndices);
+		std::vector<glm::vec3> normals_for_meshes(std::vector<size_t> _MeshIndices);
+		std::vector<glm::vec3> tangents_for_meshes(std::vector<size_t> _MeshIndices);
+		std::vector<glm::vec3> bitangents_for_meshes(std::vector<size_t> _MeshIndices);
+		std::vector<glm::vec4> colors_for_meshes(std::vector<size_t> _MeshIndices, int _Set = 0);
+
+		template <typename T>
+		std::vector<T> texture_coordinates_for_meshes(std::vector<size_t> _MeshIndices, int _Set = 0)
+		{
+			std::vector<T> result;
+			for (auto meshIndex : _MeshIndices) {
+				auto tmp = texture_coordinates_for_mesh<T>(meshIndex, _Set);
+				std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+			}
+			return result;
+		}
+
+		template <typename T>
+		std::vector<T> indices_for_meshes(std::vector<size_t> _MeshIndices)
+		{
+			std::vector<T> result;
+			for (auto meshIndex : _MeshIndices) {
+				auto tmp = indices_for_mesh<T>(meshIndex);
+				std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+			}
+			return result;
+		}
 
 		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = 0);
 		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = 0);
 
 	private:
-		std::optional<glm::mat4> transformation_matrix_tranverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M);
+		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M);
 
 		std::unique_ptr<Assimp::Importer> mImporter;
 		const aiScene* mScene;
@@ -75,5 +144,75 @@ namespace cgb
 
 	using model = owning_resource<model_t>;
 
+
+	template <>
+	inline std::vector<glm::vec2> model_t::texture_coordinates_for_mesh<glm::vec2>(size_t _MeshIndex, int _Set)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec2> result;
+		result.reserve(n);
+		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[_Set]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", _MeshIndex, _Set));
+			result.emplace_back(0.f, 0.f);
+		}
+		else {
+			const auto nuv = num_uv_components_for_mesh(_MeshIndex, _Set);
+			switch (nuv) {
+			case 1:
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], 0.f);
+				}
+				break;
+			case 2:
+			case 3:
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1]);
+				}
+				break;
+			default:
+				throw std::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+			}
+		}
+		return result;
+	}
+
+	template <>
+	inline std::vector<glm::vec3> model_t::texture_coordinates_for_mesh<glm::vec3>(size_t _MeshIndex, int _Set)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec3> result;
+		result.reserve(n);
+		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[_Set]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", _MeshIndex, _Set));
+			result.emplace_back(0.f, 0.f, 0.f);
+		}
+		else {
+			const auto nuv = num_uv_components_for_mesh(_MeshIndex, _Set);
+			switch (nuv) {
+			case 1:
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], 0.f, 0.f);
+				}
+				break;
+			case 2:
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1], 0.f);
+				}
+				break;
+			case 3:
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1], paiMesh->mTextureCoords[i][_Set][2]);
+				}
+				break;
+			default:
+				throw std::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+			}
+		}
+		return result;
+	}
 
 }

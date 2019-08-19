@@ -36,10 +36,18 @@ namespace cgb
 		/** Create a new depth/stencil attachment, with the following default settings:
 		 *	 - clear on load
 		 *	 - store on store
-		 *	@param	pFormat		The depth/stencil format of the new attachment
+		 *	@param	pFormat		(Optional) The depth format of the new attachment
 		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
 		 */
-		static attachment create_depth(image_format pFormat, std::optional<uint32_t> pLocation = {});
+		static attachment create_depth(std::optional<image_format> pFormat = {}, std::optional<uint32_t> pLocation = {});
+
+		/** Create a new depth/stencil attachment, with the following default settings:
+		 *	 - clear on load
+		 *	 - store on store
+		 *	@param	pFormat		(Optional) The depth/stencil format of the new attachment
+		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
+		 */
+		static attachment create_depth_stencil(std::optional<image_format> pFormat = {}, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new color attachment for use as shader input, with the following default settings:
 		 *	 - load on load

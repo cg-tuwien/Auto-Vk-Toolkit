@@ -26,7 +26,7 @@ namespace cgb
 		return result;
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_tranverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M)
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M)
 	{
 		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
 		for (unsigned int i = 0; i < _Node->mNumMeshes; i++)
@@ -38,7 +38,7 @@ namespace cgb
 		// Not found => go deeper
 		for (unsigned int i = 0; i < _Node->mNumChildren; i++)
 		{
-			auto mat = transformation_matrix_tranverser(_MeshIndexToFind, _Node->mChildren[i], nodeM);
+			auto mat = transformation_matrix_traverser(_MeshIndexToFind, _Node->mChildren[i], nodeM);
 			if (mat.has_value()) {
 				return mat;
 			}
@@ -49,7 +49,7 @@ namespace cgb
 	glm::mat4 model_t::transformation_matrix_for_mesh(size_t _MeshIndex)
 	{
 		// Find the mesh in Assim's node hierarchy
-		return transformation_matrix_tranverser(static_cast<unsigned int>(_MeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
+		return transformation_matrix_traverser(static_cast<unsigned int>(_MeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
 	}
 
 	std::string model_t::name_of_mesh(size_t _MeshIndex)
@@ -243,26 +243,156 @@ namespace cgb
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
-		for (decltype(n) i = 0; i < n; ++i) {
-			result.push_back(glm::vec3(paiMesh->mNormals[i][0], paiMesh->mNormals[i][1], paiMesh->mNormals[i][2]));
+		if (nullptr == paiMesh->mNormals) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", _MeshIndex));
+			result.emplace_back(0.f, 0.f, 1.f);
+		}
+		else {
+			// We've got normals. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(paiMesh->mNormals[i][0], paiMesh->mNormals[i][1], paiMesh->mNormals[i][2]);
+			}
 		}
 		return result;
 	}
 
-	std::vector<uint32_t> model_t::indices_for_mesh(size_t _MeshIndex)
+	std::vector<glm::vec3> model_t::tangents_for_mesh(size_t _MeshIndex)
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
-		size_t indicesCount = paiMesh->mNumFaces * 3; // There are always 3 faces... TODO: Is that true?
-		std::vector<uint32_t> result;
-		result.reserve(indicesCount);
-		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++)
-		{
-			// we're working with triangulated meshes only
-			const aiFace& Face = paiMesh->mFaces[i];
-			result.push_back(Face.mIndices[0]);
-			result.push_back(Face.mIndices[1]);
-			result.push_back(Face.mIndices[2]);
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec3> result;
+		result.reserve(n);
+		if (nullptr == paiMesh->mTangents) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", _MeshIndex));
+			result.emplace_back(1.f, 0.f, 0.f);
+		}
+		else {
+			// We've got tangents. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(paiMesh->mTangents[i][0], paiMesh->mTangents[i][1], paiMesh->mTangents[i][2]);
+			}
 		}
 		return result;
 	}
+
+	std::vector<glm::vec3> model_t::bitangents_for_mesh(size_t _MeshIndex)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec3> result;
+		result.reserve(n);
+		if (nullptr == paiMesh->mBitangents) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", _MeshIndex));
+			result.emplace_back(0.f, 1.f, 0.f);
+		}
+		else {
+			// We've got bitangents. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(paiMesh->mBitangents[i][0], paiMesh->mBitangents[i][1], paiMesh->mBitangents[i][2]);
+			}
+		}
+		return result;
+	}
+
+	std::vector<glm::vec4> model_t::colors_for_mesh(size_t _MeshIndex, int _Set)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec4> result;
+		result.reserve(n);
+		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_COLOR_SETS);
+		if (nullptr == paiMesh->mColors[_Set]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", _MeshIndex, _Set));
+			result.emplace_back(1.f, 0.f, 1.f, 1.f);
+		}
+		else {
+			// We've got colors[_Set]. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(paiMesh->mColors[i][_Set][0], paiMesh->mColors[i][_Set][1], paiMesh->mColors[i][_Set][2], paiMesh->mColors[i][_Set][3]);
+			}
+		}
+		return result;
+	}
+
+	int model_t::num_uv_components_for_mesh(size_t _MeshIndex, int _Set)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[_Set]) { return 0; }
+		return paiMesh->mNumUVComponents[_Set];
+	}
+
+	int model_t::num_indices_for_mesh(size_t _MeshIndex)
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		size_t indicesCount = 0;
+		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++)
+		{
+			const aiFace& paiFace = paiMesh->mFaces[i];
+			indicesCount += paiFace.mNumIndices;
+		}
+		return indicesCount;
+	}
+
+	std::vector<size_t> model_t::select_all_meshes()
+	{
+		std::vector<size_t> result;
+		auto n = mScene->mNumMeshes;
+		result.reserve(n);
+		for (decltype(n) i = 0; i < n; ++i) {
+			result.push_back(static_cast<size_t>(i));
+		}
+		return result;
+	}
+
+	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<size_t> _MeshIndices)
+	{
+		std::vector<glm::vec3> result;
+		for (auto meshIndex : _MeshIndices) {
+			auto tmp = positions_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
+	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<size_t> _MeshIndices)
+	{
+		std::vector<glm::vec3> result;
+		for (auto meshIndex : _MeshIndices) {
+			auto tmp = normals_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
+	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<size_t> _MeshIndices)
+	{
+		std::vector<glm::vec3> result;
+		for (auto meshIndex : _MeshIndices) {
+			auto tmp = tangents_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
+	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<size_t> _MeshIndices)
+	{
+		std::vector<glm::vec3> result;
+		for (auto meshIndex : _MeshIndices) {
+			auto tmp = bitangents_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
+	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<size_t> _MeshIndices, int _Set)
+	{
+		std::vector<glm::vec4> result;
+		for (auto meshIndex : _MeshIndices) {
+			auto tmp = colors_for_mesh(meshIndex, _Set);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
 }

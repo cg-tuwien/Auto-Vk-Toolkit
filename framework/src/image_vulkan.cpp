@@ -15,6 +15,16 @@ namespace cgb
 		: mFormat{ pSrfFrmt.format }
 	{ }
 
+	image_format image_format::default_depth_format() noexcept
+	{
+		return { vk::Format::eD32Sfloat };
+	}
+
+	image_format image_format::default_depth_stencil_format() noexcept
+	{
+		return { vk::Format::eD24UnormS8Uint };
+	}
+
 	bool is_srgb_format(const image_format& pImageFormat)
 	{
 		// Note: Currently, the compressed formats are ignored => could/should be added in the future, maybe
@@ -414,7 +424,7 @@ namespace cgb
 			.setMipLevels(mipLevels)
 			.setArrayLayers(1u)
 			.setFormat(pFormat.mFormat)
-			.setTiling(vk::ImageTiling::eOptimal)
+			.setTiling(vk::ImageTiling::eOptimal) // TODO: Support linear tiling
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
 			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet, how to handle this one
