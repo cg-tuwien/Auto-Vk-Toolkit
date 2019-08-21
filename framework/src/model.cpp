@@ -358,7 +358,7 @@ namespace cgb
 		return paiMesh->mNumUVComponents[_Set];
 	}
 
-	int model_t::num_indices_for_mesh(size_t _MeshIndex) const
+	int model_t::number_of_indices_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		size_t indicesCount = 0;

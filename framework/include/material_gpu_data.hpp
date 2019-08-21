@@ -57,3 +57,62 @@ namespace cgb
 		alignas(16) glm::vec4 mExtraTexOffsetTiling;
 	};
 }
+
+namespace std // Inject hash for `cgb::material_gpu_data` into std::
+{
+	template<> struct hash<cgb::material_gpu_data>
+	{
+		std::size_t operator()(cgb::material_gpu_data const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				o.mDiffuseReflectivity,
+				o.mAmbientReflectivity,
+				o.mSpecularReflectivity,
+				o.mEmissiveColor,
+				o.mTransparentColor,
+				o.mReflectiveColor,
+				o.mAlbedo,
+				o.mOpacity,
+				o.mBumpScaling,
+				o.mShininess,
+				o.mShininessStrength,
+				o.mRefractionIndex,
+				o.mReflectivity,
+				o.mMetallic,
+				o.mSmoothness,
+				o.mSheen,
+				o.mThickness,
+				o.mRoughness,
+				o.mAnisotropy,
+				o.mAnisotropyRotation,
+				o.mCustomData,
+				o.mDiffuseTexIndex,
+				o.mSpecularTexIndex,
+				o.mAmbientTexIndex,
+				o.mEmissiveTexIndex,
+				o.mHeightTexIndex,
+				o.mNormalsTexIndex,
+				o.mShininessTexIndex,
+				o.mOpacityTexIndex,
+				o.mDisplacementTexIndex,
+				o.mReflectionTexIndex,
+				o.mLightmapTexIndex,
+				o.mExtraTexIndex,
+				o.mDiffuseTexOffsetTiling,
+				o.mSpecularTexOffsetTiling,
+				o.mAmbientTexOffsetTiling,
+				o.mEmissiveTexOffsetTiling,
+				o.mHeightTexOffsetTiling,
+				o.mNormalsTexOffsetTiling,
+				o.mShininessTexOffsetTiling,
+				o.mOpacityTexOffsetTiling,
+				o.mDisplacementTexOffsetTiling,
+				o.mReflectionTexOffsetTiling,
+				o.mLightmapTexOffsetTiling,
+				o.mExtraTexOffsetTiling
+			);
+			return h;
+		}
+	};
+}

@@ -71,13 +71,13 @@ namespace detail
 	template<typename T, qualifier Q>
 	GLM_FUNC_QUALIFIER T lxNorm(vec<3, T, Q> const& x, vec<3, T, Q> const& y, unsigned int Depth)
 	{
-		return pow(pow(y.x - x.x, T(Depth)) + pow(y.y - x.y, T(Depth)) + pow(y.z - x.z, T(Depth)), T(1) / T(Depth));
+		return pow(pow(abs(y.x - x.x), T(Depth)) + pow(abs(y.y - x.y), T(Depth)) + pow(abs(y.z - x.z), T(Depth)), T(1) / T(Depth));
 	}
 
 	template<typename T, qualifier Q>
 	GLM_FUNC_QUALIFIER T lxNorm(vec<3, T, Q> const& v, unsigned int Depth)
 	{
-		return pow(pow(v.x, T(Depth)) + pow(v.y, T(Depth)) + pow(v.z, T(Depth)), T(1) / T(Depth));
+		return pow(pow(abs(v.x), T(Depth)) + pow(abs(v.y), T(Depth)) + pow(abs(v.z), T(Depth)), T(1) / T(Depth));
 	}
 
 }//namespace glm

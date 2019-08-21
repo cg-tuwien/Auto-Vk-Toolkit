@@ -545,7 +545,28 @@ namespace cgb
 		std::vector<binding_data> mResourceBindings;
 		std::vector<push_constant_binding_data> mPushConstantsBindings;
 	};
+}
 
 
-
+namespace std // Inject hash for `cgb::cfg::color_blending_config` into std::
+{
+	template<> struct hash<cgb::cfg::color_blending_config>
+	{
+		std::size_t operator()(cgb::cfg::color_blending_config const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				o.mTargetAttachment,
+				o.mEnabled,
+				static_cast<std::underlying_type<cgb::cfg::color_channel>::type>(o.mAffectedColorChannels),
+				static_cast<std::underlying_type<cgb::cfg::blending_factor>::type>(o.mIncomingColorFactor),
+				static_cast<std::underlying_type<cgb::cfg::blending_factor>::type>(o.mExistingColorFactor),
+				static_cast<std::underlying_type<cgb::cfg::color_blending_operation>::type>(o.mColorOperation),
+				static_cast<std::underlying_type<cgb::cfg::blending_factor>::type>(o.mIncomingAlphaFactor),
+				static_cast<std::underlying_type<cgb::cfg::blending_factor>::type>(o.mExistingAlphaFactor),
+				static_cast<std::underlying_type<cgb::cfg::color_blending_operation>::type>(o.mAlphaOperation)
+			);
+			return h;
+		}
+	};
 }

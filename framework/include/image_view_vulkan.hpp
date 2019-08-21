@@ -54,3 +54,19 @@ namespace cgb
 	/** Typedef representing any kind of OWNING image view representations. */
 	using image_view = owning_resource<image_view_t>;
 }
+
+namespace std // Inject hash for `cgb::image_sampler_t` into std::
+{
+	template<> struct hash<cgb::image_view_t>
+	{
+		std::size_t operator()(cgb::image_view_t const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				static_cast<VkImageView>(o.view_handle()),
+				static_cast<VkImage>(o.image_handle())
+			);
+			return h;
+		}
+	};
+}

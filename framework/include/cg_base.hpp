@@ -29,6 +29,7 @@
 #include <typeindex>
 #include <type_traits>
 #include <utility>
+#include <cstdint>
 
 #include <stdio.h>
 #include <assert.h>

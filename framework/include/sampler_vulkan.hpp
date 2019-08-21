@@ -38,5 +38,17 @@ namespace cgb
 
 	/** Typedef representing any kind of OWNING sampler representations. */
 	using sampler = owning_resource<sampler_t>;
+}
 
+namespace std // Inject hash for `cgb::sampler_t` into std::
+{
+	template<> struct hash<cgb::sampler_t>
+	{
+		std::size_t operator()(cgb::sampler_t const& o) const noexcept
+		{
+			std::size_t h = 0;
+			std::hash<VkSampler>{}(o.handle());
+			return h;
+		}
+	};
 }

@@ -57,40 +57,93 @@ namespace cgb
 		 */
 		inline size_t number_of_vertices_for_mesh(size_t _MeshIndex) const;
 
-		/** Gets all the positions for a given mesh index
+		/** Gets all the positions for the mesh at the given index.
 		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@return		Vector  of vertex positions, converted to `glm::vec3`
+		 *	@return		Vector of vertex positions, converted to `glm::vec3` 
+		 *				of length `number_of_vertices_for_mesh()`
 		 */
 		std::vector<glm::vec3> positions_for_mesh(size_t _MeshIndex) const;
 
-		/** Gets all the normals for a given mesh index.
-		 *	If the mesh does not have normals, 
+		/** Gets all the normals for the mesh at the given index.
+		 *	If the mesh has no normals, a vector filled with values is
+		 *	returned regardless. All the values will be set to (0,0,1) in this case.
 		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@return		Normals Normals converted to `glm::vec3`
+		 *	@return		Vector of normals, converted to `glm::vec3`
+		 *				of length `number_of_vertices_for_mesh()`
 		 */
 		std::vector<glm::vec3> normals_for_mesh(size_t _MeshIndex) const;
 
-		/** Gets all the tangents for a given mesh index
+		/** Gets all the tangents for the mesh at the given index.
+		 *	If the mesh has no tangents, a vector filled with values is
+		 *	returned regardless. All the values will be set to (1,0,0) in this case.
 		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@return		Normals converted to `glm::vec3`
+		 *	@return		Vector of tangents, converted to `glm::vec3`
+		 *				of length `number_of_vertices_for_mesh()`
 		 */
 		std::vector<glm::vec3> tangents_for_mesh(size_t _MeshIndex) const;
+
+		/** Gets all the bitangents for the mesh at the given index.
+		 *	If the mesh has no bitangents, a vector filled with values is
+		 *	returned regardless. All the values will be set to (0,1,0) in this case.
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@return		Vector of bitangents, converted to `glm::vec3`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
 		std::vector<glm::vec3> bitangents_for_mesh(size_t _MeshIndex) const;
+
+		/** Gets all the colors of a specific color set for the mesh at the given index.
+		 *	If the mesh has no colors for the given set index, a vector filled with values is
+		 *	returned regardless. All the values will be set to (1,0,1,1) in this case (magenta).
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		_Set			Index to a specific set of colors
+		 *	@return		Vector of colors, converted to `glm::vec4`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
 		std::vector<glm::vec4> colors_for_mesh(size_t _MeshIndex, int _Set = 0) const;
+
+		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		_Set			Index to a specific set of texture coordinates
+		 *	@return		Number of uv components the given set has. This can, e.g., be used to 
+		 *				determine how to retrieve the texture coordinates: as vec2 or as vec3, 
+		 *				like follows: `texture_coordinates_for_mesh<vec2>(0)` or `texture_coordinates_for_mesh<vec3>(0)`, respectively.
+		 */
 		int num_uv_components_for_mesh(size_t _MeshIndex, int _Set = 0) const;
 
+		/** Gets all the texture coordinates of a UV-set for the mesh at the given index.
+		 *	If the mesh has no colors for the given set index, a vector filled with values is
+		 *	returned regardless. You'll have to specify the type of UV-coordinates which you
+		 *	want to retrieve. Supported types are `glm::vec2` and `glm::vec3`.
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		_Set			Index to a specific set of UV-coordinates
+		 *	@return		Vector of UV-coordinates, converted to `T`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(size_t _MeshIndex, int _Set = 0) const
 		{
 			throw std::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
 		}
-		
-		int num_indices_for_mesh(size_t _MeshIndex) const;
-		
+
+		/** Gets the number of indices for the mesh at the given index.
+		 *	Please note: Theoretically it can happen that a mesh has faces with different 
+		 *	numbers of vertices (e.g. triangles and quads). Use the `aiProcess_Triangulate`
+		 *	import flag to get only triangles, or make sure to handle them properly.
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@return		Number of indices for the given mesh.
+		 */
+		int number_of_indices_for_mesh(size_t _MeshIndex) const;
+
+		/** Gets all the indices for the mesh at the given index.
+		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@return		Vector of vertex positions, converted to type `T`
+		 *				of length `number_of_indices_for_mesh()`.
+		 *				In most cases, you'll want to pass `uint16_t` or `uint32_t` for `T`.
+		 */
 		template <typename T> 
 		std::vector<T> indices_for_mesh(size_t _MeshIndex) const
 		{ 
 			const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
-			size_t indicesCount = num_indices_for_mesh(_MeshIndex);
+			size_t indicesCount = number_of_indices_for_mesh(_MeshIndex);
 			std::vector<T> result;
 			result.reserve(indicesCount);
 			for (unsigned int i = 0; i < paiMesh->mNumFaces; ++i) {
@@ -120,6 +173,9 @@ namespace cgb
 			return result;
 		}
 
+		/** Return the indices of all meshes. It's effecively the same as calling
+		 *	`select_meshes` with a predicate that always evaluates true.
+		 */
 		std::vector<size_t> select_all_meshes() const;
 
 		std::vector<glm::vec3> positions_for_meshes(std::vector<size_t> _MeshIndices) const;
@@ -150,8 +206,8 @@ namespace cgb
 			return result;
 		}
 
-		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = 0);
-		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = 0);
+		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
+		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
 
 	private:
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const;

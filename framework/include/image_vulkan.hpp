@@ -136,5 +136,16 @@ namespace cgb
 		cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr); // not using fence... TODO: maybe use fence!
 		cgb::context().transfer_queue().handle().waitIdle();
 	}
+}
 
+namespace std // Inject hash for `cgb::image_sampler_t` into std::
+{
+	template<> struct hash<cgb::image_t>
+	{
+		std::size_t operator()(cgb::image_t const& o) const noexcept
+		{
+			std::size_t h = std::hash<VkImage>{}(o.image_handle());
+			return h;
+		}
+	};
 }

@@ -81,6 +81,9 @@
 #define GLM_COMPILER_CUDA75			0x100000B0
 #define GLM_COMPILER_CUDA80			0x100000C0
 
+// SYCL
+#define GLM_COMPILER_SYCL			0x00300000
+
 // Clang
 #define GLM_COMPILER_CLANG			0x20000000
 #define GLM_COMPILER_CLANG34		0x20000050
@@ -128,6 +131,10 @@
 #	elif CUDA_VERSION < 7000
 #		error "GLM requires CUDA 7.0 or higher"
 #	endif
+
+// SYCL
+#elif defined(__SYCL_DEVICE_ONLY__)
+#	define GLM_COMPILER GLM_COMPILER_SYCL
 
 // Clang
 #elif defined(__clang__)

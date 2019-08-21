@@ -31,3 +31,20 @@ namespace cgb
 	/** Typedef representing any kind of OWNING image-sampler representations. */
 	using image_sampler = owning_resource<image_sampler_t>;
 }
+
+namespace std // Inject hash for `cgb::image_sampler_t` into std::
+{
+	template<> struct hash<cgb::image_sampler_t>
+	{
+		std::size_t operator()(cgb::image_sampler_t const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				static_cast<VkImageView>(o.view_handle()),
+				static_cast<VkImage>(o.image_handle()),
+				static_cast<VkSampler>(o.sampler_handle())
+			);
+			return h;
+		}
+	};
+}

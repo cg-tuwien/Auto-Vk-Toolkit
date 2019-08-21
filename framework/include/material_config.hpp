@@ -6,6 +6,7 @@ namespace cgb
 	{
 		material_config()
 			: mName{ "some material" }
+			, mIgnoreCpuOnlyDataForHash{ true }
 			, mShadingModel{}
 			, mWireframeMode{ false }
 			, mTwosided{ false }
@@ -65,6 +66,8 @@ namespace cgb
 
 		// CPU-only parameters:
 		std::string mName;
+
+		bool mIgnoreCpuOnlyDataForHash;
 		std::string mShadingModel;
 		bool mWireframeMode;
 		bool mTwosided;
@@ -122,5 +125,72 @@ namespace cgb
 		glm::vec4 mReflectionTexOffsetTiling;
 		glm::vec4 mLightmapTexOffsetTiling;
 		glm::vec4 mExtraTexOffsetTiling;
+	};
+}
+
+namespace std // Inject hash for `cgb::material_config` into std::
+{
+	template<> struct hash<cgb::material_config>
+	{
+		std::size_t operator()(cgb::material_config const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				o.mDiffuseReflectivity,
+				o.mAmbientReflectivity,
+				o.mSpecularReflectivity,
+				o.mEmissiveColor,
+				o.mTransparentColor,
+				o.mReflectiveColor,
+				o.mAlbedo,
+				o.mOpacity,
+				o.mBumpScaling,
+				o.mShininess,
+				o.mShininessStrength,
+				o.mRefractionIndex,
+				o.mReflectivity,
+				o.mMetallic,
+				o.mSmoothness,
+				o.mSheen,
+				o.mThickness,
+				o.mRoughness,
+				o.mAnisotropy,
+				o.mAnisotropyRotation,
+				o.mCustomData,
+				o.mDiffuseTex,
+				o.mSpecularTex,
+				o.mAmbientTex,
+				o.mEmissiveTex,
+				o.mHeightTex,
+				o.mNormalsTex,
+				o.mShininessTex,
+				o.mOpacityTex,
+				o.mDisplacementTex,
+				o.mReflectionTex,
+				o.mLightmapTex,
+				o.mExtraTex,
+				o.mDiffuseTexOffsetTiling,
+				o.mSpecularTexOffsetTiling,
+				o.mAmbientTexOffsetTiling,
+				o.mEmissiveTexOffsetTiling,
+				o.mHeightTexOffsetTiling,
+				o.mNormalsTexOffsetTiling,
+				o.mShininessTexOffsetTiling,
+				o.mOpacityTexOffsetTiling,
+				o.mDisplacementTexOffsetTiling,
+				o.mReflectionTexOffsetTiling,
+				o.mLightmapTexOffsetTiling,
+				o.mExtraTexOffsetTiling
+			);
+			if (!o.mIgnoreCpuOnlyDataForHash) {
+				cgb::hash_combine(h,
+					o.mShadingModel,
+					o.mWireframeMode,
+					o.mTwosided,
+					o.mBlendMode
+				);
+			}
+			return h;
+		}
 	};
 }
