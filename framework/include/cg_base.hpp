@@ -221,6 +221,9 @@ namespace cgb
 #include "composition.hpp"
 
 #include "transform.hpp"
+#include "material_config.hpp"
+#include "material_gpu_data.hpp"
+#include "material.hpp"
 #include "model.hpp"
 #include "camera.hpp"
 #include "quake_camera.hpp"

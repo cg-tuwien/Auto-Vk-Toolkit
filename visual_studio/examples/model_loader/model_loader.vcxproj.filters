@@ -19,14 +19,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\examples\model_loader\shaders\color.frag">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\model_loader\shaders\passthrough.vert">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
       <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\examples\model_loader\shaders\diffuse_illum_fixed_lightsource.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\model_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
+      <Filter>shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -26,7 +26,7 @@ namespace cgb
 		return result;
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M)
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const
 	{
 		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
 		for (unsigned int i = 0; i < _Node->mNumMeshes; i++)
@@ -46,25 +46,25 @@ namespace cgb
 		return {};
 	}
 
-	glm::mat4 model_t::transformation_matrix_for_mesh(size_t _MeshIndex)
+	glm::mat4 model_t::transformation_matrix_for_mesh(size_t _MeshIndex) const
 	{
 		// Find the mesh in Assim's node hierarchy
 		return transformation_matrix_traverser(static_cast<unsigned int>(_MeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
 	}
 
-	std::string model_t::name_of_mesh(size_t _MeshIndex)
+	std::string model_t::name_of_mesh(size_t _MeshIndex) const
 	{
 		assert(mScene->mNumMeshes >= _MeshIndex);
 		return mScene->mMeshes[_MeshIndex]->mName.data;
 	}
 
-	size_t model_t::material_index_for_mesh(size_t _MeshIndex)
+	size_t model_t::material_index_for_mesh(size_t _MeshIndex) const
 	{
 		assert(mScene->mNumMeshes >= _MeshIndex);
 		return mScene->mMeshes[_MeshIndex]->mMaterialIndex;
 	}
 
-	std::string model_t::name_of_material(size_t _MaterialIndex)
+	std::string model_t::name_of_material(size_t _MaterialIndex) const
 	{
 		aiMaterial* pMaterial = mScene->mMaterials[_MaterialIndex];
 		if (!pMaterial) return "";
@@ -75,9 +75,9 @@ namespace cgb
 			return "";
 	}
 
-	material model_t::material_of_mesh(size_t _MeshIndex)
+	material_config model_t::material_config_for_mesh(size_t _MeshIndex) const
 	{
-		material result;
+		material_config result;
 
 		aiString strVal;
 		aiColor3D color(0.0f, 0.0f, 0.0f);
@@ -91,141 +91,177 @@ namespace cgb
 		assert(materialIndex <= mScene->mNumMaterials);
 		aiMaterial* aimat = mScene->mMaterials[materialIndex];
 
+		// CPU-only parameters:
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_NAME, strVal)) {
-			result.m_name = strVal.data;
+			result.mName = strVal.data;
 		}
-
-		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
-			result.m_diffuse_reflectivity = glm::vec3(color.r, color.g, color.b);
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_SHADING_MODEL, intVal)) {
+			switch (static_cast<aiShadingMode>(intVal)) {
+			case aiShadingMode_Flat: 
+				result.mShadingModel = "Flat";
+				break;
+			case aiShadingMode_Gouraud: 
+				result.mShadingModel = "Gouraud";
+				break;
+			case aiShadingMode_Phong: 
+				result.mShadingModel = "Phong";
+				break;
+			case aiShadingMode_Blinn: 
+				result.mShadingModel = "Blinn";
+				break;
+			case aiShadingMode_Toon: 
+				result.mShadingModel = "Toon";
+				break;
+			case aiShadingMode_OrenNayar: 
+				result.mShadingModel = "OrenNayar";
+				break;
+			case aiShadingMode_Minnaert: 
+				result.mShadingModel = "Minnaert";
+				break;
+			case aiShadingMode_CookTorrance: 
+				result.mShadingModel = "CookTorrance";
+				break;
+			case aiShadingMode_NoShading: 
+				result.mShadingModel = "NoShading";
+				break;
+			case aiShadingMode_Fresnel: 
+				result.mShadingModel = "Fresnel";
+				break;
+			default: 
+				result.mShadingModel = "";
+			}
 		}
-
-		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
-			result.m_specular_reflectivity = glm::vec3(color.r, color.g, color.b);
-		}
-
-		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
-			result.m_ambient_reflectivity = glm::vec3(color.r, color.g, color.b);
-		}
-
-		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_EMISSIVE, color)) {
-			result.m_emissive_color = glm::vec3(color.r, color.g, color.b);
-		}
-
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_ENABLE_WIREFRAME, intVal)) {
-			result.m_wireframe_mode = 0 != intVal;
+			result.mWireframeMode = 0 != intVal;
 		}
-
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_TWOSIDED, intVal)) {
-			result.m_twosided = 0 != intVal;
+			result.mTwosided = 0 != intVal;
 		}
-
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_BLEND_FUNC, blendMode)) {
-			result.m_blend_mode = blendMode == aiBlendMode_Additive
+			result.mBlendMode = blendMode == aiBlendMode_Additive
 				? cfg::color_blending_config::enable_additive_for_all_attachments()
 				: cfg::color_blending_config::enable_alpha_blending_for_all_attachments();
 		}
 
+		// Shader parameters:
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+			result.mDiffuseReflectivity = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
+			result.mAmbientReflectivity = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+			result.mSpecularReflectivity = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_EMISSIVE, color)) {
+			result.mEmissiveColor = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_TRANSPARENT, color)) {
+			result.mTransparentColor = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_COLOR_REFLECTIVE, color)) {
+			result.mReflectiveColor = glm::vec4(color.r, color.g, color.b, 0.0f);
+		}
+
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_OPACITY, floatVal)) {
-			result.m_opacity = floatVal;
+			result.mOpacity = floatVal;
 		}
-
+		if (AI_SUCCESS == aimat->Get(AI_MATKEY_BUMPSCALING, floatVal)) {
+			result.mBumpScaling = floatVal;
+		}
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_SHININESS, floatVal)) {
-			result.m_shininess = floatVal;
+			result.mShininess = floatVal;
 		}
-
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_SHININESS_STRENGTH, floatVal)) {
-			result.m_shininess_strength = floatVal;
+			result.mShininessStrength = floatVal;
 		}
 
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_REFRACTI, floatVal)) {
-			result.m_refraction_index = floatVal;
+			result.mRefractionIndex = floatVal;
 		}
-
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_REFLECTIVITY, floatVal)) {
-			result.m_reflectivity = floatVal;
+			result.mReflectivity = floatVal;
 		}
 
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DIFFUSE, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_diffuse_tex = strVal.data;
+			result.mDiffuseTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SPECULAR, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_specular_tex = strVal.data;
+			result.mSpecularTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_AMBIENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_ambient_tex = strVal.data;
+			result.mAmbientTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_EMISSIVE, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_emissive_tex = strVal.data;
+			result.mEmissiveTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_HEIGHT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_height_tex = strVal.data;
+			result.mHeightTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_NORMALS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_normals_tex = strVal.data;
+			result.mNormalsTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SHININESS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_shininess_tex = strVal.data;
+			result.mShininessTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_OPACITY, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_opacity_tex = strVal.data;
+			result.mOpacityTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DISPLACEMENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_displacement_tex = strVal.data;
+			result.mDisplacementTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_REFLECTION, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_reflection_tex = strVal.data;
+			result.mReflectionTex = strVal.data;
 		}
-
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_LIGHTMAP, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, &texMapMode)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.m_lightmap_tex = strVal.data;
+			result.mLightmapTex = strVal.data;
 		}
 
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_mesh(size_t _MeshIndex)
+	size_t model_t::number_of_vertices_for_mesh(size_t _MeshIndex) const
+	{
+		assert(mScene);
+		assert(_MeshIndex < mScene->mNumMeshes);
+		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		return static_cast<size_t>(paiMesh->mNumVertices);
+	}
+
+	std::vector<glm::vec3> model_t::positions_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -237,7 +273,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_mesh(size_t _MeshIndex)
+	std::vector<glm::vec3> model_t::normals_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -256,7 +292,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_mesh(size_t _MeshIndex)
+	std::vector<glm::vec3> model_t::tangents_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -275,7 +311,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_mesh(size_t _MeshIndex)
+	std::vector<glm::vec3> model_t::bitangents_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -294,7 +330,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_mesh(size_t _MeshIndex, int _Set)
+	std::vector<glm::vec4> model_t::colors_for_mesh(size_t _MeshIndex, int _Set) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -314,7 +350,7 @@ namespace cgb
 		return result;
 	}
 
-	int model_t::num_uv_components_for_mesh(size_t _MeshIndex, int _Set)
+	int model_t::num_uv_components_for_mesh(size_t _MeshIndex, int _Set) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
@@ -322,7 +358,7 @@ namespace cgb
 		return paiMesh->mNumUVComponents[_Set];
 	}
 
-	int model_t::num_indices_for_mesh(size_t _MeshIndex)
+	int model_t::num_indices_for_mesh(size_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		size_t indicesCount = 0;
@@ -334,7 +370,7 @@ namespace cgb
 		return indicesCount;
 	}
 
-	std::vector<size_t> model_t::select_all_meshes()
+	std::vector<size_t> model_t::select_all_meshes() const
 	{
 		std::vector<size_t> result;
 		auto n = mScene->mNumMeshes;
@@ -345,7 +381,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<size_t> _MeshIndices)
+	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<size_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -355,7 +391,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<size_t> _MeshIndices)
+	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<size_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -365,7 +401,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<size_t> _MeshIndices)
+	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<size_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -375,7 +411,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<size_t> _MeshIndices)
+	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<size_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -385,7 +421,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<size_t> _MeshIndices, int _Set)
+	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<size_t> _MeshIndices, int _Set) const
 	{
 		std::vector<glm::vec4> result;
 		for (auto meshIndex : _MeshIndices) {

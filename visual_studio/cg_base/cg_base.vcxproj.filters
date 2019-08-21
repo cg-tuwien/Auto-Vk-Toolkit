@@ -456,6 +456,15 @@
     <ClInclude Include="..\..\framework\include\graphics_pipeline_config_convenience_functions.hpp">
       <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_config.hpp">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_gpu_data.hpp">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material.hpp">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -583,6 +592,12 @@
     </Filter>
     <Filter Include="precompiled_headers">
       <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\materials">
+      <UniqueIdentifier>{2f48c5b9-1e70-4133-b325-ebad35d14317}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\materials">
+      <UniqueIdentifier>{10fc3df0-04ba-4e48-a552-94a1d862d01d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
