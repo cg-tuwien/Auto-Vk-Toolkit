@@ -2,6 +2,9 @@
 
 namespace cgb
 {
+	/** Material data in the right format to be uploaded to the GPU
+	 *	and to be used in a GPU buffer like a UBO or an SSBO.
+	 */
 	struct material_gpu_data
 	{
 		alignas(16) glm::vec4 mDiffuseReflectivity;
@@ -56,6 +59,71 @@ namespace cgb
 		alignas(16) glm::vec4 mLightmapTexOffsetTiling;
 		alignas(16) glm::vec4 mExtraTexOffsetTiling;
 	};
+
+	/** Compares the two `material_gpu_data`s for equality.
+	 */
+	static bool operator ==(const material_gpu_data& left, const material_gpu_data& right)
+	{
+		if (left.mDiffuseReflectivity			!= right.mDiffuseReflectivity			) return false;
+		if (left.mAmbientReflectivity			!= right.mAmbientReflectivity			) return false;
+		if (left.mSpecularReflectivity			!= right.mSpecularReflectivity			) return false;
+		if (left.mEmissiveColor					!= right.mEmissiveColor					) return false;
+		if (left.mTransparentColor				!= right.mTransparentColor				) return false;
+		if (left.mReflectiveColor				!= right.mReflectiveColor				) return false;
+		if (left.mAlbedo						!= right.mAlbedo						) return false;
+
+		if (left.mRefractionIndex				!= right.mRefractionIndex				) return false;
+		if (left.mReflectivity					!= right.mReflectivity					) return false;
+		if (left.mMetallic						!= right.mMetallic						) return false;
+		if (left.mSmoothness					!= right.mSmoothness					) return false;
+
+		if (left.mRefractionIndex				!= right.mRefractionIndex				) return false;
+		if (left.mReflectivity					!= right.mReflectivity					) return false;
+		if (left.mMetallic						!= right.mMetallic						) return false;
+		if (left.mSmoothness					!= right.mSmoothness					) return false;
+
+		if (left.mSheen							!= right.mSheen							) return false;
+		if (left.mThickness						!= right.mThickness						) return false;
+		if (left.mRoughness						!= right.mRoughness						) return false;
+		if (left.mAnisotropy					!= right.mAnisotropy					) return false;
+
+		if (left.mAnisotropyRotation			!= right.mAnisotropyRotation			) return false;
+		if (left.mCustomData					!= right.mCustomData					) return false;
+
+		if (left.mDiffuseTexIndex				!= right.mDiffuseTexIndex				) return false;
+		if (left.mSpecularTexIndex				!= right.mSpecularTexIndex				) return false;
+		if (left.mAmbientTexIndex				!= right.mAmbientTexIndex				) return false;
+		if (left.mEmissiveTexIndex				!= right.mEmissiveTexIndex				) return false;
+		if (left.mHeightTexIndex				!= right.mHeightTexIndex				) return false;
+		if (left.mNormalsTexIndex				!= right.mNormalsTexIndex				) return false;
+		if (left.mShininessTexIndex				!= right.mShininessTexIndex				) return false;
+		if (left.mOpacityTexIndex				!= right.mOpacityTexIndex				) return false;
+		if (left.mDisplacementTexIndex			!= right.mDisplacementTexIndex			) return false;
+		if (left.mReflectionTexIndex			!= right.mReflectionTexIndex			) return false;
+		if (left.mLightmapTexIndex				!= right.mLightmapTexIndex				) return false;
+		if (left.mExtraTexIndex					!= right.mExtraTexIndex					) return false;
+
+		if (left.mDiffuseTexOffsetTiling		!= right.mDiffuseTexOffsetTiling		) return false;
+		if (left.mSpecularTexOffsetTiling		!= right.mSpecularTexOffsetTiling		) return false;
+		if (left.mAmbientTexOffsetTiling		!= right.mAmbientTexOffsetTiling		) return false;
+		if (left.mEmissiveTexOffsetTiling		!= right.mEmissiveTexOffsetTiling		) return false;
+		if (left.mHeightTexOffsetTiling			!= right.mHeightTexOffsetTiling			) return false;
+		if (left.mNormalsTexOffsetTiling		!= right.mNormalsTexOffsetTiling		) return false;
+		if (left.mShininessTexOffsetTiling		!= right.mShininessTexOffsetTiling		) return false;
+		if (left.mOpacityTexOffsetTiling		!= right.mOpacityTexOffsetTiling		) return false;
+		if (left.mDisplacementTexOffsetTiling	!= right.mDisplacementTexOffsetTiling	) return false;
+		if (left.mReflectionTexOffsetTiling		!= right.mReflectionTexOffsetTiling		) return false;
+		if (left.mLightmapTexOffsetTiling		!= right.mLightmapTexOffsetTiling		) return false;
+		if (left.mExtraTexOffsetTiling			!= right.mExtraTexOffsetTiling			) return false;
+
+		return true;
+	}
+
+	/** Negated result of operator==, see the equality operator for more details! */
+	static bool operator !=(const material_gpu_data& left, const material_gpu_data& right)
+	{
+		return !(left == right);
+	}
 }
 
 namespace std // Inject hash for `cgb::material_gpu_data` into std::

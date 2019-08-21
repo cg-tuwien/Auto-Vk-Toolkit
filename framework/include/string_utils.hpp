@@ -66,4 +66,14 @@ namespace cgb
 		return clean_up_path(std::string(first) + SEP_TO_USE + std::string(second));
 	}
 
+	static bool are_paths_equal(std::string_view first, std::string_view second)
+	{
+		auto firstPathCleaned = clean_up_path(first);
+		auto secondPathCleaned = clean_up_path(second);
+#if defined(_WIN32)
+		std::transform(firstPathCleaned.begin(),  firstPathCleaned.end(),  firstPathCleaned.begin(),  [](auto c){ return std::tolower(c); });
+		std::transform(secondPathCleaned.begin(), secondPathCleaned.end(), secondPathCleaned.begin(), [](auto c){ return std::tolower(c); });
+#endif
+		return firstPathCleaned == secondPathCleaned;
+	}
 }

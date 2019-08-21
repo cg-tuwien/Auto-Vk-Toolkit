@@ -22,10 +22,10 @@
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
       <Filter>assets</Filter>
     </None>
-    <None Include="..\..\..\examples\model_loader\shaders\diffuse_illum_fixed_lightsource.frag">
+    <None Include="..\..\..\examples\model_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\model_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
+    <None Include="..\..\..\examples\model_loader\shaders\diffuse_shading_fixed_lightsource.frag">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -36,5 +36,10 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="..\..\..\assets\3rd_party\models\sponza\sponza_fabric.obj">
+      <Filter>assets</Filter>
+    </Object>
   </ItemGroup>
 </Project>

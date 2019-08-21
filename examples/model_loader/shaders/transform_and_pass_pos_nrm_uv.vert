@@ -9,17 +9,14 @@ layout(push_constant) uniform PushConstants {
 	mat4 projViewMatrix;
 } pushConstants;
 
-out gl_PerVertex 
-{
-	vec3 positionWS;
-	vec3 normalWS;
-	vec2 texCoord;
-	vec4 gl_Position;   
-};
+layout (location = 0) out vec3 positionWS;
+layout (location = 1) out vec3 normalWS;
+layout (location = 2) out vec2 texCoord;
 
 void main() {
-	positionWS = pushConstants.modelMatrix * vec4(inPosition, 1.0);
+	vec4 posWS = pushConstants.modelMatrix * vec4(inPosition.xyz, 1.0);
+	positionWS = posWS.xyz;
     texCoord = inTexCoord;
 	normalWS = mat3(pushConstants.modelMatrix) * inNormal;
-    gl_Position = pushConstants.projViewMatrix * positionWS;
+    gl_Position = pushConstants.projViewMatrix * posWS;
 }

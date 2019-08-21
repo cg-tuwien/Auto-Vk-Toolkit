@@ -2,11 +2,14 @@
 
 namespace cgb
 {
+	/** Contains the raw material config as read out by Assimp.
+	 *	Note however, that some fields will not be set by Assimp.
+	 */
 	struct material_config
 	{
-		material_config()
+		material_config(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false)
 			: mName{ "some material" }
-			, mIgnoreCpuOnlyDataForHash{ true }
+			, mIgnoreCpuOnlyDataForEquality{ !_AlsoConsiderCpuOnlyDataForDistinctMaterials }
 			, mShadingModel{}
 			, mWireframeMode{ false }
 			, mTwosided{ false }
@@ -67,7 +70,7 @@ namespace cgb
 		// CPU-only parameters:
 		std::string mName;
 
-		bool mIgnoreCpuOnlyDataForHash;
+		bool mIgnoreCpuOnlyDataForEquality;
 		std::string mShadingModel;
 		bool mWireframeMode;
 		bool mTwosided;
@@ -126,6 +129,81 @@ namespace cgb
 		glm::vec4 mLightmapTexOffsetTiling;
 		glm::vec4 mExtraTexOffsetTiling;
 	};
+
+	/** Compares the two `material_config`s for equality.
+	 *	The comparisons made depend on the `mIgnoreCpuOnlyDataForEquality` members. If these members of both
+	 *	comparands are `true`, the CPU-only fields will not be compared. Or put in a different way: The two 
+	 *	`material`s are considered equal even if they have different values in the GPU-only field.
+	 */
+	static bool operator ==(const material_config& left, const material_config& right)
+	{
+		if (!left.mIgnoreCpuOnlyDataForEquality || !right.mIgnoreCpuOnlyDataForEquality) {
+			if (left.mShadingModel				!= right.mShadingModel					) return false;
+			if (left.mWireframeMode				!= right.mWireframeMode					) return false;
+			if (left.mTwosided					!= right.mTwosided						) return false;
+			if (left.mBlendMode					!= right.mBlendMode						) return false;
+		}
+		
+		if (left.mDiffuseReflectivity			!= right.mDiffuseReflectivity			) return false;
+		if (left.mAmbientReflectivity			!= right.mAmbientReflectivity			) return false;
+		if (left.mSpecularReflectivity			!= right.mSpecularReflectivity			) return false;
+		if (left.mEmissiveColor					!= right.mEmissiveColor					) return false;
+		if (left.mTransparentColor				!= right.mTransparentColor				) return false;
+		if (left.mReflectiveColor				!= right.mReflectiveColor				) return false;
+		if (left.mAlbedo						!= right.mAlbedo						) return false;
+
+		if (left.mRefractionIndex				!= right.mRefractionIndex				) return false;
+		if (left.mReflectivity					!= right.mReflectivity					) return false;
+		if (left.mMetallic						!= right.mMetallic						) return false;
+		if (left.mSmoothness					!= right.mSmoothness					) return false;
+
+		if (left.mRefractionIndex				!= right.mRefractionIndex				) return false;
+		if (left.mReflectivity					!= right.mReflectivity					) return false;
+		if (left.mMetallic						!= right.mMetallic						) return false;
+		if (left.mSmoothness					!= right.mSmoothness					) return false;
+
+		if (left.mSheen							!= right.mSheen							) return false;
+		if (left.mThickness						!= right.mThickness						) return false;
+		if (left.mRoughness						!= right.mRoughness						) return false;
+		if (left.mAnisotropy					!= right.mAnisotropy					) return false;
+
+		if (left.mAnisotropyRotation			!= right.mAnisotropyRotation			) return false;
+		if (left.mCustomData					!= right.mCustomData					) return false;
+
+		if (left.mDiffuseTex					!= right.mDiffuseTex					) return false;
+		if (left.mSpecularTex					!= right.mSpecularTex					) return false;
+		if (left.mAmbientTex					!= right.mAmbientTex					) return false;
+		if (left.mEmissiveTex					!= right.mEmissiveTex					) return false;
+		if (left.mHeightTex						!= right.mHeightTex						) return false;
+		if (left.mNormalsTex					!= right.mNormalsTex					) return false;
+		if (left.mShininessTex					!= right.mShininessTex					) return false;
+		if (left.mOpacityTex					!= right.mOpacityTex					) return false;
+		if (left.mDisplacementTex				!= right.mDisplacementTex				) return false;
+		if (left.mReflectionTex					!= right.mReflectionTex					) return false;
+		if (left.mLightmapTex					!= right.mLightmapTex					) return false;
+		if (left.mExtraTex						!= right.mExtraTex						) return false;
+
+		if (left.mDiffuseTexOffsetTiling		!= right.mDiffuseTexOffsetTiling		) return false;
+		if (left.mSpecularTexOffsetTiling		!= right.mSpecularTexOffsetTiling		) return false;
+		if (left.mAmbientTexOffsetTiling		!= right.mAmbientTexOffsetTiling		) return false;
+		if (left.mEmissiveTexOffsetTiling		!= right.mEmissiveTexOffsetTiling		) return false;
+		if (left.mHeightTexOffsetTiling			!= right.mHeightTexOffsetTiling			) return false;
+		if (left.mNormalsTexOffsetTiling		!= right.mNormalsTexOffsetTiling		) return false;
+		if (left.mShininessTexOffsetTiling		!= right.mShininessTexOffsetTiling		) return false;
+		if (left.mOpacityTexOffsetTiling		!= right.mOpacityTexOffsetTiling		) return false;
+		if (left.mDisplacementTexOffsetTiling	!= right.mDisplacementTexOffsetTiling	) return false;
+		if (left.mReflectionTexOffsetTiling		!= right.mReflectionTexOffsetTiling		) return false;
+		if (left.mLightmapTexOffsetTiling		!= right.mLightmapTexOffsetTiling		) return false;
+		if (left.mExtraTexOffsetTiling			!= right.mExtraTexOffsetTiling			) return false;
+
+		return true;
+	}
+
+	/** Negated result of operator==, see the equality operator for more details! */
+	static bool operator !=(const material_config& left, const material_config& right)
+	{
+		return !(left == right);
+	}
 }
 
 namespace std // Inject hash for `cgb::material_config` into std::
@@ -182,7 +260,7 @@ namespace std // Inject hash for `cgb::material_config` into std::
 				o.mLightmapTexOffsetTiling,
 				o.mExtraTexOffsetTiling
 			);
-			if (!o.mIgnoreCpuOnlyDataForHash) {
+			if (!o.mIgnoreCpuOnlyDataForEquality) {
 				cgb::hash_combine(h,
 					o.mShadingModel,
 					o.mWireframeMode,

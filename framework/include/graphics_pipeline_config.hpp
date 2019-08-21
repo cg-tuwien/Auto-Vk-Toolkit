@@ -358,7 +358,7 @@ namespace cgb
 			op_set
 		};
 
-		/** Some color blending settings */
+		/** Color blending settings */
 		struct color_blending_settings
 		{
 			static color_blending_settings disable_logic_operation() { return color_blending_settings{ {}, {} }; }
@@ -495,6 +495,26 @@ namespace cgb
 			// incoming*factor -operation- existing*factor
 			color_blending_operation mAlphaOperation;
 		};
+
+		/** Compares two `color_blending_config`s for equality */
+		static bool operator== (const color_blending_config& left, const color_blending_config& right)
+		{
+			return left.mTargetAttachment		== right.mTargetAttachment
+				&& left.mEnabled				== right.mEnabled
+				&& left.mAffectedColorChannels	== right.mAffectedColorChannels
+				&& left.mIncomingColorFactor	== right.mIncomingColorFactor
+				&& left.mExistingColorFactor	== right.mExistingColorFactor
+				&& left.mColorOperation			== right.mColorOperation
+				&& left.mIncomingAlphaFactor	== right.mIncomingAlphaFactor
+				&& left.mExistingAlphaFactor	== right.mExistingAlphaFactor
+				&& left.mAlphaOperation			== right.mAlphaOperation;
+		}
+
+		/** Returns `true` if the two `color_blending_config`s are not equal */
+		static bool operator!= (const color_blending_config& left, const color_blending_config& right)
+		{
+			return !(left == right);
+		}
 
 		/** How the vertex input is to be interpreted topology-wise */
 		enum struct primitive_topology

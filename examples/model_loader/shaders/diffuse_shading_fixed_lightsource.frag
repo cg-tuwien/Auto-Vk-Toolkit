@@ -1,8 +1,10 @@
 #version 460
+#extension GL_KHR_vulkan_glsl : enable
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
-layout(set = 1, binding = 0) uniform uniform Material
+
+layout(set = 1, binding = 0) uniform Material
 {
 	vec4 m_diffuse_reflectivity;
 	vec4 m_specular_reflectivity;
@@ -55,20 +57,17 @@ layout(set = 1, binding = 0) uniform uniform Material
 	vec4 m_extra_tex_offset_tiling;
 } material;
 
-layout(location = 0) in VertexData 
-{
-	vec3 positionWS;
-	vec3 normalWS;
-	vec2 texCoord;
-} fs_in;
+layout (location = 0) in vec3 positionWS;
+layout (location = 1) in vec3 normalWS;
+layout (location = 2) in vec2 texCoord;
 
 layout (location = 0) out vec4 fs_out;
 
 void main() 
 {
-    vec3 color = texture(textures[material.m_diffuse_tex_index], fs_in.texCoord).rgb;
-	color *= material.m_diffuse_reflectivity;
+    vec3 color = texture(textures[material.m_diffuse_tex_index], texCoord).rgb;
+	color *= material.m_diffuse_reflectivity.rgb;
 	vec3 toLight = vec3(0.0, 1.0, 0.0);
-	color *= max(0.0, dot(normalize(fs_in.normalWS), toLight));
+	color *= max(0.0, dot(normalize(normalWS), toLight));
 	fs_out = vec4(color, 1.0);
 }

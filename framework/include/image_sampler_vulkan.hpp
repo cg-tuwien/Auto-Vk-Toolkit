@@ -30,6 +30,23 @@ namespace cgb
 
 	/** Typedef representing any kind of OWNING image-sampler representations. */
 	using image_sampler = owning_resource<image_sampler_t>;
+
+	/** Compares two `image_sampler_t`s for equality.
+	 *	They are considered equal if all their handles (image, image-view, sampler) are the same.
+	 *	The config structs or the descriptor data is not evaluated for equality comparison.
+	 */
+	static bool operator==(const image_sampler_t& left, const image_sampler_t& right)
+	{
+		return left.view_handle() == right.view_handle()
+			&& left.image_handle() == right.image_handle()
+			&& left.sampler_handle() == right.sampler_handle();
+	}
+
+	/** Returns `true` if the two `image_sampler_t`s are not equal. */
+	static bool operator!=(const image_sampler_t& left, const image_sampler_t& right)
+	{
+		return !(left == right);
+	}
 }
 
 namespace std // Inject hash for `cgb::image_sampler_t` into std::

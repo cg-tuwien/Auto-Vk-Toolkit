@@ -38,6 +38,21 @@ namespace cgb
 
 	/** Typedef representing any kind of OWNING sampler representations. */
 	using sampler = owning_resource<sampler_t>;
+
+	/** Compares two `sampler_t`s for equality.
+	 *	They are considered equal if their handles are the same.
+	 *	The config structs' data is not evaluated for equality comparison.
+	 */
+	static bool operator==(const sampler_t& left, const sampler_t& right)
+	{
+		return left.handle() == right.handle();
+	}
+
+	/** Returns `true` if the two `sampler_t`s are not equal. */
+	static bool operator!=(const sampler_t& left, const sampler_t& right)
+	{
+		return !(left == right);
+	}
 }
 
 namespace std // Inject hash for `cgb::sampler_t` into std::

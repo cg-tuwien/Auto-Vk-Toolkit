@@ -48,6 +48,21 @@ namespace cgb
 		 */
 		material_config material_config_for_mesh(size_t _MeshIndex) const;
 
+		/**	Gets all distinct `material_config` structs foor this model and, as a bonus, so to say,
+		 *	also gets all the mesh indices which have the materials assigned to.
+		 *	@param	_AlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
+		 *															also the data in the material struct are evaluated which only remain on the CPU. This CPU 
+		 *															data will not be transmitted to the GPU. By default, this parameter is set to `false`, i.e.
+		 *															only the GPU data of the `material_config` struct will be evaluated when determining the distinct
+		 *															materials.
+		 *															You'll want to set this parameter to `true` if you are planning to adapt your draw calls based
+		 *															on one or all of the following `material_config` members: `mShadingModel`, `mWireframeMode`,
+		 *															`mTwosided`, `mBlendMode`. If you don't plan to differentiate based on these, set to `false`.
+		 *	@return	A `std::unordered_map` containing the distinct `material_config` structs as the
+		 *			keys and a vector of mesh indices as the value type, i.e. `std::vector<size_t>`. 
+		 */
+		std::unordered_map<material_config, std::vector<size_t>> distinct_material_configs(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false) const;
+			
 		/** Gets the number of vertices for the mesh at the given index.
 		 *	@param		_MeshIndex		The index corresponding to the mesh
 		 *	@return		Number of vertices, which is also the length of all the vectors,
@@ -213,6 +228,7 @@ namespace cgb
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const;
 
 		std::unique_ptr<Assimp::Importer> mImporter;
+		std::string mModelPath;
 		const aiScene* mScene;
 	};
 

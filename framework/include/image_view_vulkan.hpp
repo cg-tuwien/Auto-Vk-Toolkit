@@ -53,6 +53,22 @@ namespace cgb
 
 	/** Typedef representing any kind of OWNING image view representations. */
 	using image_view = owning_resource<image_view_t>;
+
+	/** Compares two `image_view_t`s for equality.
+	 *	They are considered equal if all their handles (image, image-view) are the same.
+	 *	The config structs or the descriptor data is not evaluated for equality comparison.
+	 */
+	static bool operator==(const image_view_t& left, const image_view_t& right)
+	{
+		return left.view_handle() == right.view_handle()
+			&& left.image_handle() == right.image_handle();
+	}
+
+	/** Returns `true` if the two `image_view_t`s are not equal. */
+	static bool operator!=(const image_view_t& left, const image_view_t& right)
+	{
+		return !(left == right);
+	}
 }
 
 namespace std // Inject hash for `cgb::image_sampler_t` into std::

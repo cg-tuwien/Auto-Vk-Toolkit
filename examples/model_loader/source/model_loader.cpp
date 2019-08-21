@@ -4,11 +4,13 @@ class vertex_buffers_app : public cgb::cg_element
 {
 	void initialize() override
 	{
-		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj"); //, aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		auto allMeshes = sponza->select_all_meshes();
 		auto positions = sponza->positions_for_meshes(allMeshes);
 		auto colors = sponza->normals_for_meshes(allMeshes);
 		auto indices = sponza->indices_for_meshes<uint32_t>(allMeshes); // TODO: Shift indices when combining the meshes!!
+
+		auto distinctMaterials = sponza->distinct_material_configs();
 
 		mPositionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positions),
@@ -52,7 +54,7 @@ class vertex_buffers_app : public cgb::cg_element
 			cgb::vertex_input_location(0, positions[0]).from_buffer_at_binding(0),
 			cgb::vertex_input_location(1, colors[0]).from_buffer_at_binding(1),
 			"shaders/transform_and_pass_pos_nrm_uv.vert",
-			"shaders/diffuse_illum_fixed_lightsource.frag",
+			"shaders/diffuse_shading_fixed_lightsource.frag",
 			cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
 			//cgb::renderpass(cgb::renderpass_t::create_good_renderpass((VkFormat)cgb::context().main_window()->swap_chain_image_format().mFormat))

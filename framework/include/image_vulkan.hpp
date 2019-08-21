@@ -87,11 +87,22 @@ namespace cgb
 	/** Typedef representing any kind of OWNING image representations. */
 	using image	= owning_resource<image_t>;
 
+	/** Compares two `image_t`s for equality.
+	 *	They are considered equal if all their handles (image, memory) are the same.
+	 *	The config structs' data is not evaluated for equality comparison.
+	 */
+	static bool operator==(const image_t& left, const image_t& right)
+	{
+		return left.image_handle() == right.image_handle()
+			&& left.memory_handle() == right.memory_handle();
+	}
 
-
-
-
-
+	/** Returns `true` if the two `image_t`s are not equal. */
+	static bool operator!=(const image_t& left, const image_t& right)
+	{
+		return !(left == right);
+	}
+	
 	// ============================= TODO/WIP ============================
 
 	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
