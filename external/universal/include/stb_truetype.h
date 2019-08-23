@@ -1,5 +1,5 @@
-// stb_truetype.h - v1.20 - public domain
-// authored from 2009-2016 by Sean Barrett / RAD Game Tools
+// stb_truetype.h - v1.22 - public domain
+// authored from 2009-2019 by Sean Barrett / RAD Game Tools
 //
 //   This library processes TrueType files:
 //        parse files
@@ -46,9 +46,12 @@
 //       Rob Loach                  Cort Stratton
 //       Kenney Phillis Jr.         github:oyvindjam
 //       Brian Costabile            github:vassvik
+//       Ken Voskuil (kaesve)       Ryan Griege
 //       
 // VERSION HISTORY
 //
+//   1.22 (2019-08-11) minimize missing-glyph duplication; fix kerning if both 'GPOS' and 'kern' are defined 
+//   1.21 (2019-02-25) fix warning
 //   1.20 (2019-02-07) PackFontRange skips missing codepoints; GetScaleFontVMetrics()
 //   1.19 (2018-02-11) GPOS kerning, STBTT_fmod
 //   1.18 (2018-01-29) add missing function
@@ -241,19 +244,6 @@
 //   It appears to be very hard to programmatically determine what font a
 //   given file is in a general way. I provide an API for this, but I don't
 //   recommend it.
-//
-//
-// SOURCE STATISTICS (based on v0.6c, 2050 LOC)
-//
-//   Documentation & header file        520 LOC  \___ 660 LOC documentation
-//   Sample code                        140 LOC  /
-//   Truetype parsing                   620 LOC  ---- 620 LOC TrueType
-//   Software rasterization             240 LOC  \                           
-//   Curve tessellation                 120 LOC   \__ 550 LOC Bitmap creation
-//   Bitmap management                  100 LOC   /
-//   Baked bitmap interface              70 LOC  /
-//   Font name matching & access        150 LOC  ---- 150 
-//   C runtime library abstraction       60 LOC  ----  60
 //
 //
 // PERFORMANCE MEASUREMENTS FOR 1.06:
@@ -500,6 +490,16 @@ int main(int arg, char **argv)
 #else
 #define STBTT_DEF extern
 #endif
+
+
+#ifdef STB_TRUETYPE_IMPLEMENTATION
+#define STBTT_DEF __declspec(dllimport)
+#else
+#define STBTT_DEF __declspec(dllexport)
+#endif
+
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -2552,8 +2552,7 @@ STBTT_DEF int  stbtt_GetGlyphKernAdvance(const stbtt_fontinfo *info, int g1, int
 
    if (info->gpos)
       xAdvance += stbtt__GetGlyphGPOSInfoAdvance(info, g1, g2);
-
-   if (info->kern)
+   else if (info->kern)
       xAdvance += stbtt__GetGlyphKernInfoAdvance(info, g1, g2);
 
    return xAdvance;
@@ -3980,6 +3979,7 @@ static float stbtt__oversample_shift(int oversample)
 STBTT_DEF int stbtt_PackFontRangesGatherRects(stbtt_pack_context *spc, const stbtt_fontinfo *info, stbtt_pack_range *ranges, int num_ranges, stbrp_rect *rects)
 {
    int i,j,k;
+   int missing_glyph_added = 0;
 
    k=0;
    for (i=0; i < num_ranges; ++i) {
@@ -3991,7 +3991,7 @@ STBTT_DEF int stbtt_PackFontRangesGatherRects(stbtt_pack_context *spc, const stb
          int x0,y0,x1,y1;
          int codepoint = ranges[i].array_of_unicode_codepoints == NULL ? ranges[i].first_unicode_codepoint_in_range + j : ranges[i].array_of_unicode_codepoints[j];
          int glyph = stbtt_FindGlyphIndex(info, codepoint);
-         if (glyph == 0 && spc->skip_missing) {
+         if (glyph == 0 && (spc->skip_missing || missing_glyph_added)) {
             rects[k].w = rects[k].h = 0;
          } else {
             stbtt_GetGlyphBitmapBoxSubpixel(info,glyph,
@@ -4001,6 +4001,8 @@ STBTT_DEF int stbtt_PackFontRangesGatherRects(stbtt_pack_context *spc, const stb
                                             &x0,&y0,&x1,&y1);
             rects[k].w = (stbrp_coord) (x1-x0 + spc->padding + spc->h_oversample-1);
             rects[k].h = (stbrp_coord) (y1-y0 + spc->padding + spc->v_oversample-1);
+            if (glyph == 0)
+               missing_glyph_added = 1;
          }
          ++k;
       }
@@ -4035,7 +4037,7 @@ STBTT_DEF void stbtt_MakeGlyphBitmapSubpixelPrefilter(const stbtt_fontinfo *info
 // rects array must be big enough to accommodate all characters in the given ranges
 STBTT_DEF int stbtt_PackFontRangesRenderIntoRects(stbtt_pack_context *spc, const stbtt_fontinfo *info, stbtt_pack_range *ranges, int num_ranges, stbrp_rect *rects)
 {
-   int i,j,k, return_value = 1;
+   int i,j,k, missing_glyph = -1, return_value = 1;
 
    // save current values
    int old_h_over = spc->h_oversample;
@@ -4100,6 +4102,13 @@ STBTT_DEF int stbtt_PackFontRangesRenderIntoRects(stbtt_pack_context *spc, const
             bc->yoff     =       (float)  y0 * recip_v + sub_y;
             bc->xoff2    =                (x0 + r->w) * recip_h + sub_x;
             bc->yoff2    =                (y0 + r->h) * recip_v + sub_y;
+
+            if (glyph == 0)
+               missing_glyph = j;
+         } else if (spc->skip_missing) {
+            return_value = 0;
+         } else if (r->was_packed && r->w == 0 && r->h == 0 && missing_glyph >= 0) {
+            ranges[i].chardata_for_range[j] = ranges[i].chardata_for_range[missing_glyph];
          } else {
             return_value = 0; // if any fail, report failure
          }
@@ -4401,12 +4410,7 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
    int w,h;
    unsigned char *data;
 
-   // if one scale is 0, use same scale for both
-   if (scale_x == 0) scale_x = scale_y;
-   if (scale_y == 0) {
-      if (scale_x == 0) return NULL;  // if both scales are 0, return NULL
-      scale_y = scale_x;
-   }
+   if (scale == 0) return NULL;
 
    stbtt_GetGlyphBitmapBoxSubpixel(info, glyph, scale, scale, 0.0f,0.0f, &ix0,&iy0,&ix1,&iy1);
 

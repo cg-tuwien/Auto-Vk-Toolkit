@@ -42,6 +42,12 @@ extern "C" {
 #define STBDDEF extern
 #endif
 
+#ifdef STB_DXT_IMPLEMENTATION
+#define STBDDEF __declspec(dllimport)
+#else
+#define STBDDEF __declspec(dllexport)
+#endif
+
 // compression mode (bitflags)
 #define STB_DXT_NORMAL    0
 #define STB_DXT_DITHER    1   // use dithering. dubious win. never use for normal maps and the like!

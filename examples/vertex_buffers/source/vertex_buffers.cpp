@@ -46,11 +46,8 @@ class vertex_buffers_app : public cgb::cg_element
 			auto& cmdbfr = mCmdBfrs[i];
 			cmdbfr.begin_recording();
 
-			//auto renderPassHandle = cgb::get(mPipeline).renderpass_handle();
-			auto renderPassHandle = cgb::context().main_window()->renderpass_handle();
-			auto extent = cgb::context().main_window()->swap_chain_extent();
-
-			cmdbfr.begin_render_pass(renderPassHandle, cgb::context().main_window()->backbuffer_at_index(i)->handle(), { 0, 0 }, extent);
+			cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
+			
 			cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			//cmdbfr.handle().draw(3u, 1u, 0u, 0u);
 			//cgb::context().draw_triangle(cgb::get(mPipeline), cmdbfr);
