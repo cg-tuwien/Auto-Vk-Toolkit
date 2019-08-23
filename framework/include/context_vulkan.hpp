@@ -214,7 +214,7 @@ namespace cgb
 
 		std::shared_ptr<descriptor_pool> get_descriptor_pool_for_layouts(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts);
 
-		std::vector<vk::DescriptorSet> create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData);
+		std::vector<vk::UniqueDescriptorSet> create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData);
 
 		bool is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures);
 

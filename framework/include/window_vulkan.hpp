@@ -32,6 +32,11 @@ namespace cgb
 		 */
 		void set_number_of_concurrent_frames(uint32_t pNumConcurrent);
 
+		/** Sets additional attachments which shall be added to the back buffer 
+		 *	in addition to the obligatory color attachment.  
+		 */
+		void set_additional_back_buffer_attachments(std::vector<attachment> _AdditionalAttachments);
+
 		/** Creates or opens the window */
 		void open();
 
@@ -64,6 +69,10 @@ namespace cgb
 		*	If no value is explicitely set, the same number as the number of presentable images will be returned.
 		*/
 		uint32_t get_config_number_of_concurrent_frames();
+
+		/**	Gets the descriptions of the additional back buffer attachments
+		 */
+		std::vector<attachment> get_additional_back_buffer_attachments();
 
 		/** Gets this window's surface */
 		const auto& surface() const { 
@@ -240,6 +249,10 @@ namespace cgb
 		// A function which returns the number of images which can be rendered into concurrently
 		// According to this number, the number of semaphores and fences will be determined.
 		std::function<uint32_t()> mNumberOfConcurrentFramesGetter;
+
+		// A function which returns attachments which shall be attached to the back buffer
+		// in addition to the obligatory color attachment.
+		std::function<std::vector<attachment>()> mAdditionalBackBufferAttachmentsGetter;
 #pragma endregion
 
 #pragma region swap chain data for this window surface

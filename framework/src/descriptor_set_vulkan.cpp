@@ -100,7 +100,11 @@ namespace cgb
 		layouts.allocate_all();
 
 		descriptor_set result;
-		result.mDescriptorSets = cgb::context().create_descriptor_set(layouts.layout_handles());
+		result.mDescriptorSetOwners = cgb::context().create_descriptor_set(layouts.layout_handles());
+		result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());
+		for (auto& uniqueDesc : result.mDescriptorSetOwners) { // TODO: Is the second array really neccessary?
+			result.mDescriptorSets.push_back(uniqueDesc.get());
+		}
 
 		std::vector<binding_data> orderedBindings;
 		uint32_t minSetId = std::numeric_limits<uint32_t>::max();
@@ -122,7 +126,7 @@ namespace cgb
 				.setDstBinding(b.mLayoutBinding.binding)
 				.setDstArrayElement(0u) // TODO: support more
 				.setDescriptorType(b.mLayoutBinding.descriptorType) // TODO: Okay or use that one stored in the mResourcePtr??
-				.setDescriptorCount(1u) // TODO: Okay?
+				.setDescriptorCount(b.descriptor_count()) // TODO: Okay?
 				.setPBufferInfo(b.descriptor_buffer_info())
 				.setPImageInfo(b.descriptor_image_info())
 				.setPTexelBufferView(b.texel_buffer_info())

@@ -7,16 +7,19 @@ layout (location = 2) in vec3 inNormal;
 layout(push_constant) uniform PushConstants {
 	mat4 modelMatrix;
 	mat4 projViewMatrix;
+	int materialIndex;
 } pushConstants;
 
 layout (location = 0) out vec3 positionWS;
 layout (location = 1) out vec3 normalWS;
 layout (location = 2) out vec2 texCoord;
+layout (location = 3) flat out int materialIndex;
 
 void main() {
 	vec4 posWS = pushConstants.modelMatrix * vec4(inPosition.xyz, 1.0);
 	positionWS = posWS.xyz;
     texCoord = inTexCoord;
 	normalWS = mat3(pushConstants.modelMatrix) * inNormal;
+	materialIndex = pushConstants.materialIndex;
     gl_Position = pushConstants.projViewMatrix * posWS;
 }

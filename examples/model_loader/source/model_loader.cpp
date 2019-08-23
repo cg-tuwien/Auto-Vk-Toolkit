@@ -14,30 +14,34 @@ class vertex_buffers_app : public cgb::cg_element
 		cgb::vertex_buffer mNormalsBuffer;
 		cgb::index_buffer mIndexBuffer;
 
-		cgb::material mMaterial;
+		int mMaterialIndex;
 	};
 
 	struct transformation_matrices {
 		glm::mat4 mModelMatrix;
 		glm::mat4 mProjViewMatrix;
+		int mMaterialIndex;
 	};
 
 	void initialize() override
 	{
+		mInitTime = std::chrono::high_resolution_clock::now();
+
 		// Load a model from file:
 		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterials = sponza->distinct_material_configs();
 
-		mDrawCalls.reserve(distinctMaterials.size()); // Due to an internal but, all the buffers can't properly be moved right now => reserve as a workaround. Sorry, and thanks for your patience. :-S
+		mDrawCalls.reserve(distinctMaterials.size()); // Due to an internal error, all the buffers can't properly be moved right now => reserve as a workaround. Sorry, and thanks for your patience. :-S
 		
 		// The following might be a bit tedious still, but maybe it's not. For what it's worth, it is expressive.
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<cgb::material_config> allMatCofigs;
 		for (const auto& pair : distinctMaterials) {
-			allMatCofigs.push_back(pair.first);
 			auto& newElement = mDrawCalls.emplace_back();
+			allMatCofigs.push_back(pair.first);
+			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
 			
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
@@ -54,34 +58,35 @@ class vertex_buffers_app : public cgb::cg_element
 			newElement.mPositionsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
 				cgb::memory_usage::device,
-				newElement.mPositions.data()
+				newElement.mPositions.data(),
 				// Handle the semaphore, if one gets created (which will happen 
 				// since we've requested to upload the buffer to the device)
-				/*[] (auto _Semaphore) { 
+				[] (auto _Semaphore) {  
+					// TODO: Do we have to set these extra dependencies to ALL (three or so) frames in flight??
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}*/
+				}
 			);
 			// 2.2 Texture Coordinates:
 			newElement.mTexCoordsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mTexCoords),
 				cgb::memory_usage::device,
-				newElement.mTexCoords.data()
+				newElement.mTexCoords.data(),
 				// Handle the semaphore, if one gets created (which will happen 
 				// since we've requested to upload the buffer to the device)
-				/*[] (auto _Semaphore) { 
+				[] (auto _Semaphore) { 
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}*/
+				}
 			);
 			// 2.3 Normals:
 			newElement.mNormalsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mNormals),
 				cgb::memory_usage::device,
-				newElement.mNormals.data()
+				newElement.mNormals.data(),
 				// Handle the semaphore, if one gets created (which will happen 
 				// since we've requested to upload the buffer to the device)
-				/*[] (auto _Semaphore) { 
+				[] (auto _Semaphore) { 
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}*/
+				}
 			);
 			// 2.4 Indices:
 			newElement.mIndexBuffer = cgb::create_and_fill(
@@ -89,23 +94,26 @@ class vertex_buffers_app : public cgb::cg_element
 				// Where to put our memory? => On the device
 				cgb::memory_usage::device,
 				// Pass pointer to the data:
-				newElement.mIndices.data()
+				newElement.mIndices.data(),
 				// Handle the semaphore, if one gets created (which will happen 
 				// since we've requested to upload the buffer to the device)
-				/*[] (auto _Semaphore) { 
+				[] (auto _Semaphore) { 
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}*/
+				}
 			);
 		}
 
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs);
+		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
+			[](auto _Semaphore) {
+				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
+			});
 		mGpuMaterialData = std::move(gpuMaterials);
 		mImageSamplers = std::move(imageSamplers);
 
 		mMaterialBuffer.reserve(cgb::context().main_window()->number_of_concurrent_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_concurrent_frames(); ++i) {
 			mMaterialBuffer.emplace_back(cgb::create_and_fill(
-				cgb::uniform_buffer_meta::create_from_data(mGpuMaterialData[0]),
+				cgb::storage_buffer_meta::create_from_data(mGpuMaterialData),
 				cgb::memory_usage::host_coherent,
 				&mGpuMaterialData[0]
 			));			
@@ -133,7 +141,7 @@ class vertex_buffers_app : public cgb::cg_element
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(1, 0, static_cast<cgb::uniform_buffer_t&>(mMaterialBuffer[0])) // Just take any buffer, this is just for the layout
+			cgb::binding(1, 0, static_cast<cgb::storage_buffer_t&>(mMaterialBuffer[0])) // Just take any buffer, this is just for the layout
 		);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
@@ -144,7 +152,7 @@ class vertex_buffers_app : public cgb::cg_element
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, static_cast<cgb::uniform_buffer_t&>(mMaterialBuffer[i])) 
+				cgb::binding(1, 0, static_cast<cgb::storage_buffer_t&>(mMaterialBuffer[i]))
 			}));	
 		}
 		
@@ -157,25 +165,14 @@ class vertex_buffers_app : public cgb::cg_element
 
 	void render() override
 	{
-
 		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 		cmdbfr.begin_recording();
 
-		auto renderPassHandle = cgb::context().main_window()->renderpass_handle();
-		auto extent = cgb::context().main_window()->swap_chain_extent();
+		cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
 
-		auto curIndex = cgb::context().main_window()->sync_index_for_frame();
-
-		cmdbfr.begin_render_pass(renderPassHandle, cgb::context().main_window()->backbuffer_at_index(curIndex)->handle(), { 0, 0 }, extent);
 		// Bind the pipeline
 		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			
-		// Set the push constants:
-		auto pushConstantsForThisFrame = transformation_matrices { 
-			glm::scale(glm::vec3(0.01f)),							// <-- mModelMatrix
-			mQuakeCam.projection_matrix() * mQuakeCam.view_matrix()	// <-- mProjViewMatrix
-		};
-		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisFrame), &pushConstantsForThisFrame );
 
 		// Set the descriptors of the uniform buffer
 		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
@@ -191,6 +188,14 @@ class vertex_buffers_app : public cgb::cg_element
 				drawCall.mNormalsBuffer->buffer_handle()
 			}, { 0, 0, 0 });
 
+			// Set the push constants:
+			auto pushConstantsForThisDrawCall = transformation_matrices { 
+				glm::scale(glm::vec3(0.01f)),							// <-- mModelMatrix
+				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
+				drawCall.mMaterialIndex
+			};
+			cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+
 			// Bind and use the index buffer to create the draw call:
 			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
 			cmdbfr.handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
@@ -204,6 +209,16 @@ class vertex_buffers_app : public cgb::cg_element
 
 	void update() override
 	{
+		static int counter = 0;
+		if (++counter == 4) {
+			auto current = std::chrono::high_resolution_clock::now();
+			auto time_span = current - mInitTime;
+			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
+			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
+			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
+			printf("Time from init to fourth frame: %d min, %lld sec %lf ms", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
+		}
+
 		if (cgb::input().key_pressed(cgb::key_code::h)) {
 			// Log a message:
 			LOG_INFO_EM("Hello cg_base!");
@@ -227,12 +242,19 @@ class vertex_buffers_app : public cgb::cg_element
 		}
 	}
 
+	void finalize() override
+	{
+		cgb::context().logical_device().waitIdle();
+	}
+
 private:
+	std::chrono::high_resolution_clock::time_point mInitTime;
+
 	std::vector<cgb::material_gpu_data> mGpuMaterialData;
 	std::vector<cgb::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::vector<cgb::uniform_buffer> mMaterialBuffer;
+	std::vector<cgb::storage_buffer> mMaterialBuffer;
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
@@ -248,6 +270,7 @@ int main()
 		auto mainWnd = cgb::context().create_window("Hello World Window");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->open(); 
 
 		// Create an instance of vertex_buffers_app which, in this case,

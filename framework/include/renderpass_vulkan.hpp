@@ -38,6 +38,11 @@ namespace cgb
 		auto& subpasses() { return mSubpasses; }
 		auto& subpass_dependencies() { return mSubpassDependencies; }
 
+		bool is_color_attachment(size_t _AttachmentIndex) const;
+		bool is_depth_attachment(size_t _AttachmentIndex) const;
+		bool is_resolve_attachment(size_t _AttachmentIndex) const;
+		bool is_input_attachment(size_t _AttachmentIndex) const;
+
 		const auto& handle() const { return mRenderPass.get(); }
 
 	private:

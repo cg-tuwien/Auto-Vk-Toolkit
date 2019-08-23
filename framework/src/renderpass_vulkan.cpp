@@ -308,4 +308,49 @@ namespace cgb
 		// [2] https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkSubpassDescriptionDepthStencilResolveKHR.html
 		// [3] https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkPipelineStageFlagBits.html
 	}
+
+	bool renderpass_t::is_color_attachment(size_t _AttachmentIndex) const
+	{
+		assert(_AttachmentIndex < mAttachmentDescriptions.size());
+		for (auto& colorAtt : mOrderedColorAttachmentRefs) {
+			if (colorAtt.attachment == static_cast<uint32_t>(_AttachmentIndex)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool renderpass_t::is_depth_attachment(size_t _AttachmentIndex) const
+	{
+		assert(_AttachmentIndex < mAttachmentDescriptions.size());
+		for (auto& colorAtt : mOrderedDepthAttachmentRefs) {
+			if (colorAtt.attachment == static_cast<uint32_t>(_AttachmentIndex)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool renderpass_t::is_resolve_attachment(size_t _AttachmentIndex) const
+	{
+		assert(_AttachmentIndex < mAttachmentDescriptions.size());
+		for (auto& colorAtt : mOrderedResolveAttachmentRefs) {
+			if (colorAtt.attachment == static_cast<uint32_t>(_AttachmentIndex)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool renderpass_t::is_input_attachment(size_t _AttachmentIndex) const
+	{
+		assert(_AttachmentIndex < mAttachmentDescriptions.size());
+		for (auto& colorAtt : mOrderedInputAttachmentRefs) {
+			if (colorAtt.attachment == static_cast<uint32_t>(_AttachmentIndex)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }

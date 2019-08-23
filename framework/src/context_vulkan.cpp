@@ -174,6 +174,8 @@ namespace cgb
 		context().work_off_event_handlers();
 
 		// Destroy all descriptor pools before the queues and the device is destroyed
+		mWorkaroundDescriptorPool.reset();
+		mWorkaroundDescriptorPool.release();
 		mDescriptorPools.clear();
 
 		// Destroy all command pools before the queues and the device is destroyed
@@ -361,6 +363,7 @@ namespace cgb
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		// Create it, errors will result in an exception.
 		mInstance = vk::createInstance(instCreateInfo);
+		mDynamicDispatch.init((VkInstance)mInstance, vkGetInstanceProcAddr);
 	}
 
 	bool vulkan::is_validation_layer_supported(const char* pName)
@@ -540,7 +543,7 @@ namespace cgb
 			// get features and queues
 			auto properties = device.getProperties();
 			auto supportedFeatures = device.getFeatures();
-			auto queueFamilyProps = device.getQueueFamilyProperties(); 
+			auto queueFamilyProps = device.getQueueFamilyProperties();
 			// check for required features
 			bool graphicsBitSet = false;
 			bool computeBitSet = false;
@@ -549,7 +552,7 @@ namespace cgb
 				computeBitSet = computeBitSet || ((qfp.queueFlags & vk::QueueFlagBits::eCompute) == vk::QueueFlagBits::eCompute);
 			}
 
-			// TODO/INFO: Prioritizing nvidia is a bad solution, of course. 
+			// TODO: Prioritizing nvidia is a bad solution, of course. 
 			// It is/was useful during development, but should be replaced by some meaningful code:
 			uint32_t score =
 				(graphicsBitSet ? 10 : 0) +
@@ -566,6 +569,18 @@ namespace cgb
 			// Check if anisotropy is supported
 			if (!supportedFeatures.samplerAnisotropy) {
 				score = 0;
+			}
+
+			// Check if descriptor indexing is supported
+			{
+				//auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{};
+				//auto features = vk::PhysicalDeviceFeatures2KHR{}
+				//	.setPNext(&indexingFeatures);
+				//device.getFeatures2KHR(&features, dynamic_dispatch());
+
+				//if (!indexingFeatures.descriptorBindingVariableDescriptorCount) {
+				//	score = 0;
+				//}
 			}
 
 			if (score > currentScore) {
@@ -724,18 +739,27 @@ namespace cgb
 			}
 
 			// Enable certain device features:
+			// (Build a pNext chain for further supported extensions)
+
 			auto deviceFeatures = vk::PhysicalDeviceFeatures2()
 				.setFeatures(vk::PhysicalDeviceFeatures()
 					.setSamplerAnisotropy(VK_TRUE)
 					.setVertexPipelineStoresAndAtomics(VK_TRUE)
+					.setFragmentStoresAndAtomics(VK_TRUE)
 					.setShaderStorageImageExtendedFormats(VK_TRUE))
 				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
+
+			//Require variable descriptor count
+			auto descriptorIndexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{}
+				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
+				.setRuntimeDescriptorArray(VK_TRUE)
+				.setPNext(&deviceFeatures);
 
 			auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 			auto deviceCreateInfo = vk::DeviceCreateInfo()
 				.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
 				.setPQueueCreateInfos(queueCreateInfos.data())
-				.setPNext(&deviceFeatures) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
+				.setPNext(&descriptorIndexingFeatures) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
 				// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
 				// TODO: Are these the correct extensions to set here?
 				.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
@@ -868,10 +892,12 @@ namespace cgb
 		}
 
 		// Create a renderpass for the back buffers
-		pWindow->mBackBufferRenderpass = renderpass_t::create({ 
+		std::vector<attachment> renderpassAttachments = {
 			attachment::create_for(pWindow->mSwapChainImageViews[0]),
-			attachment::create_depth(image_format::default_depth_format()),
-		});
+		};
+		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
+		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
+		pWindow->mBackBufferRenderpass = renderpass_t::create(renderpassAttachments);
 		pWindow->mBackBufferRenderpass.enable_shared_ownership();
 
 		// Create a back buffer per image
@@ -879,12 +905,26 @@ namespace cgb
 		for (auto& imView: pWindow->mSwapChainImageViews) {
 			auto imExtent = imView->image_config().extent;
 
-			auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, image_format::default_depth_format(), memory_usage::device, false, 1, 
-				[](image_t& imageToConfig) { imageToConfig.config().setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment); })); // TODO: can setting this usage be somehow abstracted?! e.g. by moving it into the framebuffer class (or a framebuffer's ::create method)
-			// TODO: Disable shared ownership, once the noexcept-hell has been resolved
-			depthView.enable_shared_ownership();
+			// Create one image view per attachment
+			std::vector<image_view> imageViews;
+			imageViews.reserve(renderpassAttachments.size());
+			imageViews.push_back(imView); // The color attachment is added in any case
+			for (auto& aa : additionalAttachments) {
+				if (is_depth_format(aa.format())) {
+					// TODO: can setting the config-alteration function for depth attachments be somehow abstracted?! e.g. by moving it into the framebuffer class (or a framebuffer's ::create method)
+					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), memory_usage::device, false, 1,
+						[](image_t& imageToConfig) { imageToConfig.config().setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment); })); 
+					// TODO: Disable shared ownership, once the noexcept-hell has been resolved
+					depthView.enable_shared_ownership();
+					imageViews.push_back(std::move(depthView));
+				}
+				else {
+					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), memory_usage::device, false, 1)))
+						.enable_shared_ownership(); // TODO: Disable shared ownership, once the noexcept-hell has been resolved
+				}
+			}
 
-			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, { imView, std::move(depthView) }, imExtent.width, imExtent.height));
+			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
 
 		// ============= SYNCHRONIZATION OBJECTS ===========
@@ -1194,7 +1234,8 @@ namespace cgb
 				.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
 				.setPPoolSizes(poolSizes.data())
 				.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
-				.setFlags(vk::DescriptorPoolCreateFlags()); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
+				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
+			// TODO: WTF, why do we need the eFreeDescriptorSet flag ^ here? What does it mean?
 			mWorkaroundDescriptorPool = logical_device().createDescriptorPoolUnique(poolInfo);
 		}
 		return mWorkaroundDescriptorPool.get();
@@ -1203,19 +1244,19 @@ namespace cgb
 			//return result;
 	}
 
-	std::vector<vk::DescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
+	std::vector<vk::UniqueDescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
 	{
 
 		auto allocInfo = vk::DescriptorSetAllocateInfo()
 			.setDescriptorPool(get_descriptor_pool()) // TODO: set a valid descriptor pool
 			.setDescriptorSetCount(static_cast<uint32_t>(pData.size()))
 			.setPSetLayouts(pData.data());
-		auto descriptorSets = logical_device().allocateDescriptorSets(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]
-		std::vector<vk::DescriptorSet> result;
+		auto descriptorSets = logical_device().allocateDescriptorSetsUnique(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]
+		std::vector<vk::UniqueDescriptorSet> result;
 		std::transform(std::begin(descriptorSets), std::end(descriptorSets),
 					   std::back_inserter(result),
-					   [](const auto& vkDescSet) {
-						   return vkDescSet;
+					   [](auto& vkDescSet) {
+						   return std::move(vkDescSet);
 					   });
 		return result;
 	}

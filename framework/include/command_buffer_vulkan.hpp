@@ -17,7 +17,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		void begin_recording();
 		void end_recording();
-		void begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent);
+		void begin_render_pass_for_window(window* _Window);
+		void begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent, std::vector<vk::ClearValue> _ClearValues);
 		void set_image_barrier(const vk::ImageMemoryBarrier& pBarrierInfo);
 		void copy_image(const image_t& pSource, const vk::Image& pDestination);
 		void end_render_pass();

@@ -125,6 +125,17 @@ namespace cgb
 		}
 	}
 
+	void window::set_additional_back_buffer_attachments(std::vector<attachment> _AdditionalAttachments)
+	{
+		mAdditionalBackBufferAttachmentsGetter = [additionalAttachments = std::move(_AdditionalAttachments)]() { return additionalAttachments; };
+
+		// If the window has already been created, the new setting can't 
+		// be applied unless the window is being recreated.
+		if (is_alive()) {
+			mRecreationRequired = true;
+		}
+	}
+
 	void window::open()
 	{
 		context().dispatch_to_main_thread([this]() {
@@ -210,6 +221,16 @@ namespace cgb
 			return get_config_number_of_presentable_images();
 		}
 		return mNumberOfConcurrentFramesGetter();
+	}
+
+	std::vector<attachment> window::get_additional_back_buffer_attachments()
+	{
+		if (!mAdditionalBackBufferAttachmentsGetter) {
+			return {};
+		}
+		else {
+			return mAdditionalBackBufferAttachmentsGetter();
+		}
 	}
 
 	void window::set_extra_semaphore_dependency(semaphore pSemaphore, std::optional<uint64_t> pFrameId)

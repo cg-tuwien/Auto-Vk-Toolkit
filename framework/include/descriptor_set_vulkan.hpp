@@ -139,6 +139,7 @@ namespace cgb
 		static descriptor_set create(std::initializer_list<binding_data> pBindings);
 
 	private:
+		std::vector<vk::UniqueDescriptorSet> mDescriptorSetOwners;
 		std::vector<vk::DescriptorSet> mDescriptorSets;
 	};
 }

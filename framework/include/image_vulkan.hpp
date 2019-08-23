@@ -102,51 +102,6 @@ namespace cgb
 	{
 		return !(left == right);
 	}
-	
-	// ============================= TODO/WIP ============================
-
-	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
-
-	extern void transition_image_layout(const image_t& pImage, vk::Format pFormat, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout);
-
-	template <typename Bfr>
-	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage)
-	{
-		//auto commandBuffer = context().create_command_buffers_for_transfer(1);
-		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-
-		// Immediately start recording the command buffer:
-		commandBuffer.begin_recording();
-
-		auto copyRegion = vk::BufferImageCopy()
-			.setBufferOffset(0)
-			// The bufferRowLength and bufferImageHeight fields specify how the pixels are laid out in memory. For example, you could have some padding 
-			// bytes between rows of the image. Specifying 0 for both indicates that the pixels are simply tightly packed like they are in our case. [3]
-			.setBufferRowLength(0)
-			.setBufferImageHeight(0)
-			.setImageSubresource(vk::ImageSubresourceLayers()
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
-				.setMipLevel(0u)
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u))
-			.setImageOffset({ 0u, 0u, 0u })
-			.setImageExtent(pDstImage.config().extent);
-
-		commandBuffer.handle().copyBufferToImage(
-			pSrcBuffer->buffer_handle(), 
-			pDstImage.image_handle(), 
-			vk::ImageLayout::eTransferDstOptimal,
-			{ copyRegion });
-
-		// That's all
-		commandBuffer.end_recording();
-
-		auto submitInfo = vk::SubmitInfo()
-			.setCommandBufferCount(1u)
-			.setPCommandBuffers(commandBuffer.handle_addr());
-		cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr); // not using fence... TODO: maybe use fence!
-		cgb::context().transfer_queue().handle().waitIdle();
-	}
 }
 
 namespace std // Inject hash for `cgb::image_sampler_t` into std::

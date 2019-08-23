@@ -44,22 +44,50 @@ namespace cgb
 		mCommandBuffer->end();
 	}
 
-	void command_buffer::begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent)
+	void command_buffer::begin_render_pass_for_window(window* _Window)
 	{
-		std::array clearValues = {
-			vk::ClearValue(vk::ClearColorValue{ make_array<float>( 0.5f, 0.0f, 0.5f, 1.0f ) }),
-			vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 })
-		};
-		// TODO: how to determine the number of attachments => and the number of clear-values? omg...
+		auto renderPassHandle = cgb::context().main_window()->renderpass_handle();
+		auto extent = cgb::context().main_window()->swap_chain_extent();
+		auto curIndex = cgb::context().main_window()->sync_index_for_frame();
+		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(curIndex)->handle();
 
+		std::vector<vk::ClearValue> clearValues;
+		auto& rp = cgb::context().main_window()->getrenderpass();
+		auto& rpAttachments = rp->attachment_descriptions();
+		clearValues.reserve(rpAttachments.size());
+		for (size_t i = 0; i < rpAttachments.size(); ++i) {
+			if (rp->is_color_attachment(i)) {
+				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
+				continue;
+			}
+			if (rp->is_depth_attachment(i)) {
+				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
+				continue;
+			}
+			if (rp->is_input_attachment(i)) {
+				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
+				continue;
+			}
+			if (rp->is_resolve_attachment(i)) {
+				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
+				continue;
+			}
+		}
+
+		// Begin render pass and clear the attachments (color and depth)
+		begin_render_pass(renderPassHandle, backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
+	}
+
+	void command_buffer::begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent, std::vector<vk::ClearValue> _ClearValues)
+	{
 		auto renderPassBeginInfo = vk::RenderPassBeginInfo()
 			.setRenderPass(pRenderPass)
 			.setFramebuffer(pFramebuffer)
 			.setRenderArea(vk::Rect2D()
 				.setOffset(pOffset)
 				.setExtent(pExtent))
-			.setClearValueCount(static_cast<uint32_t>(clearValues.size()))
-			.setPClearValues(clearValues.data());
+			.setClearValueCount(static_cast<uint32_t>(_ClearValues.size()))
+			.setPClearValues(_ClearValues.data());
 
 		mCommandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 		// 2nd parameter: how the drawing commands within the render pass will be provided. It can have one of two values [7]:

@@ -39,6 +39,23 @@ namespace cgb
 
 		mutable std::vector<vk::DescriptorImageInfo> mThisIsProbablyAHack;
 
+		uint32_t descriptor_count() const
+		{
+			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<uniform_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<uniform_texel_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<storage_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<storage_texel_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<vertex_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<index_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<instance_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<acceleration_structure*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			return 1u;
+		}
+
 		const vk::DescriptorImageInfo* descriptor_image_info() const
 		{
 			if (std::holds_alternative<generic_buffer_t*>(mResourcePtr)) { return nullptr; }

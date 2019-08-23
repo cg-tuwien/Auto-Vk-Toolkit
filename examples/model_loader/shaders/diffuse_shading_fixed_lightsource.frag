@@ -3,7 +3,7 @@
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
 
-layout(set = 1, binding = 0) uniform Material
+struct MaterialGpuData
 {
 	vec4 mDiffuseReflectivity;
 	vec4 mAmbientReflectivity;
@@ -56,19 +56,32 @@ layout(set = 1, binding = 0) uniform Material
 	vec4 mReflectionTexOffsetTiling;
 	vec4 mLightmapTexOffsetTiling;
 	vec4 mExtraTexOffsetTiling;
-} material;
+};
+
+layout(set = 1, binding = 0) buffer Material 
+{
+	MaterialGpuData materials[];
+} matSsbo;
 
 layout (location = 0) in vec3 positionWS;
 layout (location = 1) in vec3 normalWS;
 layout (location = 2) in vec2 texCoord;
+layout (location = 3) flat in int materialIndex;
 
 layout (location = 0) out vec4 fs_out;
 
 void main() 
 {
-    vec3 color = texture(textures[material.mDiffuseTexIndex], texCoord).rgb;
-	color *= material.mDiffuseReflectivity.rgb;
-	vec3 toLight = vec3(0.0, 1.0, 0.0);
-	color *= max(0.0, dot(normalize(normalWS), toLight));
+	int matIndex = materialIndex;
+
+	int diffuseTexIndex = matSsbo.materials[matIndex].mDiffuseTexIndex;
+    vec3 color = texture(textures[diffuseTexIndex], texCoord).rgb;
+	
+	float ambient = 0.1;
+	vec3 diffuse = matSsbo.materials[matIndex].mDiffuseReflectivity.rgb;
+	vec3 toLight = normalize(vec3(1.0, 1.0, 0.5));
+	vec3 illum = vec3(ambient) + diffuse * max(0.0, dot(normalize(normalWS), toLight));
+	color *= illum;
+	
 	fs_out = vec4(color, 1.0);
 }

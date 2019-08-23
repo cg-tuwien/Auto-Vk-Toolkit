@@ -271,7 +271,7 @@ namespace cgb
 		result.mPushConstantRanges.reserve(_Config.mPushConstantsBindings.size()); // Important! Otherwise the vector might realloc and .data() will become invalid!
 		for (const auto& pcBinding : _Config.mPushConstantsBindings) {
 			result.mPushConstantRanges.push_back(vk::PushConstantRange{}
-				.setStageFlags(to_vk_shader_stage(pcBinding.mShaderStages))
+				.setStageFlags(to_vk_shader_stages(pcBinding.mShaderStages))
 				.setOffset(pcBinding.mOffset)
 				.setSize(pcBinding.mSize)
 			);
