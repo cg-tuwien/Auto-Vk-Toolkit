@@ -1,60 +1,61 @@
 #version 460
-#extension GL_KHR_vulkan_glsl : enable
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
 
 layout(set = 1, binding = 0) uniform Material
 {
-	vec4 m_diffuse_reflectivity;
-	vec4 m_specular_reflectivity;
-	vec4 m_ambient_reflectivity;
-	vec4 m_emissive_color;
-	vec4 m_transparent_color;
-	vec4 m_albedo;
+	vec4 mDiffuseReflectivity;
+	vec4 mAmbientReflectivity;
+	vec4 mSpecularReflectivity;
+	vec4 mEmissiveColor;
+	vec4 mTransparentColor;
+	vec4 mReflectiveColor;
+	vec4 mAlbedo;
+
+	float mOpacity;
+	float mBumpScaling;
+	float mShininess;
+	float mShininessStrength;
 	
-	float m_opacity;
-	float m_shininess;
-	float m_shininess_strength;
-	float m_refraction_index;
+	float mRefractionIndex;
+	float mReflectivity;
+	float mMetallic;
+	float mSmoothness;
 	
-	float m_reflectivity;
-	float m_metallic;
-	float m_smoothness;
-	float m_sheen;
+	float mSheen;
+	float mThickness;
+	float mRoughness;
+	float mAnisotropy;
 	
-	float m_thickness;
-	float m_roughness;
-	float m_anisotropy;
-	float m_extra_param;
+	vec4 mAnisotropyRotation;
+	vec4 mCustomData;
 	
-	vec4 m_anisotropy_rotation;
+	int mDiffuseTexIndex;
+	int mSpecularTexIndex;
+	int mAmbientTexIndex;
+	int mEmissiveTexIndex;
+	int mHeightTexIndex;
+	int mNormalsTexIndex;
+	int mShininessTexIndex;
+	int mOpacityTexIndex;
+	int mDisplacementTexIndex;
+	int mReflectionTexIndex;
+	int mLightmapTexIndex;
+	int mExtraTexIndex;
 	
-	int m_diffuse_tex_index;
-	int m_specular_tex_index;
-	int m_ambient_tex_index;
-	int m_emissive_tex_index;
-	int m_height_tex_index;
-	int m_normals_tex_index;
-	int m_shininess_tex_index;
-	int m_opacity_tex_index;
-	int m_displacement_tex_index;
-	int m_reflection_tex_index;
-	int m_lightmap_tex_index;
-	int m_extra_tex_index;
-	
-	vec4 m_diffuse_tex_offset_tiling;
-	vec4 m_specular_tex_offset_tiling;
-	vec4 m_ambient_tex_offset_tiling;
-	vec4 m_emissive_tex_offset_tiling;
-	vec4 m_height_tex_offset_tiling;
-	vec4 m_normals_tex_offset_tiling;
-	vec4 m_shininess_tex_offset_tiling;
-	vec4 m_opacity_tex_offset_tiling;
-	vec4 m_displacement_tex_offset_tiling;
-	vec4 m_reflection_tex_offset_tiling;
-	vec4 m_lightmap_tex_offset_tiling;
-	vec4 m_extra_tex_offset_tiling;
+	vec4 mDiffuseTexOffsetTiling;
+	vec4 mSpecularTexOffsetTiling;
+	vec4 mAmbientTexOffsetTiling;
+	vec4 mEmissiveTexOffsetTiling;
+	vec4 mHeightTexOffsetTiling;
+	vec4 mNormalsTexOffsetTiling;
+	vec4 mShininessTexOffsetTiling;
+	vec4 mOpacityTexOffsetTiling;
+	vec4 mDisplacementTexOffsetTiling;
+	vec4 mReflectionTexOffsetTiling;
+	vec4 mLightmapTexOffsetTiling;
+	vec4 mExtraTexOffsetTiling;
 } material;
 
 layout (location = 0) in vec3 positionWS;
@@ -65,8 +66,8 @@ layout (location = 0) out vec4 fs_out;
 
 void main() 
 {
-    vec3 color = texture(textures[material.m_diffuse_tex_index], texCoord).rgb;
-	color *= material.m_diffuse_reflectivity.rgb;
+    vec3 color = texture(textures[material.mDiffuseTexIndex], texCoord).rgb;
+	color *= material.mDiffuseReflectivity.rgb;
 	vec3 toLight = vec3(0.0, 1.0, 0.0);
 	color *= max(0.0, dot(normalize(normalWS), toLight));
 	fs_out = vec4(color, 1.0);

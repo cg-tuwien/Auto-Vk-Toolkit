@@ -15,7 +15,7 @@ namespace cgb
 	// 3 ... errors, warnings and infos
 	// 4 ... everything
 	#if !defined(LOG_LEVEL)
-	#define LOG_LEVEL 4
+	#define LOG_LEVEL 3
 	#endif
 
 	enum struct log_type

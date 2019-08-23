@@ -360,7 +360,7 @@ namespace cgb
 		else {
 			// We've got colors[_Set]. Proceed as planned.
 			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(paiMesh->mColors[i][_Set][0], paiMesh->mColors[i][_Set][1], paiMesh->mColors[i][_Set][2], paiMesh->mColors[i][_Set][3]);
+				result.emplace_back(paiMesh->mColors[_Set][i][0], paiMesh->mColors[_Set][i][1], paiMesh->mColors[_Set][i][2], paiMesh->mColors[_Set][i][3]);
 			}
 		}
 		return result;

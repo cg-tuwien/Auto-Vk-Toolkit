@@ -132,6 +132,10 @@ namespace cgb
 		descriptor_set& operator=(descriptor_set&&) = default;
 		~descriptor_set() = default;
 
+		auto& descriptor_sets() const { return mDescriptorSets; }
+		uint32_t number_of_descriptor_sets() const { return static_cast<uint32_t>(mDescriptorSets.size()); }
+		auto* descriptor_sets_addr() const { return &mDescriptorSets[0]; }
+
 		static descriptor_set create(std::initializer_list<binding_data> pBindings);
 
 	private:

@@ -181,7 +181,7 @@ namespace cgb
 		// Continue initialization later, after this window has gotten a handle:
 		context().add_event_handler(context_state::anytime, // execute handler asap
 			[wnd = back.get()]() -> bool {
-				LOG_INFO("Running event handler which sets up windows focus callbacks");
+				LOG_DEBUG_VERBOSE("Running event handler which sets up windows focus callbacks");
 				// We can't be sure whether it still exists
 				auto* exists = context().find_window([wnd](const auto* w) -> bool {
 					return wnd == w;
@@ -212,7 +212,7 @@ namespace cgb
 		// Also add an event handler which will run at the end of the application for cleanup:
 		context().add_event_handler(context_state::about_to_finalize,
 			[wnd = back.get()]() -> bool {
-				LOG_INFO("Running window cleanup event handler");
+				LOG_DEBUG_VERBOSE("Running window cleanup event handler");
 				// We can't be sure whether it still exists
 				auto* exists = context().find_window([wnd](const auto* w) -> bool {
 					return wnd == w;

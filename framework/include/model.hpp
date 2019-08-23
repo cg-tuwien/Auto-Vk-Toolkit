@@ -252,13 +252,13 @@ namespace cgb
 			switch (nuv) {
 			case 1:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], 0.f);
 				}
 				break;
 			case 2:
 			case 3:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1]);
+					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1]);
 				}
 				break;
 			default:
@@ -285,17 +285,17 @@ namespace cgb
 			switch (nuv) {
 			case 1:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], 0.f, 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], 0.f, 0.f);
 				}
 				break;
 			case 2:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1], 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1], 0.f);
 				}
 				break;
 			case 3:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[i][_Set][0], paiMesh->mTextureCoords[i][_Set][1], paiMesh->mTextureCoords[i][_Set][2]);
+					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1], paiMesh->mTextureCoords[_Set][i][2]);
 				}
 				break;
 			default:
@@ -305,4 +305,88 @@ namespace cgb
 		return result;
 	}
 
+	/** Helper function used by `cgb::append_indices_and_vertex_data` */
+	template <typename Vert>
+	size_t get_vertex_count(const Vert& _First)
+	{
+		return _First.size();
+	}
+
+	/** Helper function used by `cgb::append_indices_and_vertex_data` */
+	template <typename Vert, typename... Verts>
+	size_t get_vertex_count(const Vert& _First, const Verts&... _Rest)
+	{
+#if defined(_DEBUG) 
+		// Check whether all of the vertex data has the same length!
+		auto countOfNext = get_vertex_count(_Rest...);
+		if (countOfNext != _First.size()) {
+			throw std::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
+		}
+#endif
+		return _First.size();
+	}
+
+	/** Inserts the elements from the collection `_ToInsert` into the collection `_Destination`. */
+	template <typename V>
+	void insert_into(V& _Destination, const V& _ToInsert)
+	{
+		_Destination.insert(std::end(_Destination), std::begin(_ToInsert), std::end(_ToInsert));
+	}
+
+	/** Inserts the elements from the collection `_ToInsert` into the collection `_Destination` and adds `_ToAdd` to them. */
+	template <typename V, typename A>
+	void insert_into_and_add(V& _Destination, const V& _ToInsert, A _ToAdd)
+	{
+		_Destination.reserve(_Destination.size() + _ToInsert.size());
+		auto addValType = static_cast<typename V::value_type>(_ToAdd);
+		for (auto& e : _ToInsert) {
+			_Destination.push_back(e + addValType);
+		}
+	}
+
+	/** Utility function to concatenate lists of vertex data and according lists of index data.
+	 *	The vertex data is concatenated unmodified, and an arbitrary number of vertex data vectors is supported.
+	 *	The index data, however, will be modified during concatenation to account for the vertices which come before.
+	 *
+	 *	Example: 
+	 *	If there are already 100 vertices in the vertex data vectors, adding the indices 0, 2, 1 will result in
+	 *	actually the values 100+0, 100+2, 100+1, i.e. 100, 102, 101, being added to the vector of existing indices.
+	 *
+	 *	Usage:
+	 *	This method takes `std::tuple`s as parameters to assign source collections to destination collections.
+	 *	The destinations are referring to collections, while the sources must be lambdas providing the data.
+	 *		Example: `std::vector<glm::vec3> positions;` for the first parameter and `[&]() { return someModel->positions_for_meshes({ 0 }); }` for the second parameter.
+	 *	Please note that the first parameter of these tuples is captured by reference, which requires 
+	 *	`std::forward_as_tuple` to be used. For better readability, `cgb::additional_index_data` and
+	 *	`cgb::additional_vertex_data` can be used instead, which are actually just the same as `std::forward_as_tuple`.
+	 *
+	 *
+	 */
+	template <typename... Vert, typename... Getter, typename Ind, typename IndGetter>
+	void append_indices_and_vertex_data(std::tuple<Ind&, IndGetter> _IndDstAndGetter, std::tuple<Vert&, Getter>... _VertDstAndGetterPairs)
+	{
+		// Count vertices BEFORE appending!
+		auto vertexCount = get_vertex_count(std::get<0>(_VertDstAndGetterPairs)...);
+		// Append all the vertex data:
+		(insert_into(/* Existing vector: */ std::get<0>(_VertDstAndGetterPairs), /* Getter: */ std::move(std::get<1>(_VertDstAndGetterPairs)())), ...);
+		// Append the index data:
+		insert_into_and_add(std::get<0>(_IndDstAndGetter), std::get<1>(_IndDstAndGetter)(), vertexCount);
+		//insert_into_and_add(_A, _B(), vertexCount);
+	}
+
+	/** This is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
+	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
+	 */
+	template <class... _Types>
+	_NODISCARD constexpr std::tuple<_Types&&...> additional_vertex_data(_Types&&... _Args) noexcept {
+		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
+	}
+
+	/** This is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
+	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
+	 */
+	template <class... _Types>
+	_NODISCARD constexpr std::tuple<_Types&&...> additional_index_data(_Types&&... _Args) noexcept {
+		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
+	}
 }

@@ -160,8 +160,8 @@
 #include "descriptor_pool_vulkan.hpp"
 #include "pipeline_vulkan.hpp"
 #include "shader_binding_table_vulkan.hpp"
-#include "bindings_vulkan.hpp"
 #include "vulkan_helper_functions.hpp"
+#include "bindings_vulkan.hpp"
 
 #include "imgui_impl_vulkan.h"
 
@@ -228,5 +228,7 @@ namespace cgb
 #include "model.hpp"
 #include "camera.hpp"
 #include "quake_camera.hpp"
+
+#include "material_image_helpers.hpp"
 
 // ReSharper restore CppUnusedIncludeDirective

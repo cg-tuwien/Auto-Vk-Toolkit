@@ -17,6 +17,8 @@ namespace cgb
 	/** Converts a cgb::shader_type to the vulkan-specific vk::ShaderStageFlagBits type */
 	extern vk::ShaderStageFlagBits to_vk_shader_stage(shader_type pType);
 
+	extern vk::ShaderStageFlags to_vk_shader_stages(shader_type pType);
+
 	extern vk::SampleCountFlagBits to_vk_sample_count(int pSampleCount);
 
 	extern int to_cgb_sample_count(vk::SampleCountFlagBits pSampleCount);

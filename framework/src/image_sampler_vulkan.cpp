@@ -5,8 +5,8 @@ namespace cgb
 	owning_resource<image_sampler_t> image_sampler_t::create(image_view pImageView, sampler pSampler)
 	{
 		image_sampler_t result;
-		//result.mImageView = std::move(cgb::get(pImageView));
-		//result.mSampler = std::move(cgb::get(pSampler));
+		result.mImageView = std::move(pImageView);
+		result.mSampler = std::move(pSampler);
 		result.mDescriptorInfo = vk::DescriptorImageInfo{}
 			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Get this right!
 			.setImageView(result.view_handle())

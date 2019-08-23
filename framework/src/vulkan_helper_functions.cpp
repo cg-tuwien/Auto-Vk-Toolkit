@@ -81,6 +81,54 @@ namespace cgb
 		}
 	}
 
+	vk::ShaderStageFlags to_vk_shader_stages(shader_type pType)
+	{
+		vk::ShaderStageFlags result;
+		if ((pType & cgb::shader_type::vertex) == cgb::shader_type::vertex) {
+			result |= vk::ShaderStageFlagBits::eVertex;
+		}
+		if ((pType & cgb::shader_type::tessellation_control) == cgb::shader_type::tessellation_control) {
+			result |= vk::ShaderStageFlagBits::eTessellationControl;
+		}
+		if ((pType & cgb::shader_type::tessellation_evaluation) == cgb::shader_type::tessellation_evaluation) {
+			result |= vk::ShaderStageFlagBits::eTessellationEvaluation;
+		}
+		if ((pType & cgb::shader_type::geometry) == cgb::shader_type::geometry) {
+			result |= vk::ShaderStageFlagBits::eGeometry;
+		}
+		if ((pType & cgb::shader_type::fragment) == cgb::shader_type::fragment) {
+			result |= vk::ShaderStageFlagBits::eFragment;
+		}
+		if ((pType & cgb::shader_type::compute) == cgb::shader_type::compute) {
+			result |= vk::ShaderStageFlagBits::eCompute;
+		}
+		if ((pType & cgb::shader_type::ray_generation) == cgb::shader_type::ray_generation) {
+			result |= vk::ShaderStageFlagBits::eRaygenNV;
+		}
+		if ((pType & cgb::shader_type::any_hit) == cgb::shader_type::any_hit) {
+			result |= vk::ShaderStageFlagBits::eAnyHitNV;
+		}
+		if ((pType & cgb::shader_type::closest_hit) == cgb::shader_type::closest_hit) {
+			result |= vk::ShaderStageFlagBits::eClosestHitNV;
+		}
+		if ((pType & cgb::shader_type::miss) == cgb::shader_type::miss) {
+			result |= vk::ShaderStageFlagBits::eMissNV;
+		}
+		if ((pType & cgb::shader_type::intersection) == cgb::shader_type::intersection) {
+			result |= vk::ShaderStageFlagBits::eIntersectionNV;
+		}
+		if ((pType & cgb::shader_type::callable) == cgb::shader_type::callable) {
+			result |= vk::ShaderStageFlagBits::eCallableNV;
+		}
+		if ((pType & cgb::shader_type::task) == cgb::shader_type::task) {
+			result |= vk::ShaderStageFlagBits::eTaskNV;
+		}
+		if ((pType & cgb::shader_type::mesh) == cgb::shader_type::mesh) {
+			result |= vk::ShaderStageFlagBits::eMeshNV;
+		}
+		return result;
+	}
+
 	vk::SampleCountFlagBits to_vk_sample_count(int pSampleCount)
 	{
 		switch (pSampleCount) {

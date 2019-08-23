@@ -9,7 +9,6 @@ namespace cgb
 	{
 		uint32_t mSetId;
 		vk::DescriptorSetLayoutBinding mLayoutBinding;
-		shader_type mShaderStages;
 		std::variant<
 			std::monostate,
 			generic_buffer_t*,
@@ -38,6 +37,8 @@ namespace cgb
 			std::vector<image_sampler_t*>
 		> mResourcePtr;
 
+		mutable std::vector<vk::DescriptorImageInfo> mThisIsProbablyAHack;
+
 		const vk::DescriptorImageInfo* descriptor_image_info() const
 		{
 			if (std::holds_alternative<generic_buffer_t*>(mResourcePtr)) { return nullptr; }
@@ -52,6 +53,15 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return &std::get<image_view_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return &std::get<sampler_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return &std::get<image_sampler_t*>(mResourcePtr)->descriptor_info(); }
+
+			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { // TODO: OMG, I don't know... shouldn't this be handled somehow differently??
+				auto& vec = std::get<std::vector<image_sampler_t*>>(mResourcePtr);
+				for (auto& v : vec) {
+					mThisIsProbablyAHack.push_back(v->descriptor_info());
+				}
+				return mThisIsProbablyAHack.data();
+			}
+			
 			// TODO: Handle array types!
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
@@ -70,6 +80,9 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+
+			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			
 			// TODO: Handle array types!
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
@@ -88,6 +101,9 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+
+			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			
 			// TODO: Handle array types!
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
@@ -106,6 +122,9 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+
+			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			
 			// TODO: Handle array types!
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}

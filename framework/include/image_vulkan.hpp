@@ -130,11 +130,11 @@ namespace cgb
 				.setBaseArrayLayer(0u)
 				.setLayerCount(1u))
 			.setImageOffset({ 0u, 0u, 0u })
-			.setImageExtent(pDstImage.mInfo.extent);
+			.setImageExtent(pDstImage.config().extent);
 
 		commandBuffer.handle().copyBufferToImage(
-			pSrcBuffer.buffer_handle(), 
-			pDstImage.mImage, 
+			pSrcBuffer->buffer_handle(), 
+			pDstImage.image_handle(), 
 			vk::ImageLayout::eTransferDstOptimal,
 			{ copyRegion });
 

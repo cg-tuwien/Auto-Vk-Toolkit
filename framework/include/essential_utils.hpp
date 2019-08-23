@@ -207,53 +207,41 @@ namespace cgb
 	//	return std::make_shared<T>(std::move(t));
 	//}
 
-	// SFINAE test for detecting if a type has a `.size()` member
+	// SFINAE test for detecting if a type has a `.size()` member and iterators
 	template <typename T>
-	class has_size_member
+	class has_size_and_iterators
 	{
 	private:
-		typedef char YesType[1];
-		typedef char NoType[2];
+		typedef char NoType[1];
+		typedef char YesType[2];
 
-		template <typename C> static YesType& test( decltype(&C::size) ) ;
-		template <typename C> static NoType& test(...);
+		template<typename C> static auto Test(void*)
+			-> std::tuple<YesType, decltype(std::declval<C const>().size()), decltype(std::declval<C const>().begin()), decltype(std::declval<C const>().end())>;
 
-	public:
-		enum { value = sizeof(test<T>(0)) == sizeof(YesType) };
+		  template<typename> static NoType& Test(...);
+
+		public:
+			static bool const value = sizeof(Test<T>(0)) != sizeof(NoType);
 	};
 
-	// SFINAE test for detecting if a type does NOT have a `.size()` member
-	template <typename T>
-	class has_no_size_member
-	{
-	private:
-		typedef char YesType[1];
-		typedef char NoType[2];
-
-		template <typename C> static YesType& test( decltype(&C::size) ) ;
-		template <typename C> static NoType& test(...);
-
-	public:
-		enum { value = sizeof(test<T>(0)) != sizeof(YesType) };
-	};
 
 	template<typename T> 
-	typename std::enable_if<has_size_member<T>::value, uint32_t>::type how_many_elements(const T& t) {
+	typename std::enable_if<has_size_and_iterators<T>::value, uint32_t>::type how_many_elements(const T& t) {
 		return static_cast<uint32_t>(t.size());
 	}
 
 	template<typename T> 
-	typename std::enable_if<has_no_size_member<T>::value, uint32_t>::type how_many_elements(const T& t) {
+	typename std::enable_if<!has_size_and_iterators<T>::value, uint32_t>::type how_many_elements(const T& t) {
 		return 1u;
 	}
 
 	template<typename T> 
-	typename std::enable_if<has_size_member<T>::value, const typename T::value_type&>::type first_or_only_element(const T& t) {
+	typename std::enable_if<has_size_and_iterators<T>::value, const typename T::value_type&>::type first_or_only_element(const T& t) {
 		return t[0];
 	}
 
 	template<typename T> 
-	typename std::enable_if<has_no_size_member<T>::value, const T&>::type first_or_only_element(const T& t) {
+	typename std::enable_if<!has_size_and_iterators<T>::value, const T&>::type first_or_only_element(const T& t) {
 		return t;
 	}
 
@@ -263,6 +251,8 @@ namespace cgb
 	class owning_resource : public std::variant<std::monostate, T, std::shared_ptr<T>>
 	{
 	public:
+		using value_type = T;
+
 		owning_resource() : std::variant<std::monostate, T, std::shared_ptr<T>>() {}
 		owning_resource(T&& r) : std::variant<std::monostate, T, std::shared_ptr<T>>(std::move(r)) {}
 		owning_resource(const T&) = delete;

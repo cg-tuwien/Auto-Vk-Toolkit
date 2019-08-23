@@ -5,6 +5,9 @@ namespace cgb
 
 	static std::string trim_spaces(std::string_view s)
 	{
+		if (s.empty()) {
+			return "";
+		}
 		auto pos1 = s.find_first_not_of(' ');
 		auto pos2 = s.find_last_not_of(' ');
 		return std::string(s.substr(pos1, pos2-pos1+1));

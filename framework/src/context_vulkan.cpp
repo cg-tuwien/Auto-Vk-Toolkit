@@ -49,7 +49,7 @@ namespace cgb
 		//   This constructor is the only exception, in all other cases, it's safe to use `add_event_handler`
 		//   
 		mEventHandlers.emplace_back([]() -> bool {
-			LOG_INFO("Running event handler to pick physical device");
+			LOG_DEBUG_VERBOSE("Running event handler to pick physical device");
 
 			// Just get any window:
 			auto* window = context().find_window([](cgb::window* w) { 
@@ -71,7 +71,7 @@ namespace cgb
 		}, cgb::context_state::halfway_initialized);
 
 		mEventHandlers.emplace_back([]() -> bool {
-			LOG_INFO("Running event handler to create logical device");
+			LOG_DEBUG_VERBOSE("Running event handler to create logical device");
 
 			// Just get any window:
 			auto* window = context().find_window([](cgb::window* w) { 
@@ -109,7 +109,7 @@ namespace cgb
 			//   This constructor is the only exception, in all other cases, it's safe to use `add_event_handler`
 			//   
 			mEventHandlers.emplace_back([]() -> bool {
-				LOG_INFO("Running IMGUI setup event handler");
+				LOG_DEBUG_VERBOSE("Running IMGUI setup event handler");
 
 				// Just get any window:
 				auto* window = context().find_window([](cgb::window* w) { 
@@ -286,7 +286,7 @@ namespace cgb
 
 		// Wait for the window to receive a valid handle before creating its surface
 		context().add_event_handler(context_state::halfway_initialized | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
-			LOG_INFO("Running window surface creator event handler");
+			LOG_DEBUG_VERBOSE("Running window surface creator event handler");
 
 			// Make sure it is the right window
 			auto* window = context().find_window([wnd](cgb::window* w) {
@@ -310,7 +310,7 @@ namespace cgb
 		// Continue with swap chain creation after the context has completely initialized
 		//   and the window's handle and surface have been created
 		context().add_event_handler(context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
-			LOG_INFO("Running swap chain creator event handler");
+			LOG_DEBUG_VERBOSE("Running swap chain creator event handler");
 
 			// Make sure it is the right window
 			auto* window = context().find_window([wnd](cgb::window* w) { 
@@ -411,10 +411,18 @@ namespace cgb
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_INFO__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
-				pCallbackData->messageIdNumber,
-				pCallbackData->pMessageIdName,
-				pCallbackData->pMessage));
+			if (std::string("Loader Message") == pCallbackData->pMessageIdName) {
+				LOG_VERBOSE__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+					pCallbackData->messageIdNumber,
+					pCallbackData->pMessageIdName,
+					pCallbackData->pMessage));
+			}
+			else {
+				LOG_INFO__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+					pCallbackData->messageIdNumber,
+					pCallbackData->pMessageIdName,
+					pCallbackData->pMessage));
+			}
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
 			assert(pCallbackData);
@@ -668,7 +676,7 @@ namespace cgb
 		// Defer pipeline creation to enable the user to request more queues
 
 		mEventHandlers.emplace_back([presentQueue, graphicsQueue, computeQueue, transferQueue]() -> bool {
-			LOG_INFO("Running vulkan create_and_assign_logical_device event handler");
+			LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
 
 			// Get the same validation layers as for the instance!
 			std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
@@ -1127,79 +1135,79 @@ namespace cgb
 		return newPool;
 	}
 
-	//descriptor_pool& vulkan::get_descriptor_pool()
-	//{
-	//	//if (mDescriptorPools.size() == 0) {
+	vk::DescriptorPool vulkan::get_descriptor_pool()
+	{
+		if (!mWorkaroundDescriptorPool) {
 
-	//		std::array poolSizes = {
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformBuffer)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eCombinedImageSampler)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageImage)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eAccelerationStructureNV)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			// Added because of IMGUI:
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eSampler)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eSampledImage)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformTexelBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageTexelBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformBufferDynamic)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageBufferDynamic)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eInputAttachment)
-	//				.setDescriptorCount(1024u)
-	//		};
+			std::array poolSizes = {
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eUniformBuffer)
+					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eCombinedImageSampler)
+					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eStorageImage)
+					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eAccelerationStructureNV)
+					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+				,
+				// Added because of IMGUI:
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eSampler)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eSampledImage)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eUniformTexelBuffer)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eStorageTexelBuffer)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eStorageBuffer)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eUniformBufferDynamic)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eStorageBufferDynamic)
+					.setDescriptorCount(1024u)
+				,
+				vk::DescriptorPoolSize()
+					.setType(vk::DescriptorType::eInputAttachment)
+					.setDescriptorCount(1024u)
+			};
 
-	//		auto poolInfo = vk::DescriptorPoolCreateInfo()
-	//			.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
-	//			.setPPoolSizes(poolSizes.data())
-	//			.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
-	//			.setFlags(vk::DescriptorPoolCreateFlags()); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
-	//		//return mDescriptorPools.emplace_back(logical_device().createDescriptorPool(poolInfo));
-	//	//}
-	//	//return mDescriptorPools[0];
+			auto poolInfo = vk::DescriptorPoolCreateInfo()
+				.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
+				.setPPoolSizes(poolSizes.data())
+				.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
+				.setFlags(vk::DescriptorPoolCreateFlags()); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
+			mWorkaroundDescriptorPool = logical_device().createDescriptorPoolUnique(poolInfo);
+		}
+		return mWorkaroundDescriptorPool.get();
 
-	//		descriptor_pool result;
-	//		return result;
-	//}
+			//descriptor_pool result;
+			//return result;
+	}
 
 	std::vector<vk::DescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
 	{
 
 		auto allocInfo = vk::DescriptorSetAllocateInfo()
-			//.setDescriptorPool(get_descriptor_pool().handle()) // TODO: set a valid descriptor pool
+			.setDescriptorPool(get_descriptor_pool()) // TODO: set a valid descriptor pool
 			.setDescriptorSetCount(static_cast<uint32_t>(pData.size()))
 			.setPSetLayouts(pData.data());
 		auto descriptorSets = logical_device().allocateDescriptorSets(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]

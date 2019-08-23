@@ -202,6 +202,9 @@
     <ClCompile Include="..\..\framework\src\renderpass_opengl.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\opengl</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
+      <Filter>Source Files\materials</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -463,6 +466,9 @@
       <Filter>Header Files\materials</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material.hpp">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
       <Filter>Header Files\materials</Filter>
     </ClInclude>
   </ItemGroup>

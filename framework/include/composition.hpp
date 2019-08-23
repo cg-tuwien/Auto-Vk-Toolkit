@@ -165,7 +165,7 @@ namespace cgb
 			{
 				if ((i+1) % 1000 == 0)
 				{
-					LOG_WARNING(fmt::format("More than {} iterations in spin-lock", i+1));
+					LOG_DEBUG_VERBOSE(fmt::format("More than {} iterations in spin-lock", i+1));
 				}
 			}
 			assert(thiz->mShouldSwapInputBuffers == false);
