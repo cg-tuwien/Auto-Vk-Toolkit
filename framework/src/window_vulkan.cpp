@@ -2,12 +2,12 @@
 
 namespace cgb
 {
-	void window::request_srgb_framebuffer(bool pRequestSrgb)
+	void window::request_srgb_framebuffer(bool _RequestSrgb)
 	{
 		// Which formats are supported, depends on the surface.
-		mSurfaceFormatSelector = [srgbFormatRequested = pRequestSrgb](const vk::SurfaceKHR & pSurface) {
+		mSurfaceFormatSelector = [srgbFormatRequested = _RequestSrgb](const vk::SurfaceKHR & _Surface) {
 			// Get all the formats which are supported by the surface:
-			auto srfFrmts = context().physical_device().getSurfaceFormatsKHR(pSurface);
+			auto srfFrmts = context().physical_device().getSurfaceFormatsKHR(_Surface);
 
 			// Init with a default format...
 			auto selSurfaceFormat = vk::SurfaceFormatKHR{
@@ -42,11 +42,11 @@ namespace cgb
 		}
 	}
 
-	void window::set_presentaton_mode(cgb::presentation_mode pMode)
+	void window::set_presentaton_mode(cgb::presentation_mode _Mode)
 	{
-		mPresentationModeSelector = [presMode = pMode](const vk::SurfaceKHR & pSurface) {
+		mPresentationModeSelector = [presMode = _Mode](const vk::SurfaceKHR& _Surface) {
 			// Supported presentation modes must be queried from a device:
-			auto presModes = context().physical_device().getSurfacePresentModesKHR(pSurface);
+			auto presModes = context().physical_device().getSurfacePresentModesKHR(_Surface);
 
 			// Select a presentation mode:
 			auto selPresModeItr = presModes.end();
@@ -81,9 +81,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_samples(int pNumSamples)
+	void window::set_number_of_samples(int _NumSamples)
 	{
-		mNumberOfSamplesGetter = [samples = to_vk_sample_count(pNumSamples)]() { return samples; };
+		mNumberOfSamplesGetter = [samples = to_vk_sample_count(_NumSamples)]() { return samples; };
 
 		mMultisampleCreateInfoBuilder = [this]() {
 			auto samples = mNumberOfSamplesGetter();
@@ -103,9 +103,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_presentable_images(uint32_t pNumImages)
+	void window::set_number_of_presentable_images(uint32_t _NumImages)
 	{
-		mNumberOfPresentableImagesGetter = [numImages = pNumImages]() { return numImages; };
+		mNumberOfPresentableImagesGetter = [numImages = _NumImages]() { return numImages; };
 
 		// If the window has already been created, the new setting can't 
 		// be applied unless the window is being recreated.
@@ -114,9 +114,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_concurrent_frames(uint32_t pNumConcurrent)
+	void window::set_number_of_concurrent_frames(uint32_t _NumConcurrent)
 	{
-		mNumberOfConcurrentFramesGetter = [numConcurrent = pNumConcurrent]() { return numConcurrent; };
+		mNumberOfConcurrentFramesGetter = [numConcurrent = _NumConcurrent]() { return numConcurrent; };
 
 		// If the window has already been created, the new setting can't 
 		// be applied unless the window is being recreated.
@@ -233,29 +233,29 @@ namespace cgb
 		}
 	}
 
-	void window::set_extra_semaphore_dependency(semaphore pSemaphore, std::optional<uint64_t> pFrameId)
+	void window::set_extra_semaphore_dependency(semaphore _Semaphore, std::optional<int64_t> _FrameId)
 	{
-		if (!pFrameId.has_value()) {
-			pFrameId = current_frame();
+		if (!_FrameId.has_value()) {
+			_FrameId = current_frame();
 		}
-		mExtraSemaphoreDependencies.emplace_back(pFrameId.value(), std::move(pSemaphore));
+		mExtraSemaphoreDependencies.emplace_back(_FrameId.value(), std::move(_Semaphore));
 	}
 
-	void window::set_one_time_submit_command_buffer(command_buffer pCommandBuffer, std::optional<uint64_t> pFrameId)
+	void window::set_one_time_submit_command_buffer(command_buffer _CommandBuffer, std::optional<int64_t> _FrameId)
 	{
-		if (!pFrameId.has_value()) {
-			pFrameId = current_frame();
+		if (!_FrameId.has_value()) {
+			_FrameId = current_frame();
 		}
-		mOneTimeSubmitCommandBuffers.emplace_back(pFrameId.value(), std::move(pCommandBuffer));
+		mOneTimeSubmitCommandBuffers.emplace_back(_FrameId.value(), std::move(_CommandBuffer));
 	}
 
-	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(uint64_t pFrameId)
+	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t _FrameId)
 	{
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mExtraSemaphoreDependencies), std::end(mExtraSemaphoreDependencies),
-			[frameId = pFrameId](const auto& tpl) {
-				return std::get<uint64_t>(tpl) == frameId;
+			[frameId = _FrameId](const auto& tpl) {
+				return std::get<int64_t>(tpl) == frameId;
 			});
 		// return ownership of all the semaphores to remove to the caller
 		std::vector<semaphore> moved_semaphores;
@@ -269,13 +269,13 @@ namespace cgb
 		return moved_semaphores;
 	}
 
-	std::vector<command_buffer> window::remove_all_one_time_submit_command_buffers_for_frame(uint64_t pFrameId)
+	std::vector<command_buffer> window::remove_all_one_time_submit_command_buffers_for_frame(int64_t _FrameId)
 	{
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mOneTimeSubmitCommandBuffers), std::end(mOneTimeSubmitCommandBuffers),
-			[frameId = pFrameId](const auto& tpl) {
-				return std::get<uint64_t>(tpl) == frameId;
+			[frameId = _FrameId](const auto& tpl) {
+				return std::get<int64_t>(tpl) == frameId;
 			});
 		// return ownership of all the command_buffers to remove to the caller
 		std::vector<command_buffer> moved_command_buffers;
@@ -287,26 +287,26 @@ namespace cgb
 		return moved_command_buffers;
 	}
 
-	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& pSemaphores, uint64_t pFrameId)
+	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId)
 	{
 		for (const auto& [frameId, sem] : mExtraSemaphoreDependencies) {
-			if (frameId == pFrameId) {
-				pSemaphores.push_back(sem->handle());
+			if (frameId == _FrameId) {
+				_Semaphores.push_back(sem->handle());
 			}
 		}
 	}
 
-	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& pSemaphores, uint64_t pFrameId)
+	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId)
 	{
 		// TODO: Fill mExtraRenderFinishedSemaphores with meaningful data
 		// TODO: Implement
-		//auto si = sync_index_for_frame();
+		//auto si = in_flight_index_for_frame();
 		//for (auto i = si; i < si + mNumExtraRenderFinishedSemaphoresPerFrame; ++i) {
 		//	pSemaphores.push_back(mExtraRenderFinishedSemaphores. [i]->handle());
 		//}
 	}
 
-	/*std::vector<semaphore> window::set_num_extra_semaphores_to_generate_per_frame(uint32_t pNumExtraSemaphores)
+	/*std::vector<semaphore> window::set_num_extra_semaphores_to_generate_per_frame(uint32_t _NumExtraSemaphores)
 	{
 
 	}*/
@@ -317,14 +317,16 @@ namespace cgb
 
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
-		cgb::context().logical_device().waitForFences(1u, fence.handle_addr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
+		cgb::context().logical_device().waitForFences(1u, fence.handle_addr(), VK_TRUE, std::numeric_limits<int64_t>::max());
 		result = cgb::context().logical_device().resetFences(1u, fence.handle_addr());
 		assert (vk::Result::eSuccess == result);
 
 		// At this point we are certain that frame which used the current fence before is done.
 		//  => Clean up the resources of that previous frame!
-		remove_all_extra_semaphore_dependencies_for_frame(current_frame() - number_of_concurrent_frames());
-		remove_all_one_time_submit_command_buffers_for_frame(current_frame() - number_of_concurrent_frames());
+		auto semaphoresToBeFreed 
+			= remove_all_extra_semaphore_dependencies_for_frame(current_frame() - number_of_in_flight_frames());
+		auto commandBuffersToBeFreed 
+			= remove_all_one_time_submit_command_buffers_for_frame(current_frame() - number_of_in_flight_frames());
 
 		//
 		//
@@ -349,16 +351,11 @@ namespace cgb
 		const auto& imgAvailableSem = image_available_semaphore_for_frame();
 		cgb::context().logical_device().acquireNextImageKHR(
 			swap_chain(), // the swap chain from which we wish to acquire an image 
-			std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
+			std::numeric_limits<int64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
 			imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
 			nullptr,
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
-						  // Assemble the command buffers...
-						  //std::array<vk::CommandBuffer, sizeof...(pCommandBuffers) + 1> cmdBuffers = {{
-						  //	pCommandBuffer.mCommandBuffer,
-						  //	pCommandBuffers.mCommandBuffer... 
-						  //}};
 		std::vector<vk::CommandBuffer> cmdBuffers;
 		for (auto cb : _CommandBufferRefs) {
 			cmdBuffers.push_back(cb.get().handle());

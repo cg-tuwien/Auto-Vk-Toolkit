@@ -44,12 +44,12 @@ namespace cgb
 		mCommandBuffer->end();
 	}
 
-	void command_buffer::begin_render_pass_for_window(window* _Window)
+	void command_buffer::begin_render_pass_for_window(window* _Window, std::optional<int64_t> _InFlightIndex)
 	{
 		auto renderPassHandle = cgb::context().main_window()->renderpass_handle();
 		auto extent = cgb::context().main_window()->swap_chain_extent();
-		auto curIndex = cgb::context().main_window()->sync_index_for_frame();
-		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(curIndex)->handle();
+		auto inFlightIndex = _InFlightIndex.value_or(cgb::context().main_window()->in_flight_index_for_frame());
+		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(inFlightIndex)->handle();
 
 		std::vector<vk::ClearValue> clearValues;
 		auto& rp = cgb::context().main_window()->getrenderpass();

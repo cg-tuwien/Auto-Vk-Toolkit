@@ -16,21 +16,21 @@ namespace cgb
 		window& operator =(window&&) = default;
 
 		/** Request a framebuffer for this window which is capable of sRGB formats */
-		void request_srgb_framebuffer(bool pRequestSrgb);
+		void request_srgb_framebuffer(bool _RequestSrgb);
 
 		/** Sets the presentation mode for this window's swap chain. */
-		void set_presentaton_mode(cgb::presentation_mode pMode);
+		void set_presentaton_mode(cgb::presentation_mode _Mode);
 
 		/** Sets the number of samples for MSAA */
-		void set_number_of_samples(int pNumSamples);
+		void set_number_of_samples(int _NumSamples);
 
 		/** Sets the number of presentable images for a swap chain */
-		void set_number_of_presentable_images(uint32_t pNumImages);
+		void set_number_of_presentable_images(uint32_t _NumImages);
 
 		/** Sets the number of images which can be rendered into concurrently,
 		 *	i.e. the number of "frames in flight"
 		 */
-		void set_number_of_concurrent_frames(uint32_t pNumConcurrent);
+		void set_number_of_concurrent_frames(uint32_t _NumConcurrent);
 
 		/** Sets additional attachments which shall be added to the back buffer 
 		 *	in addition to the obligatory color attachment.  
@@ -95,16 +95,16 @@ namespace cgb
 			return mSwapChainImages;
 		}
 		/** Gets this window's swap chain's image at the specified index. */
-		const auto& swap_chain_image_at_index(size_t pIdx) { 
-			return mSwapChainImages[pIdx]; 
+		const auto& swap_chain_image_at_index(size_t _Idx) { 
+			return mSwapChainImages[_Idx]; 
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
 		const auto& swap_chain_image_views() { 
 			return mSwapChainImageViews; 
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		const auto& swap_chain_image_view_at_index(size_t pIdx) { 
-			return mSwapChainImageViews[pIdx]; 
+		const auto& swap_chain_image_view_at_index(size_t _Idx) { 
+			return mSwapChainImageViews[_Idx]; 
 		}
 
 		/** Gets a collection containing all this window's back buffers. */
@@ -112,113 +112,90 @@ namespace cgb
 			return mBackBuffers; 
 		}
 		/** Gets this window's back buffer at the specified index. */
-		const auto& backbuffer_at_index(size_t pIdx) { 
-			return mBackBuffers[pIdx]; 
+		const auto& backbuffer_at_index(size_t _Idx) { 
+			return mBackBuffers[_Idx]; 
 		}
 
-		/** Gets the number of how many images there are in the swap chain. */
-		auto number_of_swapchain_images() const {
-			return mSwapChainImageViews.size(); 
-		}
-		/** Gets the number of how many frames are (potentially) concurrently rendered into. */
-		auto number_of_concurrent_frames() const { 
-			return mFences.size(); 
+		/** Gets the number of how many frames are (potentially) concurrently rendered into,
+		 *	or put differently: How many frames are (potentially) "in flight" at the same time.
+		 */
+		auto number_of_in_flight_frames() const { 
+			return static_cast<int64_t>(mFences.size());
 		}
 
 		/** Gets the current frame index. */
 		auto current_frame() const { 
 			return mCurrentFrame; 
 		}
-		/** Helper function which calculates the image index for the given frame index. 
-		 *	@param pFrameIndex Frame index which to calculate the corresponding image index for.
-		 *	@return Returns the image index for the given frame index.
-		 */
-		auto calculate_image_index_for_frame(int64_t pFrameIndex) const { 
-			return pFrameIndex % number_of_swapchain_images(); 
-		}
-		/** Helper function which calculates the sync index for the given frame index. 
-		*	@param pFrameIndex Frame index which to calculate the corresponding image index for.
-		*	@return Returns the sync index for the given frame index.
-		*/
-		auto calculate_sync_index_for_frame(int64_t pFrameIndex) const {
-			return pFrameIndex % number_of_concurrent_frames(); 
-		}
 
-		/** Returns the image index for the requested frame.
-		 *	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		 *								Specify a negative offset to refer to a previous frame.
+		/** Returns the "in flight index" for the requested frame.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		auto image_index_for_frame(int64_t pCurrentFrameOffset = 0) const { 
-			return calculate_image_index_for_frame(static_cast<int64_t>(current_frame()) + pCurrentFrameOffset); 
-		}
-		/** Returns the sync index for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		auto sync_index_for_frame(int64_t pCurrentFrameOffset = 0) const { 
-			return calculate_sync_index_for_frame(static_cast<int64_t>(current_frame()) + pCurrentFrameOffset); 
+		auto in_flight_index_for_frame(std::optional<int64_t> _FrameId = {}) const { 
+			return _FrameId.value_or(current_frame()) % number_of_in_flight_frames(); 
 		}
 		
-		/** Returns the swap chain image for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		const auto& image_for_frame(int64_t pCurrentFrameOffset = 0) const {
-			return mSwapChainImages[image_index_for_frame(pCurrentFrameOffset)];
+		/** Returns the swap chain image for the requested frame, which depends on the frame's "in flight index.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		const auto& image_for_frame(std::optional<int64_t> _FrameId = {}) const {
+			return mSwapChainImages[in_flight_index_for_frame(_FrameId)];
 		}
-		/** Returns the swap chain image view for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		const image_view_t& image_view_for_frame(int64_t pCurrentFrameOffset = 0) const {
-			return mSwapChainImageViews[image_index_for_frame(pCurrentFrameOffset)];
+		/** Returns the swap chain image view for the requested frame, which depends on the frame's "in flight index.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		const image_view_t& image_view_for_frame(std::optional<int64_t> _FrameId = {}) const {
+			return mSwapChainImageViews[in_flight_index_for_frame(_FrameId)];
 		}
-		/** Returns the fence for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		const fence_t& fence_for_frame(int64_t pCurrentFrameOffset = 0) const {
-			return mFences[sync_index_for_frame(pCurrentFrameOffset)];
+		/** Returns the fence for the requested frame, which depends on the frame's "in flight index.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		const fence_t& fence_for_frame(std::optional<int64_t> _FrameId = {}) const {
+			return mFences[in_flight_index_for_frame(_FrameId)];
 		}
-		/** Returns the "image available"-semaphore for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		const semaphore_t& image_available_semaphore_for_frame(int64_t pCurrentFrameOffset = 0) const {
-			return mImageAvailableSemaphores[sync_index_for_frame(pCurrentFrameOffset)];
+		/** Returns the "image available"-semaphore for the requested frame, which depends on the frame's "in flight index.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		const semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> _FrameId = {}) const {
+			return mImageAvailableSemaphores[in_flight_index_for_frame(_FrameId)];
 		}
-		/** Returns the "render finished"-semaphore for the requested frame.
-		*	@param pCurrentFrameOffset	Leave at the default of 0 to request the image index for the current frame.
-		*								Specify a negative offset to refer to a previous frame.
-		*/
-		const auto& render_finished_semaphore_for_frame(int64_t pCurrentFrameOffset = 0) const {
-			return mRenderFinishedSemaphores[sync_index_for_frame(pCurrentFrameOffset)];
+		/** Returns the "render finished"-semaphore for the requested frame, which depends on the frame's "in flight index.
+		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		const auto& render_finished_semaphore_for_frame(std::optional<int64_t> _FrameId = {}) const {
+			return mRenderFinishedSemaphores[in_flight_index_for_frame(_FrameId)];
 		}
 
 		/**	Add an extra semaphore to wait on for the given frame id.
-		 *	@param	pSemaphore		The semaphore to take ownership for and to set as dependency for a (future) frame.
-		 *	@param	pFrameId		The (future) frame-id which this semaphore shall be a dependency for.
+		 *	@param	_Semaphore		The semaphore to take ownership for and to set as dependency for a (future) frame.
+		 *	@param	_FrameId		The (future) frame-id which this semaphore shall be a dependency for.
 		 *							If the parameter is not set, the semaphore will be assigned to the current_frame()-id,
 		 *							which means for the next frame which will be rendered. The next frame which will be 
 		 *							rendered is the frame with the id current_frame(), assuming this function is called 
 		 *							before render_frame() is called.
 		 */
-		void set_extra_semaphore_dependency(semaphore pSemaphore, std::optional<uint64_t> pFrameId = {});
+		void set_extra_semaphore_dependency(semaphore _Semaphore, std::optional<int64_t> _FrameId = {});
 
-		void set_one_time_submit_command_buffer(command_buffer pCommandBuffer, std::optional<uint64_t> pFrameId = {});
+		void set_one_time_submit_command_buffer(command_buffer _CommandBuffer, std::optional<int64_t> _FrameId = {});
 
-		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(uint64_t pFrameId);
+		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t _FrameId);
 
-		std::vector<command_buffer> remove_all_one_time_submit_command_buffers_for_frame(uint64_t pFrameId);
+		std::vector<command_buffer> remove_all_one_time_submit_command_buffers_for_frame(int64_t _FrameId);
 
-		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& pSemaphores, uint64_t pFrameId);
+		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId);
 
-		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& pSemaphores, uint64_t pFrameId);
+		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId);
 
-		//std::vector<semaphore> set_num_extra_semaphores_to_generate_per_frame(uint32_t pNumExtraSemaphores);
+		//std::vector<semaphore> set_num_extra_semaphores_to_generate_per_frame(uint32_t _NumExtraSemaphores);
 
 		//template<typename CBT, typename... CBTS>
-		//void render_frame(CBT pCommandBuffer, CBTS... pCommandBuffers)
+		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
 		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs);
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
@@ -257,7 +234,7 @@ namespace cgb
 
 #pragma region swap chain data for this window surface
 		// The frame counter/frame id/frame index/current frame number
-		uint64_t mCurrentFrame;
+		int64_t mCurrentFrame;
 
 		// The window's surface
 		vk::UniqueSurfaceKHR mSurface;
@@ -291,7 +268,7 @@ namespace cgb
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
 		// Extra dependency semaphores will be waited on along with the mImageAvailableSemaphores
-		std::list<std::tuple<uint64_t, semaphore>> mExtraSemaphoreDependencies;
+		std::list<std::tuple<int64_t, semaphore>> mExtraSemaphoreDependencies;
 		 
 		// Number of extra semaphores to generate per frame upon fininshing the rendering of a frame
 		uint32_t mNumExtraRenderFinishedSemaphoresPerFrame;
@@ -312,6 +289,6 @@ namespace cgb
 		vk::RenderPass mUiRenderPass;
 
 		// Command buffers which are only submitted once; taking their ownership, handling their lifetime.
-		std::list<std::tuple<uint64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
+		std::list<std::tuple<int64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
 	};
 }

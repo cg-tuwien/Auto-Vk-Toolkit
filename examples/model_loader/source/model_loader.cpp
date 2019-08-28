@@ -110,8 +110,8 @@ class vertex_buffers_app : public cgb::cg_element
 		mGpuMaterialData = std::move(gpuMaterials);
 		mImageSamplers = std::move(imageSamplers);
 
-		mMaterialBuffer.reserve(cgb::context().main_window()->number_of_concurrent_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_concurrent_frames(); ++i) {
+		mMaterialBuffer.reserve(cgb::context().main_window()->number_of_in_flight_frames());
+		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mMaterialBuffer.emplace_back(cgb::create_and_fill(
 				cgb::storage_buffer_meta::create_from_data(mGpuMaterialData),
 				cgb::memory_usage::host_coherent,
@@ -147,8 +147,8 @@ class vertex_buffers_app : public cgb::cg_element
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_concurrent_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_concurrent_frames(); ++i) {
+		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
+		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
@@ -176,8 +176,8 @@ class vertex_buffers_app : public cgb::cg_element
 
 		// Set the descriptors of the uniform buffer
 		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[cgb::context().main_window()->sync_index_for_frame()]->number_of_descriptor_sets(),
-			mDescriptorSet[cgb::context().main_window()->sync_index_for_frame()]->descriptor_sets_addr(), 
+			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
+			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {

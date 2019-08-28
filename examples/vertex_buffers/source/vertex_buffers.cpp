@@ -6,8 +6,8 @@ class vertex_buffers_app : public cgb::cg_element
 	{
 		// Create vertex buffers, but don't upload vertices yet; we'll do that in the render() method.
 		// Create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
-		mVertexBuffers.reserve(cgb::context().main_window()->number_of_concurrent_frames()); // TODO: Comment and it will crash!
-		for (size_t i = 0; i < cgb::context().main_window()->number_of_concurrent_frames(); ++i) {
+		mVertexBuffers.reserve(cgb::context().main_window()->number_of_in_flight_frames()); // TODO: Comment and it will crash!
+		for (size_t i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mVertexBuffers.push_back(
 				// We want our buffer to "live" in GPU memory
 				cgb::create(cgb::vertex_buffer_meta::create_from_data(mVertexData),	cgb::memory_usage::device)
@@ -41,25 +41,14 @@ class vertex_buffers_app : public cgb::cg_element
 			cgb::attachment::create_color(swapChainFormat)
 		);
 
-		mCmdBfrs = cgb::context().graphics_queue().pool().get_command_buffers(cgb::context().main_window()->number_of_concurrent_frames(), vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		for (auto i = 0; i < mCmdBfrs.size(); ++i) {
-			auto& cmdbfr = mCmdBfrs[i];
-			cmdbfr.begin_recording();
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer& _CommandBuffer, int64_t _InFlightIndex) {
+			_CommandBuffer.begin_render_pass_for_window(cgb::context().main_window(), _InFlightIndex);
 
-			cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
-			
-			cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			//cmdbfr.handle().draw(3u, 1u, 0u, 0u);
-			//cgb::context().draw_triangle(cgb::get(mPipeline), cmdbfr);
-			//cgb::context().draw_vertices(mPipeline, cmdbfr, mVertexBuffer);
-			cgb::context().draw_indexed(mPipeline, cmdbfr, mVertexBuffers[i], mIndexBuffer);
-			//cgb::context().draw_indexed(mPipeline, cmdbfr, mModelVertices, mModelIndices);
-			cmdbfr.end_render_pass();
+			_CommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+			cgb::context().draw_indexed(mPipeline, _CommandBuffer, mVertexBuffers[_InFlightIndex], mIndexBuffer);
 
-			// TODO: image barriers instead of wait idle!!
-			//cgb::context().graphics_queue().handle().waitIdle();
-			cmdbfr.end_recording();
-		}
+			_CommandBuffer.end_render_pass();
+		});
 	}
 
 	void render() override
@@ -79,7 +68,7 @@ class vertex_buffers_app : public cgb::cg_element
 			});
 		}
 
-		auto curIndex = cgb::context().main_window()->sync_index_for_frame();
+		auto curIndex = cgb::context().main_window()->in_flight_index_for_frame();
 
 		cgb::fill(
 			mVertexBuffers[curIndex],

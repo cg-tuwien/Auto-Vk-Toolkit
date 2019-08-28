@@ -17,7 +17,20 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		void begin_recording();
 		void end_recording();
-		void begin_render_pass_for_window(window* _Window);
+
+		/**	Begins a new render pass for the given window, i.e. calls Vulkan's vkBeginRenderPass.
+		 *	Also clears all the attachments.
+		 *	Pay attention to the parameter `_ConcurrentFrameIndex` as it will refer to one of the (concurrent) back buffers!
+		 *	
+		 *	@param	_Window					The window which to begin the render pass for.
+		 *	@param	_InFlightIndex			The "in flight index" referring to a specific index of the back buffers.
+		 *									If left unset, it will be set to the current frame's "in flight index",
+		 *									which is basically `cf % iff`, where `cf` is the current frame's id (or 
+		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
+		 *									in flight (or `_Window->number_of_in_flight_frames()`).
+		 */
+		void begin_render_pass_for_window(window* _Window, std::optional<int64_t> _InFlightIndex = {});
+		
 		void begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent, std::vector<vk::ClearValue> _ClearValues);
 		void set_image_barrier(const vk::ImageMemoryBarrier& pBarrierInfo);
 		void copy_image(const image_t& pSource, const vk::Image& pDestination);

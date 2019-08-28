@@ -174,9 +174,6 @@ namespace cgb
 		 */
 		void create_swap_chain_for_window(window* pWindow);
 
-		/** TODO: TBD */
-		vk::RenderPass create_render_pass(image_format pImageFormat, image_format pDepthFormat);
-
 		//pipeline create_ray_tracing_pipeline(
 		//	const std::vector<std::tuple<shader_type, shader*>>& pShaderInfos,
 		//	const std::vector<vk::DescriptorSetLayout>& pDescriptorSets);
