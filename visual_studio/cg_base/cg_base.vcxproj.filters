@@ -109,9 +109,6 @@
     <ClCompile Include="..\..\framework\src\queue_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\pipeline_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\framebuffer_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
@@ -204,6 +201,15 @@
     </ClCompile>
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
       <Filter>Source Files\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\graphics_pipeline_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\compute_pipeline_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\compute_pipeline_config.cpp">
+      <Filter>Source Files\pipeline_and_shaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -334,9 +340,6 @@
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\queue_vulkan.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\pipeline_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\framebuffer_vulkan.hpp">
@@ -470,6 +473,18 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
       <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\graphics_pipeline_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\compute_pipeline_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\compute_pipeline_config.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\compute_pipeline_config_convenience_functions.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

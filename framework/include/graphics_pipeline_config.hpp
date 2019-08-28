@@ -10,6 +10,8 @@ namespace cgb
 			nothing					= 0x0000,
 			force_new_pipe			= 0x0001,
 			fail_if_not_reusable	= 0x0002,
+			disable_optimization	= 0x0004,
+			allow_derivatives		= 0x0008
 		};
 
 		inline pipeline_settings operator| (pipeline_settings a, pipeline_settings b)
@@ -546,7 +548,7 @@ namespace cgb
 		graphics_pipeline_config& operator=(const graphics_pipeline_config&) = delete;
 		~graphics_pipeline_config() = default;
 
-		cfg::pipeline_settings mPipelineSettings; // ?
+		cfg::pipeline_settings mPipelineSettings; // TODO: Handle settings!
 		std::optional<std::tuple<renderpass, uint32_t>> mRenderPassSubpass;
 		std::vector<input_binding_location_data> mInputBindingLocations;
 		cfg::primitive_topology mPrimitiveTopology;

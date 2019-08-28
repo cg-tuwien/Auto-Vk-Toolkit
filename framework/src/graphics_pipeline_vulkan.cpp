@@ -259,8 +259,11 @@ namespace cgb
 		}
 
 		// 12. Flags
-		// TODO: Support flags
+		// TODO: Support all flags (only one of the flags is handled at the moment)
 		result.mPipelineCreateFlags = {};
+		if ((_Config.mPipelineSettings & pipeline_settings::disable_optimization) == pipeline_settings::disable_optimization) {
+			result.mPipelineCreateFlags |= vk::PipelineCreateFlagBits::eDisableOptimization;
+		}
 
 		// 13. Compile the PIPELINE LAYOUT data and create-info
 		// Get the descriptor set layouts
@@ -295,7 +298,7 @@ namespace cgb
 
 		assert (_Config.mRenderPassSubpass.has_value());
 		// Create the PIPELINE, a.k.a. putting it all together:
-		auto pipelineInfo = vk::GraphicsPipelineCreateInfo()
+		auto pipelineInfo = vk::GraphicsPipelineCreateInfo{}
 			// 0. Render Pass
 			.setRenderPass((*result.mRenderPass).handle())
 			.setSubpass(result.mSubpassIndex)
@@ -320,7 +323,7 @@ namespace cgb
 			.setPDynamicState(result.mDynamicStateEntries.size() == 0 ? nullptr : &result.mDynamicStateCreateInfo) // Optional
 			// 12.
 			.setFlags(result.mPipelineCreateFlags)
-			// TODO: Proceed here
+			// LAYOUT:
 			.setLayout(result.layout_handle())
 			// Base pipeline:
 			.setBasePipelineHandle(nullptr) // Optional

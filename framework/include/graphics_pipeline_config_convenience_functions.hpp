@@ -162,7 +162,7 @@ namespace cgb
 		add_config(_Config, _Attachments, _Func, std::move(args)...);
 	}
 
-	// Add a resource binding to the pipeline config
+	// Add a push constants binding to the pipeline config
 	template <typename... Ts>
 	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, push_constant_binding_data _PushConstBinding, Ts... args)
 	{
@@ -170,7 +170,7 @@ namespace cgb
 		add_config(_Config, _Attachments, _Func, std::move(args)...);
 	}
 
-	// Add a resource binding to the pipeline config
+	// Add an config-alteration function to the pipeline config
 	template <typename... Ts>
 	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, cgb::context_specific_function<void(graphics_pipeline_t&)> _AlterConfigBeforeCreation, Ts... args)
 	{

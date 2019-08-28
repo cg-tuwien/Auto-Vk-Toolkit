@@ -6,7 +6,7 @@ namespace cgb
 
 	// Set sensible defaults:
 	graphics_pipeline_config::graphics_pipeline_config()
-		: mPipelineSettings{ pipeline_settings::nothing } // unsupported right now anyways
+		: mPipelineSettings{ pipeline_settings::nothing }
 		, mRenderPassSubpass {} // not set by default
 		, mPrimitiveTopology{ primitive_topology::triangles } // triangles after one another
 		, mRasterizerGeometryMode{ rasterizer_geometry_mode::rasterize_geometry } // don't discard, but rasterize!

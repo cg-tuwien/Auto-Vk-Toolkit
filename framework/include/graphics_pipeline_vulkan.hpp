@@ -57,12 +57,13 @@ namespace cgb
 		std::vector<vk::PushConstantRange> mPushConstantRanges;
 		vk::PipelineLayoutCreateInfo mPipelineLayoutCreateInfo;
 
-		// Where all comes together:
+		// TODO: What to do with flags?
 		vk::PipelineCreateFlags mPipelineCreateFlags;
 
 		// Handles:
 		vk::UniquePipelineLayout mPipelineLayout;
 		vk::UniquePipeline mPipeline;
+
 		context_tracker<graphics_pipeline_t> mTracker;
 	};
 
