@@ -124,7 +124,7 @@ namespace cgb
 		 *	Container types must provide a `size()` method and the index operator.
 		 */
 		template <typename T>
-		static generic_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, generic_buffer_meta> create_from_data(const T& pData)
 		{
 			generic_buffer_meta result; 
 			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
@@ -156,7 +156,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static uniform_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, uniform_buffer_meta> create_from_data(const T& pData)
 		{
 			uniform_buffer_meta result; 
 			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
@@ -188,7 +188,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static uniform_texel_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, uniform_texel_buffer_meta> create_from_data(const T& pData)
 		{
 			uniform_texel_buffer_meta result; 
 			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
@@ -220,7 +220,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static storage_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, storage_buffer_meta> create_from_data(const T& pData)
 		{
 			storage_buffer_meta result; 
 			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
@@ -252,7 +252,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static storage_texel_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, storage_texel_buffer_meta> create_from_data(const T& pData)
 		{
 			storage_texel_buffer_meta result; 
 			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
@@ -304,7 +304,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static vertex_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, vertex_buffer_meta> create_from_data(const T& pData)
 		{
 			vertex_buffer_meta result; 
 			result.mSizeOfOneElement = sizeof(first_or_only_element(pData)); 
@@ -395,7 +395,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static index_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, index_buffer_meta> create_from_data(const T& pData)
 		{
 			index_buffer_meta result; 
 			result.mSizeOfOneElement = sizeof(first_or_only_element(pData)); 
@@ -450,7 +450,7 @@ namespace cgb
 		*	Container types must provide a `size()` method and the index operator.
 		*/
 		template <typename T>
-		static instance_buffer_meta create_from_data(const T& pData)
+		static std::enable_if_t<!std::is_pointer_v<T>, instance_buffer_meta> create_from_data(const T& pData)
 		{
 			instance_buffer_meta result; 
 			result.mSizeOfOneElement = sizeof(first_or_only_element(pData)); 

@@ -4,7 +4,9 @@ namespace cgb
 {	
 	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
 
-	extern owning_resource<semaphore_t> transition_image_layout(const image_t& pImage, vk::Format pFormat, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, const semaphore_t* _WaitSemaphore = nullptr);
+	extern void transition_image_layout(image_t& pImage, vk::Format pFormat, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+
+	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
 
 	template <typename Bfr>
 	owning_resource<semaphore_t> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, const semaphore_t* _WaitSemaphore = nullptr)
@@ -66,7 +68,7 @@ namespace cgb
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(true);
-		stbi_uc* pixels = stbi_load(_Path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(_Path.c_str(), &width, &height, &channels, STBI_rgb_alpha); // TODO: Support different formats!
 		size_t imageSize = width * height * 4;
 
 		if (!pixels) {
@@ -83,24 +85,27 @@ namespace cgb
 		stbi_image_free(pixels);
 
 		auto img = cgb::image_t::create(width, height, cgb::image_format(vk::Format::eR8G8B8A8Unorm), cgb::memory_usage::device);
-		auto sem1 = cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-		auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
-		auto sem3 = cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, &*sem2);
-
-		if (_SemaphoreHandler) { // Did the user provide a handler?
-			sem3->set_custom_deleter([
-				ownBuffer = std::move(stagingBuffer),
-				ownSem1 = std::move(sem1),
-				ownSem2 = std::move(sem2)
-			](){});
-			_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
-			// TODO: Why the hell did I use the star here: *semaphore???
-		}
-		else {
-			LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-			cgb::context().logical_device().waitIdle();
-		}
-
+		// 1. Transition image layout to eTransferDstOptimal
+		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
+			// 2. Copy buffer to image
+			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
+			// 3. Transition image layout to eShaderReadOnlyOptimal and handle the semaphore(s) and resources
+			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, &*sem2, [&](semaphore sem3) {
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					sem3->set_custom_deleter([
+						ownBuffer = std::move(stagingBuffer),
+						ownSem1 = std::move(sem1),
+						ownSem2 = std::move(sem2)
+					](){});
+					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
+				}
+				else {
+					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+					cgb::context().logical_device().waitIdle();
+				}
+			});
+		});
+		
 		return img;
 	}
 

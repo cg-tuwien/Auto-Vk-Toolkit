@@ -17,12 +17,22 @@ namespace cgb
 		const auto& config() const { return mInfo; }
 		/** Get the config which is used to created this image view with the API. */
 		auto& config() { return mInfo; }
+		/** Gets the associated image or throws if no `cgb::image` is associated. */
+		const image_t& get_image() const;
+		/** Gets the associated image or throws if no `cgb::image` is associated. */
+		image_t& get_image();
 		/** Gets the image handle which this view has been created for. */
 		const vk::Image& image_handle() const;
 		/** Gets the images's config */
 		const vk::ImageCreateInfo& image_config() const;
 		/** Gets the image view's vulkan handle */
 		const auto& view_handle() const { return mImageView.get(); }
+		/** Gets the width of the image */
+		uint32_t width() const { return image_config().extent.width; }
+		/** Gets the height of the image */
+		uint32_t height() const { return image_config().extent.height; }
+		/** Gets the depth of the image */
+		uint32_t depth() const { return image_config().extent.depth; }
 
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		const auto& descriptor_type() const		{ return mDescriptorType; }

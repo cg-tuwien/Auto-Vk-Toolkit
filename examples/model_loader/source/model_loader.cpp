@@ -1,6 +1,6 @@
 #include <cg_base.hpp>
 
-class vertex_buffers_app : public cgb::cg_element
+class model_loader_app : public cgb::cg_element
 {
 	struct data_for_draw_call
 	{
@@ -22,6 +22,8 @@ class vertex_buffers_app : public cgb::cg_element
 		glm::mat4 mProjViewMatrix;
 		int mMaterialIndex;
 	};
+
+public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
 
 	void initialize() override
 	{
@@ -46,10 +48,10 @@ class vertex_buffers_app : public cgb::cg_element
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
 				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);					} ),
-					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
-					cgb::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
-					cgb::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
+					cgb::additional_index_data(	newElement.mIndices,		[&]() { return sponza->indices_for_mesh<uint32_t>(index);						} ),
+					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);								} ),
+					cgb::additional_vertex_data(newElement.mTexCoords,						[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
+					cgb::additional_vertex_data(newElement.mNormals,						[&]() { return sponza->normals_for_mesh(index);									} )
 				);
 			}
 			
@@ -247,7 +249,8 @@ class vertex_buffers_app : public cgb::cg_element
 		cgb::context().logical_device().waitIdle();
 	}
 
-private:
+private: // v== Member variables ==v
+
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
 	std::vector<cgb::material_gpu_data> mGpuMaterialData;
@@ -258,9 +261,10 @@ private:
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
-};
 
-int main()
+}; // model_loader_app
+
+int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
@@ -275,7 +279,7 @@ int main()
 
 		// Create an instance of vertex_buffers_app which, in this case,
 		// contains the entire functionality of our application. 
-		auto element = vertex_buffers_app();
+		auto element = model_loader_app();
 
 		// Create a composition of:
 		//  - a timer

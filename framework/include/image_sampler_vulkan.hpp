@@ -12,12 +12,22 @@ namespace cgb
 		image_sampler_t& operator=(image_sampler_t&&) = default;
 		~image_sampler_t() = default;
 
+		const auto& get_image_view() const		{ return mImageView; }
+		auto& get_image_view()					{ return mImageView; }
 		const auto& get_sampler() const			{ return mSampler; }
 		const auto& view_handle() const			{ return mImageView->view_handle(); }
 		const auto& image_handle() const		{ return mImageView->image_handle(); }
 		const auto& sampler_handle() const		{ return mSampler->handle(); }
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		const auto& descriptor_type() const		{ return mDescriptorType; }
+		/** Gets the width of the image */
+		uint32_t width() const { return mImageView->width(); }
+		/** Gets the height of the image */
+		uint32_t height() const { return mImageView->height(); }
+		/** Gets the depth of the image */
+		uint32_t depth() const { return mImageView->depth(); }
+		/** Gets the format of the image */
+		image_format format() const { return mImageView->get_image().format(); }
 
 		static owning_resource<image_sampler_t> create(image_view pImageView, sampler pSampler);
 

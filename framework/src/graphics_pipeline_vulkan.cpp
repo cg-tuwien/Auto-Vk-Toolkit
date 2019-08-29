@@ -256,6 +256,10 @@ namespace cgb
 				result.mDynamicStateEntries.push_back(vk::DynamicState::eDepthBounds);
 			}
 			// TODO: Support further dynamic states
+
+			result.mDynamicStateCreateInfo = vk::PipelineDynamicStateCreateInfo{}
+				.setDynamicStateCount(static_cast<uint32_t>(result.mDynamicStateEntries.size()))
+				.setPDynamicStates(result.mDynamicStateEntries.data());
 		}
 
 		// 12. Flags

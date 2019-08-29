@@ -18,6 +18,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_loader", "examples\mo
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "model_loader", "model_loader", "{B883882B-129A-4528-86E3-68638929D9EC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compute_image_processing", "examples\compute_image_processing\compute_image_processing.vcxproj", "{87425D27-E858-4E57-A482-21346163B972}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "compute_image_processing", "compute_image_processing", "{E796A880-48FF-48FF-A7F0-A3A522223061}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_OpenGL|x64 = Debug_OpenGL|x64
@@ -76,6 +80,18 @@ Global
 		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
 		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{017E78C0-EA95-4C68-866B-51664926D8C9}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{87425D27-E858-4E57-A482-21346163B972}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -87,6 +103,8 @@ Global
 		{8E7CC991-65C1-4B5B-9F18-F650A5378404} = {990D83B1-144C-4EC4-A22E-7D59170AE513}
 		{017E78C0-EA95-4C68-866B-51664926D8C9} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{B883882B-129A-4528-86E3-68638929D9EC} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{87425D27-E858-4E57-A482-21346163B972} = {E796A880-48FF-48FF-A7F0-A3A522223061}
+		{E796A880-48FF-48FF-A7F0-A3A522223061} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

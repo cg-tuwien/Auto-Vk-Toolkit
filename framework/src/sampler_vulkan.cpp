@@ -24,7 +24,7 @@ namespace cgb
 		case cgb::filter_mode::trilinear:
 			magFilter = vk::Filter::eLinear;
 			minFilter = vk::Filter::eLinear;
-			mipmapMode = vk::SamplerMipmapMode::eLinear;
+			mipmapMode = vk::SamplerMipmapMode::eLinear; // TODO: Create MIP-maps!
 			break;
 		case cgb::filter_mode::cubic: // I have no idea what I'm doing.
 			magFilter = vk::Filter::eCubicIMG;

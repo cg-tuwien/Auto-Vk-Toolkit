@@ -2,6 +2,8 @@
 
 class draw_a_triangle_app : public cgb::cg_element
 {
+public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
+
 	void initialize() override
 	{
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
@@ -48,12 +50,14 @@ class draw_a_triangle_app : public cgb::cg_element
 		}
 	}
 
-private:
+private: // v== Member variables ==v
+
 	cgb::graphics_pipeline mPipeline;
 	std::vector<cgb::command_buffer> mCmdBfrs;
-};
 
-int main()
+}; // draw_a_triangle_app
+
+int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application

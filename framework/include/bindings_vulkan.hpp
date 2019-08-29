@@ -8,18 +8,28 @@ namespace cgb
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<uniform_buffer_t>(const uniform_buffer_t&) { return vk::DescriptorType::eUniformBuffer; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<uniform_buffer>(const uniform_buffer&) { return vk::DescriptorType::eUniformBuffer; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<uniform_texel_buffer_t>(const uniform_texel_buffer_t&) { return vk::DescriptorType::eUniformTexelBuffer; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<uniform_texel_buffer>(const uniform_texel_buffer&) { return vk::DescriptorType::eUniformTexelBuffer; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<storage_buffer_t>(const storage_buffer_t&) { return vk::DescriptorType::eStorageBuffer; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<storage_buffer>(const storage_buffer&) { return vk::DescriptorType::eStorageBuffer; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<storage_texel_buffer_t>(const storage_texel_buffer_t&) { return vk::DescriptorType::eStorageTexelBuffer; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<storage_texel_buffer>(const storage_texel_buffer&) { return vk::DescriptorType::eStorageTexelBuffer; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<image_view_t>(const image_view_t&) { return vk::DescriptorType::eStorageImage; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<image_view>(const image_view&) { return vk::DescriptorType::eStorageImage; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<image_sampler_t>(const image_sampler_t&) { return vk::DescriptorType::eCombinedImageSampler; }
@@ -41,8 +51,8 @@ namespace cgb
 	}
 
 	template<typename T> 
-	typename std::enable_if<!has_size_and_iterators<T>::value, T*>::type gather_one_or_multiple_element_pointers(T& t) {
-		return &t;
+	typename std::enable_if<!has_size_and_iterators<T>::value, typename T::value_type*>::type gather_one_or_multiple_element_pointers(T& t) {
+		return &*t;
 	}
 
 

@@ -35,6 +35,19 @@ namespace cgb
 		const auto& image_handle() const { return mImage.get(); }
 		/** Gets the handle to the image's memory. */
 		const auto& memory_handle() const { return mMemory.get(); }
+		/** Gets the width of the image */
+		uint32_t width() const { return config().extent.width; }
+		/** Gets the height of the image */
+		uint32_t height() const { return config().extent.height; }
+		/** Gets the depth of the image */
+		uint32_t depth() const { return config().extent.depth; }
+		/** Gets the format of the image */
+		image_format format() const { return image_format{ config().format }; }
+
+		/** Sets the current image layout */
+		void set_current_layout(vk::ImageLayout _NewLayout) { mCurrentLayout = _NewLayout; }
+		/** Gets the current image layout */
+		const auto& current_layout() const { return mCurrentLayout; }
 
 		/** Creates a new image
 		 *	@param	pWidth						The width of the image to be created
@@ -46,7 +59,7 @@ namespace cgb
 		 *	@param	pAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageCreateInfo` just before the image will be created. Use `.config()` to access the configuration structure!
 		 *	@return	Returns a newly created image.
 		 */
-		static owning_resource<image_t> create(int pWidth, int pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
+		static owning_resource<image_t> create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
 
 		/** Creates a new image
 		*	@param	pWidth						The width of the depth buffer to be created
@@ -58,7 +71,7 @@ namespace cgb
 		*	@param	pAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageCreateInfo` just before the image will be created. Use `.config()` to access the configuration structure!
 		*	@return	Returns a newly created depth buffer.
 		*/
-		static owning_resource<image_t> create_depth(int pWidth, int pHeight, std::optional<image_format> pFormat = std::nullopt, memory_usage pMemoryUsage = memory_usage::device, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
+		static owning_resource<image_t> create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat = std::nullopt, memory_usage pMemoryUsage = memory_usage::device, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
 
 		/** Creates a new image
 		*	@param	pWidth						The width of the depth+stencil buffer to be created
@@ -70,7 +83,7 @@ namespace cgb
 		*	@param	pAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageCreateInfo` just before the image will be created. Use `.config()` to access the configuration structure!
 		*	@return	Returns a newly created depth+stencil buffer.
 		*/
-		static owning_resource<image_t> create_depth_stencil(int pWidth, int pHeight, std::optional<image_format> pFormat = std::nullopt, memory_usage pMemoryUsage = memory_usage::device, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
+		static owning_resource<image_t> create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat = std::nullopt, memory_usage pMemoryUsage = memory_usage::device, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
 
 		// TODO: What to do with this one: ??
 		vk::ImageMemoryBarrier create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt) const;
@@ -82,6 +95,8 @@ namespace cgb
 		vk::UniqueImage mImage;
 		// The memory handle. This member will contain a valid handle only after successful image creation.
 		vk::UniqueDeviceMemory mMemory;
+		// The current image layout
+		vk::ImageLayout mCurrentLayout;
 	};
 
 	/** Typedef representing any kind of OWNING image representations. */

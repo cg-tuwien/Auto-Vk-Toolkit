@@ -2,6 +2,22 @@
 
 namespace cgb
 {
+	const image_t& image_view_t::get_image() const
+	{
+		if (!std::holds_alternative<cgb::image>(mImage)) {
+			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
+		}
+		return std::get<cgb::image>(mImage);
+	}
+
+	image_t& image_view_t::get_image()
+	{
+		if (!std::holds_alternative<cgb::image>(mImage)) {
+			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
+		}
+		return std::get<cgb::image>(mImage);		
+	}
+
 	const vk::Image& image_view_t::image_handle() const
 	{
 		if (std::holds_alternative<cgb::image>(mImage)) {

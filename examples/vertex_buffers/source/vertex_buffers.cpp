@@ -2,6 +2,39 @@
 
 class vertex_buffers_app : public cgb::cg_element
 {
+	// Define a struct for our vertex input data:
+	struct Vertex {
+	    glm::vec3 pos;
+	    glm::vec3 color;
+	};
+
+	// Vertex data for drawing a pyramid:
+	const std::vector<Vertex> mVertexData = {
+		// pyramid front
+		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+		{{ 0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
+		{{-0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
+		// pyramid right
+		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+		{{ 0.3f,  0.5f, 0.8f},  {0.6f, 0.6f, 0.6f}},
+		{{ 0.3f,  0.5f, 0.2f},  {0.6f, 0.6f, 0.6f}},
+		// pyramid back
+		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+		{{-0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
+		{{ 0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
+		// pyramid left
+		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+		{{-0.3f,  0.5f, 0.2f},  {0.4f, 0.4f, 0.4f}},
+		{{-0.3f,  0.5f, 0.8f},  {0.4f, 0.4f, 0.4f}},
+	};
+
+	// Indices for the faces (triangles) of the pyramid:
+	const std::vector<uint16_t> mIndices = {
+		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
+	};
+
+public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
+
 	void initialize() override
 	{
 		// Create vertex buffers, but don't upload vertices yet; we'll do that in the render() method.
@@ -98,45 +131,16 @@ class vertex_buffers_app : public cgb::cg_element
 		}
 	}
 
-private:
-	// Define a struct for our vertex input data:
-	struct Vertex {
-	    glm::vec3 pos;
-	    glm::vec3 color;
-	};
-
-	// Vertex data for drawing a pyramid:
-	const std::vector<Vertex> mVertexData = {
-		// pyramid front
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{ 0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
-		{{-0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
-		// pyramid right
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{ 0.3f,  0.5f, 0.8f},  {0.6f, 0.6f, 0.6f}},
-		{{ 0.3f,  0.5f, 0.2f},  {0.6f, 0.6f, 0.6f}},
-		// pyramid back
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{-0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
-		{{ 0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
-		// pyramid left
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{-0.3f,  0.5f, 0.2f},  {0.4f, 0.4f, 0.4f}},
-		{{-0.3f,  0.5f, 0.8f},  {0.4f, 0.4f, 0.4f}},
-	};
-
-	// Indices for the faces (triangles) of the pyramid:
-	const std::vector<uint16_t> mIndices = {
-		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
-	};
-
+private: // v== Member variables ==v
+	
 	std::vector<cgb::vertex_buffer> mVertexBuffers;
 	cgb::index_buffer mIndexBuffer;
 	cgb::graphics_pipeline mPipeline;
 	std::vector<cgb::command_buffer> mCmdBfrs;
-};
 
-int main()
+}; // vertex_buffers_app
+
+int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
@@ -170,5 +174,3 @@ int main()
 		LOG_ERROR_EM(re.what());
 	}
 }
-
-

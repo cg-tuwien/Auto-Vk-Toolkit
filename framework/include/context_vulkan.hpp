@@ -347,6 +347,13 @@ namespace cgb
 	inline void vulkan::track_destruction<graphics_pipeline_t>(graphics_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_destruction."); }
 
 	template <>
+	inline void vulkan::track_creation<compute_pipeline_t>(compute_pipeline_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_creation."); }
+	template <>
+	inline void vulkan::track_move<compute_pipeline_t>(compute_pipeline_t* thing, compute_pipeline_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_move."); }
+	template <>
+	inline void vulkan::track_destruction<compute_pipeline_t>(compute_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_destruction."); }
+
+	template <>
 	inline void vulkan::track_creation<framebuffer_t>(framebuffer_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_creation."); }
 	template <>
 	inline void vulkan::track_move<framebuffer_t>(framebuffer_t* thing, framebuffer_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_move."); }

@@ -382,7 +382,7 @@ namespace cgb
 		return it != depthFormats.end();
 	}
 
-	owning_resource<image_t> image_t::create(int pWidth, int pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Compile image usage flags and memory usage flags:
 		vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eSampled; // This is probably a sensible default => It indicates that this image might be used to sample from
@@ -414,12 +414,12 @@ namespace cgb
 
 		// How many MIP-map levels are we going to use?
 		auto mipLevels = pUseMipMaps
-			? static_cast<uint32_t>(std::floor(std::log2(std::max(pWidth, pHeight)))) + 1
-			: static_cast<uint32_t>(1);
+			? std::floor(std::log2(std::max(pWidth, pHeight))) + 1
+			: 1u;
 
 		image_t result;
 		result.mInfo = vk::ImageCreateInfo()
-			.setImageType(vk::ImageType::e2D)
+			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(pWidth), static_cast<uint32_t>(pHeight), 1u))
 			.setMipLevels(mipLevels)
 			.setArrayLayers(1u)
@@ -427,7 +427,7 @@ namespace cgb
 			.setTiling(vk::ImageTiling::eOptimal) // TODO: Support linear tiling
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
-			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet, how to handle this one
+			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setFlags(vk::ImageCreateFlags()); // Optional;
 
@@ -452,7 +452,7 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<image_t> image_t::create_depth(int pWidth, int pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth format
 		if (!pFormat) {
@@ -479,7 +479,7 @@ namespace cgb
 		});
 	}
 
-	owning_resource<image_t> image_t::create_depth_stencil(int pWidth, int pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth+stencil format
 		if (!pFormat) {
