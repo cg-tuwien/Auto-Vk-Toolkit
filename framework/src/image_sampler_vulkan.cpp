@@ -8,7 +8,8 @@ namespace cgb
 		result.mImageView = std::move(pImageView);
 		result.mSampler = std::move(pSampler);
 		result.mDescriptorInfo = vk::DescriptorImageInfo{}
-			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Get this right!
+			.setImageLayout(vk::ImageLayout::eGeneral) // TODO: Get this right!
+			//.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Get this right!
 			.setImageView(result.view_handle())
 			.setSampler(result.sampler_handle());
 		result.mDescriptorType = vk::DescriptorType::eCombinedImageSampler;

@@ -486,6 +486,9 @@
     <ClInclude Include="..\..\framework\include\compute_pipeline_config_convenience_functions.hpp">
       <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\image_usage.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

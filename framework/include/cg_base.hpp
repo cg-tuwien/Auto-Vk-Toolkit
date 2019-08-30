@@ -89,6 +89,7 @@
 #include "log.hpp"
 #include "essential_utils.hpp"
 #include "memory_usage.hpp"
+#include "image_usage.hpp"
 #include "context_state.hpp"
 #include "context_tracker.hpp"
 #include "device_queue_selection_strategy.hpp"

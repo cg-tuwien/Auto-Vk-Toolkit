@@ -382,13 +382,76 @@ namespace cgb
 		return it != depthFormats.end();
 	}
 
-	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Compile image usage flags and memory usage flags:
-		vk::ImageUsageFlags imageUsage = vk::ImageUsageFlagBits::eSampled; // This is probably a sensible default => It indicates that this image might be used to sample from
+		vk::ImageUsageFlags imageUsage{};
+		auto targetLayout = vk::ImageLayout::eGeneral; // General Layout is the default
+		auto imageTiling = vk::ImageTiling::eOptimal; // Optimal is the default
+		vk::ImageCreateFlags imageCreateFlags{};
+
+		if ((pImageUsage & image_usage::transfer_source) == image_usage::transfer_source) {
+			imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
+			if (image_usage::transfer_source == pImageUsage || (image_usage::transfer_source | image_usage::read_only) == pImageUsage) {
+				// i.e. if there are no other image_usage-flags set as transfer_source (and read_only possibly)
+				// TODO: Verify that this ^ is the right choice
+				targetLayout = vk::ImageLayout::eTransferSrcOptimal;
+			}
+		}
+		if ((pImageUsage & image_usage::transfer_destination) == image_usage::transfer_destination) {
+			imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
+			if (image_usage::transfer_destination == pImageUsage) {
+				// i.e. if there are no other image_usage-flags set as transfer_destination
+				// TODO: Verify that this ^ is the right choice
+				targetLayout = vk::ImageLayout::eTransferDstOptimal;
+			}
+		}
+		if ((pImageUsage & image_usage::sampled) == image_usage::sampled) {
+			imageUsage |= vk::ImageUsageFlagBits::eSampled;
+		}
+		if ((pImageUsage & image_usage::shader_storage) == image_usage::shader_storage) {
+			imageUsage |= vk::ImageUsageFlagBits::eStorage;	
+		}
+		if ((pImageUsage & image_usage::color_attachment) == image_usage::color_attachment) {
+			imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
+		}
+		if ((pImageUsage & image_usage::depth_stencil_attachment) == image_usage::depth_stencil_attachment) {
+			imageUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+		}
+		if ((pImageUsage & image_usage::input_attachment) == image_usage::input_attachment) {
+			imageUsage |= vk::ImageUsageFlagBits::eInputAttachment;
+		}
+		if ((pImageUsage & image_usage::shading_rate_image) == image_usage::shading_rate_image) {
+			imageUsage |= vk::ImageUsageFlagBits::eShadingRateImageNV;
+		}
+		if ((pImageUsage & image_usage::read_only) == image_usage::read_only) {
+			// TODO: set values here according to https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkImageLayout.html
+		}
+		if ((pImageUsage & image_usage::presentable) == image_usage::presentable) {
+			targetLayout = vk::ImageLayout::ePresentSrcKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
+		}
+		if ((pImageUsage & image_usage::shared_presentable) == image_usage::shared_presentable) {
+			targetLayout = vk::ImageLayout::eSharedPresentKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
+		}
+		if ((pImageUsage & image_usage::tiling_optimal) == image_usage::tiling_optimal) {
+			imageTiling = vk::ImageTiling::eOptimal;
+		}
+		if ((pImageUsage & image_usage::tiling_linear) == image_usage::tiling_linear) {
+			imageTiling = vk::ImageTiling::eLinear;
+		}
+		if ((pImageUsage & image_usage::sparse_memory_binding) == image_usage::sparse_memory_binding) {
+			imageCreateFlags |= vk::ImageCreateFlagBits::eSparseBinding;
+		}
+		if ((pImageUsage & image_usage::cube_compatible) == image_usage::cube_compatible) {
+			imageCreateFlags |= vk::ImageCreateFlagBits::eCubeCompatible;
+		}
+		if ((pImageUsage & image_usage::is_protected) == image_usage::is_protected) {
+			imageCreateFlags |= vk::ImageCreateFlagBits::eProtected;
+		}
+
+
 		vk::MemoryPropertyFlags memoryFlags{};
-		switch (pMemoryUsage)
-		{
+		switch (pMemoryUsage) {
 		case cgb::memory_usage::host_visible:
 			memoryFlags = vk::MemoryPropertyFlagBits::eHostVisible;
 			break;
@@ -424,12 +487,12 @@ namespace cgb
 			.setMipLevels(mipLevels)
 			.setArrayLayers(1u)
 			.setFormat(pFormat.mFormat)
-			.setTiling(vk::ImageTiling::eOptimal) // TODO: Support linear tiling
+			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
-			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one
+			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one, Exclusive should be the default, though.
 			.setSamples(vk::SampleCountFlagBits::e1)
-			.setFlags(vk::ImageCreateFlags()); // Optional;
+			.setFlags(imageCreateFlags); // Optional;
 
 		// Maybe alter the config?!
 		if (pAlterConfigBeforeCreation.mFunction) {
@@ -452,7 +515,7 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth format
 		if (!pFormat) {
@@ -468,18 +531,13 @@ namespace cgb
 			throw std::runtime_error("No suitable depth format could be found.");
 		}
 
+		pImageUsage |= image_usage::depth_stencil_attachment;
+
 		// Create the image (by default only on the device which should be sufficient for a depth buffer => see pMemoryUsage's default value):
-		return image_t::create(pWidth, pHeight, *pFormat, pMemoryUsage, pUseMipMaps, pNumLayers, [userFunc = std::move(pAlterConfigBeforeCreation)](image_t& pImageToConfigure) {
-			// 1st: my config changes
-			pImageToConfigure.config().usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
-			// 2nd: user's config changes
-			if (userFunc.mFunction) {
-				userFunc.mFunction(pImageToConfigure);
-			}
-		});
+		return image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
 	}
 
-	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth+stencil format
 		if (!pFormat) {
@@ -496,7 +554,7 @@ namespace cgb
 		}
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
-		return image_t::create_depth(pWidth, pHeight, *pFormat, pMemoryUsage, pUseMipMaps, pNumLayers, std::move(pAlterConfigBeforeCreation));
+		return image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
 	}
 
 

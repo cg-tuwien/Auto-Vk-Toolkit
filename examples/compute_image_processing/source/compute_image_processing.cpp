@@ -38,14 +38,20 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mVertexBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(mVertexData), 
 			cgb::memory_usage::device,
-			mVertexData.data()
+			mVertexData.data(),
+			[](cgb::semaphore _Semaphore) {
+				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
+			}
 		);
 
 		// Create and upload incides for drawing the quad
 		mIndexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::device,
-			mIndices.data()
+			mIndices.data(),
+			[](cgb::semaphore _Semaphore) {
+				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
+			}
 		);
 
 		// Create a host-coherent buffer for the matrices
@@ -72,7 +78,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mTargetImageAndSampler->get_image_view()->get_image().format().mFormat, 
 			mTargetImageAndSampler->get_image_view()->get_image().config().initialLayout, vk::ImageLayout::eGeneral); // TODO: This must be abstracted!
 		// Initialize the image with the contents of the input image:
-		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image());
+		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image(), nullptr,
+			[](cgb::semaphore _CopyCompleteSemaphore) {
+				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
+			});
 
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -98,18 +107,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// We'll need different descriptor sets for the left view and for the right view, since we are using different resources
 			// 1. left view, a.k.a. pre compute
 			mDescriptorSetPreCompute.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSetPreCompute.back() = std::move(cgb::descriptor_set::create({ 
+			*mDescriptorSetPreCompute.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, mUbo),
 				cgb::binding(1, mInputImageAndSampler)
-			}));	
+			});	
 			// 2. right view, a.k.a. post compute
 			mDescriptorSetPostCompute.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSetPostCompute.back() = std::move(cgb::descriptor_set::create({ 
+			*mDescriptorSetPostCompute.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, mUbo),
 				cgb::binding(1, mTargetImageAndSampler)
-			}));		
+			});		
 		}
 
+		// Create 3 compute pipelines:
 		mComputePipelines.resize(3);
 		mComputePipelines[0] = cgb::compute_pipeline_for(
 			"shaders/emboss.comp",
@@ -127,6 +137,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(1, mTargetImageAndSampler->get_image_view())
 		);
 
+		// Create one descriptor set which will be used for all the compute pipelines:
+		mComputeDescriptorSet = std::make_shared<cgb::descriptor_set>();
+		*mComputeDescriptorSet = cgb::descriptor_set::create({ 
+			cgb::binding(0, mInputImageAndSampler->get_image_view()),
+			cgb::binding(1, mTargetImageAndSampler->get_image_view())
+		});	
+
+		// Record render command buffers - one for each frame in flight:
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
 		auto halfW = w * 0.5f;
 		auto h = cgb::context().main_window()->swap_chain_extent().height;
@@ -197,15 +215,41 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::fill(mUbo, &uboVS);
 
 		// Handle some input:
-		if (cgb::input().key_pressed(cgb::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
+		if (cgb::input().key_pressed(cgb::key_code::num0)) {
+			// [0] => Copy the input image to the target image and use a semaphore to sync the next draw call
+			cgb::copy_image_to_another(
+				mInputImageAndSampler->get_image_view()->get_image(), 
+				mTargetImageAndSampler->get_image_view()->get_image(),
+				nullptr, // no seamphore to wait for
+				[](cgb::semaphore _CopyCompleteSemaphore) {
+					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
+				});
 		}
-		if (cgb::input().key_pressed(cgb::key_code::c)) {
-			// Center the cursor:
-			auto resolution = cgb::context().main_window()->resolution();
-			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+
+		if (cgb::input().key_pressed(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
+			// [1], [2], or [3] => Use a compute shader to modify the image
+			size_t computeIndex = 0;
+			if (cgb::input().key_pressed(cgb::key_code::num2)) { computeIndex = 1; }
+			if (cgb::input().key_pressed(cgb::key_code::num3)) { computeIndex = 2; }
+
+			// [1] => Apply the first compute shader on the input image
+			auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+			cmdbfr.begin_recording();
+
+			// Bind the pipeline
+
+			// Set the descriptors of the uniform buffer
+			cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->layout_handle(), 0, 
+				mComputeDescriptorSet->number_of_descriptor_sets(),
+				mComputeDescriptorSet->descriptor_sets_addr(), 
+				0, nullptr);
+			cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->handle());
+			cmdbfr.handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
+
+			cmdbfr.end_recording();
+			submit_command_buffer_ownership(std::move(cmdbfr));	
 		}
+
 		if (cgb::input().key_pressed(cgb::key_code::escape)) {
 			// Stop the current composition:
 			cgb::current_composition().stop();
@@ -226,6 +270,7 @@ private: // v== Member variables ==v
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSetPostCompute;
 
 	std::vector<cgb::compute_pipeline> mComputePipelines;
+	std::shared_ptr<cgb::descriptor_set> mComputeDescriptorSet;
 
 }; // compute_image_processing_app
 

@@ -113,7 +113,8 @@ namespace cgb
 
 		mImageView = context().logical_device().createImageViewUnique(mInfo);
 		mDescriptorInfo = vk::DescriptorImageInfo{}
-			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Set this parameter to the right value!!
+			//.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Set this parameter to the right value!!
+			.setImageLayout(vk::ImageLayout::eGeneral) // TODO: Set this parameter to the right value!!
 			.setImageView(view_handle());
 		mDescriptorType = vk::DescriptorType::eStorageImage; // TODO: Is it storage image or sampled image?
 		mTracker.setTrackee(*this);
