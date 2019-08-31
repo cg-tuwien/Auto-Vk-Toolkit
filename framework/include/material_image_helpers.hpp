@@ -4,7 +4,7 @@ namespace cgb
 {	
 	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
 
-	extern void transition_image_layout(image_t& pImage, vk::Format pFormat, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+	extern void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
 
 	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
 
@@ -64,7 +64,7 @@ namespace cgb
 		return copyCompleteSemaphore;
 	}
 
-	static image create_image_from_file(const std::string& _Path, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {})
+	static image create_image_from_file(const std::string& _Path, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {})
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(true);
@@ -84,16 +84,14 @@ namespace cgb
 			
 		stbi_image_free(pixels);
 
-		auto img = cgb::image_t::create(width, height, cgb::image_format(vk::Format::eR8G8B8A8Unorm), cgb::memory_usage::device, false, 1, [](cgb::image_t& _ImgToBeCreated) {
-				_ImgToBeCreated.config().usage |= vk::ImageUsageFlagBits::eStorage; 
-			});
+		auto img = cgb::image_t::create(width, height, cgb::image_format(vk::Format::eR8G8B8A8Unorm), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
+		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
 			// 2. Copy buffer to image
 			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
 			// 3. Transition image layout to eShaderReadOnlyOptimal and handle the semaphore(s) and resources
 			//cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, &*sem2, [&](semaphore sem3) {
-			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral, &*sem2, [&](semaphore sem3) {
+			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), &*sem2, [&](semaphore sem3) {
 				if (_SemaphoreHandler) { // Did the user provide a handler?
 					sem3->set_custom_deleter([
 						ownBuffer = std::move(stagingBuffer),
@@ -113,5 +111,5 @@ namespace cgb
 	}
 
 
-	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, cgb::image_usage _ImageUsage = cgb::image_usage::read_only_sampled_image);
 }

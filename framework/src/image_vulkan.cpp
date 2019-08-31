@@ -449,7 +449,6 @@ namespace cgb
 			imageCreateFlags |= vk::ImageCreateFlagBits::eProtected;
 		}
 
-
 		vk::MemoryPropertyFlags memoryFlags{};
 		switch (pMemoryUsage) {
 		case cgb::memory_usage::host_visible:
@@ -481,6 +480,8 @@ namespace cgb
 			: 1u;
 
 		image_t result;
+		result.mCurrentLayout = vk::ImageLayout::eUndefined;
+		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(pWidth), static_cast<uint32_t>(pHeight), 1u))

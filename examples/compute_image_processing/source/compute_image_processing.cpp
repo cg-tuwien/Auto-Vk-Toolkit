@@ -68,15 +68,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
-			cgb::image_view_t::create(cgb::image_t::create(mInputImageAndSampler->width(), mInputImageAndSampler->height(), mInputImageAndSampler->format(), cgb::memory_usage::device, false, 1, [](cgb::image_t& _ImgToBeCreated) {
-				_ImgToBeCreated.config().usage |= vk::ImageUsageFlagBits::eStorage; // TODO: Can this be abstracted somehow?!
-			})),
+			cgb::image_view_t::create(cgb::image_t::create(mInputImageAndSampler->width(), mInputImageAndSampler->height(), mInputImageAndSampler->format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image,
+				[](cgb::image_t& _ImgToBeCreated) {
+					_ImgToBeCreated.config().usage |= vk::ImageUsageFlagBits::eStorage; // TODO: Can this be abstracted somehow?!
+				})),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
 		cgb::transition_image_layout(
 			mTargetImageAndSampler->get_image_view()->get_image(), 
 			mTargetImageAndSampler->get_image_view()->get_image().format().mFormat, 
-			mTargetImageAndSampler->get_image_view()->get_image().config().initialLayout, vk::ImageLayout::eGeneral); // TODO: This must be abstracted!
+			vk::ImageLayout::eGeneral); // TODO: This must be abstracted!
 		// Initialize the image with the contents of the input image:
 		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image(), nullptr,
 			[](cgb::semaphore _CopyCompleteSemaphore) {

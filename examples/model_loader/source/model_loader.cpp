@@ -48,10 +48,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
 				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	newElement.mIndices,		[&]() { return sponza->indices_for_mesh<uint32_t>(index);						} ),
-					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);								} ),
-					cgb::additional_vertex_data(newElement.mTexCoords,						[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
-					cgb::additional_vertex_data(newElement.mNormals,						[&]() { return sponza->normals_for_mesh(index);									} )
+					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);					} ),
+					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
+					cgb::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
+					cgb::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
 				);
 			}
 			
@@ -143,7 +143,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(1, 0, static_cast<cgb::storage_buffer_t&>(mMaterialBuffer[0])) // Just take any buffer, this is just for the layout
+			cgb::binding(1, 0, mMaterialBuffer[0]) // Just take any buffer, this is just for the layout
 		);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
@@ -154,7 +154,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, static_cast<cgb::storage_buffer_t&>(mMaterialBuffer[i]))
+				cgb::binding(1, 0, mMaterialBuffer[i])
 			}));	
 		}
 		

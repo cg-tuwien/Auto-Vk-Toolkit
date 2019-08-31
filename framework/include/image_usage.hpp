@@ -57,6 +57,12 @@ namespace cgb
 		/** The image can be used to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
 		versatile_image							= transfer_source | transfer_destination | sampled | shader_storage,
 
+		/** The image can be used to transfer from and to, be sampled and serve for shader image/store operations. It is set to read-only. */
+		versatile_read_only_image				= versatile_image | read_only,
+
+		/** The image can be used as transfer destination, can be sampled, and is read-only. */
+		read_only_sampled_image					= transfer_destination | sampled | read_only,
+
 		/** The image can be used as a color attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
 		versatile_color_attachment				= versatile_image | color_attachment,
 

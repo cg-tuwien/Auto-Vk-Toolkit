@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	void transition_image_layout(image_t& pImage, vk::Format pFormat, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, const semaphore_t* _WaitSemaphore, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, const semaphore_t* _WaitSemaphore, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
 	{
 		//auto commandBuffer = context().create_command_buffers_for_graphics(1, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		auto commandBuffer = context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -15,22 +15,24 @@ namespace cgb
 
 		// TODO: This has to be reworked entirely!!
 
+		auto oldImageLayout = _Image.current_layout();
+
 		// There are two transitions we need to handle [3]:
 		//  - Undefined --> transfer destination : transfer writes that don't need to wait on anything
 		//  - Transfer destination --> shader reading : shader reads should wait on transfer writes, specifically the shader reads in the fragment shader, because that's where we're going to use the texture
-		if (pOldLayout == vk::ImageLayout::eUndefined && pNewLayout == vk::ImageLayout::eTransferDstOptimal) {
+		if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eTransferDstOptimal) {
 			sourceAccessMask = vk::AccessFlags();
 			destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
 			destinationStageFlags = vk::PipelineStageFlagBits::eTransfer;
 		}
-		else if (pOldLayout == vk::ImageLayout::eTransferDstOptimal && pNewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+		else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal && _NewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
 			sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
 			destinationAccessMask = vk::AccessFlagBits::eShaderRead;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTransfer;
 			destinationStageFlags = vk::PipelineStageFlagBits::eFragmentShader;
 		}
-		else if (pOldLayout == vk::ImageLayout::eUndefined && pNewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+		else if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
 			sourceAccessMask = vk::AccessFlags();
 			destinationAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -52,7 +54,7 @@ namespace cgb
 			// Source layouts (old)
 			// Source access mask controls actions that have to be finished on the old layout
 			// before it will be transitioned to the new layout
-			switch (pOldLayout)
+			switch (oldImageLayout)
 			{
 			case vk::ImageLayout::eUndefined:
 				// Image layout is undefined (or does not matter)
@@ -104,7 +106,7 @@ namespace cgb
 
 			// Target layouts (new)
 			// Destination access mask controls the dependency for the new image layout
-			switch (pNewLayout)
+			switch (_NewLayout)
 			{
 			case vk::ImageLayout::eTransferDstOptimal:
 				// Image will be used as a transfer destination
@@ -155,7 +157,7 @@ namespace cgb
 		// is generally used to synchronize access to resources, like ensuring that a write to a buffer completes before reading from 
 		// it, but it can also be used to transition image layouts and transfer queue family ownership when VK_SHARING_MODE_EXCLUSIVE 
 		// is used.There is an equivalent buffer memory barrier to do this for buffers. [3]
-		auto barrier = pImage.create_barrier(sourceAccessMask, destinationAccessMask, pOldLayout, pNewLayout);
+		auto barrier = _Image.create_barrier(sourceAccessMask, destinationAccessMask, oldImageLayout, _NewLayout);
 
 		// The pipeline stages that you are allowed to specify before and after the barrier depend on how you use the resource before and 
 		// after the barrier.The allowed values are listed in this table of the specification.For example, if you're going to read from a 
@@ -189,6 +191,7 @@ namespace cgb
 			.setPSignalSemaphores(transitionCompleteSemaphore->handle_addr());
 
 		cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr);
+		_Image.set_current_layout(_NewLayout); // Just optimistically set it
 
 		// Take care of the lifetime of:
 		//  - commandBuffer
@@ -204,7 +207,6 @@ namespace cgb
 			cgb::context().logical_device().waitIdle();
 		}
 
-		pImage.set_current_layout(pNewLayout); // Just optimistically set it
 	}
 
 	void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, const semaphore_t* _WaitSemaphore, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
@@ -242,7 +244,7 @@ namespace cgb
 
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto copyCompleteSemaphore = semaphore_t::create();
-		copyCompleteSemaphore->set_designated_queue(cgb::context().graphics_queue()); //< Just store the info
+		copyCompleteSemaphore->set_designated_queue(cgb::context().transfer_queue()); //< Just store the info
 
 		vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
 		auto submitInfo = vk::SubmitInfo()
@@ -255,19 +257,21 @@ namespace cgb
 			.setPSignalSemaphores(copyCompleteSemaphore->handle_addr());
 
 		cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr);
+		pDstImage.set_current_layout(pSrcImage.current_layout()); // Just optimistically set it
 
 		if (_SemaphoreHandler) { // Did the user provide a handler?
+			copyCompleteSemaphore->set_custom_deleter([
+				ownedCommandBuffer{ std::move(commandBuffer) } // Just take care of the commandBuffer's lifetime
+			](){});
 			_SemaphoreHandler(std::move(copyCompleteSemaphore)); // Transfer ownership and be done with it
 		}
 		else {
 			LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
 			cgb::context().logical_device().waitIdle();
 		}
-
-		pDstImage.set_current_layout(pSrcImage.current_layout()); // Just optimistically set it
 	}
 
-	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, cgb::image_usage _ImageUsage)
 	{
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
 		std::vector<material_gpu_data> gpuMaterial;
@@ -349,7 +353,7 @@ namespace cgb
 
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_image_from_file(pair.first, _SemaphoreHandler)),
+					image_view_t::create(create_image_from_file(pair.first, cgb::memory_usage::device, _ImageUsage, _SemaphoreHandler)),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
 			);
