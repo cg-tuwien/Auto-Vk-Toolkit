@@ -365,4 +365,307 @@ namespace cgb
 
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
+
+	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec3> positionsData;
+		std::vector<uint32_t> indicesData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				cgb::append_indices_and_vertex_data(
+					cgb::additional_index_data(	indicesData,	[&]() { return modelRef.indices_for_mesh<uint32_t>(meshIndex);	} ),
+					cgb::additional_vertex_data(positionsData,	[&]() { return modelRef.positions_for_mesh(meshIndex);			} )
+				);
+			}
+		}
+
+		vertex_buffer positionsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(positionsData),
+			cgb::memory_usage::device,
+			positionsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(positionsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		index_buffer indexBuffer = cgb::create_and_fill(
+			cgb::index_buffer_meta::create_from_data(indicesData),
+			cgb::memory_usage::device,
+			indicesData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(indicesData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+	}
+
+	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec3> normalsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(normalsData, modelRef.normals_for_mesh(meshIndex));
+			}
+		}
+
+		vertex_buffer normalsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(normalsData),
+			cgb::memory_usage::device,
+			normalsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(normalsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return normalsBuffer;
+	}
+
+	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec3> tangentsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(tangentsData, modelRef.tangents_for_mesh(meshIndex));
+			}
+		}
+
+		vertex_buffer tangentsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(tangentsData),
+			cgb::memory_usage::device,
+			tangentsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(tangentsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return tangentsBuffer;
+	}
+
+	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec3> bitangentsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(bitangentsData, modelRef.bitangents_for_mesh(meshIndex));
+			}
+		}
+
+		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
+			cgb::memory_usage::device,
+			bitangentsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(bitangentsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return bitangentsBuffer;
+	}
+
+	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec4> colorsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(colorsData, modelRef.colors_for_mesh(meshIndex, _ColorsSet));
+			}
+		}
+
+		vertex_buffer colorsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(colorsData),
+			cgb::memory_usage::device,
+			colorsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(colorsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return colorsBuffer;
+	}
+
+	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec2> texCoordsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>(meshIndex, _TexCoordSet));
+			}
+		}
+
+		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
+			cgb::memory_usage::device,
+			texCoordsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return texCoordsBuffer;
+	}
+
+	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		std::vector<glm::vec3> texCoordsData;
+
+		for (auto& pair : _ModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<const model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec3>(meshIndex, _TexCoordSet));
+			}
+		}
+
+		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
+			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
+			cgb::memory_usage::device,
+			texCoordsData.data(),
+			[&] (semaphore _Semaphore) {  
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					_Semaphore->set_custom_deleter([
+						ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
+					](){});
+
+					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
+				}
+				else {
+					if (_Semaphore->has_designated_queue()) {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
+						_Semaphore->designated_queue()->handle().waitIdle();
+					}
+					else {
+						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+						cgb::context().logical_device().waitIdle();
+					}
+				}
+			}
+		);
+
+		return texCoordsBuffer;
+	}
+
 }

@@ -211,6 +211,9 @@
     <ClCompile Include="..\..\framework\src\compute_pipeline_config.cpp">
       <Filter>Source Files\pipeline_and_shaders</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\orca_scene.cpp">
+      <Filter>Source Files\data_buffers_images</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -487,6 +490,9 @@
       <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\image_usage.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\orca_scene.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
   </ItemGroup>

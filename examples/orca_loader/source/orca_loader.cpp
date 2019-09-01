@@ -1,13 +1,11 @@
 #include <cg_base.hpp>
 
-class model_loader_app : public cgb::cg_element
+class orca_loader_app : public cgb::cg_element
 {
 	struct data_for_draw_call
 	{
-		std::vector<glm::vec3> mPositions;
 		std::vector<glm::vec2> mTexCoords;
 		std::vector<glm::vec3> mNormals;
-		std::vector<uint32_t> mIndices;
 
 		cgb::vertex_buffer mPositionsBuffer;
 		cgb::vertex_buffer mTexCoordsBuffer;
@@ -45,64 +43,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			allMatCofigs.push_back(pair.first);
 			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
 			
-			// 1. Gather all the vertex and index data from the sub meshes:
-			for (auto index : pair.second) {
-				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);					} ),
-					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
-					cgb::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
-					cgb::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
-				);
-			}
-			
-			// 2. Build all the buffers for the GPU
-			// 2.1 Positions:
-			newElement.mPositionsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
-				cgb::memory_usage::device,
-				newElement.mPositions.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
+			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 
 				[] (auto _Semaphore) {  
-					// TODO: Do we have to set these extra dependencies to ALL (three or so) frames in flight??
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
-			);
-			// 2.2 Texture Coordinates:
-			newElement.mTexCoordsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mTexCoords),
-				cgb::memory_usage::device,
-				newElement.mTexCoords.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
+				});
+			newElement.mPositionsBuffer = std::move(positionsBuffer);
+			newElement.mIndexBuffer = std::move(indicesBuffer);
+
+			// Get a buffer containing all texture coordinates for all submeshes with this material
+			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 0,
+				[] (auto _Semaphore) {  
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
-			);
-			// 2.3 Normals:
-			newElement.mNormalsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mNormals),
-				cgb::memory_usage::device,
-				newElement.mNormals.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
+				});
+
+			// Get a buffer containing all normals for all submeshes with this material
+			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 
+				[] (auto _Semaphore) {  
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
-			);
-			// 2.4 Indices:
-			newElement.mIndexBuffer = cgb::create_and_fill(
-				cgb::index_buffer_meta::create_from_data(newElement.mIndices),
-				// Where to put our memory? => On the device
-				cgb::memory_usage::device,
-				// Pass pointer to the data:
-				newElement.mIndices.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
-			);
+				});
 		}
 
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
@@ -268,10 +227,10 @@ int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
-		cgb::settings::gApplicationName = "Hello, World!";
+		cgb::settings::gApplicationName = "cg_base::orca_loader";
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Hello World Window");
+		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
@@ -279,7 +238,7 @@ int main() // <== Starting point ==
 
 		// Create an instance of vertex_buffers_app which, in this case,
 		// contains the entire functionality of our application. 
-		auto element = model_loader_app();
+		auto element = orca_loader_app();
 
 		// Create a composition of:
 		//  - a timer

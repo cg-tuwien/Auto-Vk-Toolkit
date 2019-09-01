@@ -22,6 +22,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compute_image_processing", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "compute_image_processing", "compute_image_processing", "{E796A880-48FF-48FF-A7F0-A3A522223061}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "orca_loader", "examples\orca_loader\orca_loader.vcxproj", "{8397BAEB-C62F-4EE0-9402-E2D1B804A328}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orca_loader", "orca_loader", "{9172A409-595E-45E8-8F14-E18CF4E0A8C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_OpenGL|x64 = Debug_OpenGL|x64
@@ -92,6 +96,18 @@ Global
 		{87425D27-E858-4E57-A482-21346163B972}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
 		{87425D27-E858-4E57-A482-21346163B972}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{87425D27-E858-4E57-A482-21346163B972}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -105,6 +121,8 @@ Global
 		{B883882B-129A-4528-86E3-68638929D9EC} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
 		{87425D27-E858-4E57-A482-21346163B972} = {E796A880-48FF-48FF-A7F0-A3A522223061}
 		{E796A880-48FF-48FF-A7F0-A3A522223061} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328} = {9172A409-595E-45E8-8F14-E18CF4E0A8C7}
+		{9172A409-595E-45E8-8F14-E18CF4E0A8C7} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

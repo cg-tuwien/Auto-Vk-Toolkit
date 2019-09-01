@@ -48,7 +48,9 @@
 
 #include <imgui.h>
 
-#include "cpplinq.hpp"
+#include <cpplinq.hpp>
+
+#include <nlohmann/json.hpp>
 
 // GLM: 
 #if defined(USE_VULKAN_CONTEXT)
@@ -233,6 +235,7 @@ namespace cgb
 #include "model.hpp"
 #include "camera.hpp"
 #include "quake_camera.hpp"
+#include "orca_scene.hpp"
 
 #include "material_image_helpers.hpp"
 

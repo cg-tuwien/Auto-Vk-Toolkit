@@ -166,6 +166,7 @@
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp" />
     <ClCompile Include="..\..\framework\src\math_utils.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
+    <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
     <ClCompile Include="..\..\framework\src\pipeline_opengl.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
@@ -439,6 +440,7 @@
     <ClInclude Include="..\..\framework\include\memory_usage.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\graphics_pipeline_config.hpp" />
+    <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
     <ClInclude Include="..\..\framework\include\pipeline_opengl.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>

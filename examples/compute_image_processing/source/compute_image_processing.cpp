@@ -230,7 +230,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				});
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
+		if (cgb::input().key_down(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
 			// [1], [2], or [3] => Use a compute shader to modify the image
 
 			// Use a fence to ensure that compute command buffer has finished executin before using it again

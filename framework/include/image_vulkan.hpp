@@ -99,12 +99,12 @@ namespace cgb
 		vk::ImageMemoryBarrier create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt) const;
 
 	private:
+		// The memory handle. This member will contain a valid handle only after successful image creation.
+		vk::UniqueDeviceMemory mMemory;
 		// The image create info which contains all the parameters for image creation
 		vk::ImageCreateInfo mInfo;
 		// The image handle. This member will contain a valid handle only after successful image creation.
 		vk::UniqueImage mImage;
-		// The memory handle. This member will contain a valid handle only after successful image creation.
-		vk::UniqueDeviceMemory mMemory;
 		// The image's target layout
 		vk::ImageLayout mTargetLayout;
 		// The current image layout
