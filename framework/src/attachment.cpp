@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	attachment attachment::create_color(image_format pFormat, std::optional<uint32_t> pLocation)
+	attachment attachment::create_color(image_format pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 #if defined(_DEBUG)
 		if (is_depth_format(pFormat)) {
@@ -12,6 +12,7 @@ namespace cgb
 		return attachment{
 			pLocation,
 			pFormat,
+			pImageUsage,
 			cfg::attachment_load_operation::clear,
 			cfg::attachment_store_operation::store,
 			1,				// num samples
@@ -22,7 +23,7 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_depth(std::optional<image_format> pFormat, std::optional<uint32_t> pLocation)
+	attachment attachment::create_depth(std::optional<image_format> pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 		if (!pFormat.has_value()) {
 			pFormat = image_format::default_depth_format();
@@ -36,6 +37,7 @@ namespace cgb
 		return attachment{
 			pLocation,
 			pFormat.value(),
+			pImageUsage,
 			cfg::attachment_load_operation::clear,
 			cfg::attachment_store_operation::store,
 			1,				// num samples
@@ -46,19 +48,20 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_depth_stencil(std::optional<image_format> pFormat, std::optional<uint32_t> pLocation)
+	attachment attachment::create_depth_stencil(std::optional<image_format> pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 		if (!pFormat.has_value()) {
 			pFormat = image_format::default_depth_stencil_format();
 		}
-		return create_depth(std::move(pFormat), std::move(pLocation));
+		return create_depth(std::move(pFormat), std::move(pImageUsage), std::move(pLocation));
 	}
 
-	attachment attachment::create_shader_input(image_format pFormat, std::optional<uint32_t> pLocation)
+	attachment attachment::create_shader_input(image_format pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 		return attachment{
 			pLocation,
 			pFormat,
+			pImageUsage,
 			cfg::attachment_load_operation::load,
 			cfg::attachment_store_operation::store,
 			1,				// num samples
@@ -69,7 +72,7 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation)
+	attachment attachment::create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 #if defined(_DEBUG)
 		if (!is_depth_format(pFormat)) {
@@ -79,6 +82,7 @@ namespace cgb
 		return attachment{
 			pLocation,
 			pFormat,
+			pImageUsage,
 			cfg::attachment_load_operation::clear,
 			cfg::attachment_store_operation::store,
 			pSampleCount,				// num samples
@@ -89,7 +93,7 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation)
+	attachment attachment::create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 #if defined(_DEBUG)
 		if (!is_depth_format(pFormat)) {
@@ -99,6 +103,7 @@ namespace cgb
 		return attachment{
 			pLocation,
 			pFormat,
+			pImageUsage,
 			cfg::attachment_load_operation::clear,
 			cfg::attachment_store_operation::store,
 			pSampleCount,				// num samples
@@ -109,11 +114,12 @@ namespace cgb
 		};
 	}
 
-	attachment attachment::create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation)
+	attachment attachment::create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
 	{
 		return attachment{
 			pLocation,
 			pFormat,
+			pImageUsage,
 			cfg::attachment_load_operation::load,
 			cfg::attachment_store_operation::store,
 			pSampleCount,				// num samples

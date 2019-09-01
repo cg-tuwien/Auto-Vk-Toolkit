@@ -2,9 +2,14 @@
 
 namespace cgb
 {
+	bool image_view_t::has_image_t() const
+	{
+		return std::holds_alternative<cgb::image>(mImage);
+	}
+
 	const image_t& image_view_t::get_image() const
 	{
-		if (!std::holds_alternative<cgb::image>(mImage)) {
+		if (!has_image_t()) {
 			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
 		}
 		return std::get<cgb::image>(mImage);
@@ -12,7 +17,7 @@ namespace cgb
 
 	image_t& image_view_t::get_image()
 	{
-		if (!std::holds_alternative<cgb::image>(mImage)) {
+		if (!has_image_t()) {
 			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
 		}
 		return std::get<cgb::image>(mImage);		
@@ -113,9 +118,13 @@ namespace cgb
 
 		mImageView = context().logical_device().createImageViewUnique(mInfo);
 		mDescriptorInfo = vk::DescriptorImageInfo{}
-			//.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Set this parameter to the right value!!
-			.setImageLayout(vk::ImageLayout::eGeneral) // TODO: Set this parameter to the right value!!
 			.setImageView(view_handle());
+
+		if (std::holds_alternative<cgb::image>(mImage)) {
+			mDescriptorInfo.setImageLayout(std::get<cgb::image>(mImage)->target_layout()); // Note: The image's current layout might be different to its target layout.
+		}
+		// else => We don't know about the layout, so leave it at the default (eUndefined)
+
 		mDescriptorType = vk::DescriptorType::eStorageImage; // TODO: Is it storage image or sampled image?
 		mTracker.setTrackee(*this);
 	}
@@ -124,22 +133,24 @@ namespace cgb
 	{
 		auto& imageInfo = _ImageView.image_config();
 		auto format = image_format{ imageInfo.format };
+		std::optional<image_usage> imageUsage = _ImageView.has_image_t() ? _ImageView.get_image().usage_config() : std::optional<image_usage>{std::nullopt};
 		if (is_depth_format(format)) {
 			if (imageInfo.samples == vk::SampleCountFlagBits::e1) {
-				return attachment::create_depth(format, pLocation);
+				
+				return attachment::create_depth(format, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
 			}
 			else {	
 				// TODO: Should "is presentable" really be true by default?
-				return attachment::create_depth_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, pLocation);
+				return attachment::create_depth_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
 			}
 		}
 		else { // must be color format
 			if (imageInfo.samples == vk::SampleCountFlagBits::e1) {
-				return attachment::create_color(format, pLocation);
+				return attachment::create_color(format, imageUsage.value_or(image_usage::color_attachment), pLocation);
 			}
 			else {	
 				// TODO: Should "is presentable" really be true by default?
-				return attachment::create_color_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, pLocation);
+				return attachment::create_color_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, imageUsage.value_or(image_usage::color_attachment), pLocation);
 			}
 		}
 		throw std::runtime_error("Unable to create an attachment for the given image view");

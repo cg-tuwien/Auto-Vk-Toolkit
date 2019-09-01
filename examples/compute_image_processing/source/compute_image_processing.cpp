@@ -145,6 +145,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(1, mTargetImageAndSampler->get_image_view())
 		});	
 
+		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
+		mComputeFence = cgb::fence_t::create();
+
 		// Record render command buffers - one for each frame in flight:
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
 		auto halfW = w * 0.5f;
@@ -229,6 +232,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		if (cgb::input().key_pressed(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
 			// [1], [2], or [3] => Use a compute shader to modify the image
+
+			// Use a fence to ensure that compute command buffer has finished executin before using it again
+			mComputeFence->wait_until_signalled();
+			mComputeFence->reset();
+
 			size_t computeIndex = 0;
 			if (cgb::input().key_pressed(cgb::key_code::num2)) { computeIndex = 1; }
 			if (cgb::input().key_pressed(cgb::key_code::num3)) { computeIndex = 2; }
@@ -248,7 +256,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cmdbfr.handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
 
 			cmdbfr.end_recording();
-			submit_command_buffer_ownership(std::move(cmdbfr));	
+			
+			vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
+			auto submitInfo = vk::SubmitInfo()
+				.setCommandBufferCount(1u)
+				.setPCommandBuffers(cmdbfr.handle_addr());
+
+			cgb::context().graphics_queue().handle().submit({ submitInfo }, mComputeFence->handle());
+
+			mComputeFence->set_custom_deleter([
+				ownedCmdbfr{ std::move(cmdbfr) }
+			](){});
 		}
 
 		if (cgb::input().key_pressed(cgb::key_code::escape)) {
@@ -272,6 +290,7 @@ private: // v== Member variables ==v
 
 	std::vector<cgb::compute_pipeline> mComputePipelines;
 	std::shared_ptr<cgb::descriptor_set> mComputeDescriptorSet;
+	cgb::fence mComputeFence;
 
 }; // compute_image_processing_app
 

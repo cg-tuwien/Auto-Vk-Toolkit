@@ -17,6 +17,8 @@ namespace cgb
 		const auto& config() const { return mInfo; }
 		/** Get the config which is used to created this image view with the API. */
 		auto& config() { return mInfo; }
+		/** Returns true if it has an associated `cgb::image_t` */
+		bool has_image_t() const;
 		/** Gets the associated image or throws if no `cgb::image` is associated. */
 		const image_t& get_image() const;
 		/** Gets the associated image or throws if no `cgb::image` is associated. */

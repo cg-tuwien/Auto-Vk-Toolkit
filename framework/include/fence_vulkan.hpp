@@ -11,17 +11,50 @@ namespace cgb
 		fence_t(fence_t&&) = default;
 		fence_t& operator=(const fence_t&) = delete;
 		fence_t& operator=(fence_t&&) = default;
-		~fence_t() = default;
+		virtual ~fence_t();
+
+		/**	Set a queue where this fence is designated to be submitted to.
+		 *	This is only used for keeping the information of the queue. 
+		 *	There is no impact on any internal functionality whether or not a designated queue has been set.
+		 */
+		fence_t& set_designated_queue(device_queue& _Queue);
+
+		template <typename F>
+		fence_t& set_custom_deleter(F&& _Deleter) 
+		{
+			if (mCustomDeleter) {
+				// There is already a custom deleter! Make sure that this stays alive as well.
+				mCustomDeleter = [
+					existingDeleter = std::move(mCustomDeleter),
+					additionalDeleter = std::forward<F>(_Deleter)
+				]() {};
+			}
+			else {
+				mCustomDeleter = std::forward<F>(_Deleter);
+			}
+			return *this;
+		}
 
 		const auto& create_info() const { return mCreateInfo; }
 		const auto& handle() const { return mFence.get(); }
 		const auto* handle_addr() const { return &mFence.get(); }
+		auto has_designated_queue() const { return nullptr != mQueue; }
+		auto* designated_queue() const { return mQueue; }
+
+		void wait_until_signalled() const;
+		void reset();
 
 		static cgb::owning_resource<fence_t> create(bool _CreateInSignaledState = false, context_specific_function<void(fence_t&)> _AlterConfigBeforeCreation = {});
 
 	private:
 		vk::FenceCreateInfo mCreateInfo;
 		vk::UniqueFence mFence;
+		device_queue* mQueue;
+
+		// --- Some advanced features of a fence object ---
+
+		/** A custom deleter function called upon destruction of this semaphore */
+		std::optional<cgb::unique_function<void()>> mCustomDeleter;
 	};
 
 	using fence = cgb::owning_resource<fence_t>;

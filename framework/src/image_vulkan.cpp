@@ -382,72 +382,104 @@ namespace cgb
 		return it != depthFormats.end();
 	}
 
-	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+
+
+
+
+
+	std::tuple<vk::ImageUsageFlags, vk::ImageLayout, vk::ImageTiling, vk::ImageCreateFlags> determine_usage_layout_tiling_flags_based_on_image_usage(image_usage _ImageUsageFlags)
 	{
-		// Compile image usage flags and memory usage flags:
 		vk::ImageUsageFlags imageUsage{};
-		auto targetLayout = vk::ImageLayout::eGeneral; // General Layout is the default
+
+		bool isReadOnly = (_ImageUsageFlags & image_usage::read_only) == image_usage::read_only;
+		image_usage cleanedUpUsageFlagsForReadOnly = exclude(_ImageUsageFlags, image_usage::transfer_source | image_usage::transfer_destination | image_usage::sampled | image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+
+		auto targetLayout = isReadOnly ? vk::ImageLayout::eShaderReadOnlyOptimal : vk::ImageLayout::eGeneral; // General Layout or Shader Read Only Layout is the default
 		auto imageTiling = vk::ImageTiling::eOptimal; // Optimal is the default
 		vk::ImageCreateFlags imageCreateFlags{};
 
-		if ((pImageUsage & image_usage::transfer_source) == image_usage::transfer_source) {
+		if ((_ImageUsageFlags & image_usage::transfer_source) == image_usage::transfer_source) {
 			imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
-			if (image_usage::transfer_source == pImageUsage || (image_usage::transfer_source | image_usage::read_only) == pImageUsage) {
-				// i.e. if there are no other image_usage-flags set as transfer_source (and read_only possibly)
-				// TODO: Verify that this ^ is the right choice
+			image_usage cleanedUpUsageFlags = exclude(_ImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+			if (image_usage::transfer_source == cleanedUpUsageFlags) {
 				targetLayout = vk::ImageLayout::eTransferSrcOptimal;
 			}
-		}
-		if ((pImageUsage & image_usage::transfer_destination) == image_usage::transfer_destination) {
-			imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
-			if (image_usage::transfer_destination == pImageUsage) {
-				// i.e. if there are no other image_usage-flags set as transfer_destination
-				// TODO: Verify that this ^ is the right choice
-				targetLayout = vk::ImageLayout::eTransferDstOptimal;
+			else {
+				targetLayout = vk::ImageLayout::eGeneral;
 			}
 		}
-		if ((pImageUsage & image_usage::sampled) == image_usage::sampled) {
+		if ((_ImageUsageFlags & image_usage::transfer_destination) == image_usage::transfer_destination) {
+			imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
+			image_usage cleanedUpUsageFlags = exclude(_ImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+			if (image_usage::transfer_destination == cleanedUpUsageFlags) {
+				targetLayout = vk::ImageLayout::eTransferDstOptimal;
+			}
+			else {
+				targetLayout = vk::ImageLayout::eGeneral;
+			}
+		}
+		if ((_ImageUsageFlags & image_usage::sampled) == image_usage::sampled) {
 			imageUsage |= vk::ImageUsageFlagBits::eSampled;
 		}
-		if ((pImageUsage & image_usage::shader_storage) == image_usage::shader_storage) {
-			imageUsage |= vk::ImageUsageFlagBits::eStorage;	
-		}
-		if ((pImageUsage & image_usage::color_attachment) == image_usage::color_attachment) {
+		if ((_ImageUsageFlags & image_usage::color_attachment) == image_usage::color_attachment) {
 			imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
+			targetLayout = vk::ImageLayout::eColorAttachmentOptimal;
 		}
-		if ((pImageUsage & image_usage::depth_stencil_attachment) == image_usage::depth_stencil_attachment) {
+		if ((_ImageUsageFlags & image_usage::depth_stencil_attachment) == image_usage::depth_stencil_attachment) {
 			imageUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+			if (isReadOnly && image_usage::depth_stencil_attachment == cleanedUpUsageFlagsForReadOnly) {
+				targetLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+			}
+			else {
+				targetLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+			}
 		}
-		if ((pImageUsage & image_usage::input_attachment) == image_usage::input_attachment) {
+		if ((_ImageUsageFlags & image_usage::input_attachment) == image_usage::input_attachment) {
 			imageUsage |= vk::ImageUsageFlagBits::eInputAttachment;
 		}
-		if ((pImageUsage & image_usage::shading_rate_image) == image_usage::shading_rate_image) {
+		if ((_ImageUsageFlags & image_usage::shading_rate_image) == image_usage::shading_rate_image) {
 			imageUsage |= vk::ImageUsageFlagBits::eShadingRateImageNV;
 		}
-		if ((pImageUsage & image_usage::read_only) == image_usage::read_only) {
-			// TODO: set values here according to https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkImageLayout.html
-		}
-		if ((pImageUsage & image_usage::presentable) == image_usage::presentable) {
+		if ((_ImageUsageFlags & image_usage::presentable) == image_usage::presentable) {
 			targetLayout = vk::ImageLayout::ePresentSrcKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
 		}
-		if ((pImageUsage & image_usage::shared_presentable) == image_usage::shared_presentable) {
+		if ((_ImageUsageFlags & image_usage::shared_presentable) == image_usage::shared_presentable) {
 			targetLayout = vk::ImageLayout::eSharedPresentKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
 		}
-		if ((pImageUsage & image_usage::tiling_optimal) == image_usage::tiling_optimal) {
+		if ((_ImageUsageFlags & image_usage::tiling_optimal) == image_usage::tiling_optimal) {
 			imageTiling = vk::ImageTiling::eOptimal;
 		}
-		if ((pImageUsage & image_usage::tiling_linear) == image_usage::tiling_linear) {
+		if ((_ImageUsageFlags & image_usage::tiling_linear) == image_usage::tiling_linear) {
 			imageTiling = vk::ImageTiling::eLinear;
 		}
-		if ((pImageUsage & image_usage::sparse_memory_binding) == image_usage::sparse_memory_binding) {
+		if ((_ImageUsageFlags & image_usage::sparse_memory_binding) == image_usage::sparse_memory_binding) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eSparseBinding;
 		}
-		if ((pImageUsage & image_usage::cube_compatible) == image_usage::cube_compatible) {
+		if ((_ImageUsageFlags & image_usage::cube_compatible) == image_usage::cube_compatible) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eCubeCompatible;
 		}
-		if ((pImageUsage & image_usage::is_protected) == image_usage::is_protected) {
+		if ((_ImageUsageFlags & image_usage::is_protected) == image_usage::is_protected) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eProtected;
 		}
+		if ((_ImageUsageFlags & image_usage::shader_storage) == image_usage::shader_storage) { 
+			imageUsage |= vk::ImageUsageFlagBits::eStorage;	
+			// Can not be Shader Read Only Layout
+			targetLayout = vk::ImageLayout::eGeneral; // TODO: Verify that this should always be in general layout!
+		}
+
+		return std::make_tuple(imageUsage, targetLayout, imageTiling, imageCreateFlags);
+	}
+
+
+
+
+
+
+
+	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	{
+		// Determine image usage flags, image layout, and memory usage flags:
+		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(pImageUsage);
 
 		vk::MemoryPropertyFlags memoryFlags{};
 		switch (pMemoryUsage) {

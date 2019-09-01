@@ -31,7 +31,7 @@ namespace cgb
 		 *	@param	pFormat			The color format of the new attachment
 		 *	@param	pLocation		(Optional) At which layout location shall this color attachment appear.
 		 */
-		static attachment create_color(image_format pFormat, std::optional<uint32_t> pLocation = {});
+		static attachment create_color(image_format pFormat, image_usage pImageUsage = image_usage::color_attachment, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new depth/stencil attachment, with the following default settings:
 		 *	 - clear on load
@@ -39,7 +39,7 @@ namespace cgb
 		 *	@param	pFormat		(Optional) The depth format of the new attachment
 		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
 		 */
-		static attachment create_depth(std::optional<image_format> pFormat = {}, std::optional<uint32_t> pLocation = {});
+		static attachment create_depth(std::optional<image_format> pFormat = {}, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new depth/stencil attachment, with the following default settings:
 		 *	 - clear on load
@@ -47,7 +47,7 @@ namespace cgb
 		 *	@param	pFormat		(Optional) The depth/stencil format of the new attachment
 		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
 		 */
-		static attachment create_depth_stencil(std::optional<image_format> pFormat = {}, std::optional<uint32_t> pLocation = {});
+		static attachment create_depth_stencil(std::optional<image_format> pFormat = {}, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new color attachment for use as shader input, with the following default settings:
 		 *	 - load on load
@@ -55,7 +55,7 @@ namespace cgb
 		 *	@param	pFormat		The color format of the new attachment
 		 *	@param	pLocation	(Optional) At which layout location shall this color attachment appear.
 		 */
-		static attachment create_shader_input(image_format pFormat, std::optional<uint32_t> pLocation = {});
+		static attachment create_shader_input(image_format pFormat, image_usage pImageUsage = image_usage::read_only_sampled_image, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new multisampled color attachment, with the following default settings:
 		 *	 - is presentable
@@ -66,7 +66,7 @@ namespace cgb
 		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
 		 *	@param	pLocation				(Optional) At which layout location shall this color attachment appear.
 		 */
-		static attachment create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation = {});
+		static attachment create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::color_attachment, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new multisampled depth/stencil attachment
 		 *	 - clear on load
@@ -76,7 +76,7 @@ namespace cgb
 		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
 		 *	@param	pLocation				(Optional) At which layout location shall this depth/stencil attachment appear.
 		 */
-		static attachment create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation = {});
+		static attachment create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new multisampled color attachment for use as shader input
 		 *	 - load on load
@@ -86,7 +86,7 @@ namespace cgb
 		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
 		 *	@param	pLocation				(Optional) At which layout location shall this color attachment appear.
 		 */
-		static attachment create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, std::optional<uint32_t> pLocation = {});
+		static attachment create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
 
 		static attachment create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation = {});
 
@@ -113,6 +113,7 @@ namespace cgb
 
 		std::optional<uint32_t> mLocation;
 		image_format mFormat;
+		image_usage mImageUsage;
 		cfg::attachment_load_operation mLoadOperation;
 		cfg::attachment_store_operation mStoreOperation;
 		int mSampleCount;

@@ -92,11 +92,13 @@ namespace cgb
 			);
 
 			auto attachmentIndex = static_cast<uint32_t>(result.mAttachmentDescriptions.size() - 1);
+			auto [_unused1_, attachmentLayout, _unused2_, _unused3_] = determine_usage_layout_tiling_flags_based_on_image_usage(a.mImageUsage);
 
 			// 2. Depending on the type, fill one or multiple of the references
 			if (a.is_color_attachment()) { //< 2.1. COLOR ATTACHMENT
 				// Build the Reference
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+				assert(vk::ImageLayout::eColorAttachmentOptimal == attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificColorLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -109,7 +111,8 @@ namespace cgb
 			}
 			if (a.is_depth_attachment()) { //< 2.2. DEPTH ATTACHMENT
 				// Build the Reference
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+				assert(vk::ImageLayout::eDepthStencilAttachmentOptimal == attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificDepthLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -122,7 +125,8 @@ namespace cgb
 			}
 			if (a.is_to_be_resolved()) { //< 2.3. RESOLVE ATTACHMENT
 				// Build the Reference
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+				assert(vk::ImageLayout::eColorAttachmentOptimal == attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificResolveLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -135,7 +139,7 @@ namespace cgb
 			}
 			if (a.is_shader_input_attachment()) { //< 2.4. INPUT ATTACHMENT
 				// Build the Reference
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eShaderReadOnlyOptimal); // TODO: This layout?
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificInputLocations.count(a.location()) == 0); // assert that it is not already contained

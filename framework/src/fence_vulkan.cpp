@@ -2,6 +2,39 @@
 
 namespace cgb
 {
+	fence_t::~fence_t()
+	{
+		if (mCustomDeleter.has_value() && *mCustomDeleter) {
+			// If there is a custom deleter => call it now
+			(*mCustomDeleter)();
+			mCustomDeleter.reset();
+		}
+		// Destroy the dependant semaphore before destroying "my actual semaphore"
+		// ^ This is ensured by the order of the members
+		//   See: https://isocpp.org/wiki/faq/dtors#calling-member-dtors
+	}
+
+	fence_t& fence_t::set_designated_queue(device_queue& _Queue)
+	{
+		mQueue = &_Queue;
+		return *this;
+	}
+
+	void fence_t::wait_until_signalled() const
+	{
+		cgb::context().logical_device().waitForFences(1u, handle_addr(), VK_TRUE, UINT64_MAX);
+	}
+
+	void fence_t::reset()
+	{
+		cgb::context().logical_device().resetFences(1u, handle_addr());
+		if (mCustomDeleter.has_value() && *mCustomDeleter) {
+			// If there is a custom deleter => call it now
+			(*mCustomDeleter)();
+			mCustomDeleter.reset();
+		}
+	}
+
 	cgb::owning_resource<fence_t> fence_t::create(bool _CreateInSignaledState, context_specific_function<void(fence_t&)> _AlterConfigBeforeCreation)
 	{
 		fence_t result;

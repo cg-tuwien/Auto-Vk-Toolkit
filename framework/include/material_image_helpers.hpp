@@ -89,8 +89,7 @@ namespace cgb
 		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
 			// 2. Copy buffer to image
 			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
-			// 3. Transition image layout to eShaderReadOnlyOptimal and handle the semaphore(s) and resources
-			//cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, &*sem2, [&](semaphore sem3) {
+			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
 			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), &*sem2, [&](semaphore sem3) {
 				if (_SemaphoreHandler) { // Did the user provide a handler?
 					sem3->set_custom_deleter([

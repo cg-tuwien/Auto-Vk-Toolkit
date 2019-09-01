@@ -70,7 +70,7 @@ namespace cgb
 		versatile_depth_stencil_attachment		= versatile_image | depth_stencil_attachment,
 
 		/** The image can be used as read-only depth/stencil attachment, to transfer from, to sample and serve for readonly shader image/store operations. */
-		read_only_depth_stencil_attachment		= transfer_source | sampled | shader_storage | read_only | depth_stencil_attachment,
+		read_only_depth_stencil_attachment		= transfer_source | sampled | read_only | depth_stencil_attachment,
 
 		/** The image can be used as an input attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
 		versatile_input_attachment				= versatile_image | input_attachment,
@@ -99,5 +99,11 @@ namespace cgb
 	inline image_usage& operator &= (image_usage& a, image_usage b)
 	{
 		return a = a & b;
+	}
+
+	inline image_usage exclude(image_usage original, image_usage toExclude)
+	{
+		typedef std::underlying_type<image_usage>::type EnumType;
+		return static_cast<image_usage>(static_cast<EnumType>(original) & (~static_cast<EnumType>(toExclude)));
 	}
 }

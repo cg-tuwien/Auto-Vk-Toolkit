@@ -15,6 +15,9 @@ namespace cgb
 		vk::Format mFormat;
 	};
 
+	/** Analyze the given `cgb::image_usage` flags, and assemble some (hopefully valid) `vk::ImageUsageFlags`, and determine `vk::ImageLayout` and `vk::ImageTiling`. */
+	extern std::tuple<vk::ImageUsageFlags, vk::ImageLayout, vk::ImageTiling, vk::ImageCreateFlags> determine_usage_layout_tiling_flags_based_on_image_usage(image_usage _ImageUsageFlags);
+
 	/** Represents an image and its associated memory
 	 */
 	class image_t

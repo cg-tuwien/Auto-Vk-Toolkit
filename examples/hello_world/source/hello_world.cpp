@@ -29,7 +29,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		// Alternate drawing between the command buffers:
 		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		LOG_INFO(fmt::format("bufferIndex[{}]", inFlightIndex));
 		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
 	}
 
