@@ -2,6 +2,7 @@
 
 namespace cgb
 {
+	/** A class representing an ORCA Scene */
 	class orca_scene_t
 	{
 		struct model_instance_data
@@ -17,6 +18,8 @@ namespace cgb
 			std::string mFileName;
 			std::string mName;
 			std::vector<model_instance_data> mInstances;
+			std::string mFullPathName;
+			cgb::model mLoadedModel;
 		};
 
 		struct direct_light_data
@@ -81,22 +84,46 @@ namespace cgb
 		orca_scene_t& operator=(orca_scene_t&&) = default;
 		~orca_scene_t() = default;
 
-		static owning_resource<orca_scene_t> load_from_file(const std::string& _Path, model_t::aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
+		const auto& models() const { return mModelData; }
+		const auto& model_at_index(size_t _Index) const { return mModelData[_Index]; }
+		const auto& directional_lights() const { return mDirLightsData; }
+		const auto& point_lights() const { return mPointLightsData; }
+		const auto& cameras() const { return mCamerasData; }
+		const auto& light_probes() const { return mLightProbesData; }
+		const auto& paths() const { return mPathsData; }
+
+		/**	Gets all distinct `material_config` structs for all of this ORACA scene's models and also get all the model indices and mesh indices which have the materials assigned to.
+		 *	@param	_AlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
+		 *															also the data in the material struct are evaluated which only remain on the CPU. This CPU 
+		 *															data will not be transmitted to the GPU. By default, this parameter is set to `false`, i.e.
+		 *															only the GPU data of the `material_config` struct will be evaluated when determining the distinct
+		 *															materials.
+		 *															You'll want to set this parameter to `true` if you are planning to adapt your draw calls based
+		 *															on one or all of the following `material_config` members: `mShadingModel`, `mWireframeMode`,
+		 *															`mTwosided`, `mBlendMode`. If you don't plan to differentiate based on these, set to `false`.
+		 *	@return	A `std::unordered_map` containing the distinct `material_config` structs as the
+		 *			keys and a vector of tuples value type, where the tuples consist of the following two elements:
+		 *				[0] The model index as `size_t` at the first spot, and
+		 *				[1] The model's mesh indices as `std::vector<size_t>` at the second spot.
+		 */
+		std::unordered_map<material_config, std::vector<std::tuple<size_t, std::vector<size_t>>>> distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false) const;
+
+		static owning_resource<orca_scene_t> load_from_file(const std::string& _Path, model_t::aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
 	private:
-		static glm::vec3 convert_json_to_vec3(nlohmann::json& j);
-		static std::string convert_json_to_string(nlohmann::json& j);
-
-		std::string path;
-		std::string filename;
-		std::vector<model_data> mModels;
-		std::vector<direct_light_data> mDirLights;
-		std::vector<point_light_data> mPointLights;
-		std::vector<camera_data> mCameras;
-		std::vector<light_probes_data> mLightProbes;
+		std::string mLoadPath;
+		std::vector<model_data> mModelData;
+		std::vector<direct_light_data> mDirLightsData;
+		std::vector<point_light_data> mPointLightsData;
+		std::vector<camera_data> mCamerasData;
+		std::vector<light_probes_data> mLightProbesData;
 		std::vector<user_defined_data> mUserDefinedData;
-		std::vector<path_data> mPaths;
+		std::vector<path_data> mPathsData;
 	};
 
 	using orca_scene = cgb::owning_resource<orca_scene_t>;
+
+	// JSON helper functions:
+	static glm::vec3 convert_json_to_vec3(nlohmann::json& j);
+	static std::string convert_json_to_string(nlohmann::json& j);
 }

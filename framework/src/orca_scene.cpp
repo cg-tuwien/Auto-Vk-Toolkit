@@ -2,6 +2,20 @@
 
 namespace cgb
 {
+	std::unordered_map<material_config, std::vector<std::tuple<size_t, std::vector<size_t>>>> orca_scene_t::distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials) const
+	{
+		std::unordered_map<material_config, std::vector<std::tuple<size_t, std::vector<size_t>>>> result;
+
+		for (size_t i = 0; i < mModelData.size(); ++i) {
+			auto modelMaterials = mModelData[i].mLoadedModel->distinct_material_configs(_AlsoConsiderCpuOnlyDataForDistinctMaterials);
+			for (auto& pair : modelMaterials) {
+				result[pair.first].emplace_back(std::make_tuple(i, pair.second));
+			}
+		}
+
+		return result;
+	}
+
 	owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& _Path, model_t::aiProcessFlagsType _AssimpFlags)
 	{
 		std::ifstream stream(_Path, std::ifstream::in);
@@ -24,9 +38,10 @@ namespace cgb
 		nlohmann::json jPaths = j["paths"];
 
 		orca_scene_t result;
+		result.mLoadPath = _Path;
 
 		// === process models === //
-		result.mModels.reserve(jModels.size());
+		result.mModelData.reserve(jModels.size());
 		for (auto i = jModels.begin(); i != jModels.end(); ++i) {
 			nlohmann::json jModel = i.value();
 			model_data model;
@@ -44,7 +59,7 @@ namespace cgb
 				model.mInstances.push_back(instance);
 			}
 
-			result.mModels.push_back(model);
+			result.mModelData.push_back(model);
 		}
 
 		// === process lights === //
@@ -59,7 +74,7 @@ namespace cgb
 				direct_light_data d;
 				d.mDirection = direction;
 				d.mIntensity = intensity;
-				result.mDirLights.push_back(d);
+				result.mDirLightsData.push_back(d);
 			} else if (lightType.compare("point_light") == 0) {
 				point_light_data p;
 				p.mDirection = direction;
@@ -67,7 +82,7 @@ namespace cgb
 				p.mPosition = convert_json_to_vec3(jLight["pos"]);
 				p.mOpeningAngle = jLight["opening_angle"];
 				p.mPenumbraAngle = jLight["penumbra_angle"];
-				result.mPointLights.push_back(p);
+				result.mPointLightsData.push_back(p);
 			} else {
 				std::string msg = "The light type '" + lightType + "' does not exist in this framework.";
 				LOG_WARNING(msg);
@@ -85,7 +100,7 @@ namespace cgb
 			c.mAspectRatio = jCamera["aspect_ratio"];
 			std::vector<float> v = jCamera["depth_range"];
 			c.mDepthRange = glm::vec2(v[0], v[1]);
-			result.mCameras.push_back(c);
+			result.mCamerasData.push_back(c);
 		}
 
 		// === process light probes === //
@@ -99,7 +114,7 @@ namespace cgb
 			l.mIntensity = convert_json_to_vec3(jLightProbe["intensity"]);
 			l.mPosition = convert_json_to_vec3(jLightProbe["pos"]);
         
-			result.mLightProbes.push_back(l);
+			result.mLightProbesData.push_back(l);
 		}
 
 		// === process userdefined === //
@@ -129,7 +144,14 @@ namespace cgb
 			}
 
 			p.mFrames = frames;
-			result.mPaths.push_back(p);
+			result.mPathsData.push_back(p);
+		}
+
+		// Load the models into memory:
+		auto fsceneBasePath = cgb::extract_base_path(result.mLoadPath);
+		for (auto& modelData : result.mModelData) {
+			modelData.mFullPathName = cgb::combine_paths(fsceneBasePath, modelData.mFileName);
+			modelData.mLoadedModel = cgb::model_t::load_from_file(modelData.mFullPathName, _AssimpFlags);
 		}
 		
 		return result;

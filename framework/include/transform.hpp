@@ -84,6 +84,36 @@ namespace cgb
 		std::vector<transform::ptr> mChilds;
 	};
 
+	static inline glm::mat4 matrix_from_transforms(glm::vec3 _Translation, glm::quat _Rotation, glm::vec3 _Scale)
+	{
+		auto x = _Rotation * glm::vec3{ 1.0f, 0.0f, 0.0f };
+		auto y = _Rotation * glm::vec3{ 0.0f, 1.0f, 0.0f };
+		auto z = glm::cross(x, y);
+		y = glm::cross(z, x);
+		return glm::mat4{
+			glm::vec4{x, 0.0f} * _Scale.x,
+			glm::vec4{y, 0.0f} * _Scale.y,
+			glm::vec4{z, 0.0f} * _Scale.z,
+			glm::vec4{_Translation, 1.0f}
+		};
+	}
+
+	static inline std::tuple<glm::vec3, glm::quat, glm::vec3> transforms_from_matrix(glm::mat4 _Matrix)
+	{
+		auto translation = glm::vec3{_Matrix[3]};
+		auto scale = glm::vec3 {
+			glm::length(glm::vec3{_Matrix[0]}),
+			glm::length(glm::vec3{_Matrix[1]}),
+			glm::length(glm::vec3{_Matrix[2]})
+		};
+		auto rotation = glm::quat_cast(glm::mat3{
+			_Matrix[0] / scale.x,
+			_Matrix[1] / scale.y,
+			_Matrix[2] / scale.z
+		});
+		return std::make_tuple(translation, rotation, scale);
+	}
+
 	void attach_transform(transform::ptr pParent, transform::ptr pChild);
 	void detach_transform(transform::ptr pParent, transform::ptr pChild);
 

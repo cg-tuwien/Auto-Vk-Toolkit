@@ -6,31 +6,15 @@ namespace cgb
 
 	void transform::update_matrix_from_transforms()
 	{
-		auto x = mRotation * vec3{ 1.0f, 0.0f, 0.0f };
-		auto y = mRotation * vec3{ 0.0f, 1.0f, 0.0f };
-		auto z = glm::cross(x, y);
-		y = glm::cross(z, x);
-		mMatrix = mat4(
-			vec4(x, 0.0f) * mScale.x,
-			vec4(y, 0.0f) * mScale.y,
-			vec4(z, 0.0f) * mScale.z,
-			vec4(mTranslation, 1.0f)
-		);
+		mMatrix = matrix_from_transforms(mTranslation, mRotation, mScale);
 	}
 	
 	void transform::update_transforms_from_matrix()
 	{
-		mTranslation = vec3(mMatrix[3]);
-		mScale = {
-			glm::length(vec3(mMatrix[0])),
-			glm::length(vec3(mMatrix[1])),
-			glm::length(vec3(mMatrix[2]))
-		};
-		mRotation = glm::quat_cast(glm::mat3(
-			mMatrix[0] / mScale.x,
-			mMatrix[1] / mScale.y,
-			mMatrix[2] / mScale.z
-		));
+		auto [translation, rotation, scale] = transforms_from_matrix(mMatrix);
+		mTranslation = translation;
+		mRotation = rotation;
+		mScale = scale;
 	}
 
 	transform::transform(vec3 pTranslation, quat pRotation, vec3 pScale) noexcept

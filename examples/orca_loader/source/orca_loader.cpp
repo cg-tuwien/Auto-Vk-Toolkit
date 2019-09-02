@@ -4,15 +4,12 @@ class orca_loader_app : public cgb::cg_element
 {
 	struct data_for_draw_call
 	{
-		std::vector<glm::vec2> mTexCoords;
-		std::vector<glm::vec3> mNormals;
-
 		cgb::vertex_buffer mPositionsBuffer;
 		cgb::vertex_buffer mTexCoordsBuffer;
 		cgb::vertex_buffer mNormalsBuffer;
 		cgb::index_buffer mIndexBuffer;
-
 		int mMaterialIndex;
+		glm::mat4 mModelMatrix;
 	};
 
 	struct transformation_matrices {
@@ -23,28 +20,46 @@ class orca_loader_app : public cgb::cg_element
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
 
+	cgb::model sponza;
+	cgb::orca_scene orca;
+
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Load a model from file:
-		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		sponza = cgb::model_t::load_from_file("S:/ORCA/SunTemple/SunTemple.fbx", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
-		auto distinctMaterials = sponza->distinct_material_configs();
+		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
-		mDrawCalls.reserve(distinctMaterials.size()); // Due to an internal error, all the buffers can't properly be moved right now => reserve as a workaround. Sorry, and thanks for your patience. :-S
+		//// Load an ORCA scene from file:
+		//orca = cgb::orca_scene_t::load_from_file("S:/ORCA/SunTemple/SunTemple.fscene");
+		//// Get all the different materials from the whole scene:
+		//auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+
+		// Merge them all together:
+
+		mDrawCalls.reserve(distinctMaterialsSponza.size() /*+ distinctMaterialsOrca.size()*/); // Due to an internal error, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
 		
-		// The following might be a bit tedious still, but maybe it's not. For what it's worth, it is expressive.
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<cgb::material_config> allMatCofigs;
-		for (const auto& pair : distinctMaterials) {
-			auto& newElement = mDrawCalls.emplace_back();
+		for (const auto& pair : distinctMaterialsSponza) {
 			allMatCofigs.push_back(pair.first);
+
+			auto& newElement = mDrawCalls.emplace_back();
 			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+			newElement.mModelMatrix = glm::scale(glm::vec3(0.01f));
 			
+			// Compared to the "model_loader" example, we are taking a mor optimistic appproach here.
+			// By not using `cgb::append_indices_and_vertex_data` directly, we have no guarantee that
+			// all vertex arrays are of the same length. 
+			// Instead, here we use the (possibly more convenient) `cgb::get_combined*` functions and
+			// just optimistically assume that positions, texture coordinates, and normals are all of
+			// the same length.
+
 			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 
+			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
 				[] (auto _Semaphore) {  
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 				});
@@ -52,17 +67,52 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			newElement.mIndexBuffer = std::move(indicesBuffer);
 
 			// Get a buffer containing all texture coordinates for all submeshes with this material
-			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 0,
+			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 0,
 				[] (auto _Semaphore) {  
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 				});
 
 			// Get a buffer containing all normals for all submeshes with this material
-			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ std::forward_as_tuple(static_cast<const cgb::model_t&>(sponza), pair.second) }, 
+			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
 				[] (auto _Semaphore) {  
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 				});
 		}
+		// Same for the ORCA scene:
+		//for (const auto& pair : distinctMaterialsOrca) {
+		//	allMatCofigs.push_back(pair.first);
+		//	
+		//	for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
+
+		//		auto& modelData = orca->model_at_index(std::get<0>(tpl));
+
+		//		for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
+		//			auto& newElement = mDrawCalls.emplace_back();
+		//			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+		//			newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mTranslation), modelData.mInstances[i].mScaling);
+
+		//			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+		//			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+		//				[] (auto _Semaphore) {  
+		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+		//				});
+		//			newElement.mPositionsBuffer = std::move(positionsBuffer);
+		//			newElement.mIndexBuffer = std::move(indicesBuffer);
+
+		//			// Get a buffer containing all texture coordinates for all submeshes with this material
+		//			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+		//				[] (auto _Semaphore) {  
+		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+		//				});
+
+		//			// Get a buffer containing all normals for all submeshes with this material
+		//			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+		//				[] (auto _Semaphore) {  
+		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+		//				});
+		//		}
+		//	}
+		//}
 
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
 			[](auto _Semaphore) {
@@ -151,7 +201,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Set the push constants:
 			auto pushConstantsForThisDrawCall = transformation_matrices { 
-				glm::scale(glm::vec3(0.01f)),							// <-- mModelMatrix
+				drawCall.mModelMatrix,									// <-- mModelMatrix
 				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
 				drawCall.mMaterialIndex
 			};

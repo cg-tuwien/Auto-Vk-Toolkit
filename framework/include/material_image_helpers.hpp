@@ -118,4 +118,42 @@ namespace cgb
 	extern vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
 	extern vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
 	extern vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+
+	// TODO: Not sure if the following leads somewhere:
+	//
+	//using model_ref_getter_func = std::function<const model_t&()>;
+	//using mesh_indices_getter_func = std::function<std::vector<size_t>()>;
+
+	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target)
+	//{ }
+
+	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, const material_config& _Material, const model_t& _Model, const std::vector<size_t>& _Indices)
+	//{
+	//	_Target[_Material].push_back(std::make_tuple(
+	//		[modelAddr = &_Model]() -> const model_t& { return *modelAddr; },
+	//		[meshIndices = _Indices]() -> std::vector<size_t> { return meshIndices; }
+	//	));
+	//}
+
+	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, const material_config& _Material, const orca_scene_t& _OrcaScene, const std::tuple<size_t, std::vector<size_t>>& _ModelAndMeshIndices)
+	//{
+	//	_Target[_Material].push_back(std::make_tuple(
+	//		[modelAddr = &static_cast<const model_t&>(_OrcaScene.model_at_index(std::get<0>(_ModelAndMeshIndices)).mLoadedModel)]() -> const model_t& { return *modelAddr; },
+	//		[meshIndices = std::get<1>(_ModelAndMeshIndices)]() -> std::vector<size_t> { return meshIndices; }
+	//	));
+	//}
+
+	//template <typename O, typename D, typename... Os, typename... Ds>
+	//void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, std::tuple<const O&, const D&> _First, std::tuple<const Os&, const Ds&>... _Rest) 
+	//{
+	//	merge_distinct_materials_into(_Target, )
+	//	
+	//}
+
+	//template <typename... Os, typename... Ds>
+	//std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>> merge_distinct_materials(std::tuple<const Os&, const Ds&>... _Rest) 
+	//{
+	//	std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>> result;
+	//	
+	//}
 }

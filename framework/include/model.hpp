@@ -389,4 +389,14 @@ namespace cgb
 	_NODISCARD constexpr std::tuple<_Types&&...> additional_index_data(_Types&&... _Args) noexcept {
 		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
 	}
+
+	/** This is a convenience function and is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
+	 *	but it should help to express the intent better. 
+	 */
+	template <typename M>
+	_NODISCARD constexpr std::tuple<const model_t&, std::vector<size_t>> make_tuple_model_and_indices(const M& _Model, std::vector<size_t> _Indices) noexcept {
+		return std::forward_as_tuple<const model_t&, std::vector<size_t>>(static_cast<const model_t&>(_Model), std::move(_Indices));
+	}
+
+
 }

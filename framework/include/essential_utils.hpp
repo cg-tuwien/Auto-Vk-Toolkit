@@ -259,24 +259,35 @@ namespace cgb
 		owning_resource(owning_resource<T>&&) = default;
 		owning_resource(const owning_resource<T>& other)
 		{
-			if (!other.is_shared_ownership_enabled()) {
-				throw std::logic_error("Can only copy construct owning_resources which have shared ownership enabled.");
+			if (other.has_value()) {
+				if (!other.is_shared_ownership_enabled()) {
+					throw std::logic_error("Can only copy construct owning_resources which have shared ownership enabled.");
+				}
+				*this_as_variant() = std::get<std::shared_ptr<T>>(other);
 			}
-			*this_as_variant() = std::get<std::shared_ptr<T>>(other);
+			else {
+				assert(!has_value());
+			}
 		}
 		owning_resource<T>& operator=(T&& r) { *this_as_variant() = std::move(r); return *this; }
 		owning_resource<T>& operator=(const T&) = delete;
 		owning_resource<T>& operator=(owning_resource<T>&& r) = default;
 		owning_resource<T>& operator=(const owning_resource<T>& other)
 		{
-			if (!other.is_shared_ownership_enabled()) {
-				throw std::logic_error("Can only copy assign owning_resources which have shared ownership enabled.");
+			if (other.has_value()) {
+				if (!other.is_shared_ownership_enabled()) {
+					throw std::logic_error("Can only copy assign owning_resources which have shared ownership enabled.");
+				}
+				*this_as_variant() = std::get<std::shared_ptr<T>>(other);
 			}
-			*this_as_variant() = std::get<std::shared_ptr<T>>(other);
+			else {
+				assert(!has_value());
+			}
 			return *this;
 		}
 
 		bool is_shared_ownership_enabled() const { return std::holds_alternative<std::shared_ptr<T>>(*this); }
+		bool has_value() const { return !std::holds_alternative<std::monostate>(*this); }
 		bool holds_item_directly() const { return std::holds_alternative<T>(*this); }
 		const std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() const { return static_cast<const std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
 		std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() { return static_cast<std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
