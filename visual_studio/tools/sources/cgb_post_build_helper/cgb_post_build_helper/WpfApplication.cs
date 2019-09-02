@@ -17,6 +17,7 @@ using System.Collections.ObjectModel;
 using CgbPostBuildHelper.Deployers;
 using System.Windows.Input;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace CgbPostBuildHelper
 {
@@ -268,7 +269,7 @@ namespace CgbPostBuildHelper
 					// ...unless we shouldn't do it!
 					if (File.Exists(deployment.DesignatedOutputPath))
 					{
-						Console.WriteLine($"Not deploying file to '{deployment.DesignatedOutputPath}' because it already exists (and don't overwrite flag is set).");
+                        Trace.TraceInformation($"Not deploying file to '{deployment.DesignatedOutputPath}' because it already exists (and don't overwrite flag is set).");
 						return;
 					}
 				}
@@ -541,11 +542,18 @@ namespace CgbPostBuildHelper
 		/// <param name="p">All the parameters passed by that invocation/post build step</param>
 		public void HandleNewInvocation(InvocationParams config)
 		{
-			StartAnimateIcon();
-			Task.Run(() =>
-			{
-				// Parse the .filters file for asset files and shader files
-				var filtersFile = new FileInfo(config.FiltersPath);
+            Trace.TraceInformation($"Handling start  animate icon {config.VcxprojPath}");
+
+            StartAnimateIcon();
+            Trace.TraceInformation($"Running task... {config.VcxprojPath}");
+            Trace.Flush();
+            _myDispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
+            {
+                Trace.TraceInformation($"Handling new invocation for {config.VcxprojPath}");
+                Trace.Flush();
+
+                // Parse the .filters file for asset files and shader files
+                var filtersFile = new FileInfo(config.FiltersPath);
 				var filtersContent = File.ReadAllText(filtersFile.FullName);
 				var filters = RegexFilterEntry.Matches(filtersContent);
 				int n = filters.Count;
@@ -560,9 +568,10 @@ namespace CgbPostBuildHelper
 				// Perform sanity check before actually evaluating the individual files:
 				try 
 				{
-					//var test = CgbUtils.NormalizePartialPath("  /\\/\\asdfa/sdf/sdf/sdf\\asdf \\ asdfsdf?/\\ ");
+                    //var test = CgbUtils.NormalizePartialPath("  /\\/\\asdfa/sdf/sdf/sdf\\asdf \\ asdfsdf?/\\ ");
+                    Trace.TraceInformation($"stage 0 {config.VcxprojPath}");
 
-					var setOfFilters = new HashSet<string>();
+                    var setOfFilters = new HashSet<string>();
 					var filesToCheck = new List<string>();
 					for (int i=0; i < n; ++i)
 					{
@@ -599,6 +608,7 @@ namespace CgbPostBuildHelper
 							CgbUtils.ShowDirectoryInExplorer(config.FiltersPath);
 						}), config);
 				}
+                Trace.TraceInformation($"stage 1 {config.VcxprojPath}");
 
                 // I can't believe what I've programmed here :-/
                 // For now, I'm just going to hack the .fscene parser into here. In future, this should be refactored so that the whole code structure makes more sense.
@@ -619,10 +629,11 @@ namespace CgbPostBuildHelper
                     }
 					catch (Exception ex)
 					{
-						Console.WriteLine("Skipping file, because: " + ex.Message);
+                        Trace.TraceError("Skipping file, because: " + ex.Message);
 						continue;
 					}
 				}
+                Trace.TraceInformation($"stage 2 {config.VcxprojPath}");
 
                 // Handle all ORCA files
                 // Is it an .fscene file?
@@ -632,7 +643,7 @@ namespace CgbPostBuildHelper
                     var fsceneFilter = FilesAndFilters[i].Item2;
                     if (!fsceneFile.Exists)
                     {
-                        Console.WriteLine($"File '{FilesAndFilters[i].Item1}' does not exist");
+                        Trace.TraceError($"File '{FilesAndFilters[i].Item1}' does not exist");
                         continue;
                     }
 
@@ -690,19 +701,21 @@ namespace CgbPostBuildHelper
                         }
                         catch (JsonException jex)
                         {
-                            Console.WriteLine(jex.Message);
+                            Trace.TraceError(jex.Message);
                         }
                     }
                 }
+                Trace.TraceInformation($"stage 3 {config.VcxprojPath}");
 
                 foreach (var tpl in FilesAndFilters)
                 {
                     HandleFileToDeploy(config, tpl.Item1, tpl.Item2, deployments, fileDeployments, windowsToShowFor);
                 }
+                Trace.TraceInformation($"stage 4 {config.VcxprojPath}");
 
                 // In addition, deploy the DLLs from the framework's external directory!
                 {
-					var pathToExtBinDlls = Path.Combine(
+                    var pathToExtBinDlls = Path.Combine(
 						config.CgbExternalPath, 
 						CgbPostBuildHelper.Properties.Settings.Default.AlwaysDeployReleaseDlls 
 							? CgbPostBuildHelper.Properties.Settings.Default.ReleaseSubPathInExternals
@@ -728,11 +741,12 @@ namespace CgbPostBuildHelper
 					}
 				}
 
-				// TODO: Test DLL deployment!!
+                // TODO: Test DLL deployment!!
+                Trace.TraceInformation($"stage 5 {config.VcxprojPath}");
 
-				// Do the things which must be done on the UI thread:
-				UpdateViewAfterHandledInvocationAndStartFileSystemWatchers(CgbEventType.Build, config, deployments, fileDeployments, windowsToShowFor);
-			});
+                // Do the things which must be done on the UI thread:
+                UpdateViewAfterHandledInvocationAndStartFileSystemWatchers(CgbEventType.Build, config, deployments, fileDeployments, windowsToShowFor);
+			}));
 		}
 
 		public void HandleFileEvent(string filePath, CgbAppInstanceVM inst, ObservableCollection<WatchedFileVM> files)
@@ -949,7 +963,7 @@ namespace CgbPostBuildHelper
 			// Sync across threads by invoking it on the dispatcher
 			_myDispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
 			{
-				Console.WriteLine("Show Messages list NOW " + DateTime.Now);
+                Trace.TraceInformation("Show Messages list NOW " + DateTime.Now);
 
 				foreach (var msgVm in _messagesListVM.Items)
 				{

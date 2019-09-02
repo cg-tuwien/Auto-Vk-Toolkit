@@ -351,7 +351,12 @@ namespace cgb
 		const auto& imgAvailableSem = image_available_semaphore_for_frame();
 		cgb::context().logical_device().acquireNextImageKHR(
 			swap_chain(), // the swap chain from which we wish to acquire an image 
-			std::numeric_limits<int64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
+			// At this point, I have to rant about the `timeout` parameter:
+			// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
+			// HOWEVER, don't think that a numeric_limit<int64_t>::max() will wait for nine quintillion nanoseconds!
+			//    No, instead it will return instantly, yielding an invalid swap chain image index. OMG, WTF?!
+			// Long story short: make sure to pass the UNSINGEDint64_t's maximum value, since only that will disable the timeout.
+			std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
 			imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
 			nullptr,
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]

@@ -3,6 +3,7 @@ using CgbPostBuildHelper.View;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -42,13 +43,13 @@ namespace CgbPostBuildHelper.ViewModel
 		public void NightGathersAndNowMyWatchBegins()
 		{
 			FileSystemWatcher.Filter = "*.*";
-			//foreach (var f in Files)
-			//{
-			//	if (FileSystemWatcher.Filter.Length > 0)
-			//		FileSystemWatcher.Filter += ",";
-			//	FileSystemWatcher.Filter += f.FileName;
-			//}
-			Console.WriteLine($"Starting directory watcher on directory '{FileSystemWatcher.Path}' with the following filter: '{FileSystemWatcher.Filter}'");
+            //foreach (var f in Files)
+            //{
+            //	if (FileSystemWatcher.Filter.Length > 0)
+            //		FileSystemWatcher.Filter += ",";
+            //	FileSystemWatcher.Filter += f.FileName;
+            //}
+            Trace.TraceInformation($"Starting directory watcher on directory '{FileSystemWatcher.Path}' with the following filter: '{FileSystemWatcher.Filter}'");
 
 			FileSystemWatcher.Changed += FileSystemWatcher_Changed;
 			FileSystemWatcher.Deleted += FileSystemWatcher_Deleted;

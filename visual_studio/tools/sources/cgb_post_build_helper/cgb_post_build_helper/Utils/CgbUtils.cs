@@ -196,7 +196,7 @@ namespace CgbPostBuildHelper.Utils
 			var isShader = RegexIsInShaders.IsMatch(filterPath);
 			if (!isAsset && !isShader && !isExternalDependency)
 			{
-				Console.WriteLine($"Skipping '{filePath}' since it is neither in 'assets/' nor in 'shaders/' nor is it an external dependency.");
+				Trace.TraceInformation($"Skipping '{filePath}' since it is neither in 'assets/' nor in 'shaders/' nor is it an external dependency.");
 				return;
 			}
 
@@ -260,7 +260,7 @@ namespace CgbPostBuildHelper.Utils
 				}
 				catch (AssimpException aex)
 				{
-					Console.WriteLine(aex.Message);
+                    Trace.TraceWarning(aex.Message);
 					// Maybe it is no model?!
 				}
 
@@ -362,7 +362,7 @@ namespace CgbPostBuildHelper.Utils
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
+                Trace.TraceError(ex.Message);
 			}
 		}
 	}

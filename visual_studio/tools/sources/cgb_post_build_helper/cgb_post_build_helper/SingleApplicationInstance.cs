@@ -12,6 +12,7 @@ using System.Management.Instrumentation;
 using System.IO;
 using CgbPostBuildHelper.Utils;
 using CgbPostBuildHelper.Model;
+using System.Diagnostics;
 
 namespace CgbPostBuildHelper
 {
@@ -25,13 +26,17 @@ namespace CgbPostBuildHelper
 		/// </summary>
 		private WpfApplication _wpfApp;
 
+
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		public SingleApplicationInstance()
 		{
-			// Enable single instance behavior:
-			IsSingleInstance = true;
+            Trace.AutoFlush = true;
+
+            // Enable single instance behavior:
+            IsSingleInstance = true;
 		}
 
 		/// <summary>
@@ -41,6 +46,8 @@ namespace CgbPostBuildHelper
 		/// <returns>A System.Boolean that indicates if the application should continue starting up.</returns>
 		protected override bool OnStartup(StartupEventArgs e)
 		{
+            Trace.AutoFlush = true;
+
 			// Start the first instance of this app
 			_wpfApp = new WpfApplication()
 			{
@@ -78,6 +85,8 @@ namespace CgbPostBuildHelper
 		/// <param name="e">Contains the command line parameters, passed by the invoker</param>
 		protected override void OnStartupNextInstance(StartupNextInstanceEventArgs e)
 		{
+            Trace.AutoFlush = true;
+
 			if (e.CommandLine.Count > 0)
 			{
 				try

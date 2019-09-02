@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using EnvDTE;
 using EnvDTE80;
+using System.Diagnostics;
 
 namespace CgbPostBuildHelper.Utils
 {
@@ -209,7 +210,7 @@ namespace CgbPostBuildHelper.Utils
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine(e.Message);
+                Trace.TraceError(e.Message);
 				return false;
 			}
 		}
