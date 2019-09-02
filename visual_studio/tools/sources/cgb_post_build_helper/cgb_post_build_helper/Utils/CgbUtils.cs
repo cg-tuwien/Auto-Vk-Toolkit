@@ -12,6 +12,7 @@ using CgbPostBuildHelper.ViewModel;
 using Assimp;
 using CgbPostBuildHelper.Deployers;
 using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace CgbPostBuildHelper.Utils
 {

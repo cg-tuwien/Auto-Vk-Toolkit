@@ -28,12 +28,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Load a model from file:
-		sponza = cgb::model_t::load_from_file("C:/workwork/cg_base/repo/assets/3rd_party/models/sponza/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		orca = cgb::orca_scene_t::load_from_file("C:/workwork/cg_base/repo/assets/3rd_party/models/sponza/sponza.fscene");
+		orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
@@ -89,7 +89,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
 					newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
-					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mTranslation), modelData.mInstances[i].mScaling);
+					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 
 					// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 					auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
@@ -230,14 +230,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
-		}
-		if (cgb::input().key_pressed(cgb::key_code::c)) {
-			// Center the cursor:
-			auto resolution = cgb::context().main_window()->resolution();
-			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+		if (cgb::input().key_pressed(cgb::key_code::space)) {
+			// Print the current camera position
+			auto pos = mQuakeCam.translation();
+			LOG_INFO(fmt::format("Current camera position: {}", cgb::to_string(pos)));
 		}
 		if (cgb::input().key_pressed(cgb::key_code::escape)) {
 			// Stop the current composition:
@@ -305,7 +301,7 @@ int main() // <== Starting point ==
 	catch (std::runtime_error& re)
 	{
 		LOG_ERROR_EM(re.what());
-		throw re;
+		//throw re;
 	}
 }
 

@@ -72,7 +72,7 @@ namespace cgb
 		size_t imageSize = width * height * 4;
 
 		if (!pixels) {
-			throw std::runtime_error("Couldn't load image using stbi_load");
+			throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
 		}
 
 		auto stagingBuffer = cgb::create_and_fill(

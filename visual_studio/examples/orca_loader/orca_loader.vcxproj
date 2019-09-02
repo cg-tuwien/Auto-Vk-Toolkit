@@ -43,6 +43,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
       <FileType>Document</FileType>
     </None>

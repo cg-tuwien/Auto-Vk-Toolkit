@@ -16,6 +16,7 @@ using System.Windows.Controls;
 using System.Collections.ObjectModel;
 using CgbPostBuildHelper.Deployers;
 using System.Windows.Input;
+using Newtonsoft.Json;
 
 namespace CgbPostBuildHelper
 {
@@ -559,7 +560,7 @@ namespace CgbPostBuildHelper
 				// Perform sanity check before actually evaluating the individual files:
 				try 
 				{
-					var test = CgbUtils.NormalizePartialPath("  /\\/\\asdfa/sdf/sdf/sdf\\asdf \\ asdfsdf?/\\ ");
+					//var test = CgbUtils.NormalizePartialPath("  /\\/\\asdfa/sdf/sdf/sdf\\asdf \\ asdfsdf?/\\ ");
 
 					var setOfFilters = new HashSet<string>();
 					var filesToCheck = new List<string>();
@@ -599,6 +600,10 @@ namespace CgbPostBuildHelper
 						}), config);
 				}
 
+                // I can't believe what I've programmed here :-/
+                // For now, I'm just going to hack the .fscene parser into here. In future, this should be refactored so that the whole code structure makes more sense.
+                var FilesAndFilters = new List<Tuple<string, string>>();
+
 				// -> Parse the .filters file and deploy each and every file
 				for (int i=0; i < n; ++i)
 				{
@@ -610,18 +615,93 @@ namespace CgbPostBuildHelper
 					{
 						filePath = Path.Combine(filtersFile.DirectoryName, match.Groups[2].Value);
 						filterPath = match.Groups[3].Value;
-					}
+                        FilesAndFilters.Add(new Tuple<string, string>(filePath, filterPath));
+                    }
 					catch (Exception ex)
 					{
 						Console.WriteLine("Skipping file, because: " + ex.Message);
 						continue;
 					}
-
-					HandleFileToDeploy(config, filePath, filterPath, deployments, fileDeployments, windowsToShowFor);
 				}
 
-				// In addition, deploy the DLLs from the framework's external directory!
-				{
+                // Handle all ORCA files
+                // Is it an .fscene file?
+                for (int i = 0; i < FilesAndFilters.Count; ++i)
+                {
+                    var fsceneFile = new FileInfo(FilesAndFilters[i].Item1);
+                    var fsceneFilter = FilesAndFilters[i].Item2;
+                    if (!fsceneFile.Exists)
+                    {
+                        Console.WriteLine($"File '{FilesAndFilters[i].Item1}' does not exist");
+                        continue;
+                    }
+
+                    if (fsceneFile.FullName.Trim().EndsWith(".fscene", true, System.Globalization.CultureInfo.InvariantCulture))
+                    {
+                        try
+                        {
+                            // Extract data out of it:
+                            var referencedModels = new HashSet<string>();
+                            var referencedLightProbes = new HashSet<string>();
+                            var referencedSkyboxes = new HashSet<string>();
+
+                            dynamic fscene = JsonConvert.DeserializeObject(File.ReadAllText(fsceneFile.FullName));
+
+                            var models = fscene.models;
+                            if (null != models)
+                            {
+                                foreach (var model in models)
+                                {
+                                    string path = model.file;
+                                    referencedModels.Add(path);
+                                }
+                            }
+
+                            var lightProbes = fscene.light_probes;
+                            if (null != lightProbes)
+                            {
+                                foreach (var lightProbe in lightProbes)
+                                {
+                                    string path = lightProbe.file;
+                                    referencedLightProbes.Add(path);
+                                }
+                            }
+
+                            var userDefined = fscene.user_defined;
+                            if (null != userDefined && null != userDefined.sky_box)
+                            {
+                                string path = userDefined.sky_box;
+                                referencedSkyboxes.Add(path);
+                            }
+
+                            // Add all the extracted data to the FilesAndFilters collection:
+                            foreach (var referencedModel in referencedModels)
+                            {
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedModel), fsceneFilter));
+                            }
+                            foreach (var referencedLightProbe in referencedLightProbes)
+                            {
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedLightProbe), fsceneFilter));
+                            }
+                            foreach (var referencedSkybox in referencedSkyboxes)
+                            {
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedSkybox), fsceneFilter));
+                            }
+                        }
+                        catch (JsonException jex)
+                        {
+                            Console.WriteLine(jex.Message);
+                        }
+                    }
+                }
+
+                foreach (var tpl in FilesAndFilters)
+                {
+                    HandleFileToDeploy(config, tpl.Item1, tpl.Item2, deployments, fileDeployments, windowsToShowFor);
+                }
+
+                // In addition, deploy the DLLs from the framework's external directory!
+                {
 					var pathToExtBinDlls = Path.Combine(
 						config.CgbExternalPath, 
 						CgbPostBuildHelper.Properties.Settings.Default.AlwaysDeployReleaseDlls 
