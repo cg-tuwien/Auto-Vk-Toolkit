@@ -292,6 +292,7 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy $(TargetPath) $(SolutionDir)..\..\executables\ /R /Y
 xcopy $(TargetDir)AssimpNet.dll $(SolutionDir)..\..\executables\ /R /Y
+xcopy $(TargetDir)Newtonsoft.Json.dll $(SolutionDir)..\..\executables\ /R /Y
 xcopy $(TargetDir)EnvDTE.dll $(SolutionDir)..\..\executables\ /R /Y
 xcopy $(TargetDir)EnvDTE80.dll $(SolutionDir)..\..\executables\ /R /Y
 xcopy $(TargetDir)Hardcodet.Wpf.TaskbarNotification.dll $(SolutionDir)..\..\executables\ /R /Y

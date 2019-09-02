@@ -542,12 +542,26 @@ namespace CgbPostBuildHelper
 		/// <param name="p">All the parameters passed by that invocation/post build step</param>
 		public void HandleNewInvocation(InvocationParams config)
 		{
-            Trace.TraceInformation($"Handling start  animate icon {config.VcxprojPath}");
-
             StartAnimateIcon();
-            Trace.TraceInformation($"Running task... {config.VcxprojPath}");
-            Trace.Flush();
-            _myDispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
+
+            // A story of a pathetic developer who learned that exceptions on background
+            // threads are just swallowed and are going into Nirvana:
+            //
+            // cgb_post_build_helper.exe from the visual_studio/executables/ directory would
+            // always silently fail somewhere, BUT the application wouldn't quit! As it seems,
+            // ONLY the background thread (started with Task.Run) throws up and is terminated.
+            //
+            // So the pathetic developer suspected some problem with the asynchronous background
+            // thread, started via Task.Run. It turned out that just Newtonsoft.Json.dll was missing.
+            // However, you don't find out that it is missing, because the application won't tell you! WTF?!??!
+            // Only the background thread requires it, and it seems like only the background thread 
+            // is terminated IF it is missing.
+            // 
+            // This is the reason why everything worked when started from within visual studio.
+            // Started from the visual_studio/executables/ directory, it would just SILENTLY fail.
+            // Removing the following Task.Run and having the code execute synchronously finally 
+            // revealed the error. *facepalm*
+            Task.Run(() =>
             {
                 Trace.TraceInformation($"Handling new invocation for {config.VcxprojPath}");
                 Trace.Flush();
@@ -746,7 +760,7 @@ namespace CgbPostBuildHelper
 
                 // Do the things which must be done on the UI thread:
                 UpdateViewAfterHandledInvocationAndStartFileSystemWatchers(CgbEventType.Build, config, deployments, fileDeployments, windowsToShowFor);
-			}));
+			});
 		}
 
 		public void HandleFileEvent(string filePath, CgbAppInstanceVM inst, ObservableCollection<WatchedFileVM> files)
