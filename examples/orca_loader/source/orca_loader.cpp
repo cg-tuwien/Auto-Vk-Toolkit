@@ -28,18 +28,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Load a model from file:
-		sponza = cgb::model_t::load_from_file("S:/ORCA/SunTemple/SunTemple.fbx", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		sponza = cgb::model_t::load_from_file("C:/workwork/cg_base/repo/assets/3rd_party/models/sponza/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
-		//// Load an ORCA scene from file:
-		//orca = cgb::orca_scene_t::load_from_file("S:/ORCA/SunTemple/SunTemple.fscene");
-		//// Get all the different materials from the whole scene:
-		//auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+		// Load an ORCA scene from file:
+		orca = cgb::orca_scene_t::load_from_file("C:/workwork/cg_base/repo/assets/3rd_party/models/sponza/sponza.fscene");
+		// Get all the different materials from the whole scene:
+		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
 		// Merge them all together:
 
-		mDrawCalls.reserve(distinctMaterialsSponza.size() /*+ distinctMaterialsOrca.size()*/); // Due to an internal error, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		mDrawCalls.reserve(1000); // Due to an internal error, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
@@ -79,40 +79,40 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				});
 		}
 		// Same for the ORCA scene:
-		//for (const auto& pair : distinctMaterialsOrca) {
-		//	allMatCofigs.push_back(pair.first);
-		//	
-		//	for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
+		for (const auto& pair : distinctMaterialsOrca) {
+			allMatCofigs.push_back(pair.first);
+			
+			for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
 
-		//		auto& modelData = orca->model_at_index(std::get<0>(tpl));
+				auto& modelData = orca->model_at_index(std::get<0>(tpl));
 
-		//		for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-		//			auto& newElement = mDrawCalls.emplace_back();
-		//			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
-		//			newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mTranslation), modelData.mInstances[i].mScaling);
+				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
+					auto& newElement = mDrawCalls.emplace_back();
+					newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mTranslation), modelData.mInstances[i].mScaling);
 
-		//			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-		//			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-		//				[] (auto _Semaphore) {  
-		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-		//				});
-		//			newElement.mPositionsBuffer = std::move(positionsBuffer);
-		//			newElement.mIndexBuffer = std::move(indicesBuffer);
+					// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+					auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+						[] (auto _Semaphore) {  
+							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+						});
+					newElement.mPositionsBuffer = std::move(positionsBuffer);
+					newElement.mIndexBuffer = std::move(indicesBuffer);
 
-		//			// Get a buffer containing all texture coordinates for all submeshes with this material
-		//			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
-		//				[] (auto _Semaphore) {  
-		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-		//				});
+					// Get a buffer containing all texture coordinates for all submeshes with this material
+					newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+						[] (auto _Semaphore) {  
+							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+						});
 
-		//			// Get a buffer containing all normals for all submeshes with this material
-		//			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-		//				[] (auto _Semaphore) {  
-		//					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-		//				});
-		//		}
-		//	}
-		//}
+					// Get a buffer containing all normals for all submeshes with this material
+					newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+						[] (auto _Semaphore) {  
+							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+						});
+				}
+			}
+		}
 
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
 			[](auto _Semaphore) {
@@ -305,6 +305,7 @@ int main() // <== Starting point ==
 	catch (std::runtime_error& re)
 	{
 		LOG_ERROR_EM(re.what());
+		throw re;
 	}
 }
 
