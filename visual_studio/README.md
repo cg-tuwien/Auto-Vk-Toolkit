@@ -97,18 +97,20 @@ You might be subject to this problem if you build the `orca_loader` example and 
 
 Please try one or all of the following approaches to solve that problem:
 
-* Restart cgb_post_build_helper:
+1. Restart cgb_post_build_helper:
     1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
 	2. Navigate to the [`tools/executables`](./tools/executables) directory and start `cgb_post_build_helper.exe` manually.
 	3. If Windows warns you about the unknown source of this tool, please select to run anyways and permanently trust this executable.
-* Start cgb_post_build_helper in with administrator rights:
+2. Start cgb_post_build_helper in with administrator rights:
     1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
 	2. Navigate to the [`tools/executables`](./tools/executables) directory, right-click on `cgb_post_build_helper.exe`, and select `"Run as administrator"`
-* Build cgb_post_build_helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
+3. Build cgb_post_build_helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
     1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
 	2. Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`tools/sources/cgb_post_build_helper`](./tools/sources/cgb_post_build_helper)
 	3. Select the `Release` build and build the project.
 	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
+	
+At least the third approach should solve the problem. (If not, please create an issue and describe your situation in detail.)
     
 ### Settings
 
