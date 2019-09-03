@@ -60,6 +60,11 @@ See [`external/universal/include/stb_image.h`](external/universal/include/stb_im
 FileWatcher, Copyright (c) by James Wynn, licensed under the MIT License.     
 See [`external/universal/include/FileWatcher/FileWatcher.h`](external/universal/include/FileWatcher/FileWatcher.h) or https://code.google.com/archive/p/simplefilewatcher for full license details.
 
+**Nlohmann JSON for Modern C++**
+
+JSON for Modern C++, Copyright (c) 2013-2019 Niels Lohmann, licensed under the MIT License.    
+See [`external/universal/include/nlohmann/json.hpp`](external/universal/include/FileWatcher/FileWatcher.h) or https://github.com/nlohmann/json for full license details.
+
 ## Licenses of 3rd party assets
 
 **3D Models and Textures under Stanford Scan**
