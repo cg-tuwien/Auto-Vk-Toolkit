@@ -19,9 +19,9 @@ Dependent resources are managed directly via Visual Studio project settings, mor
 * `assets`, and
 * `shaders`.
 
-The following figure shows an example of a project configuration where shaders, a 3D model file, and an ORCA scene file are assined to these two special filters: 
+The following figure shows an example of a project configuration where shaders, a 3D model file, and an ORCA scene file are assigned to these two special filters: 
 
-![filters configuration in the orca_loader example](./docs/images/orca_loader_filters.png "filters configuration in the orca_loader example")
+![filters configuration in the orca_loader example](./docs/images/orca_loader_filters.png =583x "filters configuration in the orca_loader example")
 
 When building the project, all these resources get deployed according to their filter path to the target directory. Sub-folders in filter paths are preserved. The filter-path is the path where to load resources from, like shown in the following examples:
 
@@ -75,21 +75,21 @@ cgb_post_build_helper will provide a tray icon, informing about the deployment p
 
 As an example: The [`orca_loader` example](./examples/orca_loader), should deploy 72 assets to the target directory, although only four assets and shaders are referenced. The sponza 3D model references many textures, all of which are deployed to the target folder as well. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target folder.
 
-![72 files deployed](./docs/images/deployed_72_files.png "72 files deployed")
+![72 files deployed](./docs/images/deployed_72_files.png =843x "72 files deployed")
 
 If the `orca_loader` example does not deploy 72 assets, please check the hints in section about troubleshooting below.
 
 ### Troubleshooting
 
-*Some resources can't be loaded on the first start* 
+**Some resources can't be loaded on the first start**
 
 cgb_post_build_helper runs asynchronously to not block Visual Studio. This has the side effect that deployment can still be in progress when the application is already starting. Please build your project and wait until cgb_post_build_helper's tray icon shows no more animated dots, before starting your application!
 
-*DLL files are not deployed*
+**DLL files are not deployed**
 
 This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents cgb_post_build_helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them).
 
-*Too few resources are being deployed* 
+**Too few resources are being deployed** 
 
 Sometimes, cgb_post_build_helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing something. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
 
@@ -110,11 +110,11 @@ Please try the following steps to solve that problem:
 	* Select the `Release` build and build the project.
 	* A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
     
-## Settings
+### Settings
 
 cgb_post_build_helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
 
-![cgb_post_build_helper settings](./docs/images/settings_post_build_helper.png "cgb_post_build_helper settings")
+![cgb_post_build_helper settings](./docs/images/settings_post_build_helper.png =798x "cgb_post_build_helper settings")
 
 The setting "Always deploy release DLLs" can lead to significantly increased performance when loading textures or 3D models from Debug builds.
 
