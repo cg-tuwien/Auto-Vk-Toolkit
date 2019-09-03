@@ -21,7 +21,7 @@ Dependent resources are managed directly via Visual Studio project settings, mor
 
 The following figure shows an example of a project configuration where shaders, a 3D model file, and an ORCA scene file are assigned to these two special filters: 
 
-![filters configuration in the orca_loader example](./docs/images/orca_loader_filters.png =583x "filters configuration in the orca_loader example")
+![filters configuration in the orca_loader example](./docs/images/orca_loader_filters.png | width=583)
 
 When building the project, all these resources get deployed according to their filter path to the target directory. Sub-folders in filter paths are preserved. The filter-path is the path where to load resources from, like shown in the following examples:
 
@@ -75,7 +75,7 @@ cgb_post_build_helper will provide a tray icon, informing about the deployment p
 
 As an example: The [`orca_loader` example](./examples/orca_loader), should deploy 72 assets to the target directory, although only four assets and shaders are referenced. The sponza 3D model references many textures, all of which are deployed to the target folder as well. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target folder.
 
-![72 files deployed](./docs/images/deployed_72_files.png =843x "72 files deployed")
+![72 files deployed](./docs/images/deployed_72_files.png | width=843)
 
 If the `orca_loader` example does not deploy 72 assets, please check the hints in section about troubleshooting below.
 
@@ -114,7 +114,7 @@ Please try the following steps to solve that problem:
 
 cgb_post_build_helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
 
-![cgb_post_build_helper settings](./docs/images/settings_post_build_helper.png =798x "cgb_post_build_helper settings")
+![cgb_post_build_helper settings](./docs/images/settings_post_build_helper.png | width=798)
 
 The setting "Always deploy release DLLs" can lead to significantly increased performance when loading textures or 3D models from Debug builds.
 
