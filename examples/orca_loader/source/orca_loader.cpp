@@ -20,20 +20,17 @@ class orca_loader_app : public cgb::cg_element
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
 
-	cgb::model sponza;
-	cgb::orca_scene orca;
-
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Load a model from file:
-		sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
+		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
@@ -43,17 +40,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
-		std::vector<cgb::material_config> allMatCofigs;
+		std::vector<cgb::material_config> allMatConfigs;
 		for (const auto& pair : distinctMaterialsSponza) {
-			allMatCofigs.push_back(pair.first);
+			allMatConfigs.push_back(pair.first);
+			auto matIndex = allMatConfigs.size() - 1;
 
 			auto& newElement = mDrawCalls.emplace_back();
-			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+			newElement.mMaterialIndex = static_cast<int>(matIndex);
 			newElement.mModelMatrix = glm::scale(glm::vec3(0.01f));
 			
 			// Compared to the "model_loader" example, we are taking a mor optimistic appproach here.
 			// By not using `cgb::append_indices_and_vertex_data` directly, we have no guarantee that
-			// all vertex arrays are of the same length. 
+			// all vectors of vertex-data are of the same length. 
 			// Instead, here we use the (possibly more convenient) `cgb::get_combined*` functions and
 			// just optimistically assume that positions, texture coordinates, and normals are all of
 			// the same length.
@@ -80,15 +78,33 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 		// Same for the ORCA scene:
 		for (const auto& pair : distinctMaterialsOrca) {
-			allMatCofigs.push_back(pair.first);
-			
+			// See if we've already encountered this material in the loop above
+			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
+			size_t matIndex;
+			if (allMatConfigs.end() == it) {
+				// Couldn't find => insert new material
+				allMatConfigs.push_back(pair.first);
+				matIndex = allMatConfigs.size() - 1;
+			}
+			else {
+				// Found the material => use the existing material
+				matIndex = std::distance(std::begin(allMatConfigs), it);
+			}
+
+			// The data in distinctMaterialsOrca encompasses all of the ORCA scene's models.
 			for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
-
+				// However, we have to pay attention to the specific model's scene-properties,...
 				auto& modelData = orca->model_at_index(std::get<0>(tpl));
-
+				// ... specifically, to its instances:
+				// (Generally, we can't combine the vertex data in this case with the vertex
+				//  data of other models if we have to draw multiple instances; because in 
+				//  the case of multiple instances, only the to-be-instanced geometry must
+				//  be accessible independently of the other geometry.
+				//  Therefore, in this example, we take the approach of building separate 
+				//  buffers for everything which could potentially be instanced.)
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
-					newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+					newElement.mMaterialIndex = static_cast<int>(matIndex);
 					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 
 					// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
@@ -114,7 +130,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 		}
 
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
+		// All the materials have been gathered during the two loops with produced the
+		// different vertex- and index-buffers. However, they can potentially share the
+		// same material
+		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatConfigs, 
 			[](auto _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
 			});

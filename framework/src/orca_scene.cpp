@@ -118,9 +118,11 @@ namespace cgb
 		}
 
 		// === process userdefined === //
-		user_defined_data data;
-		data.mSkyBoxPath = convert_json_to_string(jUserDefinded["sky_box"]);
-		result.mUserDefinedData.push_back(data);
+		if (!jUserDefinded.empty()) {
+			user_defined_data data;
+			data.mSkyBoxPath = convert_json_to_string(jUserDefinded["sky_box"]);
+			result.mUserDefinedData.push_back(data);
+		}
 
 		// === process paths === //
 		for (auto i = jPaths.begin(); i != jPaths.end(); ++i) {

@@ -9,11 +9,29 @@
             "name": "sponza_structure",
             "instances": [
                 {
-                    "name": "sponza_structure[0]",
+                    "name": "sponza_structure0",
                     "translation": [
                         0.0,
                         0.0,
                         -25.0
+                    ],
+                    "scaling": [
+                        0.01,
+                        0.01,
+                        0.01
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+				{
+                    "name": "sponza_structure1",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        25.0
                     ],
                     "scaling": [
                         0.01,
@@ -33,11 +51,29 @@
             "name": "sponza_fabric",
             "instances": [
                 {
-                    "name": "sponza_fabric[0]",
+                    "name": "sponza_fabric0",
                     "translation": [
                         0.0,
                         0.0,
                         -25.0
+                    ],
+                    "scaling": [
+                        0.01,
+                        0.01,
+                        0.01
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+				{
+                    "name": "sponza_fabric1",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        25.0
                     ],
                     "scaling": [
                         0.01,
@@ -57,11 +93,29 @@
             "name": "sponza_plants",
             "instances": [
                 {
-                    "name": "sponza_plants[0]",
+                    "name": "sponza_plants0",
                     "translation": [
                         0.0,
                         0.0,
                         -25.0
+                    ],
+                    "scaling": [
+                        0.01,
+                        0.01,
+                        0.01
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+				{
+                    "name": "sponza_plants1",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        25.0
                     ],
                     "scaling": [
                         0.01,
@@ -81,7 +135,7 @@
             "name": "sponza_debris",
             "instances": [
                 {
-                    "name": "sponza_debris[0]",
+                    "name": "sponza_debris0",
                     "translation": [
                         0.0,
                         0.0,
@@ -416,9 +470,6 @@
             "aspect_ratio": 1.0
         }
     ],
-    "user_defined": {
-        "sky_box": "SunTemple_Skybox.hdr"
-    },
     "paths": [
         {
             "name": "Path 0",

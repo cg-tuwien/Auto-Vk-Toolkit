@@ -39,11 +39,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following might be a bit tedious still, but maybe it's not. For what it's worth, it is expressive.
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
-		std::vector<cgb::material_config> allMatCofigs;
+		std::vector<cgb::material_config> allMatConfigs;
 		for (const auto& pair : distinctMaterials) {
 			auto& newElement = mDrawCalls.emplace_back();
-			allMatCofigs.push_back(pair.first);
-			newElement.mMaterialIndex = static_cast<int>(allMatCofigs.size() - 1);
+			allMatConfigs.push_back(pair.first);
+			newElement.mMaterialIndex = static_cast<int>(allMatConfigs.size() - 1);
 			
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
@@ -105,7 +105,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			);
 		}
 
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatCofigs, 
+		// For all the different materials, transfer them in structs which are well 
+		// suited for GPU-usage (proper alignment, and containing only the relevant data),
+		// also load all the referenced images from file and provide access to them
+		// via samplers; It all happens in `cgb::convert_for_gpu_usage`:
+		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatConfigs, 
 			[](auto _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
 			});

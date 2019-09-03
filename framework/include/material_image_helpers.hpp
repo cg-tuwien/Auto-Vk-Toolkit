@@ -64,6 +64,40 @@ namespace cgb
 		return copyCompleteSemaphore;
 	}
 
+	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {})
+	{
+		auto stagingBuffer = cgb::create_and_fill(
+			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
+			cgb::memory_usage::host_coherent,
+			_Color.data(),
+			nullptr,
+			vk::BufferUsageFlagBits::eTransferSrc);
+			
+		auto img = cgb::image_t::create(1, 1, cgb::image_format(vk::Format::eR8G8B8A8Unorm), false, 1, _MemoryUsage, _ImageUsage);
+		// 1. Transition image layout to eTransferDstOptimal
+		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
+			// 2. Copy buffer to image
+			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
+			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
+			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), &*sem2, [&](semaphore sem3) {
+				if (_SemaphoreHandler) { // Did the user provide a handler?
+					sem3->set_custom_deleter([
+						ownBuffer = std::move(stagingBuffer),
+						ownSem1 = std::move(sem1),
+						ownSem2 = std::move(sem2)
+					](){});
+					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
+				}
+				else {
+					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+					cgb::context().logical_device().waitIdle();
+				}
+			});
+		});
+		
+		return img;
+	}
+
 	static image create_image_from_file(const std::string& _Path, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {})
 	{
 		int width, height, channels;

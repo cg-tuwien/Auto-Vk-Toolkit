@@ -273,7 +273,12 @@ namespace cgb
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, cgb::image_usage _ImageUsage)
 	{
+		// These are the texture names loaded from file:
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
+		// However, if some textures are missing, provide 1x1 px textures in those spots
+		std::vector<int*> whiteTexUsages;				// Provide a 1x1 px almost everywhere in those cases,
+		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
+
 		std::vector<material_gpu_data> gpuMaterial;
 		gpuMaterial.reserve(_MaterialConfigs.size()); // important because of the pointers
 
@@ -305,30 +310,101 @@ namespace cgb
 			gm.mAnisotropyRotation			= mc.mAnisotropyRotation		 ;
 			gm.mCustomData					= mc.mCustomData				 ;
 																			 
-			gm.mDiffuseTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mDiffuseTex)].push_back(&gm.mDiffuseTexIndex);
+			gm.mDiffuseTexIndex				= -1;	
+			if (mc.mDiffuseTex.empty()) {
+				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mDiffuseTex)].push_back(&gm.mDiffuseTexIndex);
+			}
+
 			gm.mSpecularTexIndex			= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
+			if (mc.mSpecularTex.empty()) {
+				whiteTexUsages.push_back(&gm.mSpecularTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
+			}
+
 			gm.mAmbientTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mAmbientTex)].push_back(&gm.mAmbientTexIndex);
+			if (mc.mAmbientTex.empty()) {
+				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mAmbientTex)].push_back(&gm.mAmbientTexIndex);
+			}
+
 			gm.mEmissiveTexIndex			= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
+			if (mc.mEmissiveTex.empty()) {
+				whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
+			}
+
 			gm.mHeightTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
+			if (mc.mHeightTex.empty()) {
+				whiteTexUsages.push_back(&gm.mHeightTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
+			}
+
 			gm.mNormalsTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
+			if (mc.mNormalsTex.empty()) {
+				straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
+			}
+
 			gm.mShininessTexIndex			= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
+			if (mc.mShininessTex.empty()) {
+				whiteTexUsages.push_back(&gm.mShininessTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
+			}
+
 			gm.mOpacityTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
+			if (mc.mOpacityTex.empty()) {
+				whiteTexUsages.push_back(&gm.mOpacityTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
+			}
+
 			gm.mDisplacementTexIndex		= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
+			if (mc.mDisplacementTex.empty()) {
+				whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
+			}
+
 			gm.mReflectionTexIndex			= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
+			if (mc.mReflectionTex.empty()) {
+				whiteTexUsages.push_back(&gm.mReflectionTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
+			}
+
 			gm.mLightmapTexIndex			= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
+			if (mc.mLightmapTex.empty()) {
+				whiteTexUsages.push_back(&gm.mLightmapTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
+			}
+
 			gm.mExtraTexIndex				= -1;							 
-			texNamesToUsages[cgb::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
+			if (mc.mExtraTex.empty()) {
+				whiteTexUsages.push_back(&gm.mExtraTexIndex);
+			}
+			else {
+				texNamesToUsages[cgb::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
+			}
 																			 
 			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
 			gm.mSpecularTexOffsetTiling		= mc.mSpecularTexOffsetTiling	 ;
@@ -345,11 +421,39 @@ namespace cgb
 		}
 
 		std::vector<image_sampler> imageSamplers;
-		imageSamplers.reserve(texNamesToUsages.size());
-		for (auto& pair : texNamesToUsages) {
-			if (pair.first.empty()) {
-				continue;
+		imageSamplers.reserve(texNamesToUsages.size() + 2); // + 2 => one for the white tex, one for the normals tex
+
+		// Create the white texture and assign its index to all usages
+		if (whiteTexUsages.size() > 0) {
+			imageSamplers.push_back(
+				image_sampler_t::create(
+					image_view_t::create(create_1px_texture({ 255, 255, 255, 255 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
+					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
+				)
+			);
+			int index = static_cast<int>(imageSamplers.size() - 1);
+			for (auto* img : whiteTexUsages) {
+				*img = index;
 			}
+		}
+
+		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
+		if (straightUpNormalTexUsages.size() > 0) {
+			imageSamplers.push_back(
+				image_sampler_t::create(
+					image_view_t::create(create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
+					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
+				)
+			);
+			int index = static_cast<int>(imageSamplers.size() - 1);
+			for (auto* img : straightUpNormalTexUsages) {
+				*img = index;
+			}
+		}
+
+		// Load all the images from file, and assign them to all usages
+		for (auto& pair : texNamesToUsages) {
+			assert (!pair.first.empty());
 
 			imageSamplers.push_back(
 				image_sampler_t::create(
@@ -363,6 +467,7 @@ namespace cgb
 			}
 		}
 
+		// Hand over ownership to the caller
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
 
