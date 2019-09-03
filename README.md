@@ -23,3 +23,4 @@ Requirements:
 * Visual Studio 2019 with a Windows 10 SDK installed
 * Vulkan SDK 1.1.108.0 (the only SDK version which is supported at the moment)
 
+Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md)
