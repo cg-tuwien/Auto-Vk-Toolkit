@@ -95,20 +95,20 @@ Sometimes, cgb_post_build_helper deploys too few resources which is probably due
 
 You might be subject to this problem if you build the `orca_loader` example and only 6 (or fewer) files are deployed to the target directory instead of 72 files.
 
-Please try the following steps to solve that problem:
+Please try one or all of the following approaches to solve that problem:
 
-1. Restart cgb_post_build_helper:
-    * Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
-	* Navigate to the [`tools/executables`](./tools/executables) directory and start `cgb_post_build_helper.exe` manually.
-	* If Windows warns you about the unknown source of this tool, please select to run anyways and permanently trust this executable.
-2. Start cgb_post_build_helper in with administrator rights:
-    * Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
-	* Navigate to the [`tools/executables`](./tools/executables) directory, right-click on `cgb_post_build_helper.exe`, and select `"Run as administrator"`
-3. Build cgb_post_build_helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
-    * Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
-	* Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`tools/sources/cgb_post_build_helper`](./tools/sources/cgb_post_build_helper)
-	* Select the `Release` build and build the project.
-	* A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
+* Restart cgb_post_build_helper:
+    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
+	2. Navigate to the [`tools/executables`](./tools/executables) directory and start `cgb_post_build_helper.exe` manually.
+	3. If Windows warns you about the unknown source of this tool, please select to run anyways and permanently trust this executable.
+* Start cgb_post_build_helper in with administrator rights:
+    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
+	2. Navigate to the [`tools/executables`](./tools/executables) directory, right-click on `cgb_post_build_helper.exe`, and select `"Run as administrator"`
+* Build cgb_post_build_helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
+    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
+	2. Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`tools/sources/cgb_post_build_helper`](./tools/sources/cgb_post_build_helper)
+	3. Select the `Release` build and build the project.
+	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
     
 ### Settings
 
