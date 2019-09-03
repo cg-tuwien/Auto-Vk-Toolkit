@@ -1,6 +1,6 @@
 # Licenses of the framework code, external dependencies, assets
 
-The framework code (see (`framework/`)[framework/]) and the 1st party assets (see (`assets/1st_party/`)[assets/1st_party//]) are released under MIT license. Beware, however, that a different license may apply to some of the external dependencies (see (`external/`)[external/]) and to some of the 3rd party assets (see (`assets/3rd_party/`)[assets/3rd_party//]) which are re-distributed with this framework. 
+The framework code (see [`framework/`](framework/) ) and the 1st party assets (see [`assets/1st_party/`](assets/1st_party/) ) are released under MIT license. Beware, however, that a different license may apply to some of the external dependencies (see [`external/`](external/) ) and to some of the 3rd party assets (see [`assets/3rd_party/`](assets/3rd_party/) ) which are re-distributed with this framework. 
 
 The below points give an overview of the different licenses, but it does not guarantee completeness. To make sure, the licenses fit to your project, please also check the license information in the respective folders and check with the original creator/distributor of the external dependency or the asset.
 
