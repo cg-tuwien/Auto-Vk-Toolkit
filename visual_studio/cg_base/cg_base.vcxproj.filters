@@ -214,6 +214,12 @@
     <ClCompile Include="..\..\framework\src\orca_scene.cpp">
       <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_config.cpp">
+      <Filter>Source Files\pipeline_and_shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -494,6 +500,18 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\orca_scene.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_config.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_config_convenience_functions.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\command_buffer_convenience_functions.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

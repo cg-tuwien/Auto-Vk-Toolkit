@@ -161,10 +161,12 @@
 #include "binding_data_vulkan.hpp"
 #include "graphics_pipeline_config.hpp"
 #include "compute_pipeline_config.hpp"
+#include "ray_tracing_pipeline_config.hpp"
 #include "descriptor_set_vulkan.hpp"
 #include "descriptor_pool_vulkan.hpp"
 #include "graphics_pipeline_vulkan.hpp"
 #include "compute_pipeline_vulkan.hpp"
+#include "ray_tracing_pipeline_vulkan.hpp"
 #include "shader_binding_table_vulkan.hpp"
 #include "vulkan_helper_functions.hpp"
 #include "bindings_vulkan.hpp"
@@ -181,6 +183,8 @@
 
 #include "graphics_pipeline_config_convenience_functions.hpp"
 #include "compute_pipeline_config_convenience_functions.hpp"
+#include "ray_tracing_pipeline_config_convenience_functions.hpp"
+#include "command_buffer_convenience_functions.hpp"
 
 #include "image.hpp"
 #include "various_utils.hpp"

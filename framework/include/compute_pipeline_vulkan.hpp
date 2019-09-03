@@ -2,12 +2,7 @@
 
 namespace cgb
 {
-	/** Represents data for a vulkan graphics pipeline
-	 *	The data held by such a struct is a triple of:
-	 *    - render pass
-	 *    - pipeline layout
-	 *    - pipeline handle
-	 */
+	/** Represents data for a vulkan compute pipeline */
 	class compute_pipeline_t
 	{
 	public:

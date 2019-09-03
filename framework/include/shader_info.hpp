@@ -12,9 +12,16 @@ namespace cgb
 		bool mDontMonitorFile;
 	};
 
-	static bool operator ==(const shader_info& first, const shader_info& second)
+	static bool operator ==(const shader_info& left, const shader_info& right)
 	{
-		return first.mPath == second.mPath && first.mEntryPoint == second.mEntryPoint;
+		return are_paths_equal(left.mPath, right.mPath)
+			&& left.mShaderType == right.mShaderType 
+			&& trim_spaces(left.mEntryPoint) == trim_spaces(right.mEntryPoint);
+	}
+
+	static bool operator !=(const shader_info& left, const shader_info& right)
+	{
+		return !(left == right);
 	}
 
 	/** @brief Shader source information and shader loading options
@@ -69,4 +76,21 @@ namespace cgb
 	inline shader_info task_shader(std::string pPath, std::string pEntryPoint = "main", bool pDontMonitorFile = false) { return shader_info::create(std::move(pPath), std::move(pEntryPoint), pDontMonitorFile, cgb::shader_type::task); }
 	inline shader_info mesh_shader(std::string pPath, std::string pEntryPoint = "main", bool pDontMonitorFile = false) { return shader_info::create(std::move(pPath), std::move(pEntryPoint), pDontMonitorFile, cgb::shader_type::mesh); }
 
+}
+
+namespace std // Inject hash for `cgb::shader_info` into std::
+{
+	template<> struct hash<cgb::shader_info>
+	{
+		std::size_t operator()(cgb::shader_info const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h,
+				cgb::transform_path_for_comparison(o.mPath),
+				static_cast<std::underlying_type<cgb::shader_type>::type>(o.mShaderType),
+				cgb::trim_spaces(o.mEntryPoint)
+			);
+			return h;
+		}
+	};
 }

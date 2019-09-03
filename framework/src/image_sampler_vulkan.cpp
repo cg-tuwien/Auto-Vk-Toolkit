@@ -7,11 +7,17 @@ namespace cgb
 		image_sampler_t result;
 		result.mImageView = std::move(pImageView);
 		result.mSampler = std::move(pSampler);
+
 		result.mDescriptorInfo = vk::DescriptorImageInfo{}
-			.setImageLayout(vk::ImageLayout::eGeneral) // TODO: Get this right!
-			//.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal) // TODO: Get this right!
 			.setImageView(result.view_handle())
 			.setSampler(result.sampler_handle());
+		if (pImageView->has_image_t()) {
+			result.mDescriptorInfo.setImageLayout(pImageView->get_image().target_layout());
+		}
+		else {
+			result.mDescriptorInfo.setImageLayout(vk::ImageLayout::eGeneral); 
+		}
+		
 		result.mDescriptorType = vk::DescriptorType::eCombinedImageSampler;
 		return result;
 	}

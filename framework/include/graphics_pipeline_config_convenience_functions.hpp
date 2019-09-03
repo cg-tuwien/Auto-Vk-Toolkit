@@ -2,11 +2,6 @@
 
 namespace cgb
 {
-	//extern descriptor_set_layout layout_for(std::initializer_list<binding_data> pBindings);
-
-
-
-
 	// End of recursive variadic template handling
 	inline void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func) { /* We're done here. */ }
 
@@ -212,32 +207,4 @@ namespace cgb
 		return graphics_pipeline_t::create(std::move(config), std::move(alterConfigFunction));
 		// ============================================================================================ 
 	}
-
-
-
-	/** 
-	 *	@type	F		Required format: void(command_buffer& _CommandBuffer, int64_t _InFlightIndex)
-	 */
-	template <typename F>
-	std::vector<command_buffer> record_command_buffers_for_all_in_flight_frames(window* _Window, F _RecordFunction)
-	{
-		if (nullptr == _Window) {
-			_Window = cgb::context().main_window();
-		}
-		const auto numInFlight = _Window->number_of_in_flight_frames();
-		auto commandBuffers = cgb::context().graphics_queue().pool().get_command_buffers(
-			static_cast<uint32_t>(numInFlight), 
-			vk::CommandBufferUsageFlagBits::eSimultaneousUse); // TODO: What does eSimultaneousUse mean?
-
-		for (int64_t in_flight_index = 0; in_flight_index < numInFlight; ++in_flight_index) {
-			auto& cmdBfr = commandBuffers[in_flight_index];
-			cmdBfr.begin_recording();
-			_RecordFunction(cmdBfr, in_flight_index);
-			cmdBfr.end_recording();
-		}
-
-		return commandBuffers;
-	}
-
-
 }
