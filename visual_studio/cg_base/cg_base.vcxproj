@@ -56,6 +56,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\buffer_opengl.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
@@ -289,6 +290,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\border_handling_mode.hpp" />
+    <ClInclude Include="..\..\framework\include\bottom_level_acceleration_structure_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\buffer.hpp" />
     <ClInclude Include="..\..\framework\include\buffer_data.hpp" />
     <ClInclude Include="..\..\framework\include\buffer_member_format_opengl.hpp">

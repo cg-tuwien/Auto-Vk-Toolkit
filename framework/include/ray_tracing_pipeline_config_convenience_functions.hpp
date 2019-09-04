@@ -3,6 +3,9 @@
 namespace cgb
 {
 #pragma region shader_table_config convenience functions
+	// End of recursive variadic template handling
+	inline void add_shader_table_entry(shader_table_config& _ShaderTableConfig) { /* We're done here. */ }
+
 	// Add a single shader (without hit group) to the shader table definition
 	template <typename... Ts>
 	void add_shader_table_entry(shader_table_config& _ShaderTableConfig, shader_info _ShaderInfo, Ts... args)

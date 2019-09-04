@@ -1,12 +1,7 @@
 #pragma once
 
-namespace cgb // ========================== TODO/WIP =================================
+namespace cgb 
 {
-	struct acceleration_structure_handle
-	{
-		uint64_t mHandle;
-	};
-
 	struct acceleration_structure
 	{
 		acceleration_structure() noexcept;
@@ -26,7 +21,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		vk::AccelerationStructureInfoNV mAccStructureInfo; // TODO: This is potentially dangerous! The structure stores the pGeometries pointer which might have become invalid. What to do?
 		vk::AccelerationStructureNV mAccStructure;
-		acceleration_structure_handle mHandle;
+		
 		vk::MemoryPropertyFlags mMemoryProperties;
 		vk::DeviceMemory mMemory;
 		vk::WriteDescriptorSetAccelerationStructureNV mDescriptorInfo; // TODO: set

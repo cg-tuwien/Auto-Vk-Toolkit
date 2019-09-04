@@ -33,15 +33,26 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\..\..\examples\orca_loader\shaders\diffuse_shading_fixed_lightsource.frag" />
-    <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert" />
+    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rchit" />
+    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rgen" />
+    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rmiss" />
+    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rchit" />
+    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rmiss" />
   </ItemGroup>
   <ItemGroup>
-    
-    
+    <ClCompile Include="..\..\..\examples\real_time_ray_tracing\source\real_time_ray_tracing.cpp" />
+    <ClCompile Include="cg_stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cg_stdafx.hpp" />
+    <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

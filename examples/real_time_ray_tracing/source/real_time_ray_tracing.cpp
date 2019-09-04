@@ -2,20 +2,8 @@
 
 class real_time_ray_tracing_app : public cgb::cg_element
 {
-	struct data_for_draw_call
-	{
-		cgb::vertex_buffer mPositionsBuffer;
-		cgb::vertex_buffer mTexCoordsBuffer;
-		cgb::vertex_buffer mNormalsBuffer;
-		cgb::index_buffer mIndexBuffer;
-		int mMaterialIndex;
-		glm::mat4 mModelMatrix;
-	};
-
 	struct transformation_matrices {
-		glm::mat4 mModelMatrix;
-		glm::mat4 mProjViewMatrix;
-		int mMaterialIndex;
+		glm::mat4 mViewMatrix;
 	};
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
@@ -31,8 +19,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Merge them all together:
 
-		mDrawCalls.reserve(1000); // Due to an internal error, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
-		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
 		for (const auto& pair : distinctMaterialsOrca) {
@@ -95,41 +81,27 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			[](auto _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
 			});
-		mGpuMaterialData = std::move(gpuMaterials);
+		mMaterialBuffer = cgb::create_and_fill(
+			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
+			cgb::memory_usage::host_coherent,
+			gpuMaterials.data()
+		);
 		mImageSamplers = std::move(imageSamplers);
 
-		mMaterialBuffer.reserve(cgb::context().main_window()->number_of_in_flight_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			mMaterialBuffer.emplace_back(cgb::create_and_fill(
-				cgb::storage_buffer_meta::create_from_data(mGpuMaterialData),
-				cgb::memory_usage::host_coherent,
-				&mGpuMaterialData[0]
-			));			
-		}
-
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
-		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = cgb::graphics_pipeline_for(
-			// Specify which shaders the pipeline consists of:
-			cgb::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
-			cgb::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
-			// The next 3 lines define the format and location of the vertex shader inputs:
-			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
-			cgb::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
-			cgb::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
-			cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
-			// Some further settings:
-			cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
-			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
-			// attachment, which has been configured when creating the window. See main() function!
-			cgb::attachment::create_color(swapChainFormat),
-			cgb::attachment::create_depth(),
-			// The following define additional data which we'll pass to the pipeline:
-			//   We'll pass two matrices to our vertex shader via push constants:
-			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
+		// Create our ray tracing pipeline with the required configuration:
+		mPipeline = cgb::ray_tracing_pipeline_for(
+			cgb::define_shader_table(
+				cgb::ray_generation_shader("shaders/rt_09_first.rgen"),
+				cgb::triangles_hit_group::create_with_rchit_only("shaders/rt_09_first.rchit"),
+				cgb::triangles_hit_group::create_with_rchit_only("shaders/rt_09_secondary.rchit"),
+				cgb::miss_shader("shaders/rt_09_first.rmiss.spv"),
+				cgb::miss_shader("shaders/rt_09_secondary.rmiss.spv")
+			),
+			cgb::max_recursion_depth::set_to_max(),
+			// Define push constants and descriptor bindings:
+			cgb::push_constant_binding_data { cgb::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(1, 0, mMaterialBuffer[0]) // Just take any buffer, this is just for the layout
+			cgb::binding(1, 0, mMaterialBuffer)
 		);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
@@ -138,10 +110,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
+			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer[i])
-			}));	
+				cgb::binding(1, 0, mMaterialBuffer)
+			});	
 		}
 		
 		// Add the camera to the composition (and let it handle the updates)
@@ -156,41 +128,39 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 		cmdbfr.begin_recording();
 
-		cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
+		//cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
 
 		// Bind the pipeline
 		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			
 
-		// Set the descriptors of the uniform buffer
-		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
-			0, nullptr);
+		//// Set the descriptors of the uniform buffer
+		//cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
+		//	mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
+		//	mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
+		//	0, nullptr);
 
-		for (auto& drawCall : mDrawCalls) {
-			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-			cmdbfr.handle().bindVertexBuffers(0u, {
-				drawCall.mPositionsBuffer->buffer_handle(), 
-				drawCall.mTexCoordsBuffer->buffer_handle(), 
-				drawCall.mNormalsBuffer->buffer_handle()
-			}, { 0, 0, 0 });
+		//for (auto& drawCall : mDrawCalls) {
+		//	// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
+		//	cmdbfr.handle().bindVertexBuffers(0u, {
+		//		drawCall.mPositionsBuffer->buffer_handle(), 
+		//		drawCall.mTexCoordsBuffer->buffer_handle(), 
+		//		drawCall.mNormalsBuffer->buffer_handle()
+		//	}, { 0, 0, 0 });
 
-			// Set the push constants:
-			auto pushConstantsForThisDrawCall = transformation_matrices { 
-				drawCall.mModelMatrix,									// <-- mModelMatrix
-				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
-				drawCall.mMaterialIndex
-			};
-			cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		// Set the push constants:
+		auto pushConstantsForThisDrawCall = transformation_matrices { 
+			mQuakeCam.view_matrix()
+		};
+		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-			// Bind and use the index buffer to create the draw call:
-			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
-			cmdbfr.handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr.handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
-		}
+		//	// Bind and use the index buffer to create the draw call:
+		//	vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
+		//	cmdbfr.handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
+		//	cmdbfr.handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
+		//}
 
-		cmdbfr.end_render_pass();
+		//cmdbfr.end_render_pass();
 		cmdbfr.end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
 	}
@@ -235,13 +205,12 @@ private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	std::vector<cgb::material_gpu_data> mGpuMaterialData;
+	cgb::storage_buffer mMaterialBuffer;
 	std::vector<cgb::image_sampler> mImageSamplers;
 
-	std::vector<data_for_draw_call> mDrawCalls;
-	std::vector<cgb::storage_buffer> mMaterialBuffer;
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
-	cgb::graphics_pipeline mPipeline;
+
+	cgb::ray_tracing_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
 
 }; // real_time_ray_tracing_app

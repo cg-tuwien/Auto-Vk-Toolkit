@@ -137,18 +137,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			[](auto _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
 			});
-		mGpuMaterialData = std::move(gpuMaterials);
+		mMaterialBuffer = cgb::create_and_fill(
+			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
+			cgb::memory_usage::host_coherent,
+			gpuMaterials.data()
+		);
 		mImageSamplers = std::move(imageSamplers);
-
-		mMaterialBuffer.reserve(cgb::context().main_window()->number_of_in_flight_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			mMaterialBuffer.emplace_back(cgb::create_and_fill(
-				cgb::storage_buffer_meta::create_from_data(mGpuMaterialData),
-				cgb::memory_usage::host_coherent,
-				&mGpuMaterialData[0]
-			));			
-		}
-
+		
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
 		mPipeline = cgb::graphics_pipeline_for(
@@ -171,7 +166,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(1, 0, mMaterialBuffer[0]) // Just take any buffer, this is just for the layout
+			cgb::binding(1, 0, mMaterialBuffer) 
 		);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
@@ -180,10 +175,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
+			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer[i])
-			}));	
+				cgb::binding(1, 0, mMaterialBuffer)
+			});	
 		}
 		
 		// Add the camera to the composition (and let it handle the updates)
@@ -206,8 +201,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Set the descriptors of the uniform buffer
 		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
+			mDescriptorSet[0]->number_of_descriptor_sets(),
+			mDescriptorSet[0]->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {
@@ -277,11 +272,10 @@ private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	std::vector<cgb::material_gpu_data> mGpuMaterialData;
+	cgb::storage_buffer mMaterialBuffer;
 	std::vector<cgb::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::vector<cgb::storage_buffer> mMaterialBuffer;
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;

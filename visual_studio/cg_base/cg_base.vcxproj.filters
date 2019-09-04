@@ -220,6 +220,9 @@
     <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -512,6 +515,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\command_buffer_convenience_functions.hpp">
       <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\bottom_level_acceleration_structure_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

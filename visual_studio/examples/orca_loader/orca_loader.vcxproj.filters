@@ -22,33 +22,23 @@
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene">
       <Filter>assets</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rchit">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rgen">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rmiss">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rchit">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rmiss">
-      <Filter>shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\real_time_ray_tracing\cg_stdafx.cpp">
+    <ClCompile Include="..\..\..\examples\orca_loader\source\orca_loader.cpp" />
+    <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\examples\real_time_ray_tracing\source\real_time_ray_tracing.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\real_time_ray_tracing\cg_stdafx.hpp">
+    <Object Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+      <Filter>assets</Filter>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cg_stdafx.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\real_time_ray_tracing\cg_targetver.hpp">
+    <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,14 +1,12 @@
 #version 460
 #extension GL_NV_ray_tracing : require
 
-layout(binding = 2) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-} ubo;
+layout(push_constant) uniform PushConstants {
+	mat4 viewMatrix;
+} pushConstants;
 
-layout(binding = 0) uniform accelerationStructureNV topLevelAS;
-layout(binding = 1, rgba8) uniform image2D image;
+layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
+layout(set = 2, binding = 1, rgba8) uniform image2D image;
 
 layout(location = 0) rayPayloadNV vec3 hitValue;
 
@@ -24,7 +22,7 @@ void main()
     vec3 direction = -normalize(vec3(-d.x * aspectRatio, d.y, sqrt(3))); // 1 => sqrt(3) is the scaling factor from a fov of 90 to 60
 	vec4 p1 = vec4(origin, 1.0);
 	vec4 p2 = vec4(origin + direction, 1.0);
-	mat4 cameraTransform = inverse(ubo.view);
+	mat4 cameraTransform = inverse(pushConstants.viewMatrix);
 	vec4 vp1 = cameraTransform * p1;
 	vec4 vp2 = cameraTransform * p2;
 	origin = vec3(vp1);

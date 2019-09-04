@@ -10,6 +10,9 @@ namespace cgb
 		static triangles_hit_group create_with_rahit_only(shader_info _AnyHitShader);
 		static triangles_hit_group create_with_rchit_only(shader_info _ClosestHitShader);
 		static triangles_hit_group create_with_rahit_and_rchit(shader_info _AnyHitShader, shader_info _ClosestHitShader);
+		static triangles_hit_group create_with_rahit_only(std::string _AnyHitShaderPath);
+		static triangles_hit_group create_with_rchit_only(std::string _ClosestHitShaderPath);
+		static triangles_hit_group create_with_rahit_and_rchit(std::string _AnyHitShaderPath, std::string _ClosestHitShaderPath);
 
 		std::optional<shader_info> mAnyHitShader;
 		std::optional<shader_info> mClosestHitShader;
@@ -25,6 +28,10 @@ namespace cgb
 		static procedural_hit_group create_with_rint_and_rahit(shader_info _IntersectionShader, shader_info _AnyHitShader);
 		static procedural_hit_group create_with_rint_and_rchit(shader_info _IntersectionShader, shader_info _ClosestHitShader);
 		static procedural_hit_group create_with_rint_and_rahit_and_rchit(shader_info _IntersectionShader, shader_info _AnyHitShader, shader_info _ClosestHitShader);
+		static procedural_hit_group create_with_rint_only(std::string _IntersectionShader);
+		static procedural_hit_group create_with_rint_and_rahit(std::string _IntersectionShader, std::string _AnyHitShader);
+		static procedural_hit_group create_with_rint_and_rchit(std::string _IntersectionShader, std::string _ClosestHitShader);
+		static procedural_hit_group create_with_rint_and_rahit_and_rchit(std::string _IntersectionShader, std::string _AnyHitShader, std::string _ClosestHitShader);
 
 		shader_info mIntersectionShader;
 		std::optional<shader_info> mAnyHitShader;
