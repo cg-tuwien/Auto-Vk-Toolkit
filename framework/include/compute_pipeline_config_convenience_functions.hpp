@@ -74,7 +74,11 @@ namespace cgb
 	/**	Convenience function for gathering the compute pipeline's configuration.
 	 *
 	 *	It supports the following types
-	 *
+	 *		- cgb::cfg::pipeline_settings
+	 *		- cgb::shader_info or std::string_view
+	 *		- cgb::binding_data
+	 *		- cgb::push_constant_binding_data
+	 *		- cgb::context_specific_function<void(compute_pipeline_t&)>
 	 *
 	 *	For the actual Vulkan-calls which finally create the pipeline, please refer to @ref compute_pipeline_t::create
 	 */

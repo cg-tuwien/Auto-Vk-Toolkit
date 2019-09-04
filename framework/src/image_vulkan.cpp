@@ -508,7 +508,7 @@ namespace cgb
 
 		// How many MIP-map levels are we going to use?
 		auto mipLevels = pUseMipMaps
-			? std::floor(std::log2(std::max(pWidth, pHeight))) + 1
+			? static_cast<uint32_t>(std::floor(std::log2(std::max(pWidth, pHeight))) + 1)
 			: 1u;
 
 		image_t result;

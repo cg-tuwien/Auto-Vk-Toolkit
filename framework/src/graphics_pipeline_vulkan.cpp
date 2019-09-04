@@ -40,7 +40,7 @@ namespace cgb
 				result.mVertexInputBindingDescriptions.push_back(vk::VertexInputBindingDescription()
 					// The following parameters are guaranteed to be the same. We have checked this.
 					.setBinding(bindingData.mBinding)
-					.setStride(bindingData.mStride)
+					.setStride(static_cast<uint32_t>(bindingData.mStride))
 					.setInputRate(to_vk_vertex_input_rate(bindingData.mKind))
 					// Don't need the location here
 				);
@@ -76,7 +76,7 @@ namespace cgb
 		result.mShaderStageCreateInfos.reserve(_Config.mShaderInfos.size()); // Important! Otherwise the vector might realloc and .data() will become invalid!
 		for (auto& shaderInfo : _Config.mShaderInfos) {
 			// 5.1 Compile the shader
-			result.mShaders.push_back(std::move(shader::create(shaderInfo)));
+			result.mShaders.push_back(shader::create(shaderInfo));
 			assert(result.mShaders.back().has_been_built());
 			// 5.2 Combine
 			result.mShaderStageCreateInfos.push_back(vk::PipelineShaderStageCreateInfo{}
@@ -279,8 +279,8 @@ namespace cgb
 		for (const auto& pcBinding : _Config.mPushConstantsBindings) {
 			result.mPushConstantRanges.push_back(vk::PushConstantRange{}
 				.setStageFlags(to_vk_shader_stages(pcBinding.mShaderStages))
-				.setOffset(pcBinding.mOffset)
-				.setSize(pcBinding.mSize)
+				.setOffset(static_cast<uint32_t>(pcBinding.mOffset))
+				.setSize(static_cast<uint32_t>(pcBinding.mSize))
 			);
 			// TODO: Push Constants need a prettier interface
 		}

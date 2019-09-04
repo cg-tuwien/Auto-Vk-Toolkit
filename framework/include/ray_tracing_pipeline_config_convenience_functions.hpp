@@ -2,6 +2,50 @@
 
 namespace cgb
 {
+#pragma region shader_table_config convenience functions
+	// Add a single shader (without hit group) to the shader table definition
+	template <typename... Ts>
+	void add_shader_table_entry(shader_table_config& _ShaderTableConfig, shader_info _ShaderInfo, Ts... args)
+	{
+		_ShaderTableConfig.mShaderTableEntries.push_back(std::move(_ShaderInfo));
+		add_shader_table_entry(_ShaderTableConfig, std::move(args)...);
+	}
+
+	// Add a single shader (without hit group) to the shader table definition
+	template <typename... Ts>
+	void add_shader_table_entry(shader_table_config& _ShaderTableConfig, std::string_view _ShaderPath, Ts... args)
+	{
+		_ShaderTableConfig.mShaderTableEntries.push_back(shader_info::create(std::string(_ShaderPath)));
+		add_shader_table_entry(_ShaderTableConfig, std::move(args)...);
+	}
+
+	// Add a triangles-intersection-type hit group to the shader table definition
+	template <typename... Ts>
+	void add_shader_table_entry(shader_table_config& _ShaderTableConfig, triangles_hit_group _HitGroup, Ts... args)
+	{
+		_ShaderTableConfig.mShaderTableEntries.push_back(std::move(_HitGroup));
+		add_shader_table_entry(_ShaderTableConfig, std::move(args)...);
+	}
+
+	// Add a procedural-type hit group to the shader table definition
+	template <typename... Ts>
+	void add_shader_table_entry(shader_table_config& _ShaderTableConfig, procedural_hit_group _HitGroup, Ts... args)
+	{
+		_ShaderTableConfig.mShaderTableEntries.push_back(std::move(_HitGroup));
+		add_shader_table_entry(_ShaderTableConfig, std::move(args)...);
+	}
+
+	// Define a shader table which is to be used with a ray tracing pipeline
+	template <typename... Ts>
+	shader_table_config define_shader_table(Ts... args)
+	{
+		shader_table_config shaderTableConfig;
+		add_shader_table_entry(shaderTableConfig, std::move(args)...);
+		return shaderTableConfig;
+	}
+#pragma endregion
+
+#pragma region ray_tracing_pipeline_config convenience functions
 	// End of recursive variadic template handling
 	inline void add_config(ray_tracing_pipeline_config& _Config, context_specific_function<void(ray_tracing_pipeline_t&)>& _Func) { /* We're done here. */ }
 
@@ -13,19 +57,19 @@ namespace cgb
 		add_config(_Config, _Func, std::move(args)...);
 	}
 
-	// Add a single shader (without hit group) to the pipeline config
+	// Add the shader table to the pipeline config
 	template <typename... Ts>
-	void add_config(ray_tracing_pipeline_config& _Config, context_specific_function<void(ray_tracing_pipeline_t&)>& _Func, shader_info _ShaderInfo, Ts... args)
+	void add_config(ray_tracing_pipeline_config& _Config, context_specific_function<void(ray_tracing_pipeline_t&)>& _Func, shader_table_config _ShaderTable, Ts... args)
 	{
-		_Config.mShaderTableConfig.mShaderTableEntries.push_back(std::move(_ShaderInfo));
+		_Config.mShaderTableConfig = std::move(_ShaderTable);
 		add_config(_Config, _Func, std::move(args)...);
 	}
 
-	// Accept a string and assume it refers to a shader file
+	// Add the maximum recursion setting to the pipeline config
 	template <typename... Ts>
-	void add_config(ray_tracing_pipeline_config& _Config, context_specific_function<void(ray_tracing_pipeline_t&)>& _Func, std::string_view _ShaderPath, Ts... args)
+	void add_config(ray_tracing_pipeline_config& _Config, context_specific_function<void(ray_tracing_pipeline_t&)>& _Func, max_recursion_depth _MaxRecursionDepth, Ts... args)
 	{
-		_Config.mShaderInfo = shader_info::create(std::string(_ShaderPath));
+		_Config.mMaxRecursionDepth = std::move(_MaxRecursionDepth);
 		add_config(_Config, _Func, std::move(args)...);
 	}
 
@@ -59,11 +103,18 @@ namespace cgb
 		add_config(_Config, _Func, std::move(args)...);
 	}
 
-	/**	Convenience function for gathering the compute pipeline's configuration.
+	/**	Convenience function for gathering the ray tracing pipeline's configuration.
 	 *
-	 *	It supports the following types
+	 *	It supports the following types:
+	 *		- cgb::cfg::pipeline_settings
+	 *		- cgb::shader_table_config (hint: use `cgb::define_shader_table`)
+	 *		- cgb::max_recursion_depth
+	 *		- cgb::binding_data
+	 *		- cgb::push_constant_binding_data
+	 *		- cgb::context_specific_function<void(ray_tracing_pipeline_t&)>
 	 *
-	 *
+	 *	For building the shader table in a convenient fashion, use the `cgb::define_shader_table` function!
+	 *	
 	 *	For the actual Vulkan-calls which finally create the pipeline, please refer to @ref ray_tracing_pipeline_t::create
 	 */
 	template <typename... Ts>
@@ -80,4 +131,5 @@ namespace cgb
 		return ray_tracing_pipeline_t::create(std::move(config), std::move(alterConfigFunction));
 		// ============================================================================================ 
 	}
+#pragma endregion 
 }

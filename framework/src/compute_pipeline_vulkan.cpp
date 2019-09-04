@@ -36,8 +36,8 @@ namespace cgb
 		for (const auto& pcBinding : _Config.mPushConstantsBindings) {
 			result.mPushConstantRanges.push_back(vk::PushConstantRange{}
 				.setStageFlags(to_vk_shader_stages(pcBinding.mShaderStages))
-				.setOffset(pcBinding.mOffset)
-				.setSize(pcBinding.mSize)
+				.setOffset(static_cast<uint32_t>(pcBinding.mOffset))
+				.setSize(static_cast<uint32_t>(pcBinding.mSize))
 			);
 			// TODO: Push Constants need a prettier interface
 		}

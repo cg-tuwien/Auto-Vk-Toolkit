@@ -383,7 +383,7 @@ namespace cgb
 			const aiFace& paiFace = paiMesh->mFaces[i];
 			indicesCount += paiFace.mNumIndices;
 		}
-		return indicesCount;
+		return static_cast<int>(indicesCount);
 	}
 
 	std::vector<size_t> model_t::select_all_meshes() const

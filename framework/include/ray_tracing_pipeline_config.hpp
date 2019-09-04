@@ -7,8 +7,12 @@ namespace cgb
 	 */
 	struct triangles_hit_group
 	{
-		std::optional<shader_info> mClosestHitShader;
+		static triangles_hit_group create_with_rahit_only(shader_info _AnyHitShader);
+		static triangles_hit_group create_with_rchit_only(shader_info _ClosestHitShader);
+		static triangles_hit_group create_with_rahit_and_rchit(shader_info _AnyHitShader, shader_info _ClosestHitShader);
+
 		std::optional<shader_info> mAnyHitShader;
+		std::optional<shader_info> mClosestHitShader;
 	};
 
 	/** Contains shader infos about a Hit Group which uses a custom,
@@ -17,9 +21,14 @@ namespace cgb
 	 */
 	struct procedural_hit_group
 	{
-		std::optional<shader_info> mClosestHitShader;
-		std::optional<shader_info> mAnyHitShader;
+		static procedural_hit_group create_with_rint_only(shader_info _IntersectionShader);
+		static procedural_hit_group create_with_rint_and_rahit(shader_info _IntersectionShader, shader_info _AnyHitShader);
+		static procedural_hit_group create_with_rint_and_rchit(shader_info _IntersectionShader, shader_info _ClosestHitShader);
+		static procedural_hit_group create_with_rint_and_rahit_and_rchit(shader_info _IntersectionShader, shader_info _AnyHitShader, shader_info _ClosestHitShader);
+
 		shader_info mIntersectionShader;
+		std::optional<shader_info> mAnyHitShader;
+		std::optional<shader_info> mClosestHitShader;
 	};
 
 	/**	Represents one entry of the "shader table" which is used with
@@ -43,6 +52,19 @@ namespace cgb
 		std::vector<shader_table_entry_config> mShaderTableEntries;
 	};
 
+	/** Represents the maximum recursion depth supported by a ray tracing pipeline. */
+	struct max_recursion_depth
+	{
+		/** Disable recursions, i.e. set to zero. */
+		static max_recursion_depth disable_recursion();
+		/** Set the maximum recursion depth to a specific value. */
+		static max_recursion_depth set_to(uint32_t _Value);
+		/** Set the recursion depth to the maximum which is supported by the physical device. */
+		static max_recursion_depth set_to_max();
+
+		uint32_t mMaxRecursionDepth;
+	};
+
 	/** Pipeline configuration data: COMPUTE PIPELINE CONFIG STRUCT */
 	struct ray_tracing_pipeline_config
 	{
@@ -55,7 +77,7 @@ namespace cgb
 
 		cfg::pipeline_settings mPipelineSettings; // ?
 		shader_table_config mShaderTableConfig;
-		uint32_t mMaxRecursionDepth;
+		max_recursion_depth mMaxRecursionDepth;
 		std::vector<binding_data> mResourceBindings;
 		std::vector<push_constant_binding_data> mPushConstantsBindings;
 	};

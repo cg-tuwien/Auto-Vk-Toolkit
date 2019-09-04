@@ -464,4 +464,51 @@ namespace cgb
 		seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		(hash_combine(seed, rest), ...);
 	}
+
+	/**	Returns true if `_Element` is contained within `_Vector`, also provides 
+	 *	the option to return the position where the element has been found.
+	 *	@param	_Vector			Where to look for `_Element`
+	 *	@param	_Element		The element to find
+	 *	@param	_OutPosition	(Optional) If the address of an iterator is set, it will be assigned the position of the element
+	 */
+	template <typename T>
+	bool contains_element(const std::vector<T>& _Vector, const T& _Element, typename std::vector<T>::const_iterator* _OutPosition = nullptr)
+	{
+		auto it = std::find(std::begin(_Vector), std::end(_Vector), _Element);
+		if (nullptr != _OutPosition) {
+			*_OutPosition = it;
+		}
+		return _Vector.end() != it;
+	}
+
+	/** Returns the index of the first occurence of `_Element` within `_Vector`
+	 *	If the element is not contained, `_Vector.size()` will be returned.
+	 */
+	template <typename T>
+	size_t index_of(const std::vector<T>& _Vector, const T& _Element)
+	{
+		auto it = std::find(std::begin(_Vector), std::end(_Vector), _Element);
+		return std::distance(std::begin(_Vector), it);
+	}
+
+	/** Inserts a copy of `_Element` into `_Vector` if `_Element` is not already contained in `_Vector` 
+	 *	@param	_Vector				The collection where `_Element` shall be inserted
+	 *	@param	_Element			The element to be inserted into `_Vector`, if it is not already contained. `_Element` must be copy-constructible.
+	 *	@param	_PositionOfElement	(Optional) If the address of an iterator is set, it will be assigned the position of the 
+	 *								newly inserted element into `_Vector`.
+	 *	@return	True if the element was inserted into the vector, meaning it was not contained before. False otherwise.
+	 */
+	template <typename T>
+	bool add_to_vector_if_not_already_contained(std::vector<T>& _Vector, const T& _Element, typename std::vector<T>::const_iterator* _PositionOfElement = nullptr)
+	{
+		if (!contains_element(_Vector, _Element, _PositionOfElement)) {
+			_Vector.push_back(_Element);
+			if (nullptr != _PositionOfElement) {
+				*_PositionOfElement = std::prev(_Vector.end());
+			}
+			return true;
+		}
+		return false;
+	}
+
 }

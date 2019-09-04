@@ -27,7 +27,6 @@ namespace cgb
 		std::vector<vk::PipelineShaderStageCreateInfo> mShaderStageCreateInfos;
 
 		// Shader table a.k.a. shader groups:
-		std::vector<void*> mShaderGroups;
 		std::vector<vk::RayTracingShaderGroupCreateInfoNV> mShaderGroupCreateInfos;
 
 		// Maximum recursion depth:
@@ -43,10 +42,11 @@ namespace cgb
 
 		// Handles:
 		vk::UniquePipelineLayout mPipelineLayout;
-		vk::UniquePipeline mPipeline;
+		vk::ResultValueType<vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>>::type mPipeline;
 
 		context_tracker<ray_tracing_pipeline_t> mTracker;
 	};
 
 	using ray_tracing_pipeline = owning_resource<ray_tracing_pipeline_t>;
+
 }
