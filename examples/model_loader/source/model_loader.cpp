@@ -44,7 +44,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			auto& newElement = mDrawCalls.emplace_back();
 			allMatConfigs.push_back(pair.first);
 			newElement.mMaterialIndex = static_cast<int>(allMatConfigs.size() - 1);
-			
+
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
 				cgb::append_indices_and_vertex_data(

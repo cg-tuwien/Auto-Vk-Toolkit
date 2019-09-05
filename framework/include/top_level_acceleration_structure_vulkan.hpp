@@ -2,18 +2,18 @@
 
 namespace cgb
 {
-	class bottom_level_acceleration_structure_t
+	class top_level_acceleration_structure_t
 	{
 		template <typename T>
 		friend void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> _AlterConfigBeforeMemoryAlloc);
 
 	public:
-		bottom_level_acceleration_structure_t() = default;
-		bottom_level_acceleration_structure_t(const bottom_level_acceleration_structure_t&) = delete;
-		bottom_level_acceleration_structure_t(bottom_level_acceleration_structure_t&&) = default;
-		bottom_level_acceleration_structure_t& operator=(const bottom_level_acceleration_structure_t&) = delete;
-		bottom_level_acceleration_structure_t& operator=(bottom_level_acceleration_structure_t&&) = default;
-		~bottom_level_acceleration_structure_t() = default;
+		top_level_acceleration_structure_t() = default;
+		top_level_acceleration_structure_t(const top_level_acceleration_structure_t&) = delete;
+		top_level_acceleration_structure_t(top_level_acceleration_structure_t&&) = default;
+		top_level_acceleration_structure_t& operator=(const top_level_acceleration_structure_t&) = delete;
+		top_level_acceleration_structure_t& operator=(top_level_acceleration_structure_t&&) = default;
+		~top_level_acceleration_structure_t() = default;
 
 		const auto& info() const { return mAccStructureInfo; }
 		const auto& acceleration_structure_handle() const { return mAccStructure.get(); }
@@ -26,7 +26,17 @@ namespace cgb
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
 		size_t required_scratch_buffer_update_size() const { return static_cast<size_t>(mMemoryRequirementsForScratchBufferUpdate.memoryRequirements.size); }
 
-		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
+		const auto& descriptor_info() const
+		{
+			mDescriptorInfo = vk::WriteDescriptorSetAccelerationStructureNV{}
+				.setAccelerationStructureCount(1u)
+				.setPAccelerationStructures(acceleration_structure_handle_addr());
+			return mDescriptorInfo;
+		}
+
+		auto descriptor_type() const			{ return vk::DescriptorType::eAccelerationStructureNV; } 
+
+		static owning_resource<top_level_acceleration_structure_t> create(uint32_t _InstanceCount, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 
 	private:
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;
@@ -35,16 +45,14 @@ namespace cgb
 		vk::MemoryAllocateInfo mMemoryAllocateInfo;
 		vk::UniqueDeviceMemory mMemory;
 
-		std::vector<vertex_buffer> mVertexBuffers;
-		std::vector<index_buffer> mIndexBuffers;
-		std::vector<vk::GeometryNV> mGeometries;
 		vk::AccelerationStructureInfoNV mAccStructureInfo;
 		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
 		uint64_t mDeviceHandle;
 
-		context_tracker<bottom_level_acceleration_structure_t> mTracker;
+		mutable vk::WriteDescriptorSetAccelerationStructureNV mDescriptorInfo;
+
+		context_tracker<top_level_acceleration_structure_t> mTracker;
 	};
 
-	using bottom_level_acceleration_structure = owning_resource<bottom_level_acceleration_structure_t>;
-
+	using top_level_acceleration_structure = owning_resource<top_level_acceleration_structure_t>;
 }

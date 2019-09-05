@@ -94,6 +94,37 @@ namespace cgb
 	template <typename T>
 	buffer_member_format format_for();
 
+	/** Can be used to describe what kind of data a buffer member represents. */
+	enum struct content_description
+	{
+		unspecified,
+		index,
+		position,
+		normal,
+		tangent,
+		bitangent,
+		color,
+		texture_coordinate,
+		bone_weight,
+		bone_index,
+		user_defined_01,
+		user_defined_02,
+		user_defined_03,
+		user_defined_04,
+		user_defined_05,
+		user_defined_06,
+		user_defined_07,
+		user_defined_08,
+		user_defined_09,
+		user_defined_10,
+		user_defined_11,
+		user_defined_12,
+		user_defined_13,
+		user_defined_14,
+		user_defined_15,
+		user_defined_16
+	};
+
 	/** Meta data for a buffer element's member.
 	 *	This is used to describe
 	 */
@@ -102,6 +133,7 @@ namespace cgb
 		uint32_t mLocation;
 		size_t mOffset;
 		buffer_member_format mFormat;
+		content_description mContent;
 	};
 
 	/** This struct contains information for a generic buffer.
@@ -313,17 +345,39 @@ namespace cgb
 		}
 
 		/** Describe which part of an element's member gets mapped to which shader locaton. */
-		vertex_buffer_meta& describe_member_location(uint32_t pShaderLocation, size_t pOffset, buffer_member_format pFormat)
+		vertex_buffer_meta& describe_member(size_t _Offset, buffer_member_format _Format, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
 		{
-			assert(std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [loc = pShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) == mOrderedMemberDescriptions.end());
+#if defined(_DEBUG)
+			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [loc = _ShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) != mOrderedMemberDescriptions.end()) {
+				LOG_WARNING(fmt::format("There is already a member described at location {}. If you are not using the location (like with a ray-tracing pipeline), this could be okay, though.", _ShaderLocation));
+			}
+#endif
 			// insert already in the right place
-			buffer_element_member_meta newElement{ pShaderLocation, pOffset, pFormat };
+			buffer_element_member_meta newElement{ _ShaderLocation, _Offset, _Format, _Content };
 			auto it = std::lower_bound(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), newElement,
 				[](const buffer_element_member_meta& first, const buffer_element_member_meta& second) -> bool { 
 					return first.mLocation < second.mLocation;
 				});
 			mOrderedMemberDescriptions.insert(it, newElement);
 			return *this;
+		}
+
+		/** If the vertex buffer is not a data structure which contains interleaved data, 
+		 *	this method can be used to describe its only data member. It is assumed that
+		 *	the only data member has the same size as `mSizeOfOneElement`.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	std::vector<vec3> normals;
+		 *	vertex_buffer_meta meta = vertex_buffer_meta::create_from_data(normals)
+		 *								.describe_only_member(normals[0],  2, content_description::normal);
+		 *	```
+		 */
+		template <typename M>
+		vertex_buffer_meta& describe_only_member(const M& _Member, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
+		{
+			assert(sizeof(_Member) == mSizeOfOneElement);
+			return describe_member(0, format_for<M>(), _ShaderLocation, _Content);
 		}
 
 #if defined(_MSC_VER) && defined(__cplusplus)
@@ -335,19 +389,18 @@ namespace cgb
 		 *	struct MyData { int mFirst; float mSecond; };
 		 *	std::vector<MyData> myData;
 		 *	vertex_buffer_meta meta = vertex_buffer_meta::create_from_data(myData)
-		 *								.describe_member_location(0, &MyData::mFirst)
-		 *								.describe_member_location(1, &MyData::mSecond);
+		 *								.describe_member(&MyData::mFirst,  0, content_description::position)
+		 *								.describe_member(&MyData::mSecond, 1, content_description::texture_coordinate);
 		 *	```
 		 */
 		template <class T, class M> 
-		vertex_buffer_meta& describe_member_location(uint32_t pShaderLocation, M T::* pMember)
+		vertex_buffer_meta& describe_member(M T::* _Member, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
 		{
-			assert(std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), 
-				[loc = pShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) == mOrderedMemberDescriptions.end());
-			return describe_member_location(
-				pShaderLocation, 
-				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*pMember))),
-				format_for<M>());
+			return describe_member(
+				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*_Member))),
+				format_for<M>(),
+				_ShaderLocation,
+				_Content);
 		}
 #endif
 
@@ -356,7 +409,7 @@ namespace cgb
 		size_t mSizeOfOneElement;
 		// The total number of records/elements
 		size_t mNumElements;
-		// Descriptions of buffer record/element members
+		// Descriptions of buffer record/element members, ordered by their location (unordered if their location is not specified, i.e. left to the default of 0)
 		std::vector<buffer_element_member_meta> mOrderedMemberDescriptions;
 	};
 
@@ -459,11 +512,15 @@ namespace cgb
 		}
 
 		/** Describe which part of an element's member gets mapped to which shader locaton. */
-		instance_buffer_meta& describe_member_location(uint32_t pShaderLocation, size_t pOffset, buffer_member_format pFormat)
+		instance_buffer_meta& describe_member(size_t _Offset, buffer_member_format _Format, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
 		{
-			assert(std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [loc = pShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) == mOrderedMemberDescriptions.end());
+#if defined(_DEBUG)
+			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [loc = _ShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) != mOrderedMemberDescriptions.end()) {
+				LOG_WARNING(fmt::format("There is already a member described at location {}. If you are not using the location (like with a ray-tracing pipeline), this could be okay, though.", _ShaderLocation));
+			}
+#endif
 			// insert already in the right place
-			buffer_element_member_meta newElement{ pShaderLocation, pOffset, pFormat };
+			buffer_element_member_meta newElement{ _ShaderLocation, _Offset, _Format, _Content };
 			auto it = std::lower_bound(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), newElement,
 				[](const buffer_element_member_meta& first, const buffer_element_member_meta& second) -> bool { 
 					return first.mLocation < second.mLocation;
@@ -472,28 +529,29 @@ namespace cgb
 			return *this;
 		}
 
+		/** If the vertex buffer is not a data structure which contains interleaved data, 
+		 *	this method can be used to describe its only data member. It is assumed that
+		 *	the only data member has the same size as `mSizeOfOneElement`.
+		 */
+		template <typename M>
+		instance_buffer_meta& describe_only_member(const M& _Member, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
+		{
+			assert(sizeof(_Member) == mSizeOfOneElement);
+			return describe_member(0, format_for<M>(), _ShaderLocation, _Content);
+		}
+
 #if defined(_MSC_VER) && defined(__cplusplus)
 		/** Describe which part of an element's member gets mapped to which shader locaton,
 		 *	and let the compiler figure out offset and format.
-		 *	
-		 *	Usage example:
-		 *	```
-		 *	struct MyData { int mFirst; float mSecond; };
-		 *	std::vector<MyData> myData;
-		 *	vertex_buffer_meta meta = vertex_buffer_meta::create_from_data(myData)
-		 *								.describe_member_location(0, &MyData::mFirst)
-		 *								.describe_member_location(1, &MyData::mSecond);
-		 *	```
 		 */
 		template <class T, class M> 
-		instance_buffer_meta& describe_member_location(uint32_t pShaderLocation, M T::* pMember)
+		instance_buffer_meta& describe_member(M T::* _Member, uint32_t _ShaderLocation = 0u, content_description _Content = content_description::unspecified)
 		{
-			assert(std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions),
-				[loc = pShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) == mOrderedMemberDescriptions.end());
-			return describe_member_location(
-				pShaderLocation, 
-				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*pMember))),
-				format_for<M>());
+			return describe_member(
+				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*_Member))),
+				format_for<M>(),
+				_ShaderLocation,
+				_Content);
 		}
 #endif
 
@@ -502,7 +560,7 @@ namespace cgb
 		size_t mSizeOfOneElement;
 		// The total number of records/elements
 		size_t mNumElements;
-		// Descriptions of buffer record/element members
+		// Descriptions of buffer record/element members, ordered by their location (unordered if their location is not specified, i.e. left to the default of 0)
 		std::vector<buffer_element_member_meta> mOrderedMemberDescriptions;
 	};
 

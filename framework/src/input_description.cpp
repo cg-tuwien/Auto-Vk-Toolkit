@@ -34,16 +34,16 @@ namespace cgb
 #endif
 
 			if (std::holds_alternative<vertex_buffer_meta>(bfr)) {
-				std::get<vertex_buffer_meta>(bfr).describe_member_location(
-					bindingLoc.mMemberMetaData.mLocation,
+				std::get<vertex_buffer_meta>(bfr).describe_member(
 					bindingLoc.mMemberMetaData.mOffset,
-					bindingLoc.mMemberMetaData.mFormat);
+					bindingLoc.mMemberMetaData.mFormat,
+					bindingLoc.mMemberMetaData.mLocation);
 			}
 			else { // must be instance_buffer_meta
-				std::get<instance_buffer_meta>(bfr).describe_member_location(
-					bindingLoc.mMemberMetaData.mLocation,
+				std::get<instance_buffer_meta>(bfr).describe_member(
 					bindingLoc.mMemberMetaData.mOffset,
-					bindingLoc.mMemberMetaData.mFormat);
+					bindingLoc.mMemberMetaData.mFormat,
+					bindingLoc.mMemberMetaData.mLocation);
 			}
 		}
 

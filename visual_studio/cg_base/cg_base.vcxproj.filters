@@ -115,9 +115,6 @@
     <ClCompile Include="..\..\framework\src\descriptor_set_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\acceleration_structure_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\shader_binding_table_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
@@ -221,6 +218,9 @@
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\top_level_acceleration_structure_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
@@ -361,9 +361,6 @@
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\descriptor_set_vulkan.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\acceleration_structure_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\shader_binding_table_vulkan.hpp">
@@ -517,6 +514,12 @@
       <Filter>Header Files\pipeline_and_shaders</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\bottom_level_acceleration_structure_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\top_level_acceleration_structure_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\acceleration_structure_helper_functions.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
   </ItemGroup>

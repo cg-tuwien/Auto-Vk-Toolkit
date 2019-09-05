@@ -312,11 +312,18 @@ namespace cgb
 	inline void vulkan::track_destruction<shader>(shader* thing)			{ LOG_DEBUG_VERBOSE("TODO: implement 'shader' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<acceleration_structure>(acceleration_structure* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'acceleration_structure' handling in context::track_creation."); }
+	inline void vulkan::track_creation<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<acceleration_structure>(acceleration_structure* thing, acceleration_structure* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'acceleration_structure' handling in context::track_move."); }
+	inline void vulkan::track_move<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing, bottom_level_acceleration_structure_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<acceleration_structure>(acceleration_structure* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'acceleration_structure' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_destruction."); }
+
+	template <>
+	inline void vulkan::track_creation<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_creation."); }
+	template <>
+	inline void vulkan::track_move<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing, top_level_acceleration_structure_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_move."); }
+	template <>
+	inline void vulkan::track_destruction<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_destruction."); }
 
 	template <>
 	inline void vulkan::track_creation<sampler_t>(sampler_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'sampler_t' handling in context::track_creation."); }

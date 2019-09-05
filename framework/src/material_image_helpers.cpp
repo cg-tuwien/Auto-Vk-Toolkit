@@ -487,7 +487,8 @@ namespace cgb
 		}
 
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(positionsData),
+			cgb::vertex_buffer_meta::create_from_data(positionsData)
+				.describe_only_member(positionsData[0], 0, content_description::position),
 			cgb::memory_usage::device,
 			positionsData.data(),
 			[&] (semaphore _Semaphore) {  

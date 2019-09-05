@@ -129,7 +129,7 @@ namespace cgb
 				.setDescriptorCount(b.descriptor_count()) // TODO: Okay?
 				.setPBufferInfo(b.descriptor_buffer_info())
 				.setPImageInfo(b.descriptor_image_info())
-				.setPTexelBufferView(b.texel_buffer_info())
+				.setPTexelBufferView(b.texel_buffer_view_info())
 				.setPNext(b.next_pointer())
 			);
 			// TODO: Handle array types!

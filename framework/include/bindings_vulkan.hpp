@@ -37,7 +37,9 @@ namespace cgb
 	inline vk::DescriptorType descriptor_type_of<image_sampler>(const image_sampler&) { return vk::DescriptorType::eCombinedImageSampler; }
 
 	template<>
-	inline vk::DescriptorType descriptor_type_of<acceleration_structure>(const acceleration_structure&) { return vk::DescriptorType::eAccelerationStructureNV; }
+	inline vk::DescriptorType descriptor_type_of<top_level_acceleration_structure_t>(const top_level_acceleration_structure_t&) { return vk::DescriptorType::eAccelerationStructureNV; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<top_level_acceleration_structure>(const top_level_acceleration_structure&) { return vk::DescriptorType::eAccelerationStructureNV; }
 
 
 

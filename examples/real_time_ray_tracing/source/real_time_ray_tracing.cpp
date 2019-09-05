@@ -2,6 +2,24 @@
 
 class real_time_ray_tracing_app : public cgb::cg_element
 {
+	struct rt_data
+	{
+		cgb::vertex_buffer mPositionsBuffer;
+		cgb::index_buffer mIndexBuffer;
+		int mMaterialIndex;
+		glm::mat4 mModelMatrix;
+	};
+
+	struct VkGeometryInstance
+	{
+		float transform[12];
+		uint32_t instanceId : 24;
+		uint32_t mask : 8;
+		uint32_t instanceOffset : 24;
+		uint32_t flags : 8;
+		uint64_t accelerationStructureHandle;
+	};
+
 	struct transformation_matrices {
 		glm::mat4 mViewMatrix;
 	};
@@ -21,19 +39,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
+		std::vector<rt_data> rtData; 
+		rtData.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
 		for (const auto& pair : distinctMaterialsOrca) {
-			// See if we've already encountered this material in the loop above
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
-			size_t matIndex;
-			if (allMatConfigs.end() == it) {
-				// Couldn't find => insert new material
-				allMatConfigs.push_back(pair.first);
-				matIndex = allMatConfigs.size() - 1;
-			}
-			else {
-				// Found the material => use the existing material
-				matIndex = std::distance(std::begin(allMatConfigs), it);
-			}
+			allMatConfigs.push_back(pair.first);
+			auto matIndex = allMatConfigs.size() - 1;
 
 			// The data in distinctMaterialsOrca encompasses all of the ORCA scene's models.
 			for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
@@ -47,7 +58,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-					auto& newElement = mDrawCalls.emplace_back();
+					auto& newElement = rtData.emplace_back();
 					newElement.mMaterialIndex = static_cast<int>(matIndex);
 					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 
@@ -59,17 +70,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					newElement.mPositionsBuffer = std::move(positionsBuffer);
 					newElement.mIndexBuffer = std::move(indicesBuffer);
 
-					// Get a buffer containing all texture coordinates for all submeshes with this material
-					newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
-						[] (auto _Semaphore) {  
-							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-						});
+					//// Get a buffer containing all texture coordinates for all submeshes with this material
+					//newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+					//	[] (auto _Semaphore) {  
+					//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+					//	});
 
-					// Get a buffer containing all normals for all submeshes with this material
-					newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-						[] (auto _Semaphore) {  
-							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-						});
+					//// Get a buffer containing all normals for all submeshes with this material
+					//newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+					//	[] (auto _Semaphore) {  
+					//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+					//	});
 				}
 			}
 		}
@@ -87,6 +98,92 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			gpuMaterials.data()
 		);
 		mImageSamplers = std::move(imageSamplers);
+
+
+
+
+		mBlas = cgb::bottom_level_acceleration_structure_t::create({ std::make_tuple(std::move(rtData[0].mPositionsBuffer), std::move(rtData[0].mIndexBuffer)) });
+		mTlas = cgb::top_level_acceleration_structure_t::create(1);
+		{
+			auto scratchBuffer = cgb::create(
+				cgb::generic_buffer_meta::create_from_size(std::max(mBlas->required_scratch_buffer_build_size(), mTlas->required_scratch_buffer_build_size())),
+				cgb::memory_usage::device,
+				vk::BufferUsageFlagBits::eRayTracingNV // TODO: This flag is Vulkan-specific, it must be abstracted
+			);
+			
+			auto commandBuffer = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+			commandBuffer.begin_recording();
+
+			auto memoryBarrier = vk::MemoryBarrier()
+				.setSrcAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV)
+				.setDstAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV);
+
+			// Build BLAS
+			commandBuffer.handle().buildAccelerationStructureNV(
+				mBlas->info(),
+				nullptr, 0,								// no instance data for bottom level AS
+				VK_FALSE,								// update = false
+				mBlas->acceleration_structure_handle(), // destination AS
+				nullptr,								// no source AS
+				scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+				cgb::context().dynamic_dispatch());
+
+			// Barrier
+			commandBuffer.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+				vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+				vk::DependencyFlags(),
+				{ memoryBarrier }, 
+				{}, {});
+
+
+			// Temp:
+			std::vector<VkGeometryInstance> geomInstances;
+			{
+				auto modelMatrixForInstance = glm::transpose(rtData[0].mModelMatrix);
+				VkGeometryInstance inst;
+				memcpy(inst.transform, glm::value_ptr(modelMatrixForInstance), sizeof(inst.transform));
+				inst.instanceId = rtData[0].mMaterialIndex;
+				inst.mask = 0xff;
+				inst.instanceOffset = 0;
+				inst.flags = static_cast<uint32_t>(vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable);
+				inst.accelerationStructureHandle = mBlas->device_handle();
+			}
+
+			auto geomInstBuffer = cgb::create_and_fill(
+				cgb::generic_buffer_meta::create_from_data(geomInstances),
+				cgb::memory_usage::host_coherent,
+				geomInstances.data(),
+				nullptr,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			);
+
+			// Build TLAS
+			commandBuffer.handle().buildAccelerationStructureNV(
+				mTlas->info(),
+				geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
+				VK_FALSE,								// update = false
+				mTlas->acceleration_structure_handle(),	// destination AS
+				nullptr,								// no source AS
+				scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+				cgb::context().dynamic_dispatch());
+
+			// Barrier
+			commandBuffer.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+				vk::PipelineStageFlagBits::eRayTracingShaderNV,
+				vk::DependencyFlags(),
+				{ memoryBarrier },
+				{}, {});
+
+			commandBuffer.end_recording();
+			auto submitInfo = vk::SubmitInfo()
+				.setCommandBufferCount(1u)
+				.setPCommandBuffers(commandBuffer.handle_addr());
+			cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr); 
+			cgb::context().graphics_queue().handle().waitIdle();
+		}
+
 
 		// Create our ray tracing pipeline with the required configuration:
 		mPipeline = cgb::ray_tracing_pipeline_for(
@@ -202,6 +299,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	}
 
 private: // v== Member variables ==v
+
+	cgb::bottom_level_acceleration_structure mBlas;
+	cgb::top_level_acceleration_structure mTlas;
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 

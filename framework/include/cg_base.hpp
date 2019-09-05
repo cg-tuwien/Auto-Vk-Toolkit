@@ -156,8 +156,8 @@
 #include "renderpass_vulkan.hpp"
 #include "framebuffer_vulkan.hpp"
 #include "window_vulkan.hpp"
-#include "acceleration_structure_vulkan.hpp"
 #include "bottom_level_acceleration_structure_vulkan.hpp"
+#include "top_level_acceleration_structure_vulkan.hpp"
 #include "shader_vulkan.hpp"
 #include "binding_data_vulkan.hpp"
 #include "graphics_pipeline_config.hpp"
@@ -176,6 +176,8 @@
 
 #include "context_vulkan.hpp"
 #include "context.hpp"
+
+#include "acceleration_structure_helper_functions.hpp"
 // [1] Vulkan Tutorial, Rendering and presentation, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
 // [2] Vulkan Tutorial, Vertex buffer creation, https://vulkan-tutorial.com/Vertex_buffers/Vertex_buffer_creation
 // [3] Vulkan Tutorial, Images, https://vulkan-tutorial.com/Texture_mapping/Images

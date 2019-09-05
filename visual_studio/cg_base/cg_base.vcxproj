@@ -45,11 +45,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\framework\src\acceleration_structure_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\attachment.cpp" />
     <ClCompile Include="..\..\framework\src\binding_data_vulkan.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
@@ -232,6 +227,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\top_level_acceleration_structure_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\transform.cpp" />
     <ClCompile Include="..\..\framework\src\varying_update_timer.cpp" />
     <ClCompile Include="..\..\framework\src\vulkan_convenience_functions.cpp">
@@ -268,11 +264,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\framework\include\acceleration_structure_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\..\framework\include\acceleration_structure_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\attachment.hpp" />
     <ClInclude Include="..\..\framework\include\bindings_opengl.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
@@ -518,6 +510,7 @@
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />
     <ClInclude Include="..\..\framework\include\timer_interface.hpp" />
     <ClInclude Include="..\..\framework\include\context_tracker.hpp" />
+    <ClInclude Include="..\..\framework\include\top_level_acceleration_structure_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\transform.hpp" />
     <ClInclude Include="..\..\framework\include\various_utils.hpp" />
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp" />
