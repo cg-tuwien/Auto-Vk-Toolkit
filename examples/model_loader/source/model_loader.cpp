@@ -148,14 +148,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSet.back() = std::move(cgb::descriptor_set::create({ 
-				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer)
-			}));	
-		}
+		mDescriptorSet = std::make_shared<cgb::descriptor_set>();
+		*mDescriptorSet = cgb::descriptor_set::create({ // We only need ONE descriptor set, despite having multiple frames in flight.
+			cgb::binding(0, 0, mImageSamplers),			// All the data in the descriptor set is constant and the same for every frame in flight.
+			cgb::binding(1, 0, mMaterialBuffer)
+		});	
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -177,8 +174,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Set the descriptors of the uniform buffer
 		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
-			mDescriptorSet[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
+			mDescriptorSet->number_of_descriptor_sets(),
+			mDescriptorSet->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {
@@ -256,7 +253,7 @@ private: // v== Member variables ==v
 	std::vector<cgb::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
+	std::shared_ptr<cgb::descriptor_set> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
 

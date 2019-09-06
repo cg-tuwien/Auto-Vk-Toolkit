@@ -144,6 +144,7 @@ namespace cgb
 
 			case vk::ImageLayout::eGeneral:
 				// TODO: This should be valid... but set something? I have no idea what I'm doing...
+				destinationAccessMask = vk::AccessFlagBits::eShaderWrite; // TODO: this can't be the right choice
 				break;
 
 			default:

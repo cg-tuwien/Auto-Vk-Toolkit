@@ -179,6 +179,35 @@ namespace cgb
 			nullptr,
 			context().dynamic_dispatch());
 
+
+		// 10. Build the shader binding table
+		{
+			vk::PhysicalDeviceRayTracingPropertiesNV rtProps;
+			vk::PhysicalDeviceProperties2 props2;
+			props2.pNext = &rtProps;
+			context().physical_device().getProperties2(&props2);
+
+			result.mShaderGroupHandleSize = rtProps.shaderGroupHandleSize;
+			size_t shaderBindingTableSize = result.mShaderGroupHandleSize * result.mShaderGroupCreateInfos.size();
+
+			// TODO: All of this SBT-stuf probably needs some refactoring
+			result.mShaderBindingTable = cgb::create(
+				generic_buffer_meta::create_from_size(shaderBindingTableSize),
+				memory_usage::host_coherent,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			); 
+			void* mapped = context().logical_device().mapMemory(result.mShaderBindingTable->memory_handle(), 0, result.mShaderBindingTable->meta_data().total_size());
+			// Transfer something into the buffer's memory...
+			context().logical_device().getRayTracingShaderGroupHandlesNV(
+				result.handle(), 
+				0, static_cast<uint32_t>(result.mShaderGroupCreateInfos.size()), 
+				result.mShaderBindingTable->meta_data().total_size(), 
+				mapped, 
+				context().dynamic_dispatch());
+			context().logical_device().unmapMemory(result.mShaderBindingTable->memory_handle());
+		}
+
+
 		result.mTracker.setTrackee(result);
 		return result;
 	}

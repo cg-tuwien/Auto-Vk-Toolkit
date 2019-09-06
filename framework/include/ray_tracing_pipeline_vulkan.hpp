@@ -15,6 +15,8 @@ namespace cgb
 
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		const auto& handle() const { return mPipeline.get(); }
+		auto table_entry_size() const { return mShaderGroupHandleSize; }
+		const auto& shader_binding_table_handle() const { return mShaderBindingTable->buffer_handle(); }
 
 		static owning_resource<ray_tracing_pipeline_t> create(ray_tracing_pipeline_config _Config, cgb::context_specific_function<void(ray_tracing_pipeline_t&)> _AlterConfigBeforeCreation = {});
 
@@ -43,6 +45,9 @@ namespace cgb
 		// Handles:
 		vk::UniquePipelineLayout mPipelineLayout;
 		vk::ResultValueType<vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>>::type mPipeline;
+
+		uint32_t mShaderGroupHandleSize;
+		cgb::generic_buffer mShaderBindingTable; // TODO: support more than one shader binding table
 
 		context_tracker<ray_tracing_pipeline_t> mTracker;
 	};

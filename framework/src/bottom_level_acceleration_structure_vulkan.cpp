@@ -65,7 +65,7 @@ namespace cgb
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry
 		result.mAccStructureInfo = vk::AccelerationStructureInfoNV{}
 			.setType(vk::AccelerationStructureTypeNV::eBottomLevel)
-			.setFlags(vk::BuildAccelerationStructureFlagsNV{}) // TODO: Support flags
+			.setFlags(vk::BuildAccelerationStructureFlagBitsNV::ePreferFastBuild) // TODO: Support flags
 			.setInstanceCount(0u)
 			.setGeometryCount(static_cast<uint32_t>(result.mGeometries.size()))
 			.setPGeometries(result.mGeometries.data());

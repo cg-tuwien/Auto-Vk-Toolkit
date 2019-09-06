@@ -96,36 +96,44 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				// However, we have to pay attention to the specific model's scene-properties,...
 				auto& modelData = orca->model_at_index(std::get<0>(tpl));
 				// ... specifically, to its instances:
+				
 				// (Generally, we can't combine the vertex data in this case with the vertex
 				//  data of other models if we have to draw multiple instances; because in 
 				//  the case of multiple instances, only the to-be-instanced geometry must
 				//  be accessible independently of the other geometry.
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
+
+				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+					[] (auto _Semaphore) {  
+						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+					});
+				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				// Get a buffer containing all texture coordinates for all submeshes with this material
+				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+					[] (auto _Semaphore) {  
+						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+					});
+				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				// Get a buffer containing all normals for all submeshes with this material
+				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+					[] (auto _Semaphore) {  
+						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+					});
+				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
 					newElement.mMaterialIndex = static_cast<int>(matIndex);
 					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
-
-					// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-					auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-						[] (auto _Semaphore) {  
-							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-						});
-					newElement.mPositionsBuffer = std::move(positionsBuffer);
-					newElement.mIndexBuffer = std::move(indicesBuffer);
-
-					// Get a buffer containing all texture coordinates for all submeshes with this material
-					newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
-						[] (auto _Semaphore) {  
-							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-						});
-
-					// Get a buffer containing all normals for all submeshes with this material
-					newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-						[] (auto _Semaphore) {  
-							cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-						});
+					newElement.mPositionsBuffer = positionsBuffer;
+					newElement.mIndexBuffer = indicesBuffer;
+					newElement.mTexCoordsBuffer = texCoordsBuffer;
+					newElement.mNormalsBuffer = normalsBuffer;
 				}
 			}
 		}
@@ -172,14 +180,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
-				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer)
-			});	
-		}
+		mDescriptorSet = std::make_shared<cgb::descriptor_set>();
+		*mDescriptorSet = cgb::descriptor_set::create({ // We only need ONE descriptor set, despite having multiple frames in flight.
+			cgb::binding(0, 0, mImageSamplers),			// All the data in the descriptor set is constant and the same for every frame in flight.
+			cgb::binding(1, 0, mMaterialBuffer)
+		});	
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -201,8 +206,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Set the descriptors of the uniform buffer
 		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[0]->number_of_descriptor_sets(),
-			mDescriptorSet[0]->descriptor_sets_addr(), 
+			mDescriptorSet->number_of_descriptor_sets(),
+			mDescriptorSet->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {
@@ -276,7 +281,7 @@ private: // v== Member variables ==v
 	std::vector<cgb::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
+	std::shared_ptr<cgb::descriptor_set> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
 
