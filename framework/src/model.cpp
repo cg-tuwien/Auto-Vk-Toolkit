@@ -48,19 +48,19 @@ namespace cgb
 		return {};
 	}
 
-	glm::mat4 model_t::transformation_matrix_for_mesh(size_t _MeshIndex) const
+	glm::mat4 model_t::transformation_matrix_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		// Find the mesh in Assim's node hierarchy
 		return transformation_matrix_traverser(static_cast<unsigned int>(_MeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
 	}
 
-	std::string model_t::name_of_mesh(size_t _MeshIndex) const
+	std::string model_t::name_of_mesh(mesh_index_t _MeshIndex) const
 	{
 		assert(mScene->mNumMeshes >= _MeshIndex);
 		return mScene->mMeshes[_MeshIndex]->mName.data;
 	}
 
-	size_t model_t::material_index_for_mesh(size_t _MeshIndex) const
+	size_t model_t::material_index_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		assert(mScene->mNumMeshes >= _MeshIndex);
 		return mScene->mMeshes[_MeshIndex]->mMaterialIndex;
@@ -77,7 +77,7 @@ namespace cgb
 			return "";
 	}
 
-	material_config model_t::material_config_for_mesh(size_t _MeshIndex) const
+	material_config model_t::material_config_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		material_config result;
 
@@ -269,7 +269,7 @@ namespace cgb
 		return result;
 	}
 
-	size_t model_t::number_of_vertices_for_mesh(size_t _MeshIndex) const
+	size_t model_t::number_of_vertices_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		assert(mScene);
 		assert(_MeshIndex < mScene->mNumMeshes);
@@ -277,7 +277,7 @@ namespace cgb
 		return static_cast<size_t>(paiMesh->mNumVertices);
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_mesh(size_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::positions_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -289,7 +289,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_mesh(size_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::normals_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -308,7 +308,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_mesh(size_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::tangents_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -327,7 +327,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_mesh(size_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::bitangents_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -346,7 +346,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_mesh(size_t _MeshIndex, int _Set) const
+	std::vector<glm::vec4> model_t::colors_for_mesh(mesh_index_t _MeshIndex, int _Set) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -366,7 +366,7 @@ namespace cgb
 		return result;
 	}
 
-	int model_t::num_uv_components_for_mesh(size_t _MeshIndex, int _Set) const
+	int model_t::num_uv_components_for_mesh(mesh_index_t _MeshIndex, int _Set) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
@@ -374,7 +374,7 @@ namespace cgb
 		return paiMesh->mNumUVComponents[_Set];
 	}
 
-	int model_t::number_of_indices_for_mesh(size_t _MeshIndex) const
+	int model_t::number_of_indices_for_mesh(mesh_index_t _MeshIndex) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
 		size_t indicesCount = 0;
@@ -397,7 +397,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<size_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -407,7 +407,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<size_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -417,7 +417,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<size_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -427,7 +427,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<size_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
 	{
 		std::vector<glm::vec3> result;
 		for (auto meshIndex : _MeshIndices) {
@@ -437,7 +437,7 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<size_t> _MeshIndices, int _Set) const
+	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<mesh_index_t> _MeshIndices, int _Set) const
 	{
 		std::vector<glm::vec4> result;
 		for (auto meshIndex : _MeshIndices) {

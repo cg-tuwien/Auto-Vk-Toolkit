@@ -33,6 +33,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
+    <None Include="..\..\..\examples\orca_loader\shaders\diffuse_shading_fixed_lightsource.frag" />
+    <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert" />
     <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rchit" />
     <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rgen" />
     <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rmiss" />

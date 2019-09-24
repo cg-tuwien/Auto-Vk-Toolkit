@@ -92,9 +92,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 
 			// The data in distinctMaterialsOrca encompasses all of the ORCA scene's models.
-			for (const std::tuple<size_t, std::vector<size_t>>& tpl : pair.second) {
+			for (const auto& indices : pair.second) {
 				// However, we have to pay attention to the specific model's scene-properties,...
-				auto& modelData = orca->model_at_index(std::get<0>(tpl));
+				auto& modelData = orca->model_at_index(indices.mModelIndex);
 				// ... specifically, to its instances:
 				
 				// (Generally, we can't combine the vertex data in this case with the vertex
@@ -105,7 +105,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  buffers for everything which could potentially be instanced.)
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					[] (auto _Semaphore) {  
 						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 					});
@@ -113,14 +113,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
 					[] (auto _Semaphore) {  
 						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 					});
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					[] (auto _Semaphore) {  
 						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 					});
@@ -138,9 +138,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 		}
 
-		// All the materials have been gathered during the two loops with produced the
-		// different vertex- and index-buffers. However, they can potentially share the
-		// same material
+		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatConfigs, 
 			[](auto _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));

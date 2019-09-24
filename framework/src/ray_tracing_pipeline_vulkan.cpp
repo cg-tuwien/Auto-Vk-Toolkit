@@ -187,7 +187,7 @@ namespace cgb
 			props2.pNext = &rtProps;
 			context().physical_device().getProperties2(&props2);
 
-			result.mShaderGroupHandleSize = rtProps.shaderGroupHandleSize;
+			result.mShaderGroupHandleSize = static_cast<size_t>(rtProps.shaderGroupHandleSize);
 			size_t shaderBindingTableSize = result.mShaderGroupHandleSize * result.mShaderGroupCreateInfos.size();
 
 			// TODO: All of this SBT-stuf probably needs some refactoring

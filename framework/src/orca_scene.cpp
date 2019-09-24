@@ -2,14 +2,14 @@
 
 namespace cgb
 {
-	std::unordered_map<material_config, std::vector<std::tuple<size_t, std::vector<size_t>>>> orca_scene_t::distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials) const
+	std::unordered_map<material_config, std::vector<model_and_mesh_indices>> orca_scene_t::distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials) const
 	{
-		std::unordered_map<material_config, std::vector<std::tuple<size_t, std::vector<size_t>>>> result;
+		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> result;
 
 		for (size_t i = 0; i < mModelData.size(); ++i) {
 			auto modelMaterials = mModelData[i].mLoadedModel->distinct_material_configs(_AlsoConsiderCpuOnlyDataForDistinctMaterials);
 			for (auto& pair : modelMaterials) {
-				result[pair.first].emplace_back(std::make_tuple(i, pair.second));
+				result[pair.first].push_back({ static_cast<model_index_t>(i), pair.second });
 			}
 		}
 

@@ -46,7 +46,7 @@ namespace cgb
 		vk::UniquePipelineLayout mPipelineLayout;
 		vk::ResultValueType<vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>>::type mPipeline;
 
-		uint32_t mShaderGroupHandleSize;
+		size_t mShaderGroupHandleSize;
 		cgb::generic_buffer mShaderBindingTable; // TODO: support more than one shader binding table
 
 		context_tracker<ray_tracing_pipeline_t> mTracker;

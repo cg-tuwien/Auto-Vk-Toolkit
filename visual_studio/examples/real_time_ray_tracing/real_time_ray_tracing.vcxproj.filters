@@ -31,6 +31,12 @@
     <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rmiss">
       <Filter>shaders</Filter>
     </None>
+    <None Include="..\..\..\examples\orca_loader\shaders\diffuse_shading_fixed_lightsource.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cg_stdafx.cpp">

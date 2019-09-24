@@ -204,7 +204,7 @@ namespace cgb
 			_SemaphoreHandler(std::move(transitionCompleteSemaphore)); // Transfer ownership and be done with it
 		}
 		else {
-			LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
+			LOG_WARNING(fmt::format("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed (image {}).", fmt::ptr(static_cast<VkImage>(_Image.image_handle()))));
 			cgb::context().logical_device().waitIdle();
 		}
 
