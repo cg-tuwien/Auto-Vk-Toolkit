@@ -317,7 +317,7 @@ namespace cgb
 
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
-		cgb::context().logical_device().waitForFences(1u, fence.handle_addr(), VK_TRUE, std::numeric_limits<int64_t>::max());
+		cgb::context().logical_device().waitForFences(1u, fence.handle_addr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
 		result = cgb::context().logical_device().resetFences(1u, fence.handle_addr());
 		assert (vk::Result::eSuccess == result);
 

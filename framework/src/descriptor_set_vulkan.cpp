@@ -96,11 +96,12 @@ namespace cgb
 
 	descriptor_set descriptor_set::create(std::initializer_list<binding_data> pBindings)
 	{
-		auto layouts = set_of_descriptor_set_layouts::prepare(pBindings);
-		layouts.allocate_all();
-
 		descriptor_set result;
-		result.mDescriptorSetOwners = cgb::context().create_descriptor_set(layouts.layout_handles());
+
+		result.mSetOfLayouts = set_of_descriptor_set_layouts::prepare(pBindings);
+		result.mSetOfLayouts.allocate_all();
+
+		result.mDescriptorSetOwners = cgb::context().create_descriptor_set(result.mSetOfLayouts.layout_handles());
 		result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());
 		for (auto& uniqueDesc : result.mDescriptorSetOwners) { // TODO: Is the second array really neccessary?
 			result.mDescriptorSets.push_back(uniqueDesc.get());
@@ -122,7 +123,7 @@ namespace cgb
 		for (auto& b : pBindings) {
 			descriptorWrites.push_back(vk::WriteDescriptorSet{}
 				// descriptor sets are perfectly aligned with layouts (I hope so, at least)
-				.setDstSet(result.mDescriptorSets[layouts.set_index_for_set_id(b.mSetId)])
+				.setDstSet(result.mDescriptorSets[result.mSetOfLayouts.set_index_for_set_id(b.mSetId)])
 				.setDstBinding(b.mLayoutBinding.binding)
 				.setDstArrayElement(0u) // TODO: support more
 				.setDescriptorType(b.mLayoutBinding.descriptorType) // TODO: Okay or use that one stored in the mResourcePtr??
