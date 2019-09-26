@@ -288,6 +288,9 @@ namespace cgb
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
+		std::vector<command_buffer> mImageLayoutTransitionBeginningOfFrame;
+		std::vector<command_buffer> mImageLayoutTransitionPresent;
+
 		// Command buffers which are only submitted once; taking their ownership, handling their lifetime.
 		std::list<std::tuple<int64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
 	};

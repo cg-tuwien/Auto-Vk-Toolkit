@@ -109,7 +109,7 @@ namespace cgb
 		auto fullImageOffset = vk::Offset3D(0, 0, 0);
 		auto fullImageExtent = pSource.config().extent;
 		auto halfImageOffset = vk::Offset3D(0, 0, 0); //vk::Offset3D(pSource.mInfo.extent.width / 2, 0, 0);
-		auto halfImageExtent = vk::Extent3D(pSource.config().extent.width / 2, pSource.config().extent.height, pSource.config().extent.depth);
+		auto halfImageExtent = vk::Extent3D(pSource.config().extent.width, pSource.config().extent.height, pSource.config().extent.depth);
 		auto offset = halfImageOffset;
 		auto extent = halfImageExtent;
 

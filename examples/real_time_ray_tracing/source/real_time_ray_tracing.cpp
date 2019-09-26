@@ -8,6 +8,7 @@ class real_time_ray_tracing_app : public cgb::cg_element
 		cgb::index_buffer mIndexBuffer;
 		int mMaterialIndex;
 		glm::mat4 mModelMatrix;
+		cgb::bottom_level_acceleration_structure mBlas;
 	};
 
 	struct transformation_matrices {
@@ -27,14 +28,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
-		std::vector<rt_data> rtData; 
-		rtData.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		mRtData.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
 		for (const auto& pair : distinctMaterialsOrca) {
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
 			allMatConfigs.push_back(pair.first);
 			auto matIndex = allMatConfigs.size() - 1;
 
-			// The data in distinctMaterialsOrca .
+			// The data in distinctMaterialsOrca also references all the models and submesh-indices (at pair.second) which have a specific material (pair.first) 
 			for (const auto& indices : pair.second) {
 				// However, we have to pay attention to the specific model's scene-properties,...
 				auto& modelData = orca->model_at_index(indices.mModelIndex);
@@ -46,7 +46,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-					auto& newElement = rtData.emplace_back();
+					auto& newElement = mRtData.emplace_back();
 					newElement.mMaterialIndex = static_cast<int>(matIndex);
 					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 
@@ -68,10 +68,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					//	[] (auto _Semaphore) {  
 					//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
 					//	});
+
+					// Create one bottom level acceleration structure per model
+					newElement.mBlas = cgb::bottom_level_acceleration_structure_t::create({ std::make_tuple(std::move(newElement.mPositionsBuffer), std::move(newElement.mIndexBuffer)) });
 				}
 			}
-
-			break;
 		}
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
@@ -86,88 +87,89 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 		mImageSamplers = std::move(imageSamplers);
 
-
-		mBlas = cgb::bottom_level_acceleration_structure_t::create({ std::make_tuple(std::move(rtData[0].mPositionsBuffer), std::move(rtData[0].mIndexBuffer)) });
-		mTlas = cgb::top_level_acceleration_structure_t::create(1);
+		mTlas = cgb::top_level_acceleration_structure_t::create(mRtData.size());
 		{
+			auto sbsize = mTlas->required_scratch_buffer_build_size();
+			for (auto& element : mRtData) {
+				sbsize = std::max(sbsize, element.mBlas->required_scratch_buffer_build_size());
+			}
+
 			auto scratchBuffer = cgb::create(
-				cgb::generic_buffer_meta::create_from_size(std::max(mBlas->required_scratch_buffer_build_size(), mTlas->required_scratch_buffer_build_size())),
+				cgb::generic_buffer_meta::create_from_size(sbsize),
 				cgb::memory_usage::device,
 				vk::BufferUsageFlagBits::eRayTracingNV // TODO: This flag is Vulkan-specific, it must be abstracted
 			);
 			
-			//auto commandBuffer = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-			//commandBuffer.begin_recording();
+			auto commandBuffer = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+			commandBuffer.begin_recording();
 
-			//auto memoryBarrier = vk::MemoryBarrier()
-			//	.setSrcAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV)
-			//	.setDstAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV);
+			auto memoryBarrier = vk::MemoryBarrier()
+				.setSrcAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV)
+				.setDstAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV);
 
-			//// Build BLAS
-			//commandBuffer.handle().buildAccelerationStructureNV(
-			//	mBlas->info(),
-			//	nullptr, 0,								// no instance data for bottom level AS
-			//	VK_FALSE,								// update = false
-			//	mBlas->acceleration_structure_handle(), // destination AS
-			//	nullptr,								// no source AS
-			//	scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
-			//	cgb::context().dynamic_dispatch());
+			std::vector<cgb::VkGeometryInstanceNV> geomInstances;
+			for (auto& element : mRtData) {
+				// Build BLAS
+				commandBuffer.handle().buildAccelerationStructureNV(
+					element.mBlas->info(),
+					nullptr, 0,								// no instance data for bottom level AS
+					VK_FALSE,								// update = false
+					element.mBlas->acceleration_structure_handle(), // destination AS
+					nullptr,								// no source AS
+					scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+					cgb::context().dynamic_dispatch());
 
-			//// Barrier
-			//commandBuffer.handle().pipelineBarrier(
-			//	vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-			//	vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-			//	vk::DependencyFlags(),
-			//	{ memoryBarrier }, 
-			//	{}, {});
+				// Barrier
+				commandBuffer.handle().pipelineBarrier(
+					vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+					vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+					vk::DependencyFlags(),
+					{ memoryBarrier }, 
+					{}, {});
+			
+				auto modelMatrixForInstance = glm::transpose(mRtData[0].mModelMatrix);
+				cgb::VkGeometryInstanceNV inst;
+				memcpy(inst.transform, glm::value_ptr(modelMatrixForInstance), sizeof(inst.transform));
+				inst.instanceCustomIndex = mRtData[0].mMaterialIndex;
+				inst.mask = 0xff;
+				inst.instanceOffset = 0;
+				inst.flags = static_cast<uint32_t>(vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable);
+				inst.accelerationStructureHandle = element.mBlas->device_handle();
+				geomInstances.push_back(inst);
+			}
 
+			auto geomInstBuffer = cgb::create_and_fill(
+				cgb::generic_buffer_meta::create_from_data(geomInstances),
+				cgb::memory_usage::host_coherent,
+				geomInstances.data(),
+				nullptr,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			);
 
-			//// Temp:
-			//std::vector<VkGeometryInstance> geomInstances;
-			//{
-			//	auto modelMatrixForInstance = glm::transpose(rtData[0].mModelMatrix);
-			//	VkGeometryInstance inst;
-			//	memcpy(inst.transform, glm::value_ptr(modelMatrixForInstance), sizeof(inst.transform));
-			//	inst.instanceId = rtData[0].mMaterialIndex;
-			//	inst.mask = 0xff;
-			//	inst.instanceOffset = 0;
-			//	inst.flags = static_cast<uint32_t>(vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable);
-			//	inst.accelerationStructureHandle = mBlas->device_handle();
-			//	geomInstances.push_back(inst);
-			//}
+			// Build TLAS
+			commandBuffer.handle().buildAccelerationStructureNV(
+				mTlas->info(),
+				geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
+				VK_FALSE,								// update = false
+				mTlas->acceleration_structure_handle(),	// destination AS
+				nullptr,								// no source AS
+				scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+				cgb::context().dynamic_dispatch());
 
-			//auto geomInstBuffer = cgb::create_and_fill(
-			//	cgb::generic_buffer_meta::create_from_data(geomInstances),
-			//	cgb::memory_usage::host_coherent,
-			//	geomInstances.data(),
-			//	nullptr,
-			//	vk::BufferUsageFlagBits::eRayTracingNV
-			//);
+			// Barrier
+			commandBuffer.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
+				vk::PipelineStageFlagBits::eRayTracingShaderNV,
+				vk::DependencyFlags(),
+				{ memoryBarrier },
+				{}, {});
 
-			//// Build TLAS
-			//commandBuffer.handle().buildAccelerationStructureNV(
-			//	mTlas->info(),
-			//	geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
-			//	VK_FALSE,								// update = false
-			//	mTlas->acceleration_structure_handle(),	// destination AS
-			//	nullptr,								// no source AS
-			//	scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
-			//	cgb::context().dynamic_dispatch());
-
-			//// Barrier
-			//commandBuffer.handle().pipelineBarrier(
-			//	vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-			//	vk::PipelineStageFlagBits::eRayTracingShaderNV,
-			//	vk::DependencyFlags(),
-			//	{ memoryBarrier },
-			//	{}, {});
-
-			//commandBuffer.end_recording();
-			//auto submitInfo = vk::SubmitInfo()
-			//	.setCommandBufferCount(1u)
-			//	.setPCommandBuffers(commandBuffer.handle_addr());
-			//cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr); 
-			//cgb::context().graphics_queue().handle().waitIdle();
+			commandBuffer.end_recording();
+			auto submitInfo = vk::SubmitInfo()
+				.setCommandBufferCount(1u)
+				.setPCommandBuffers(commandBuffer.handle_addr());
+			cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr); 
+			cgb::context().graphics_queue().handle().waitIdle();
 		}
 
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
@@ -203,35 +205,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::max_recursion_depth::set_to_max(),
 			// Define push constants and descriptor bindings:
 			cgb::push_constant_binding_data { cgb::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
-			//cgb::binding(0, 0, mImageSamplers),
-			//cgb::binding(1, 0, mMaterialBuffer),
-			cgb::binding(0, 0, mOffscreenImageViews[0]) // Just take any, this is just to define the layout
-			//cgb::binding(0, 1, mTlas)
+			cgb::binding(0, 0, mImageSamplers),
+			cgb::binding(0, 1, mMaterialBuffer),
+			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
+			cgb::binding(2, 0, mTlas)
 		);
-
-		//auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
-		//mGraphicsPipeline = cgb::graphics_pipeline_for(
-		//	// Specify which shaders the pipeline consists of:
-		//	cgb::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
-		//	cgb::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
-		//	// The next 3 lines define the format and location of the vertex shader inputs:
-		//	// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
-		//	cgb::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
-		//	cgb::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
-		//	cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
-		//	// Some further settings:
-		//	cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-		//	cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
-		//	// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
-		//	// attachment, which has been configured when creating the window. See main() function!
-		//	cgb::attachment::create_color(swapChainFormat),
-		//	cgb::attachment::create_depth(),
-		//	// The following define additional data which we'll pass to the pipeline:
-		//	//   We'll pass two matrices to our vertex shader via push constants:
-		//	cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
-		//	cgb::binding(0, 0, mImageSamplers),
-		//	cgb::binding(1, 0, mMaterialBuffer)
-		//);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
@@ -240,10 +218,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
-				//cgb::binding(0, 0, mImageSamplers),
-				//cgb::binding(1, 0, mMaterialBuffer),
-				cgb::binding(0, 0, mOffscreenImageViews[i])
-				//cgb::binding(2, 0, mTlas)
+				cgb::binding(0, 0, mImageSamplers),
+				cgb::binding(0, 1, mMaterialBuffer),
+				cgb::binding(1, 0, mOffscreenImageViews[i]), // Just take any, this is just to define the layout
+				cgb::binding(2, 0, mTlas)
 			});	
 		}
 		
@@ -265,25 +243,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
 
-		//// Set the descriptors:
-		//cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
-
-		//cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
-		//	mDescriptorSet[inFlightIndex]->number_of_descriptor_sets(),
-		//	mDescriptorSet[inFlightIndex]->descriptor_sets_addr(), 
-		//	0, nullptr);
-
-		//// Bind the pipeline
-		//cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
-		//
-		//// Set the push constants:
-		//auto pushConstantsForThisDrawCall = transformation_matrices { 
-		//	mQuakeCam.view_matrix()
-		//};
-		//cmdbfr.handle().pushConstants(mGraphicsPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
-
-		//cmdbfr.handle().draw(0, 0, 0, 0);
-		//cmdbfr.end_render_pass();
+		cmdbfr.set_image_barrier(
+			cgb::create_image_barrier(
+				mOffscreenImageViews[inFlightIndex]->get_image().image_handle(),
+				mOffscreenImageViews[inFlightIndex]->get_image().format().mFormat,
+				vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral)
+		);
 
 		// Bind the pipeline
 		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, mPipeline->handle());
@@ -294,29 +259,22 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mDescriptorSet[inFlightIndex]->descriptor_sets_addr(), 
 			0, nullptr);
 
-		//
-		//// Set the push constants:
-		//auto pushConstantsForThisDrawCall = transformation_matrices { 
-		//	mQuakeCam.view_matrix()
-		//};
-		//cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		// Set the push constants:
+		auto pushConstantsForThisDrawCall = transformation_matrices { 
+			mQuakeCam.view_matrix()
+		};
+		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-		//cmdbfr.handle().traceRaysNV(
-		//	mPipeline->shader_binding_table_handle(), 0,
-		//	mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-		//	mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-		//	nullptr, 0, 0,
-		//	cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
-		//	cgb::context().dynamic_dispatch());
+		// TRACE. THA. RAYZ.
+		cmdbfr.handle().traceRaysNV(
+			mPipeline->shader_binding_table_handle(), 0,
+			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
+			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
+			nullptr, 0, 0,
+			cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
+			cgb::context().dynamic_dispatch());
 
-		cgb::context().graphics_queue().handle().waitIdle();
 		
-		cmdbfr.set_image_barrier(
-			cgb::create_image_barrier(
-				cgb::context().main_window()->swap_chain_images()[inFlightIndex], 
-				cgb::context().main_window()->swap_chain_image_format().mFormat, 
-				vk::AccessFlags(), vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal)
-		);
 		cmdbfr.set_image_barrier(
 			cgb::create_image_barrier(
 				mOffscreenImageViews[inFlightIndex]->get_image().image_handle(),
@@ -326,19 +284,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr.copy_image(mOffscreenImageViews[inFlightIndex]->get_image(), cgb::context().main_window()->swap_chain_images()[inFlightIndex]);
 
-		cmdbfr.set_image_barrier(
-			cgb::create_image_barrier(
-				cgb::context().main_window()->swap_chain_images()[inFlightIndex],
-				cgb::context().main_window()->swap_chain_image_format().mFormat,
-				vk::AccessFlagBits::eTransferWrite, vk::AccessFlags(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR
-			)
-		);
-
-		cgb::context().graphics_queue().handle().waitIdle();
-
-		cgb::context().logical_device().waitIdle();
-
-		//cmdbfr.end_render_pass();
 		cmdbfr.end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
 		cgb::context().logical_device().waitIdle();
@@ -384,7 +329,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 private: // v== Member variables ==v
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	cgb::bottom_level_acceleration_structure mBlas;
 	cgb::top_level_acceleration_structure mTlas;
 
 	std::vector<cgb::image_view> mOffscreenImageViews;
@@ -398,6 +342,7 @@ private: // v== Member variables ==v
 	cgb::graphics_pipeline mGraphicsPipeline;
 	cgb::quake_camera mQuakeCam;
 
+	std::vector<rt_data> mRtData;
 }; // real_time_ray_tracing_app
 
 int main() // <== Starting point ==

@@ -140,8 +140,8 @@ namespace cgb
 				return attachment::create_depth(format, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
 			}
 			else {	
-				// TODO: Should "is presentable" really be true by default?
-				return attachment::create_depth_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
+				// TODO: Should "is presentable" really be true by default? => set to false, maybe it should be handled via a barrier
+				return attachment::create_depth_multisampled(format, to_cgb_sample_count(imageInfo.samples), false, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
 			}
 		}
 		else { // must be color format
@@ -149,8 +149,8 @@ namespace cgb
 				return attachment::create_color(format, imageUsage.value_or(image_usage::color_attachment), pLocation);
 			}
 			else {	
-				// TODO: Should "is presentable" really be true by default?
-				return attachment::create_color_multisampled(format, to_cgb_sample_count(imageInfo.samples), true, imageUsage.value_or(image_usage::color_attachment), pLocation);
+				// TODO: Should "is presentable" really be true by default? => set to false, maybe it should be handled via a barrier
+				return attachment::create_color_multisampled(format, to_cgb_sample_count(imageInfo.samples), false, imageUsage.value_or(image_usage::color_attachment), pLocation);
 			}
 		}
 		throw std::runtime_error("Unable to create an attachment for the given image view");

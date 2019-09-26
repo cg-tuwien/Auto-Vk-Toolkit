@@ -362,9 +362,11 @@ namespace cgb
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
 		std::vector<vk::CommandBuffer> cmdBuffers;
+		cmdBuffers.push_back(mImageLayoutTransitionBeginningOfFrame[in_flight_index_for_frame()].handle());
 		for (auto cb : _CommandBufferRefs) {
 			cmdBuffers.push_back(cb.get().handle());
 		}
+		cmdBuffers.push_back(mImageLayoutTransitionPresent[in_flight_index_for_frame()].handle());
 
 		// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
 		// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit
