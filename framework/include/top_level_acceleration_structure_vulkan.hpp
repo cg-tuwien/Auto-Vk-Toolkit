@@ -2,30 +2,8 @@
 
 namespace cgb
 {
-	struct geometry_instance
-	{
-		glm::mat4 mTransform;
-		uint32_t mInstanceCustomIndex;
-		uint32_t mMask;
-		size_t mInstanceOffset;
-		uint32_t mFlags;
-		uint64_t mAccelerationStructureDeviceHandle;
-	};
-
-	struct VkGeometryInstanceNV
-	{
-		float		transform[12];
-		uint32_t	instanceCustomIndex : 24;
-		uint32_t	mask : 8;
-		uint32_t	instanceOffset : 24;
-		uint32_t	flags : 8;
-		uint64_t	accelerationStructureHandle;
-	};
-
 	class top_level_acceleration_structure_t
 	{
-
-
 		template <typename T>
 		friend void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> _AlterConfigBeforeMemoryAlloc);
 

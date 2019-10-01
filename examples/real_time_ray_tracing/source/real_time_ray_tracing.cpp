@@ -7,7 +7,6 @@ class real_time_ray_tracing_app : public cgb::cg_element
 		cgb::vertex_buffer mPositionsBuffer;
 		cgb::index_buffer mIndexBuffer;
 		int mMaterialIndex;
-		glm::mat4 mModelMatrix;
 		cgb::bottom_level_acceleration_structure mBlas;
 	};
 
@@ -45,32 +44,38 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  be accessible independently of the other geometry.
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
+				auto& newElement = mRtData.emplace_back();
+				newElement.mMaterialIndex = static_cast<int>(matIndex);
+
+				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
+				newElement.mPositionsBuffer = std::move(positionsBuffer);
+				newElement.mPositionsBuffer.enable_shared_ownership();	// This is neccessary currently, until the noexcept-hell has been fixed
+				newElement.mIndexBuffer = std::move(indicesBuffer);
+				newElement.mIndexBuffer.enable_shared_ownership();		// This is neccessary currently, until the noexcept-hell has been fixed
+
+				//// Get a buffer containing all texture coordinates for all submeshes with this material
+				//newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
+				//	[] (auto _Semaphore) {  
+				//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+				//	});
+
+				//// Get a buffer containing all normals for all submeshes with this material
+				//newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
+				//	[] (auto _Semaphore) {  
+				//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+				//	});
+
+				// Create one bottom level acceleration structure per model
+				newElement.mBlas = cgb::bottom_level_acceleration_structure_t::create(std::move(newElement.mPositionsBuffer), std::move(newElement.mIndexBuffer));
+
+
+				// Handle the instances. There must at least be one!
+				assert(modelData.mInstances.size() > 0);
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-					auto& newElement = mRtData.emplace_back();
-					newElement.mMaterialIndex = static_cast<int>(matIndex);
-					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
-
-					// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-					auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
-					newElement.mPositionsBuffer = std::move(positionsBuffer);
-					newElement.mPositionsBuffer.enable_shared_ownership();	// This is neccessary currently, until the noexcept-hell has been fixed
-					newElement.mIndexBuffer = std::move(indicesBuffer);
-					newElement.mIndexBuffer.enable_shared_ownership();		// This is neccessary currently, until the noexcept-hell has been fixed
-
-					//// Get a buffer containing all texture coordinates for all submeshes with this material
-					//newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
-					//	[] (auto _Semaphore) {  
-					//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-					//	});
-
-					//// Get a buffer containing all normals for all submeshes with this material
-					//newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-					//	[] (auto _Semaphore) {  
-					//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-					//	});
-
-					// Create one bottom level acceleration structure per model
-					newElement.mBlas = cgb::bottom_level_acceleration_structure_t::create({ std::make_tuple(std::move(newElement.mPositionsBuffer), std::move(newElement.mIndexBuffer)) });
+					newElement.mBlas->add_instance(
+						cgb::geometry_instance::create(cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling))
+					);
 				}
 			}
 		}
@@ -126,16 +131,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					vk::DependencyFlags(),
 					{ memoryBarrier }, 
 					{}, {});
-			
-				auto modelMatrixForInstance = glm::transpose(mRtData[0].mModelMatrix);
-				cgb::VkGeometryInstanceNV inst;
-				memcpy(inst.transform, glm::value_ptr(modelMatrixForInstance), sizeof(inst.transform));
-				inst.instanceCustomIndex = mRtData[0].mMaterialIndex;
-				inst.mask = 0xff;
-				inst.instanceOffset = 0;
-				inst.flags = static_cast<uint32_t>(vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable);
-				inst.accelerationStructureHandle = element.mBlas->device_handle();
-				geomInstances.push_back(inst);
+
+				auto blasInstances = element.mBlas->instance_data_for_top_level_acceleration_structure();
+				// TODO: WHYYYYYYY NOT INSERT???
+				for (auto& wtf : blasInstances) {
+					geomInstances.push_back(wtf);
+				}
 			}
 
 			auto geomInstBuffer = cgb::create_and_fill(
