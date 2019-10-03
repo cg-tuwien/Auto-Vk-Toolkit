@@ -70,7 +70,7 @@ namespace cgb
 	}
 
 
-	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
+	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, bool _AllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
 	{
 		bottom_level_acceleration_structure_t result;
 		result.mVertexBuffers.reserve(_GeometryDescriptions.size());
@@ -133,7 +133,9 @@ namespace cgb
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry
 		result.mAccStructureInfo = vk::AccelerationStructureInfoNV{}
 			.setType(vk::AccelerationStructureTypeNV::eBottomLevel)
-			.setFlags(vk::BuildAccelerationStructureFlagBitsNV::ePreferFastBuild) // TODO: Support flags
+			.setFlags(_AllowUpdates 
+					  ? vk::BuildAccelerationStructureFlagBitsNV::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsNV::ePreferFastBuild 
+					  : vk::BuildAccelerationStructureFlagBitsNV::ePreferFastTrace) // TODO: Support flags
 			.setInstanceCount(0u)
 			.setGeometryCount(static_cast<uint32_t>(result.mGeometries.size()))
 			.setPGeometries(result.mGeometries.data());
@@ -157,9 +159,9 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(vertex_buffer _VertexBuffer, index_buffer _IndexBuffer, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
+	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(vertex_buffer _VertexBuffer, index_buffer _IndexBuffer, bool _AllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
 	{
-		return create({ std::forward_as_tuple( std::move(_VertexBuffer), std::move(_IndexBuffer) ) }, std::move(_AlterConfigBeforeCreation), std::move(_AlterConfigBeforeMemoryAlloc));
+		return create({ std::forward_as_tuple( std::move(_VertexBuffer), std::move(_IndexBuffer) ) }, _AllowUpdates, std::move(_AlterConfigBeforeCreation), std::move(_AlterConfigBeforeMemoryAlloc));
 	}
 
 	void bottom_level_acceleration_structure_t::add_instance(geometry_instance _Instance)
@@ -170,6 +172,63 @@ namespace cgb
 	void bottom_level_acceleration_structure_t::add_instances(std::vector<geometry_instance> _Instances)
 	{
 		mGeometryInstances.insert(mGeometryInstances.end(), std::begin(_Instances), std::end(_Instances));
+	}
+
+	const generic_buffer_t& bottom_level_acceleration_structure_t::get_and_possibly_create_scratch_buffer()
+	{
+		if (!mScratchBuffer.has_value()) {
+			mScratchBuffer = cgb::create(
+				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
+				cgb::memory_usage::device,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			);
+		}
+		return mScratchBuffer.value();
+	}
+	
+	void bottom_level_acceleration_structure_t::build_or_update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, blas_action _BuildAction)
+	{
+		// Set the _ScratchBuffer parameter to an internal scratch buffer, if none has been passed:
+		const generic_buffer_t* scratchBuffer = nullptr;
+		if (_ScratchBuffer.has_value()) {
+			scratchBuffer = &_ScratchBuffer->get();
+		}
+		else {
+			scratchBuffer = &get_and_possibly_create_scratch_buffer();
+		}
+		
+		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		commandBuffer.begin_recording();
+
+		commandBuffer.handle().buildAccelerationStructureNV(
+			config(),
+			nullptr, 0,								// no instance data for bottom level AS
+			_BuildAction == blas_action::build
+				? VK_FALSE 
+				: VK_TRUE,							// update <=> VK_TRUE
+			acceleration_structure_handle(),		// destination AS
+			_BuildAction == blas_action::build		// source AS
+				? nullptr 
+				: acceleration_structure_handle(),
+			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+			cgb::context().dynamic_dispatch());
+		
+		commandBuffer.end_recording();
+		
+		auto buildCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+		buildCompleteSemaphore->set_semaphore_wait_stage(vk::PipelineStageFlagBits::eAccelerationStructureBuildNV);
+		
+		handle_semaphore(std::move(buildCompleteSemaphore), std::move(_SemaphoreHandler));
+	}
+
+	void bottom_level_acceleration_structure_t::build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	{
+		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), blas_action::build);
+	}
+	
+	void bottom_level_acceleration_structure_t::update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	{
+		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), blas_action::update);
 	}
 
 	std::vector<VkGeometryInstanceNV> bottom_level_acceleration_structure_t::instance_data_for_top_level_acceleration_structure() const

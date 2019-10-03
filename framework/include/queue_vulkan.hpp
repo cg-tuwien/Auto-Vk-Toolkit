@@ -36,6 +36,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 		/** Gets a pool which is usable for this queue and the current thread. */
 		command_pool& pool() const;
 
+		semaphore submit_and_handle_with_semaphore(command_buffer _CommandBuffer, std::vector<semaphore> _WaitSemaphores = {});
+
 	private:
 		uint32_t mQueueFamilyIndex;
 		uint32_t mQueueIndex;

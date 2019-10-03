@@ -192,21 +192,14 @@ namespace cgb
 		const void* pData,
 		std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)
 	{
-		auto semaphore = fill_and_get_semaphore(target, pData);
-		if (semaphore.has_value()) {
+		auto semaph = fill_and_get_semaphore(target, pData);
+		if (semaph.has_value()) {
 			// If we got a semaphore back from `fill_and_get_semaphore`, we have to do something with it!
 			if (pSemaphoreHandler) { // Did the user provide a handler?
-				pSemaphoreHandler( std::move(*semaphore) ); // Transfer ownership and be done with it
+				pSemaphoreHandler( std::move(*semaph) ); // Transfer ownership and be done with it
 			}
 			else {
-				if (semaphore.value()->has_designated_queue()) {
-					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-					semaphore.value()->designated_queue()->handle().waitIdle();
-				}
-				else {
-					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-					cgb::context().logical_device().waitIdle();
-				}
+				semaph.value()->wait_idle();
 			}
 		}
 	}

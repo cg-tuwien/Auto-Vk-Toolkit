@@ -85,4 +85,65 @@ namespace cgb
 	{ 
 		return context().get_command_pool_for_queue(*this); 
 	}
+
+	semaphore device_queue::submit_and_handle_with_semaphore(command_buffer _CommandBuffer, std::vector<semaphore> _WaitSemaphores)
+	{
+		if (_CommandBuffer.state() != command_buffer_state::finished_recording) {
+			throw std::runtime_error("Command buffer is still in recording-state, but it should be submitted. Have you forgotten to call `end_recording()`?");
+		}
+		
+		// Create a semaphore which can, or rather, MUST be used to wait for the results
+		auto signalWhenCompleteSemaphore = semaphore_t::create();
+		signalWhenCompleteSemaphore->set_designated_queue(*this); //< Just store the info
+
+		if (0 == _WaitSemaphores.size()) {
+			// Optimized route for 0 _WaitSemaphores
+			const auto submitInfo = vk::SubmitInfo()
+				.setCommandBufferCount(1u)
+				.setPCommandBuffers(_CommandBuffer.handle_addr())
+				.setWaitSemaphoreCount(0u)
+				.setPWaitSemaphores(nullptr)
+				.setPWaitDstStageMask(nullptr)
+				.setSignalSemaphoreCount(1u)
+				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
+
+			handle().submit({ submitInfo }, nullptr);
+			_CommandBuffer.mState = command_buffer_state::submitted;
+
+			signalWhenCompleteSemaphore->set_custom_deleter([
+				ownedCommandBuffer{ std::move(_CommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
+			](){});
+		}
+		else {
+			// Also set the wait semaphores and take care of their lifetimes
+			std::vector<vk::Semaphore> waitSemaphoreHandles;
+			waitSemaphoreHandles.reserve(_WaitSemaphores.size());
+			std::vector<vk::PipelineStageFlags> waitDstStageMasks;
+			waitDstStageMasks.reserve(_WaitSemaphores.size());
+			
+			for (const auto& semaphoreDependency : _WaitSemaphores) {
+				waitSemaphoreHandles.push_back(semaphoreDependency->handle());
+				waitDstStageMasks.push_back(semaphoreDependency->semaphore_wait_stage());
+			}
+			
+			const auto submitInfo = vk::SubmitInfo()
+				.setCommandBufferCount(1u)
+				.setPCommandBuffers(_CommandBuffer.handle_addr())
+				.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphoreHandles.size()))
+				.setPWaitSemaphores(waitSemaphoreHandles.data())
+				.setPWaitDstStageMask(waitDstStageMasks.data())
+				.setSignalSemaphoreCount(1u)
+				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
+
+			handle().submit({ submitInfo }, nullptr);
+			_CommandBuffer.mState = command_buffer_state::submitted;
+
+			signalWhenCompleteSemaphore->set_custom_deleter([
+				ownedWaitSemaphores{ std::move(_WaitSemaphores) },
+				ownedCommandBuffer{ std::move(_CommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
+			](){});	
+		}
+		
+		return signalWhenCompleteSemaphore;
+	}
 }

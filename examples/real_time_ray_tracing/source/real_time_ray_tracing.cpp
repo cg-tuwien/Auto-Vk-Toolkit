@@ -2,14 +2,6 @@
 
 class real_time_ray_tracing_app : public cgb::cg_element
 {
-	struct rt_data
-	{
-		cgb::vertex_buffer mPositionsBuffer;
-		cgb::index_buffer mIndexBuffer;
-		int mMaterialIndex;
-		cgb::bottom_level_acceleration_structure mBlas;
-	};
-
 	struct transformation_matrices {
 		glm::mat4 mViewMatrix;
 	};
@@ -27,7 +19,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
-		mRtData.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		mBLASs.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		std::vector<cgb::semaphore> blasWaitSemaphores;
+		blasWaitSemaphores.reserve(100);  // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
 		for (const auto& pair : distinctMaterialsOrca) {
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
 			allMatConfigs.push_back(pair.first);
@@ -44,16 +38,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  be accessible independently of the other geometry.
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
-				auto& newElement = mRtData.emplace_back();
-				newElement.mMaterialIndex = static_cast<int>(matIndex);
+				//  
+				auto materialIndex = static_cast<int>(matIndex); // unused
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
-				newElement.mPositionsBuffer = std::move(positionsBuffer);
-				newElement.mPositionsBuffer.enable_shared_ownership();	// This is neccessary currently, until the noexcept-hell has been fixed
-				newElement.mIndexBuffer = std::move(indicesBuffer);
-				newElement.mIndexBuffer.enable_shared_ownership();		// This is neccessary currently, until the noexcept-hell has been fixed
-
+				positionsBuffer.enable_shared_ownership();
+				indicesBuffer.enable_shared_ownership();
+				
 				//// Get a buffer containing all texture coordinates for all submeshes with this material
 				//newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
 				//	[] (auto _Semaphore) {  
@@ -67,16 +59,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//	});
 
 				// Create one bottom level acceleration structure per model
-				newElement.mBlas = cgb::bottom_level_acceleration_structure_t::create(std::move(newElement.mPositionsBuffer), std::move(newElement.mIndexBuffer));
+				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(positionsBuffer), std::move(indicesBuffer));
+				// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
+				// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
+				blas.enable_shared_ownership();
+				mBLASs.push_back(blas); // No need to move, because a BLAS is now represented by a shared pointer internally. We could, though.
 
 
 				// Handle the instances. There must at least be one!
 				assert(modelData.mInstances.size() > 0);
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-					newElement.mBlas->add_instance(
+					mBLASs.back()->add_instance(
 						cgb::geometry_instance::create(cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling))
 					);
 				}
+
+				mBLASs.back()->build([&] (cgb::semaphore _Semaphore) {
+					// Store them and pass them as a dependency to the TLAS-build
+					blasWaitSemaphores.push_back(std::move(_Semaphore));
+				});
 			}
 		}
 
@@ -92,87 +93,34 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 		mImageSamplers = std::move(imageSamplers);
 
-		mTlas = cgb::top_level_acceleration_structure_t::create(mRtData.size());
-		{
-			auto sbsize = mTlas->required_scratch_buffer_build_size();
-			for (auto& element : mRtData) {
-				sbsize = std::max(sbsize, element.mBlas->required_scratch_buffer_build_size());
-			}
-
-			auto scratchBuffer = cgb::create(
-				cgb::generic_buffer_meta::create_from_size(sbsize),
-				cgb::memory_usage::device,
-				vk::BufferUsageFlagBits::eRayTracingNV // TODO: This flag is Vulkan-specific, it must be abstracted
-			);
+		auto fif = cgb::context().main_window()->number_of_in_flight_frames();
+		mTLAS.reserve(fif);
+		std::vector<cgb::semaphore> waitSemaphores = std::move(blasWaitSemaphores);
+		for (decltype(fif) i = 0; i < fif; ++i) {
+			std::vector<cgb::semaphore> toWaitOnInNextBuild;
 			
-			auto commandBuffer = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-			commandBuffer.begin_recording();
-
-			auto memoryBarrier = vk::MemoryBarrier()
-				.setSrcAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV)
-				.setDstAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteNV | vk::AccessFlagBits::eAccelerationStructureReadNV);
-
-			std::vector<cgb::VkGeometryInstanceNV> geomInstances;
-			for (auto& element : mRtData) {
-				// Build BLAS
-				commandBuffer.handle().buildAccelerationStructureNV(
-					element.mBlas->info(),
-					nullptr, 0,								// no instance data for bottom level AS
-					VK_FALSE,								// update = false
-					element.mBlas->acceleration_structure_handle(), // destination AS
-					nullptr,								// no source AS
-					scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
-					cgb::context().dynamic_dispatch());
-
-				// Barrier
-				commandBuffer.handle().pipelineBarrier(
-					vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-					vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-					vk::DependencyFlags(),
-					{ memoryBarrier }, 
-					{}, {});
-
-				auto blasInstances = element.mBlas->instance_data_for_top_level_acceleration_structure();
-				// TODO: WHYYYYYYY NOT INSERT???
-				for (auto& wtf : blasInstances) {
-					geomInstances.push_back(wtf);
-				}
-			}
-
-			auto geomInstBuffer = cgb::create_and_fill(
-				cgb::generic_buffer_meta::create_from_data(geomInstances),
-				cgb::memory_usage::host_coherent,
-				geomInstances.data(),
-				nullptr,
-				vk::BufferUsageFlagBits::eRayTracingNV
+			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
+			auto tlas = cgb::top_level_acceleration_structure_t::create(mBLASs);
+			// Build the TLAS, ...
+			tlas->build([&] (cgb::semaphore _Semaphore) {
+					// ... the SUBSEQUENT build must wait on THIS build, ...
+					toWaitOnInNextBuild.push_back(std::move(_Semaphore));
+				},
+				// ... and THIS build must wait for all the previous builds, each one represented by one semaphore:
+				std::move(waitSemaphores)
 			);
+			mTLAS.push_back(std::move(tlas));
 
-			// Build TLAS
-			commandBuffer.handle().buildAccelerationStructureNV(
-				mTlas->info(),
-				geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
-				VK_FALSE,								// update = false
-				mTlas->acceleration_structure_handle(),	// destination AS
-				nullptr,								// no source AS
-				scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
-				cgb::context().dynamic_dispatch());
-
-			// Barrier
-			commandBuffer.handle().pipelineBarrier(
-				vk::PipelineStageFlagBits::eAccelerationStructureBuildNV,
-				vk::PipelineStageFlagBits::eRayTracingShaderNV,
-				vk::DependencyFlags(),
-				{ memoryBarrier },
-				{}, {});
-
-			commandBuffer.end_recording();
-			auto submitInfo = vk::SubmitInfo()
-				.setCommandBufferCount(1u)
-				.setPCommandBuffers(commandBuffer.handle_addr());
-			cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr); 
-			cgb::context().graphics_queue().handle().waitIdle();
+			// The mTLAS[0] waits on all the BLAS builds, but subsequent TLAS builds wait on previous TLAS builds.
+			// In this way, we can ensure that all the BLAS data is available for the TLAS builds [1], [2], ...
+			// Alternatively, we would require the BLAS builds to create multiple semaphores, one for each frame in flight.
+			waitSemaphores = std::move(toWaitOnInNextBuild);
 		}
-
+		// Set the semaphore of the last TLAS build as a render dependency for the first frame:
+		// (i.e. ensure that everything has been built before starting to render)
+		assert(waitSemaphores.size() == 1);
+		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(waitSemaphores[0]));
+		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
 		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
 		mOffscreenImageViews.reserve(n);
@@ -209,7 +157,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(0, 0, mImageSamplers),
 			cgb::binding(0, 1, mMaterialBuffer),
 			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
-			cgb::binding(2, 0, mTlas)
+			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
@@ -221,8 +169,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
 				cgb::binding(0, 1, mMaterialBuffer),
-				cgb::binding(1, 0, mOffscreenImageViews[i]), // Just take any, this is just to define the layout
-				cgb::binding(2, 0, mTlas)
+				cgb::binding(1, 0, mOffscreenImageViews[i]),
+				cgb::binding(2, 0, mTLAS[i])
 			});	
 		}
 		
@@ -233,16 +181,77 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::current_composition().add_element(mQuakeCam);
 	}
 
+	void update() override
+	{
+		static int counter = 0;
+		if (++counter == 4) {
+			auto current = std::chrono::high_resolution_clock::now();
+			auto time_span = current - mInitTime;
+			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
+			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
+			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
+			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
+		}
+
+		// Arrow Keys || Page Up/Down Keys => Move the TLAS
+		static int64_t updateUntilFrame = -1;
+		if (cgb::input().key_down(cgb::key_code::left) || cgb::input().key_down(cgb::key_code::right) || cgb::input().key_down(cgb::key_code::page_down) || cgb::input().key_down(cgb::key_code::page_up) || cgb::input().key_down(cgb::key_code::up) || cgb::input().key_down(cgb::key_code::down)) {
+			// Make sure to update all of the in-flight TLASs, otherwise we'll get some geometry jumping:
+			updateUntilFrame = cgb::context().main_window()->current_frame() + cgb::context().main_window()->number_of_in_flight_frames() - 1;
+		}
+		if (cgb::context().main_window()->current_frame() <= updateUntilFrame)
+		{
+			auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+			
+			auto x = (cgb::input().key_down(cgb::key_code::left)      ? -cgb::time().delta_time() : 0.0f)
+					+(cgb::input().key_down(cgb::key_code::right)     ?  cgb::time().delta_time() : 0.0f);
+			auto y = (cgb::input().key_down(cgb::key_code::page_down) ? -cgb::time().delta_time() : 0.0f)
+					+(cgb::input().key_down(cgb::key_code::page_up)   ?  cgb::time().delta_time() : 0.0f);
+			auto z = (cgb::input().key_down(cgb::key_code::up)        ? -cgb::time().delta_time() : 0.0f)
+					+(cgb::input().key_down(cgb::key_code::down)      ?  cgb::time().delta_time() : 0.0f);
+			auto speed = 1000.0f;
+			
+			// Change the position of one of the current TLASs BLAS, and update-build the TLAS.
+			// The changes do not affect the BLAS, only the instance-data that the TLAS stores to each one of the BLAS.
+			//
+			// 1. Change all the BLAS-positions on the CPU-side:
+			for (auto& blas : mBLASs) {
+				for (auto& inst : blas->instances()) {
+					inst.mTransform = glm::translate(inst.mTransform, glm::vec3{x, y, z} * speed);
+				}
+			}
+			//
+			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
+			mTLAS[inFlightIndex]->update([](cgb::semaphore _Semaphore) {
+				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
+			});
+		}
+
+		if (cgb::input().key_pressed(cgb::key_code::space)) {
+			// Print the current camera position
+			auto pos = mQuakeCam.translation();
+			LOG_INFO(fmt::format("Current camera position: {}", cgb::to_string(pos)));
+		}
+		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+			// Stop the current composition:
+			cgb::current_composition().stop();
+		}
+		if (cgb::input().key_pressed(cgb::key_code::tab)) {
+			if (mQuakeCam.is_enabled()) {
+				mQuakeCam.disable();
+			}
+			else {
+				mQuakeCam.enable();
+			}
+		}
+	}
+
 	void render() override
 	{
-		cgb::context().logical_device().waitIdle();
-		static int fuuu = 0; 
-		fuuu++;
-		LOG_INFO(fmt::format("frame{}", fuuu));
+		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		
 		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 		cmdbfr.begin_recording();
-
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
 
 		cmdbfr.set_image_barrier(
 			cgb::create_image_barrier(
@@ -287,39 +296,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr.end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		cgb::context().logical_device().waitIdle();
 
-	}
-
-	void update() override
-	{
-		static int counter = 0;
-		if (++counter == 4) {
-			auto current = std::chrono::high_resolution_clock::now();
-			auto time_span = current - mInitTime;
-			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
-			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
-		}
-
-		if (cgb::input().key_pressed(cgb::key_code::space)) {
-			// Print the current camera position
-			auto pos = mQuakeCam.translation();
-			LOG_INFO(fmt::format("Current camera position: {}", cgb::to_string(pos)));
-		}
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
-			// Stop the current composition:
-			cgb::current_composition().stop();
-		}
-		if (cgb::input().key_pressed(cgb::key_code::tab)) {
-			if (mQuakeCam.is_enabled()) {
-				mQuakeCam.disable();
-			}
-			else {
-				mQuakeCam.enable();
-			}
-		}
 	}
 
 	void finalize() override
@@ -330,7 +307,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 private: // v== Member variables ==v
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	cgb::top_level_acceleration_structure mTlas;
+	// Multiple BLAS, concurrently used by all the (three?) TLASs:
+	std::vector<cgb::bottom_level_acceleration_structure> mBLASs;
+	// Multiple TLAS, one for each frame in flight:
+	std::vector<cgb::top_level_acceleration_structure> mTLAS;
 
 	std::vector<cgb::image_view> mOffscreenImageViews;
 
@@ -343,7 +323,6 @@ private: // v== Member variables ==v
 	cgb::graphics_pipeline mGraphicsPipeline;
 	cgb::quake_camera mQuakeCam;
 
-	std::vector<rt_data> mRtData;
 }; // real_time_ray_tracing_app
 
 int main() // <== Starting point ==

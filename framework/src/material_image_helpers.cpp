@@ -204,8 +204,7 @@ namespace cgb
 			_SemaphoreHandler(std::move(transitionCompleteSemaphore)); // Transfer ownership and be done with it
 		}
 		else {
-			LOG_WARNING(fmt::format("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed (image {}).", fmt::ptr(static_cast<VkImage>(_Image.image_handle()))));
-			cgb::context().logical_device().waitIdle();
+			transitionCompleteSemaphore->wait_idle();
 		}
 
 	}
@@ -267,8 +266,7 @@ namespace cgb
 			_SemaphoreHandler(std::move(copyCompleteSemaphore)); // Transfer ownership and be done with it
 		}
 		else {
-			LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-			cgb::context().logical_device().waitIdle();
+			copyCompleteSemaphore->wait_idle();
 		}
 	}
 
@@ -501,14 +499,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -526,14 +517,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -565,14 +549,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -604,14 +581,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -643,14 +613,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -682,14 +645,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -721,14 +677,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);
@@ -760,14 +709,7 @@ namespace cgb
 					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
 				}
 				else {
-					if (_Semaphore->has_designated_queue()) {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the queue via waitIdle until the operation has completed.");
-						_Semaphore->designated_queue()->handle().waitIdle();
-					}
-					else {
-						LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-						cgb::context().logical_device().waitIdle();
-					}
+					_Semaphore->wait_idle();
 				}
 			}
 		);

@@ -32,8 +32,8 @@
 #include <cstdint>
 #include <chrono>
 
-#include <stdio.h>
-#include <assert.h>
+#include <cstdio>
+#include <cassert>
 
 // ----------------------- externals -----------------------
 #define FMT_HEADER_ONLY
@@ -147,10 +147,10 @@
 #include "context_generic_glfw.hpp"
 #include "sampler_vulkan.hpp"
 #include "image_sampler_vulkan.hpp"
-#include "command_buffer_vulkan.hpp"
-#include "command_pool_vulkan.hpp"
 #include "semaphore_vulkan.hpp"
 #include "fence_vulkan.hpp"
+#include "command_buffer_vulkan.hpp"
+#include "command_pool_vulkan.hpp"
 #include "buffer_vulkan.hpp"
 #include "queue_vulkan.hpp"
 #include "renderpass_vulkan.hpp"

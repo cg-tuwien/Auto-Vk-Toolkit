@@ -89,8 +89,7 @@ namespace cgb
 					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
 				}
 				else {
-					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-					cgb::context().logical_device().waitIdle();
+					sem3->wait_idle();
 				}
 			});
 		});
@@ -134,8 +133,7 @@ namespace cgb
 					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
 				}
 				else {
-					LOG_WARNING("No semaphore handler was provided but a semaphore emerged. Will block the device via waitIdle until the operation has completed.");
-					cgb::context().logical_device().waitIdle();
+					sem3->wait_idle();
 				}
 			});
 		});

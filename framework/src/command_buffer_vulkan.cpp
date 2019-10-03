@@ -37,11 +37,13 @@ namespace cgb
 	void command_buffer::begin_recording()
 	{
 		mCommandBuffer->begin(mBeginInfo);
+		mState = command_buffer_state::recording;
 	}
 
 	void command_buffer::end_recording()
 	{
 		mCommandBuffer->end();
+		mState = command_buffer_state::finished_recording;
 	}
 
 	void command_buffer::begin_render_pass_for_window(window* _Window, std::optional<int64_t> _InFlightIndex)

@@ -2,14 +2,16 @@
 
 namespace cgb
 {
-	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(uint32_t _InstanceCount, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
+	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(uint32_t _InstanceCount, bool _AllowUpdates, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
 	{
 		top_level_acceleration_structure_t result;
 
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry
 		result.mAccStructureInfo = vk::AccelerationStructureInfoNV{}
 			.setType(vk::AccelerationStructureTypeNV::eTopLevel)
-			.setFlags(vk::BuildAccelerationStructureFlagsNV{}) // TODO: Support flags
+			.setFlags(_AllowUpdates 
+					  ? vk::BuildAccelerationStructureFlagBitsNV::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsNV::ePreferFastBuild 
+					  : vk::BuildAccelerationStructureFlagBitsNV::ePreferFastTrace) // TODO: Support flags
 			.setInstanceCount(_InstanceCount)
 			.setGeometryCount(0u)
 			.setPGeometries(nullptr);
@@ -32,4 +34,91 @@ namespace cgb
 		result.mTracker.setTrackee(result);
 		return result;
 	}
+
+	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(std::vector<bottom_level_acceleration_structure> _BottomLevelAccelerationStructures, bool _AllowUpdates, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
+	{
+		uint32_t numInstances = 0u;
+		for (auto& blas : _BottomLevelAccelerationStructures) {
+			if (blas->instances().size() == 0) {
+				LOG_WARNING("A bottom level acceleration structure has zero instances.");
+			}
+			numInstances += static_cast<uint32_t>(blas->instances().size());
+		}
+		auto result = create(numInstances, _AllowUpdates, std::move(_AlterConfigBeforeCreation), std::move(_AlterConfigBeforeMemoryAlloc));
+		result->mBottomLevelAccelerationStructures = std::move(_BottomLevelAccelerationStructures);
+		return result;
+	}
+
+	const generic_buffer_t& top_level_acceleration_structure_t::get_and_possibly_create_scratch_buffer()
+	{
+		if (!mScratchBuffer.has_value()) {
+			mScratchBuffer = cgb::create(
+				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
+				cgb::memory_usage::device,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			);
+		}
+		return mScratchBuffer.value();
+	}
+
+	void top_level_acceleration_structure_t::build_or_update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction)
+	{
+		// Set the _ScratchBuffer parameter to an internal scratch buffer, if none has been passed:
+		const generic_buffer_t* scratchBuffer = nullptr;
+		if (_ScratchBuffer.has_value()) {
+			scratchBuffer = &_ScratchBuffer->get();
+		}
+		else {
+			scratchBuffer = &get_and_possibly_create_scratch_buffer();
+		}
+
+		std::vector<cgb::VkGeometryInstanceNV> geomInstances;
+		for (auto& blas : mBottomLevelAccelerationStructures) {
+			auto blasInstances = blas->instance_data_for_top_level_acceleration_structure();
+			geomInstances.insert(std::end(geomInstances), std::begin(blasInstances), std::end(blasInstances));
+		}
+		
+		// TODO: Retain this buffer, don't always create a new one
+		auto geomInstBuffer = cgb::create_and_fill(
+				cgb::generic_buffer_meta::create_from_data(geomInstances),
+				cgb::memory_usage::host_coherent,
+				geomInstances.data(),
+				nullptr,
+				vk::BufferUsageFlagBits::eRayTracingNV
+			);
+		
+		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		commandBuffer.begin_recording();
+
+		commandBuffer.handle().buildAccelerationStructureNV(
+			config(),
+			geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
+			_BuildAction == tlas_action::build
+				? VK_FALSE 
+				: VK_TRUE,							// update <=> VK_TRUE
+			acceleration_structure_handle(),		// destination AS
+			_BuildAction == tlas_action::build		// source AS
+				? nullptr 
+				: acceleration_structure_handle(),
+			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
+			cgb::context().dynamic_dispatch());
+		
+		commandBuffer.end_recording();
+		
+		auto buildCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+		buildCompleteSemaphore->set_semaphore_wait_stage(vk::PipelineStageFlagBits::eAccelerationStructureBuildNV);
+		
+		handle_semaphore(std::move(buildCompleteSemaphore), std::move(_SemaphoreHandler));
+	}
+
+	void top_level_acceleration_structure_t::build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	{
+		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::build);
+	}
+	
+	void top_level_acceleration_structure_t::update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	{
+		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::update);
+	}
+
 }

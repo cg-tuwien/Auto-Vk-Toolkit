@@ -4,9 +4,19 @@ namespace cgb // ========================== TODO/WIP ===========================
 {
 	class command_pool;
 
+	enum struct command_buffer_state
+	{
+		none,
+		recording,
+		finished_recording,
+		submitted
+	};
+
 	/** A command buffer which has been created for a certain queue family */
 	class command_buffer
 	{
+		friend class device_queue;
+		
 	public:
 		command_buffer() = default;
 		command_buffer(command_buffer&&) = default;
@@ -39,11 +49,13 @@ namespace cgb // ========================== TODO/WIP ===========================
 		auto& begin_info() const { return mBeginInfo; }
 		auto& handle() const { return mCommandBuffer.get(); }
 		auto* handle_addr() const { return &mCommandBuffer.get(); }
+		auto state() const { return mState; }
 
 		static std::vector<command_buffer> create_many(uint32_t pCount, command_pool& pPool, vk::CommandBufferUsageFlags pUsageFlags);
 		static command_buffer create(command_pool& pPool, vk::CommandBufferUsageFlags pUsageFlags);
 
 	private:
+		command_buffer_state mState;
 		vk::CommandBufferBeginInfo mBeginInfo;
 		vk::UniqueCommandBuffer mCommandBuffer;
 	};
