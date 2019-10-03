@@ -753,6 +753,8 @@ namespace cgb
 			auto descriptorIndexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{}
 				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
 				.setRuntimeDescriptorArray(VK_TRUE)
+				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
+				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
 				.setPNext(&deviceFeatures);
 
 			auto allRequiredDeviceExtensions = get_all_required_device_extensions();

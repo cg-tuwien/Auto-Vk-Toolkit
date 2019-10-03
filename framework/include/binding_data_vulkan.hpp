@@ -21,6 +21,7 @@ namespace cgb
 			instance_buffer_t*,
 			top_level_acceleration_structure_t*,
 			image_view_t*,
+			buffer_view_t*,
 			sampler_t*,
 			image_sampler_t*,
 			std::vector<generic_buffer_t*>,
@@ -33,6 +34,7 @@ namespace cgb
 			std::vector<instance_buffer_t*>,
 			std::vector<top_level_acceleration_structure_t*>,
 			std::vector<image_view_t*>,
+			std::vector<buffer_view_t*>,
 			std::vector<sampler_t*>,
 			std::vector<image_sampler_t*>
 		> mResourcePtr;
@@ -77,7 +79,7 @@ namespace cgb
 		{
 			mThisIsProbablyAHackForBufferViews.clear();
 			for (auto& v : vec) {
-				mThisIsProbablyAHackForBufferViews.push_back(v->descriptor_info());
+				mThisIsProbablyAHackForBufferViews.push_back(v->view_handle());
 			}
 			return mThisIsProbablyAHackForBufferViews.data();
 		}
@@ -96,6 +98,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<sampler_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<buffer_view_t*>>(mResourcePtr).size()); }
 			return 1u;
 		}
 
@@ -113,6 +116,7 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return &std::get<image_view_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return &std::get<sampler_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return &std::get<image_sampler_t*>(mResourcePtr)->descriptor_info(); }
+			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<uniform_buffer_t*>>(mResourcePtr)) { return nullptr; }
@@ -134,6 +138,8 @@ namespace cgb
 				return fill_this_is_probably_a_hack_for_image_infos(std::get<std::vector<image_sampler_t*>>(mResourcePtr));
 			}
 			
+			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
+			
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
 
@@ -151,6 +157,7 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { // TODO: OMG, I don't know... shouldn't this be handled somehow differently??
 				return fill_this_is_probably_a_hack_for_buffer_infos(std::get<std::vector<generic_buffer_t*>>(mResourcePtr));
@@ -181,6 +188,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
 			
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
@@ -199,6 +207,7 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<uniform_buffer_t*>>(mResourcePtr)) { return nullptr; }
@@ -216,6 +225,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
 			
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}
@@ -234,6 +244,7 @@ namespace cgb
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return &std::get<buffer_view_t*>(mResourcePtr)->view_handle(); }
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<uniform_buffer_t*>>(mResourcePtr)) { return nullptr; }
@@ -247,6 +258,10 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
+			
+			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) {// TODO: OMG, I don't know... shouldn't this be handled somehow differently??
+				return fill_this_is_probably_a_hack_for_buffer_views(std::get<std::vector<buffer_view_t*>>(mResourcePtr));
+			}
 			
 			throw std::runtime_error("Some holds_alternative calls are not implemented.");
 		}

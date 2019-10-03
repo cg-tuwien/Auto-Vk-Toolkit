@@ -152,6 +152,7 @@
 #include "command_buffer_vulkan.hpp"
 #include "command_pool_vulkan.hpp"
 #include "buffer_vulkan.hpp"
+#include "buffer_view_vulkan.hpp"
 #include "queue_vulkan.hpp"
 #include "renderpass_vulkan.hpp"
 #include "framebuffer_vulkan.hpp"

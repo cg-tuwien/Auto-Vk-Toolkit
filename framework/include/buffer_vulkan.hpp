@@ -21,6 +21,7 @@ namespace cgb
 
 		const auto& meta_data() const			{ return mMetaData; }
 		auto size() const						{ return mMetaData.total_size(); }
+		auto& config() const					{ return mCreateInfo; }
 		const auto& memory_properties() const	{ return mMemoryPropertyFlags; }
 		const auto& memory_handle() const		{ return mMemory.get(); }
 		const auto* memory_handle_addr() const	{ return &mMemory.get(); }
@@ -33,6 +34,7 @@ namespace cgb
 
 	public:
 		Meta mMetaData;
+		vk::BufferCreateInfo mCreateInfo;
 		vk::MemoryPropertyFlags mMemoryPropertyFlags;
 		vk::UniqueDeviceMemory mMemory;
 		vk::BufferUsageFlags mBufferUsageFlags;
@@ -81,6 +83,7 @@ namespace cgb
 
 		cgb::buffer_t<Meta> b;
 		b.mMetaData = pConfig;
+		b.mCreateInfo = bufferCreateInfo;
 		b.mMemoryPropertyFlags = pMemoryProperties;
 		b.mMemory = std::move(vkMemory);
 		b.mBufferUsageFlags = pBufferUsage;

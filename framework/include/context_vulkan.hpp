@@ -361,11 +361,25 @@ namespace cgb
 	inline void vulkan::track_destruction<compute_pipeline_t>(compute_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_destruction."); }
 
 	template <>
+	inline void vulkan::track_creation<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_creation."); }
+	template <>
+	inline void vulkan::track_move<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing, ray_tracing_pipeline_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_move."); }
+	template <>
+	inline void vulkan::track_destruction<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_destruction."); }
+
+	template <>
 	inline void vulkan::track_creation<framebuffer_t>(framebuffer_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_creation."); }
 	template <>
 	inline void vulkan::track_move<framebuffer_t>(framebuffer_t* thing, framebuffer_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_move."); }
 	template <>
 	inline void vulkan::track_destruction<framebuffer_t>(framebuffer_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_destruction."); }
+
+	template <>
+	inline void vulkan::track_creation<buffer_view_t>(buffer_view_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_creation."); }
+	template <>
+	inline void vulkan::track_move<buffer_view_t>(buffer_view_t* thing, buffer_view_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_move."); }
+	template <>
+	inline void vulkan::track_destruction<buffer_view_t>(buffer_view_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_destruction."); }
 
 
 	// [1] Vulkan Tutorial, Depth buffering, https://vulkan-tutorial.com/Depth_buffering

@@ -470,7 +470,7 @@ namespace cgb
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
 
-	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_combined_vertices_and_indices_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> positionsData;
 		std::vector<uint32_t> indicesData;
@@ -485,6 +485,13 @@ namespace cgb
 			}
 		}
 
+		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
+	}
+	
+	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto [positionsData, indicesData] = get_combined_vertices_and_indices_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positionsData)
 				.describe_only_member(positionsData[0], 0, content_description::position),
@@ -525,7 +532,7 @@ namespace cgb
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
 
-	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec3> get_combined_normals_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> normalsData;
 
@@ -536,6 +543,13 @@ namespace cgb
 			}
 		}
 
+		return normalsData;
+	}
+	
+	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto normalsData = get_combined_normals_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		
 		vertex_buffer normalsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(normalsData),
 			cgb::memory_usage::device,
@@ -557,7 +571,7 @@ namespace cgb
 		return normalsBuffer;
 	}
 
-	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec3> get_combined_tangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> tangentsData;
 
@@ -568,6 +582,13 @@ namespace cgb
 			}
 		}
 
+		return tangentsData;
+	}
+	
+	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto tangentsData = get_combined_tangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		
 		vertex_buffer tangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(tangentsData),
 			cgb::memory_usage::device,
@@ -589,7 +610,7 @@ namespace cgb
 		return tangentsBuffer;
 	}
 
-	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec3> get_combined_bitangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> bitangentsData;
 
@@ -599,7 +620,14 @@ namespace cgb
 				insert_into(bitangentsData, modelRef.bitangents_for_mesh(meshIndex));
 			}
 		}
-
+		
+		return bitangentsData;
+	}
+	
+	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto bitangentsData = get_combined_bitangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		
 		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
 			cgb::memory_usage::device,
@@ -621,7 +649,7 @@ namespace cgb
 		return bitangentsBuffer;
 	}
 
-	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec4> get_combined_colors_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
@@ -632,6 +660,13 @@ namespace cgb
 			}
 		}
 
+		return colorsData;
+	}
+	
+	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto colorsData = get_combined_colors_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _ColorsSet);
+		
 		vertex_buffer colorsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(colorsData),
 			cgb::memory_usage::device,
@@ -653,7 +688,7 @@ namespace cgb
 		return colorsBuffer;
 	}
 
-	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec2> get_combined_2d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
@@ -664,6 +699,13 @@ namespace cgb
 			}
 		}
 
+		return texCoordsData;
+	}
+	
+	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto texCoordsData = get_combined_2d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
+		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,
@@ -685,7 +727,7 @@ namespace cgb
 		return texCoordsBuffer;
 	}
 
-	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::vector<glm::vec3> get_combined_3d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 
@@ -696,6 +738,13 @@ namespace cgb
 			}
 		}
 
+		return texCoordsData;
+	}
+	
+	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	{
+		auto texCoordsData = get_combined_3d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
+		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,

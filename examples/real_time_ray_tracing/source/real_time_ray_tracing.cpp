@@ -19,9 +19,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
-		mBLASs.reserve(100); // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		mBLASs.reserve(100);				// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		std::vector<cgb::semaphore> blasWaitSemaphores;
-		blasWaitSemaphores.reserve(100);  // Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
+		blasWaitSemaphores.reserve(100);	// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
+		mTexCoordBufferViews.reserve(100);	// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
+		mIndexBufferViews.reserve(100);		// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		for (const auto& pair : distinctMaterialsOrca) {
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
 			allMatConfigs.push_back(pair.first);
@@ -38,19 +40,32 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  be accessible independently of the other geometry.
 				//  Therefore, in this example, we take the approach of building separate 
 				//  buffers for everything which could potentially be instanced.)
-				//  
-				auto materialIndex = static_cast<int>(matIndex); // unused
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
 				positionsBuffer.enable_shared_ownership();
 				indicesBuffer.enable_shared_ownership();
 				
-				//// Get a buffer containing all texture coordinates for all submeshes with this material
-				//newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 0,
-				//	[] (auto _Semaphore) {  
-				//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				//	});
+				// Get a buffer containing all texture coordinates for all submeshes with this material
+				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
+				auto texCoordsData = cgb::get_combined_2d_texture_coordinates_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
+				auto texCoordsTexelBuffer = cgb::create_and_fill(
+					cgb::uniform_texel_buffer_meta::create_from_data(texCoordsData)
+						.describe_only_member(texCoordsData[0]),
+					cgb::memory_usage::device,
+					texCoordsData.data()
+				);
+				mTexCoordBufferViews.push_back( cgb::buffer_view_t::create(std::move(texCoordsTexelBuffer)) );
+
+				// The following call is quite redundant => TODO: optimize!
+				auto [positionsData, indicesData] = cgb::get_combined_vertices_and_indices_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
+				auto indexTexelBuffer = cgb::create_and_fill(
+					cgb::uniform_texel_buffer_meta::create_from_data(indicesData)
+						.describe_only_member(indicesData[0]),
+					cgb::memory_usage::device,
+					indicesData.data()
+				);
+				mIndexBufferViews.push_back( cgb::buffer_view_t::create(std::move(indexTexelBuffer)) );
 
 				//// Get a buffer containing all normals for all submeshes with this material
 				//newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
@@ -156,6 +171,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::push_constant_binding_data { cgb::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
 			cgb::binding(0, 1, mMaterialBuffer),
+			cgb::binding(0, 2, mIndexBufferViews),
+			cgb::binding(0, 3, mTexCoordBufferViews),
 			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
 			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
@@ -169,6 +186,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
 				cgb::binding(0, 0, mImageSamplers),
 				cgb::binding(0, 1, mMaterialBuffer),
+				cgb::binding(0, 2, mIndexBufferViews),
+				cgb::binding(0, 3, mTexCoordBufferViews),
 				cgb::binding(1, 0, mOffscreenImageViews[i]),
 				cgb::binding(2, 0, mTLAS[i])
 			});	
@@ -218,6 +237,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			for (auto& blas : mBLASs) {
 				for (auto& inst : blas->instances()) {
 					inst.mTransform = glm::translate(inst.mTransform, glm::vec3{x, y, z} * speed);
+					break; // only transform the first
 				}
 			}
 			//
@@ -316,6 +336,8 @@ private: // v== Member variables ==v
 
 	cgb::storage_buffer mMaterialBuffer;
 	std::vector<cgb::image_sampler> mImageSamplers;
+	std::vector<cgb::buffer_view> mIndexBufferViews;
+	std::vector<cgb::buffer_view> mTexCoordBufferViews;
 
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 

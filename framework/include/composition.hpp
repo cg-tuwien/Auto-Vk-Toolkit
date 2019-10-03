@@ -163,10 +163,12 @@ namespace cgb
 		{
 			for (int i=0; !thiz->mInputBufferGoodToGo; ++i)
 			{
-				if ((i+1) % 1000 == 0)
+#if _DEBUG
+				if ((i+1) % 10000 == 0)
 				{
-					LOG_DEBUG_VERBOSE(fmt::format("More than {} iterations in spin-lock", i+1));
+					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));
 				}
+#endif
 			}
 			assert(thiz->mShouldSwapInputBuffers == false);
 		}

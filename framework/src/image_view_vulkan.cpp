@@ -95,7 +95,7 @@ namespace cgb
 		}
 
 		// Proceed with config creation (and use the imageAspectFlags there):
-		mInfo = vk::ImageViewCreateInfo()
+		mInfo = vk::ImageViewCreateInfo{}
 			.setImage(image_handle())
 			.setViewType(to_image_view_type(image_config()))
 			.setFormat(_ViewFormat.mFormat)

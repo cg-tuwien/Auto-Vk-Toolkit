@@ -64,6 +64,9 @@ layout(set = 0, binding = 1) buffer Material
 	MaterialGpuData materials[];
 } matSsbo;
 
+layout(set = 0, binding = 2) uniform usamplerBuffer indexBuffers[];
+layout(set = 0, binding = 3) uniform samplerBuffer vertexDataBuffers[];
+
 layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
 
 layout(location = 0) rayPayloadInNV vec3 hitValue;
@@ -73,6 +76,12 @@ layout(location = 2) rayPayloadNV float secondaryRayHitValue;
 void main()
 {
     const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
+	const int instanceIndex = nonuniformEXT(gl_InstanceCustomIndexNV);
+	const ivec3 indices = ivec3(texelFetch(indexBuffers[instanceIndex], gl_PrimitiveID).rgb);
+	const vec2 uv0 = texelFetch(vertexDataBuffers[instanceIndex], indices.x).rg;
+	const vec2 uv1 = texelFetch(vertexDataBuffers[instanceIndex], indices.y).rg;
+	const vec2 uv2 = texelFetch(vertexDataBuffers[instanceIndex], indices.z).rg;
+	const vec2 uv = (barycentrics.x * uv0 + barycentrics.y * uv1 + barycentrics.z * uv2);
 
     vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
     vec3 direction = normalize(vec3(0.8, 1, 0));
@@ -87,5 +96,6 @@ void main()
 //    hitValue = (barycentrics * 0.5 + vec3(0.5, 0.5, 0.5))
 //		* uniformBuffers[nonuniformEXT(gl_InstanceCustomIndexNV)].color.rgb
 //		* ( secondaryRayHitValue < tmax ? 0.25 : 1.0 );
-	hitValue = barycentrics * 0.5 + vec3(0.5, 0.5, 0.5);
+//	hitValue = barycentrics * 0.5 + vec3(0.5, 0.5, 0.5);
+	hitValue = vec3(uv, 0);
 }

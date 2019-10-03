@@ -204,15 +204,32 @@ namespace cgb
 	*/
 	class uniform_texel_buffer_meta
 	{
-	public:
+public:
 		/** Total size of the data represented by the buffer. */
-		size_t total_size() const { return mSize; }
+		size_t total_size() const { return sizeof_one_element() * num_elements(); }
+		/** The size of one element in the buffer. */
+		size_t sizeof_one_element() const { return mSizeOfOneElement; }
+		/** The total number of elements in the buffer. */
+		size_t num_elements() const { return mNumElements; }
+		/** Returns a reference to a collection of all member descriptions */
+		const auto& member_descriptions() const { return mOrderedMemberDescriptions; }
 
-		/** Create meta info from the total size of the represented data. */
-		static uniform_texel_buffer_meta create_from_size(size_t pSize) 
+		/** Create meta info from the size of one element and the number of elements. 
+		 */
+		static uniform_texel_buffer_meta create_from_element_size(size_t pSizeElement, size_t pNumElements) 
 		{ 
 			uniform_texel_buffer_meta result; 
-			result.mSize = pSize; 
+			result.mSizeOfOneElement = pSizeElement;
+			result.mNumElements = pNumElements;
+			return result; 
+		}
+
+		/** Create meta info from the total size of all elements. */
+		static uniform_texel_buffer_meta create_from_total_size(size_t pTotalSize, size_t pNumElements) 
+		{ 
+			uniform_texel_buffer_meta result; 
+			result.mSizeOfOneElement = pTotalSize / pNumElements;
+			result.mNumElements = pNumElements;
 			return result; 
 		}
 
@@ -223,13 +240,76 @@ namespace cgb
 		static std::enable_if_t<!std::is_pointer_v<T>, uniform_texel_buffer_meta> create_from_data(const T& pData)
 		{
 			uniform_texel_buffer_meta result; 
-			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
+			result.mSizeOfOneElement = sizeof(first_or_only_element(pData)); 
+			result.mNumElements = how_many_elements(pData);
 			return result; 
 		}
 
+		/** Describe which part of an element's member gets mapped to which shader locaton. */
+		uniform_texel_buffer_meta& describe_member(size_t _Offset, buffer_member_format _Format, content_description _Content = content_description::unspecified)
+		{
+#if defined(_DEBUG)
+			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [offs = _Offset](const buffer_element_member_meta& e) { return e.mOffset == offs; }) != mOrderedMemberDescriptions.end()) {
+				LOG_WARNING(fmt::format("There is already a member described at offset {}.", _Offset));
+			}
+#endif
+			// insert already in the right place
+			buffer_element_member_meta newElement{ 0u, _Offset, _Format, _Content };
+			auto it = std::lower_bound(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), newElement,
+				[](const buffer_element_member_meta& first, const buffer_element_member_meta& second) -> bool { 
+					return first.mOffset < second.mOffset;
+				});
+			mOrderedMemberDescriptions.insert(it, newElement);
+			return *this;
+		}
+
+		/** If the texel buffer is not a data structure which contains interleaved data, 
+		 *	this method can be used to describe its only data member. It is assumed that
+		 *	the only data member has the same size as `mSizeOfOneElement`.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	std::vector<vec3> normals;
+		 *	uniform_texel_buffer_meta meta = uniform_texel_buffer_meta::create_from_data(normals)
+		 *								.describe_only_member(normals[0],  2, content_description::normal);
+		 *	```
+		 */
+		template <typename M>
+		uniform_texel_buffer_meta& describe_only_member(const M& _Member, content_description _Content = content_description::unspecified)
+		{
+			assert(sizeof(_Member) == mSizeOfOneElement);
+			return describe_member(0, format_for<M>(), _Content);
+		}
+
+#if defined(_MSC_VER) && defined(__cplusplus)
+		/** Describe a member and let the compiler figure out offset and format.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	struct MyData { int mFirst; float mSecond; };
+		 *	std::vector<MyData> myData;
+		 *	uniform_texel_buffer_meta meta = uniform_texel_buffer_meta::create_from_data(myData)
+		 *								.describe_member(&MyData::mFirst,  0, content_description::position)
+		 *								.describe_member(&MyData::mSecond, 1, content_description::texture_coordinate);
+		 *	```
+		 */
+		template <class T, class M> 
+		uniform_texel_buffer_meta& describe_member(M T::* _Member, content_description _Content = content_description::unspecified)
+		{
+			return describe_member(
+				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*_Member))),
+				format_for<M>(),
+				_Content);
+		}
+#endif
+
 	private:
-		// The total size of the data
-		size_t mSize;
+		// The size of one record/element
+		size_t mSizeOfOneElement;
+		// The total number of records/elements
+		size_t mNumElements;
+		// Descriptions of buffer record/element members, ordered by their offsets
+		std::vector<buffer_element_member_meta> mOrderedMemberDescriptions;
 	};
 
 	/** This struct contains information for a storage buffer.
@@ -270,13 +350,30 @@ namespace cgb
 	{
 	public:
 		/** Total size of the data represented by the buffer. */
-		size_t total_size() const { return mSize; }
+		size_t total_size() const { return sizeof_one_element() * num_elements(); }
+		/** The size of one element in the buffer. */
+		size_t sizeof_one_element() const { return mSizeOfOneElement; }
+		/** The total number of elements in the buffer. */
+		size_t num_elements() const { return mNumElements; }
+		/** Returns a reference to a collection of all member descriptions */
+		const auto& member_descriptions() const { return mOrderedMemberDescriptions; }
 
-		/** Create meta info from the total size of the represented data. */
-		static storage_texel_buffer_meta create_from_size(size_t pSize) 
+		/** Create meta info from the size of one element and the number of elements. 
+		 */
+		static storage_texel_buffer_meta create_from_element_size(size_t pSizeElement, size_t pNumElements) 
 		{ 
 			storage_texel_buffer_meta result; 
-			result.mSize = pSize; 
+			result.mSizeOfOneElement = pSizeElement;
+			result.mNumElements = pNumElements;
+			return result; 
+		}
+
+		/** Create meta info from the total size of all elements. */
+		static storage_texel_buffer_meta create_from_total_size(size_t pTotalSize, size_t pNumElements) 
+		{ 
+			storage_texel_buffer_meta result; 
+			result.mSizeOfOneElement = pTotalSize / pNumElements;
+			result.mNumElements = pNumElements;
 			return result; 
 		}
 
@@ -287,13 +384,76 @@ namespace cgb
 		static std::enable_if_t<!std::is_pointer_v<T>, storage_texel_buffer_meta> create_from_data(const T& pData)
 		{
 			storage_texel_buffer_meta result; 
-			result.mSize = how_many_elements(pData) * sizeof(first_or_only_element(pData)); 
+			result.mSizeOfOneElement = sizeof(first_or_only_element(pData)); 
+			result.mNumElements = how_many_elements(pData);
 			return result; 
 		}
 
+		/** Describe which part of an element's member gets mapped to which shader locaton. */
+		storage_texel_buffer_meta& describe_member(size_t _Offset, buffer_member_format _Format, content_description _Content = content_description::unspecified)
+		{
+#if defined(_DEBUG)
+			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [offs = _Offset](const buffer_element_member_meta& e) { return e.mOffset == offs; }) != mOrderedMemberDescriptions.end()) {
+				LOG_WARNING(fmt::format("There is already a member described at offset {}.", _Offset));
+			}
+#endif
+			// insert already in the right place
+			buffer_element_member_meta newElement{ 0u, _Offset, _Format, _Content };
+			auto it = std::lower_bound(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), newElement,
+				[](const buffer_element_member_meta& first, const buffer_element_member_meta& second) -> bool { 
+					return first.mOffset < second.mOffset;
+				});
+			mOrderedMemberDescriptions.insert(it, newElement);
+			return *this;
+		}
+
+		/** If the texel buffer is not a data structure which contains interleaved data, 
+		 *	this method can be used to describe its only data member. It is assumed that
+		 *	the only data member has the same size as `mSizeOfOneElement`.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	std::vector<vec3> normals;
+		 *	storage_texel_buffer_meta meta = storage_texel_buffer_meta::create_from_data(normals)
+		 *								.describe_only_member(normals[0],  2, content_description::normal);
+		 *	```
+		 */
+		template <typename M>
+		storage_texel_buffer_meta& describe_only_member(const M& _Member, content_description _Content = content_description::unspecified)
+		{
+			assert(sizeof(_Member) == mSizeOfOneElement);
+			return describe_member(0, format_for<M>(), _Content);
+		}
+
+#if defined(_MSC_VER) && defined(__cplusplus)
+		/** Describe a member and let the compiler figure out offset and format.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	struct MyData { int mFirst; float mSecond; };
+		 *	std::vector<MyData> myData;
+		 *	storage_texel_buffer_meta meta = storage_texel_buffer_meta::create_from_data(myData)
+		 *								.describe_member(&MyData::mFirst,  0, content_description::position)
+		 *								.describe_member(&MyData::mSecond, 1, content_description::texture_coordinate);
+		 *	```
+		 */
+		template <class T, class M> 
+		storage_texel_buffer_meta& describe_member(M T::* _Member, content_description _Content = content_description::unspecified)
+		{
+			return describe_member(
+				((::size_t)&reinterpret_cast<char const volatile&>((((T*)0)->*_Member))),
+				format_for<M>(),
+				_Content);
+		}
+#endif
+
 	private:
-		// The total size of the data
-		size_t mSize;
+		// The size of one record/element
+		size_t mSizeOfOneElement;
+		// The total number of records/elements
+		size_t mNumElements;
+		// Descriptions of buffer record/element members, ordered by their offsets
+		std::vector<buffer_element_member_meta> mOrderedMemberDescriptions;
 	};
 
 	/**	This struct contains information for a buffer which is intended to be used as 
@@ -350,6 +510,9 @@ namespace cgb
 #if defined(_DEBUG)
 			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [loc = _ShaderLocation](const buffer_element_member_meta& e) { return e.mLocation == loc; }) != mOrderedMemberDescriptions.end()) {
 				LOG_WARNING(fmt::format("There is already a member described at location {}. If you are not using the location (like with a ray-tracing pipeline), this could be okay, though.", _ShaderLocation));
+			}
+			if (std::find_if(std::begin(mOrderedMemberDescriptions), std::end(mOrderedMemberDescriptions), [offs = _Offset](const buffer_element_member_meta& e) { return e.mOffset == offs; }) != mOrderedMemberDescriptions.end()) {
+				LOG_WARNING(fmt::format("There is already a member described at offset {}.", _Offset));
 			}
 #endif
 			// insert already in the right place

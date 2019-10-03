@@ -41,6 +41,11 @@ namespace cgb
 	template<>
 	inline vk::DescriptorType descriptor_type_of<top_level_acceleration_structure>(const top_level_acceleration_structure&) { return vk::DescriptorType::eAccelerationStructureNV; }
 
+	template<>
+	inline vk::DescriptorType descriptor_type_of<buffer_view_t>(const buffer_view_t& _BufferView) { return _BufferView.descriptor_type(); }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<buffer_view>(const buffer_view& _BufferView) { return _BufferView->descriptor_type(); }
+
 
 
 	template<typename T> 
