@@ -261,6 +261,20 @@ namespace cgb
 		{
 			if (other.has_value()) {
 				if (!other.is_shared_ownership_enabled()) {
+					//
+					//	Why are you getting this exception?
+					//	The most obvious reason would be that you have intentionally
+					//	tried to copy a resource which might not be allowed unless
+					//	"shared ownership" has been enabled.
+					//	If you intended to enable shared ownership, call: `enable_shared_ownership()`
+					//	which will move the resource internally into a shared pointer.
+					//
+					//	Attention:
+					//	A common source of unintentionally causing this exception is
+					//	the usage of a resource in an `std::initializer_list`. The problem
+					//	with that is that it looks like it does not support move-only types.
+					//	An alternative to initializer lists would be to use `cgb::make_vector`.
+					//
 					throw std::logic_error("Can only copy construct owning_resources which have shared ownership enabled.");
 				}
 				*this_as_variant() = std::get<std::shared_ptr<T>>(other);
@@ -276,6 +290,20 @@ namespace cgb
 		{
 			if (other.has_value()) {
 				if (!other.is_shared_ownership_enabled()) {
+					//
+					//	Why are you getting this exception?
+					//	The most obvious reason would be that you have intentionally
+					//	tried to copy a resource which might not be allowed unless
+					//	"shared ownership" has been enabled.
+					//	If you intended to enable shared ownership, call: `enable_shared_ownership()`
+					//	which will move the resource internally into a shared pointer.
+					//
+					//	Attention:
+					//	A common source of unintentionally causing this exception is
+					//	the usage of a resource in an `std::initializer_list`. The problem
+					//	with that is that it looks like it does not support move-only types.
+					//	An alternative to initializer lists would be to use `cgb::make_vector`.
+					//
 					throw std::logic_error("Can only copy assign owning_resources which have shared ownership enabled.");
 				}
 				*this_as_variant() = std::get<std::shared_ptr<T>>(other);

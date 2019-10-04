@@ -39,7 +39,10 @@ namespace cgb
 	{
 		fence_t result;
 		result.mCreateInfo = vk::FenceCreateInfo()
-			.setFlags(_CreateInSignaledState ? vk::FenceCreateFlags() : vk::FenceCreateFlagBits::eSignaled);
+			.setFlags(_CreateInSignaledState 
+						? vk::FenceCreateFlags() 
+						: vk::FenceCreateFlagBits::eSignaled
+			);
 
 		// Maybe alter the config?
 		if (_AlterConfigBeforeCreation.mFunction) {

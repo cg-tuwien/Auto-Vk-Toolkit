@@ -11,6 +11,26 @@ namespace cgb
 		return { {std::forward<T>(t)...} };
 	}
 
+	template<class T> struct identity { using type = T; };
+	template<class D, class... Ts>
+	struct ret : identity<D> {};
+	template<class... Ts>
+	struct ret<void, Ts...> : std::common_type<Ts...> {};
+	template<class D, class... Ts>
+	using ret_t = typename ret<D, Ts...>::type;
+
+	/** Make a vector.
+	 *	Source: https://stackoverflow.com/questions/36994727/how-do-i-write-a-make-vector-similar-to-stdmake-tuple
+	 */
+	template<class D = void, class... Ts>
+	std::vector<ret_t<D, Ts...>> make_vector(Ts&&... args) {
+		std::vector<ret_t<D, Ts...>>  ret;
+		ret.reserve(sizeof...(args));
+		using expander = int[];
+		(void) expander{ ((void)ret.emplace_back(std::forward<Ts>(args)), 0)..., 0 };
+		return ret;
+	}
+
 	/** Makes a Vulkan-compatible version integer based on the three given numbers */
 	static constexpr uint32_t make_version(uint32_t major, uint32_t minor, uint32_t patch)
 	{
