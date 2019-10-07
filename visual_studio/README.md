@@ -71,7 +71,7 @@ For the example above, you'd have to create the following filters structure in y
   * `model.mat`
   * `texture01.jpg`
   * `normal_maps/`
-    * texture02.png`
+    * `texture02.png`
 
 ### Troubleshooting
 
