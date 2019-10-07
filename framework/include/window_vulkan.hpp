@@ -196,7 +196,7 @@ namespace cgb
 
 		//template<typename CBT, typename... CBTS>
 		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs);
+		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent = {});
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
@@ -287,9 +287,6 @@ namespace cgb
 
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
-
-		std::vector<command_buffer> mImageLayoutTransitionBeginningOfFrame;
-		std::vector<command_buffer> mImageLayoutTransitionPresent;
 
 		// Command buffers which are only submitted once; taking their ownership, handling their lifetime.
 		std::list<std::tuple<int64_t, command_buffer>> mOneTimeSubmitCommandBuffers;

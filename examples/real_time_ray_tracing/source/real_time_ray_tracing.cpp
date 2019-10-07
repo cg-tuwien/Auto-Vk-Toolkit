@@ -61,7 +61,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				auto [positionsData, indicesData] = cgb::get_combined_vertices_and_indices_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
 				auto indexTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(indicesData)
-						.describe_only_member(indicesData[0]),
+						.set_format<glm::uvec3>(), // Combine 3 consecutive elements to one unit
 					cgb::memory_usage::device,
 					indicesData.data()
 				);
@@ -80,12 +80,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				blas.enable_shared_ownership();
 				mBLASs.push_back(blas); // No need to move, because a BLAS is now represented by a shared pointer internally. We could, though.
 
-
-				// Handle the instances. There must at least be one!
-				assert(modelData.mInstances.size() > 0);
+				assert(modelData.mInstances.size() > 0); // Handle the instances. There must at least be one!
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
-					mBLASs.back()->add_instance(
-						cgb::geometry_instance::create(cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling))
+					mGeometryInstances.push_back(
+						cgb::geometry_instance::create(blas)
+							.set_transform(cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling))
+							.set_custom_index(bufferViewIndex)
 					);
 				}
 
@@ -115,9 +115,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			std::vector<cgb::semaphore> toWaitOnInNextBuild;
 			
 			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
-			auto tlas = cgb::top_level_acceleration_structure_t::create(mBLASs);
+			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
 			// Build the TLAS, ...
-			tlas->build([&] (cgb::semaphore _Semaphore) {
+			tlas->build(mGeometryInstances, [&] (cgb::semaphore _Semaphore) {
 					// ... the SUBSEQUENT build must wait on THIS build, ...
 					toWaitOnInNextBuild.push_back(std::move(_Semaphore));
 				},
@@ -233,16 +233,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Change the position of one of the current TLASs BLAS, and update-build the TLAS.
 			// The changes do not affect the BLAS, only the instance-data that the TLAS stores to each one of the BLAS.
 			//
-			// 1. Change all the BLAS-positions on the CPU-side:
-			for (auto& blas : mBLASs) {
-				for (auto& inst : blas->instances()) {
-					inst.mTransform = glm::translate(inst.mTransform, glm::vec3{x, y, z} * speed);
-					break; // only transform the first
-				}
+			// 1. Change every other instance:
+			bool evenOdd = true;
+			for (auto& geomInst : mGeometryInstances) {
+				evenOdd = !evenOdd;
+				if (evenOdd) { continue; }
+				geomInst.set_transform(glm::translate(geomInst.mTransform, glm::vec3{x, y, z} * speed));
 			}
 			//
 			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			mTLAS[inFlightIndex]->update([](cgb::semaphore _Semaphore) {
+			mTLAS[inFlightIndex]->update(mGeometryInstances, [](cgb::semaphore _Semaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
 			});
 		}
@@ -312,11 +312,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal)
 		);
 
-		cmdbfr.copy_image(mOffscreenImageViews[inFlightIndex]->get_image(), cgb::context().main_window()->swap_chain_images()[inFlightIndex]);
-
 		cmdbfr.end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-
+		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
 	}
 
 	void finalize() override
@@ -329,6 +327,8 @@ private: // v== Member variables ==v
 
 	// Multiple BLAS, concurrently used by all the (three?) TLASs:
 	std::vector<cgb::bottom_level_acceleration_structure> mBLASs;
+	// Geometry instance data which store the instance data per BLAS
+	std::vector<cgb::geometry_instance> mGeometryInstances;
 	// Multiple TLAS, one for each frame in flight:
 	std::vector<cgb::top_level_acceleration_structure> mTLAS;
 

@@ -157,6 +157,7 @@
 #include "renderpass_vulkan.hpp"
 #include "framebuffer_vulkan.hpp"
 #include "window_vulkan.hpp"
+#include "geometry_instance_vulkan.hpp"
 #include "bottom_level_acceleration_structure_vulkan.hpp"
 #include "top_level_acceleration_structure_vulkan.hpp"
 #include "shader_vulkan.hpp"

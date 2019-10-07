@@ -942,55 +942,6 @@ namespace cgb
 			pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
 		}
 
-		// ========= Command Buffers that handle the image layout transitions ============
-		pWindow->mImageLayoutTransitionBeginningOfFrame.reserve(numSyncObjects);
-		pWindow->mImageLayoutTransitionPresent.reserve(numSyncObjects);
-		for (uint32_t i = 0; i < numSyncObjects; ++i) {
-			{
-				auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer();
-				cmdbfr.begin_recording();
-				cmdbfr.handle().pipelineBarrier(
-					vk::PipelineStageFlagBits::eAllCommands,
-					vk::PipelineStageFlagBits::eAllCommands,
-					vk::DependencyFlags(),
-					{}, {}, {
-						vk::ImageMemoryBarrier(
-							vk::AccessFlags(), 
-							vk::AccessFlagBits::eTransferWrite,
-							vk::ImageLayout::eUndefined,
-							vk::ImageLayout::eTransferDstOptimal,
-							VK_QUEUE_FAMILY_IGNORED,
-							VK_QUEUE_FAMILY_IGNORED,
-							pWindow->mSwapChainImages[i],
-							vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
-						)
-					});
-				cmdbfr.end_recording();
-				pWindow->mImageLayoutTransitionBeginningOfFrame.push_back(std::move(cmdbfr));
-			}
-			{
-				auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer();
-				cmdbfr.begin_recording();
-				cmdbfr.handle().pipelineBarrier(
-					vk::PipelineStageFlagBits::eAllCommands,
-					vk::PipelineStageFlagBits::eAllCommands,
-					vk::DependencyFlags(),
-					{}, {}, {
-						vk::ImageMemoryBarrier(
-							vk::AccessFlags(), 
-							vk::AccessFlagBits::eTransferWrite,
-							vk::ImageLayout::eTransferDstOptimal,
-							vk::ImageLayout::ePresentSrcKHR,
-							VK_QUEUE_FAMILY_IGNORED,
-							VK_QUEUE_FAMILY_IGNORED,
-							pWindow->mSwapChainImages[i],
-							vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
-						)
-					});
-				cmdbfr.end_recording();
-				pWindow->mImageLayoutTransitionPresent.push_back(std::move(cmdbfr));
-			}
-		}
 	}
 
 	//pipeline vulkan::create_ray_tracing_pipeline(

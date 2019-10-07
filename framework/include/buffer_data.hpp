@@ -271,14 +271,34 @@ public:
 		 *	```
 		 *	std::vector<vec3> normals;
 		 *	uniform_texel_buffer_meta meta = uniform_texel_buffer_meta::create_from_data(normals)
-		 *								.describe_only_member(normals[0],  2, content_description::normal);
+		 *								.describe_only_member(normals[0], content_description::normal);
 		 *	```
 		 */
 		template <typename M>
 		uniform_texel_buffer_meta& describe_only_member(const M& _Member, content_description _Content = content_description::unspecified)
 		{
-			assert(sizeof(_Member) == mSizeOfOneElement);
+			// Do NOT assert(sizeof(_Member) == mSizeOfOneElement), since for uniform_texel_buffers, this could be okay! 
+			// => it means that the buffer view views the data in a different format, that can also combine multiple consecutive elements 
 			return describe_member(0, format_for<M>(), _Content);
+		}
+
+		/** Describe the texel buffer's format in the most generic way. This method also enables
+		 *	to set a format which combines several consecutive elements, but can generally be used
+		 *	to just set an arbitrary format.
+		 *	
+		 *	Usage example:
+		 *	```
+		 *	std::vector<uint32_t> indices;
+		 *	uniform_texel_buffer_meta meta = uniform_texel_buffer_meta::create_from_data(indices)
+		 *										.set_format<glm::uvec3>(content_description::index);
+		 *	```
+		 */
+		template <typename T>
+		uniform_texel_buffer_meta& set_format(content_description _Content = content_description::unspecified)
+		{
+			// Do NOT assert(sizeof(_Member) == mSizeOfOneElement), since for uniform_texel_buffers, this could be okay! 
+			// => it means that the buffer view views the data in a different format, that can also combine multiple consecutive elements 
+			return describe_member(0, format_for<T>(), _Content);
 		}
 
 #if defined(_MSC_VER) && defined(__cplusplus)

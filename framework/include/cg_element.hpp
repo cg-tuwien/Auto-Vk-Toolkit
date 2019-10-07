@@ -93,11 +93,15 @@ namespace cgb
 		 */
 		virtual void update() {}
 
+		/** @brief Submit a reference to a command buffer which should be executed before the swap chain's present stage
+		 */
 		void submit_command_buffer_ref(const cgb::command_buffer& _CommandBuffer, cgb::window* _Window = nullptr)
 		{
 			mSubmittedCommandBufferReferences.emplace_back(std::cref(_CommandBuffer), _Window);
 		}
 
+		/** @brief Submit a command buffer which should be executed before the swap chain's present stage, and handle the lifetime of that command buffer
+		 */
 		void submit_command_buffer_ownership(cgb::command_buffer _CommandBuffer, cgb::window* _Window = nullptr)
 		{
 			auto& ref = mSubmittedCommandBufferInstances.emplace_back(std::move(_CommandBuffer), _Window);
@@ -107,6 +111,18 @@ namespace cgb
 
 		void clear_command_buffer_refs() { mSubmittedCommandBufferReferences.clear(); }
 		
+		/** @brief The given image should be copied into the swap chain image before presenting.
+		 */
+		void present_image(const cgb::image_t& _ImageToPresent, cgb::window* _Window = nullptr)
+		{
+			mPresentImages.emplace_back(std::cref(_ImageToPresent), _Window);
+		}
+
+		void clear_present_image() 
+		{ 
+			mPresentImages.clear();
+		}
+
 
 		/**	@brief Render this cg_element 
 		 *
@@ -284,6 +300,10 @@ namespace cgb
 		 *	AND ownership/lifetime management of which is to be handled internally (which means, by the window).
 		 */
 		std::vector<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
+
+		/** Tuple of images to present and associated windows (or, more specifically, the window's swap chain)
+		 */
+		std::vector<std::tuple<std::reference_wrapper<const cgb::image_t>, cgb::window*>> mPresentImages;
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;

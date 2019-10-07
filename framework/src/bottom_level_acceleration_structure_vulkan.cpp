@@ -2,74 +2,6 @@
 
 namespace cgb
 {
-	geometry_instance geometry_instance::create(glm::mat4 _TransformationMatrix)
-	{
-		// glm::mat4 mTransform;
-		// uint32_t mInstanceCustomIndex;
-		// uint32_t mMask;
-		// size_t mInstanceOffset;
-		// vk::GeometryInstanceFlagsNV mFlags;
-		// uint64_t mAccelerationStructureDeviceHandle;
-		return geometry_instance
-		{
-			std::move(_TransformationMatrix),
-			0,
-			0xff,
-			0,
-			vk::GeometryInstanceFlagsNV(),
-			0,
-		};
-	}
-
-	geometry_instance& geometry_instance::set_transform(glm::mat4 _TransformationMatrix)
-	{
-		mTransform = std::move(_TransformationMatrix);
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::set_custom_index(uint32_t _CustomIndex)
-	{
-		mInstanceCustomIndex = _CustomIndex;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::set_mask(uint32_t _Mask)
-	{
-		mMask = _Mask;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::set_instance_offset(size_t _Offset)
-	{
-		mInstanceOffset = _Offset;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::disable_culling()
-	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::define_front_faces_to_be_counter_clockwise()
-	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eTriangleFrontCounterclockwise;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::force_opaque()
-	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eForceOpaque;
-		return *this;
-	}
-
-	geometry_instance& geometry_instance::force_non_opaque()
-	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eForceNoOpaque;
-		return *this;
-	}
-
-
 	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, bool _AllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
 	{
 		bottom_level_acceleration_structure_t result;
@@ -164,16 +96,6 @@ namespace cgb
 		return create({ std::forward_as_tuple( std::move(_VertexBuffer), std::move(_IndexBuffer) ) }, _AllowUpdates, std::move(_AlterConfigBeforeCreation), std::move(_AlterConfigBeforeMemoryAlloc));
 	}
 
-	void bottom_level_acceleration_structure_t::add_instance(geometry_instance _Instance)
-	{
-		mGeometryInstances.push_back(_Instance);
-	}
-
-	void bottom_level_acceleration_structure_t::add_instances(std::vector<geometry_instance> _Instances)
-	{
-		mGeometryInstances.insert(mGeometryInstances.end(), std::begin(_Instances), std::end(_Instances));
-	}
-
 	const generic_buffer_t& bottom_level_acceleration_structure_t::get_and_possibly_create_scratch_buffer()
 	{
 		if (!mScratchBuffer.has_value()) {
@@ -229,26 +151,5 @@ namespace cgb
 	void bottom_level_acceleration_structure_t::update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
 	{
 		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), blas_action::update);
-	}
-
-	std::vector<VkGeometryInstanceNV> bottom_level_acceleration_structure_t::instance_data_for_top_level_acceleration_structure() const
-	{
-		if (mGeometryInstances.size() == 0) {
-			LOG_WARNING("There are no instances defined for this bottom level acceleration structure.");
-		}
-
-		std::vector<VkGeometryInstanceNV> instancesNv;
-		instancesNv.reserve(mGeometryInstances.size());
-		for (auto& data : mGeometryInstances) {
-			auto matrix = glm::transpose(data.mTransform);
-			auto& element = instancesNv.emplace_back();
-			memcpy(element.transform, glm::value_ptr(matrix), sizeof(element.transform));
-			element.instanceCustomIndex = data.mInstanceCustomIndex;
-			element.mask = data.mMask;
-			element.instanceOffset = data.mInstanceOffset;
-			element.flags = static_cast<uint32_t>(data.mFlags);
-			element.accelerationStructureHandle = device_handle();
-		}
-		return instancesNv;
 	}
 }

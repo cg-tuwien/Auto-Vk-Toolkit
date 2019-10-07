@@ -35,20 +35,6 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(std::vector<bottom_level_acceleration_structure> _BottomLevelAccelerationStructures, bool _AllowUpdates, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
-	{
-		uint32_t numInstances = 0u;
-		for (auto& blas : _BottomLevelAccelerationStructures) {
-			if (blas->instances().size() == 0) {
-				LOG_WARNING("A bottom level acceleration structure has zero instances.");
-			}
-			numInstances += static_cast<uint32_t>(blas->instances().size());
-		}
-		auto result = create(numInstances, _AllowUpdates, std::move(_AlterConfigBeforeCreation), std::move(_AlterConfigBeforeMemoryAlloc));
-		result->mBottomLevelAccelerationStructures = std::move(_BottomLevelAccelerationStructures);
-		return result;
-	}
-
 	const generic_buffer_t& top_level_acceleration_structure_t::get_and_possibly_create_scratch_buffer()
 	{
 		if (!mScratchBuffer.has_value()) {
@@ -61,7 +47,7 @@ namespace cgb
 		return mScratchBuffer.value();
 	}
 
-	void top_level_acceleration_structure_t::build_or_update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction)
+	void top_level_acceleration_structure_t::build_or_update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction)
 	{
 		// Set the _ScratchBuffer parameter to an internal scratch buffer, if none has been passed:
 		const generic_buffer_t* scratchBuffer = nullptr;
@@ -72,11 +58,7 @@ namespace cgb
 			scratchBuffer = &get_and_possibly_create_scratch_buffer();
 		}
 
-		std::vector<cgb::VkGeometryInstanceNV> geomInstances;
-		for (auto& blas : mBottomLevelAccelerationStructures) {
-			auto blasInstances = blas->instance_data_for_top_level_acceleration_structure();
-			geomInstances.insert(std::end(geomInstances), std::begin(blasInstances), std::end(blasInstances));
-		}
+		std::vector<cgb::VkGeometryInstanceNV> geomInstances = convert_for_gpu_usage(_GeometryInstances);
 		
 		// TODO: Retain this buffer, don't always create a new one
 		auto geomInstBuffer = cgb::create_and_fill(
@@ -111,14 +93,14 @@ namespace cgb
 		handle_semaphore(std::move(buildCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
-	void top_level_acceleration_structure_t::build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	void top_level_acceleration_structure_t::build(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
 	{
-		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::build);
+		build_or_update(_GeometryInstances, std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::build);
 	}
 	
-	void top_level_acceleration_structure_t::update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
+	void top_level_acceleration_structure_t::update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)
 	{
-		build_or_update(std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::update);
+		build_or_update(_GeometryInstances, std::move(_SemaphoreHandler), std::move(_WaitSemaphores), std::move(_ScratchBuffer), tlas_action::update);
 	}
 
 }

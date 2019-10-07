@@ -311,7 +311,7 @@ namespace cgb
 
 	}*/
 
-	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs)
+	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent)
 	{
 		vk::Result result;
 
@@ -362,11 +362,54 @@ namespace cgb
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
 		std::vector<vk::CommandBuffer> cmdBuffers;
-		//cmdBuffers.push_back(mImageLayoutTransitionBeginningOfFrame[in_flight_index_for_frame()].handle());
 		for (auto cb : _CommandBufferRefs) {
 			cmdBuffers.push_back(cb.get().handle());
 		}
-		//cmdBuffers.push_back(mImageLayoutTransitionPresent[in_flight_index_for_frame()].handle());
+		if (_CopyToPresent.has_value()) {
+			// Create a one-time-submit command buffer. 
+			// TODO: Cache these command buffers, based on the input image!
+			auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer();
+			cmdbfr.begin_recording();
+			cmdbfr.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eAllCommands,
+				vk::PipelineStageFlagBits::eAllCommands,
+				vk::DependencyFlags(),
+				{}, {}, {
+					vk::ImageMemoryBarrier(
+						vk::AccessFlags(), 
+						vk::AccessFlagBits::eTransferWrite,
+						vk::ImageLayout::eUndefined,
+						vk::ImageLayout::eTransferDstOptimal,
+						VK_QUEUE_FAMILY_IGNORED,
+						VK_QUEUE_FAMILY_IGNORED,
+						mSwapChainImages[imageIndex],
+						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
+					)
+				});
+
+			cmdbfr.copy_image(_CopyToPresent.value().get(), mSwapChainImages[imageIndex]);
+
+			cmdbfr.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eAllCommands,
+				vk::PipelineStageFlagBits::eAllCommands,
+				vk::DependencyFlags(),
+				{}, {}, {
+					vk::ImageMemoryBarrier(
+						vk::AccessFlags(), 
+						vk::AccessFlagBits::eTransferWrite,
+						vk::ImageLayout::eTransferDstOptimal,
+						vk::ImageLayout::ePresentSrcKHR,
+						VK_QUEUE_FAMILY_IGNORED,
+						VK_QUEUE_FAMILY_IGNORED,
+						mSwapChainImages[imageIndex],
+						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
+					)
+				});
+			cmdbfr.end_recording();
+
+			cmdBuffers.push_back(cmdbfr.handle());
+			set_one_time_submit_command_buffer(std::move(cmdbfr));
+		}
 
 		// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
 		// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit

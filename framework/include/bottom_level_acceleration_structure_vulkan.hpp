@@ -2,37 +2,6 @@
 
 namespace cgb
 {
-	struct geometry_instance
-	{
-		static geometry_instance create(glm::mat4 _TransformationMatrix = glm::mat4(1.0));
-
-		geometry_instance& set_transform(glm::mat4 _TransformationMatrix);
-		geometry_instance& set_custom_index(uint32_t _CustomIndex);
-		geometry_instance& set_mask(uint32_t _Mask);
-		geometry_instance& set_instance_offset(size_t _Offset);
-		geometry_instance& disable_culling();
-		geometry_instance& define_front_faces_to_be_counter_clockwise();
-		geometry_instance& force_opaque();
-		geometry_instance& force_non_opaque();
-
-		glm::mat4 mTransform;
-		uint32_t mInstanceCustomIndex;
-		uint32_t mMask;
-		size_t mInstanceOffset;
-		vk::GeometryInstanceFlagsNV mFlags;
-		uint64_t mAccelerationStructureDeviceHandle;
-	};
-
-	struct VkGeometryInstanceNV
-	{
-		float		transform[12];
-		uint32_t	instanceCustomIndex : 24;
-		uint32_t	mask : 8;
-		uint32_t	instanceOffset : 24;
-		uint32_t	flags : 8;
-		uint64_t	accelerationStructureHandle;
-	};
-
 	class bottom_level_acceleration_structure_t
 	{
 		template <typename T>
@@ -52,8 +21,6 @@ namespace cgb
 		const auto& memory_handle() const { return mMemory.get(); }
 		const auto* memory_handle_addr() const { return &mMemory.get(); }
 		auto device_handle() const { return mDeviceHandle; }
-		auto& instances() { return mGeometryInstances; }
-		std::vector<VkGeometryInstanceNV> instance_data_for_top_level_acceleration_structure() const;
 
 		size_t required_acceleration_structure_size() const { return static_cast<size_t>(mMemoryRequirementsForAccelerationStructure.memoryRequirements.size); }
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
@@ -62,8 +29,6 @@ namespace cgb
 		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, bool _AllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer _VertexBuffer, index_buffer _IndexBuffer, bool _AllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 
-		void add_instance(geometry_instance _Instance);
-		void add_instances(std::vector<geometry_instance> _Instances);
 		void build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
 		void update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
 		
@@ -87,11 +52,8 @@ namespace cgb
 
 		std::optional<generic_buffer> mScratchBuffer;
 		
-		std::vector<geometry_instance> mGeometryInstances;
-
 		context_tracker<bottom_level_acceleration_structure_t> mTracker;
 	};
 
 	using bottom_level_acceleration_structure = owning_resource<bottom_level_acceleration_structure_t>;
-
 }

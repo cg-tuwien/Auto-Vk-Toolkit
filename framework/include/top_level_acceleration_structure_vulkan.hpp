@@ -21,8 +21,6 @@ namespace cgb
 		const auto& memory_handle() const { return mMemory.get(); }
 		const auto* memory_handle_addr() const { return &mMemory.get(); }
 		auto device_handle() const { return mDeviceHandle; }
-		const auto& bottom_level_acceleration_structures() const { return mBottomLevelAccelerationStructures; }
-		auto& bottom_level_acceleration_structures() { return mBottomLevelAccelerationStructures; }
 
 		size_t required_acceleration_structure_size() const { return static_cast<size_t>(mMemoryRequirementsForAccelerationStructure.memoryRequirements.size); }
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
@@ -39,14 +37,13 @@ namespace cgb
 		auto descriptor_type() const			{ return vk::DescriptorType::eAccelerationStructureNV; } 
 
 		static owning_resource<top_level_acceleration_structure_t> create(uint32_t _InstanceCount, bool _AllowUpdates = true, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
-		static owning_resource<top_level_acceleration_structure_t> create(std::vector<bottom_level_acceleration_structure> _BottomLevelAccelerationStructures, bool _AllowUpdates = true, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 
-		void build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
-		void update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
+		void build(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
+		void update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
 		
 	private:
 		enum struct tlas_action { build, update };
-		void build_or_update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction);
+		void build_or_update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;
@@ -59,7 +56,6 @@ namespace cgb
 		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
 		uint64_t mDeviceHandle;
 
-		std::vector<bottom_level_acceleration_structure> mBottomLevelAccelerationStructures;
 		std::optional<generic_buffer> mScratchBuffer;
 		
 		mutable vk::WriteDescriptorSetAccelerationStructureNV mDescriptorInfo;
