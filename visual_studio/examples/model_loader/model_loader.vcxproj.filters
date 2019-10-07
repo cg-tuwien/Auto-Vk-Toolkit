@@ -28,7 +28,6 @@
     <None Include="..\..\..\examples\model_loader\shaders\diffuse_shading_fixed_lightsource.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_fabric.obj" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

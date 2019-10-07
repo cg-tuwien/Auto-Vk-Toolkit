@@ -66,6 +66,29 @@ namespace CgbPostBuildHelper.Utils
 					   .ToUpperInvariant();
 		}
 
+        /// <summary>
+        /// Checks if a given directory is the same directory or a subdirectory of a given "root"-directory.
+        /// </summary>
+        /// <param name="inQuestion">The directory which should be checked if it is the same or a subdirectory of "root".</param>
+        /// <param name="root">The root directory to compare with.</param>
+        public static bool IsSameOrSubdirectoryOf(this DirectoryInfo inQuestion, DirectoryInfo root)
+        {
+            var rootFullPath = NormalizePath(root.FullName);
+            while (inQuestion != null)
+            {
+                if (NormalizePath(inQuestion.FullName) == rootFullPath)
+                {
+                    return true;
+                }
+                else
+                {
+                    inQuestion = inQuestion.Parent;
+                }
+            }
+            return false;
+        }
+
+
 		/// <summary>
 		/// Helper function for extracting a value for a named argument out of the command line arguments.
 		/// Names and values always come in pairs of the form: "-paramName C:\parameter_value"

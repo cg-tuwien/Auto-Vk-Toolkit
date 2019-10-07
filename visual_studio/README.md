@@ -14,7 +14,7 @@ A more convenient way to create a new project could be to use the `create_new_pr
 
 ## Resource Management
 
-Dependent resources are managed directly via Visual Studio project settings, more specifically, via Visual Studio's filters (stored in `*.vcxproj.filters` files). There are two special filters which are deployed by the cgb_post_build_helper to the target directory. These two are: 
+Dependent resources are managed directly via Visual Studio project settings, more specifically, via Visual Studio's filters. The data is stored in `*.vcxproj.filters` files. There are two special filters which are deployed by the cgb_post_build_helper to the target directory. These two are: 
 
 * `assets`, and
 * `shaders`.
@@ -46,6 +46,32 @@ auto pipeline = cgb::graphics_pipeline_for(
 	cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2)
 );
 ```
+
+### Dependent Resources
+
+Some resources have dependent resources. This mostly applies to 3D models which reference textures. All the dependent resources are deployed to the target directory as well. You don't need to add them manually to the filters file, but you have to make sure that the resource paths in the "root resource" **point to valid paths to the dependent resources**. Also, make sure that dependent resources are **in the same folder or in a subfolder** w.r.t. to the root resource. If they aren't, it might be impossible to deploy them properly, because they have to remain in the same relative directory to the root resource - this might create a mess on your file system if the dependent resources wouldn't be in the same or in a sub-directory of the root resource.
+
+**Example:**     
+
+You add a `model.obj` file directly to your `assets` filter in your Visual Studio project. Let's assume that the `model.obj` file has an associated `model.mat` file, containing the materials, and let's further assume that the `.mat` file references the textures `texture01.jpg` and `normal_maps/texture02.png`. The following files will be deployed to the target directory:
+
+* `assets/model.obj`
+* `assets/model.mat`
+* `assets/texture01.jpg`
+* `assets/normal_maps/texture02.png`
+
+**Dependent resources not present/not at the right path:**
+
+If the cgb_post_build_helper notices that a dependent resource is not present or located at a path which is not a the same path or a sub-path w.r.t. the root resource, it will issue a warning. You might still be able to compile a working project configuration by assigning all your dependent resources to the right filters in Visual Studio and just ignore cgb_post_build_helper's warnings. 
+
+For the example above, you'd have to create the following filters structure in your Visual Studio project:
+
+* `assets/`
+  * `model.obj`
+  * `model.mat`
+  * `texture01.jpg`
+  * `normal_maps/`
+    * texture02.png`
 
 ### Troubleshooting
 
@@ -111,7 +137,11 @@ Please try one or all of the following approaches to solve that problem:
 	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
 	
 At least the third approach should solve the problem. (If not, please create an issue and describe your situation in detail.)
-    
+
+**Slow performance when showing lists** 
+
+Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`.
+
 ### Settings
 
 cgb_post_build_helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.

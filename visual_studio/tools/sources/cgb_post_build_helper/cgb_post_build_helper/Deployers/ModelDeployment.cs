@@ -161,13 +161,30 @@ namespace CgbPostBuildHelper.Deployers
 
 			foreach (var tp in _texturePaths)
 			{
-				var actualTexPath = GetOutputPathForTexture(tp);
-				var texOutPath = new FileInfo(actualTexPath);
+                var texInPathStr = GetInputPathForTexture(tp);
+                var texInPath = new FileInfo(texInPathStr);
+
+                // Perform some checks before deploying it
+                // -> A dependent resource must reside in the same folder or in a subfolder of the root resource.
+                if (!texInPath.Directory.IsSameOrSubdirectoryOf(_inputFile.Directory))
+                {
+                    assetFileModel.Messages.Add(Message.Create(MessageType.Warning, $"The texture '{texInPath.FullName}' is not located in the same directory or a subdirectory of {_inputFile.FullName}. It will not be deployed.", null));
+                    continue;
+                }
+                if (!texInPath.Exists)
+                {
+                    assetFileModel.Messages.Add(Message.Create(MessageType.Warning, $"The texture '{texInPath.FullName}' (referenced in '{_inputFile.Name}') does not exist at that path.", null));
+                    continue;
+                }
+
+                var texOutPathStr = GetOutputPathForTexture(tp);
+				var texOutPath = new FileInfo(texOutPathStr);
+
 				Directory.CreateDirectory(texOutPath.DirectoryName);
 
 				var assetFileTex = PrepareNewAssetFile(assetFileModel);
 				// Alter input path:
-				assetFileTex.InputFilePath = GetInputPathForTexture(tp);
+				assetFileTex.InputFilePath = texInPathStr;
 				assetFileTex.FileType = FileType.Generic;
 				assetFileTex.OutputFilePath = texOutPath.FullName;
 				DeployFile(assetFileTex);
