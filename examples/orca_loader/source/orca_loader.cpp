@@ -265,7 +265,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 		}
 	}
-
+	
 	void finalize() override
 	{
 		cgb::context().logical_device().waitIdle();

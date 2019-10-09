@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, const semaphore_t* _WaitSemaphore, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		//auto commandBuffer = context().create_command_buffers_for_graphics(1, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		auto commandBuffer = context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -178,20 +178,9 @@ namespace cgb
 		commandBuffer.end_recording();
 
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto transitionCompleteSemaphore = semaphore_t::create();
-		transitionCompleteSemaphore->set_designated_queue(cgb::context().graphics_queue()); //< Just store the info
+		auto transitionCompleteSemaphore = cgb::context().graphics_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+		// transitionCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
 
-		vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
-		auto submitInfo = vk::SubmitInfo()
-			.setCommandBufferCount(1u)
-			.setPCommandBuffers(commandBuffer.handle_addr())
-			.setWaitSemaphoreCount(nullptr != _WaitSemaphore ? 1u : 0u)
-			.setPWaitSemaphores(nullptr != _WaitSemaphore ? _WaitSemaphore->handle_addr() : nullptr)
-			.setPWaitDstStageMask(&waitMask)
-			.setSignalSemaphoreCount(1u)
-			.setPSignalSemaphores(transitionCompleteSemaphore->handle_addr());
-
-		cgb::context().graphics_queue().handle().submit({ submitInfo }, nullptr);
 		_Image.set_current_layout(_NewLayout); // Just optimistically set it
 
 		// Take care of the lifetime of:
@@ -200,16 +189,10 @@ namespace cgb
 			ownedCommandBuffer{ std::move(commandBuffer) }
 		]() { /* Nothing to do here, the destructors will do the cleanup, the lambda is just holding them. */ });
 
-		if (_SemaphoreHandler) { // Did the user provide a handler?
-			_SemaphoreHandler(std::move(transitionCompleteSemaphore)); // Transfer ownership and be done with it
-		}
-		else {
-			transitionCompleteSemaphore->wait_idle();
-		}
-
+		handle_semaphore(std::move(transitionCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
-	void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, const semaphore_t* _WaitSemaphore, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
@@ -243,31 +226,14 @@ namespace cgb
 		commandBuffer.end_recording();
 
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto copyCompleteSemaphore = semaphore_t::create();
-		copyCompleteSemaphore->set_designated_queue(cgb::context().transfer_queue()); //< Just store the info
-
-		vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
-		auto submitInfo = vk::SubmitInfo()
-			.setCommandBufferCount(1u)
-			.setPCommandBuffers(commandBuffer.handle_addr())
-			.setWaitSemaphoreCount(nullptr != _WaitSemaphore ? 1u : 0u)
-			.setPWaitSemaphores(nullptr != _WaitSemaphore ? _WaitSemaphore->handle_addr() : nullptr)
-			.setPWaitDstStageMask(&waitMask)
-			.setSignalSemaphoreCount(1u)
-			.setPSignalSemaphores(copyCompleteSemaphore->handle_addr());
-
-		cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr);
+		auto copyCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+		// copyCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
+		copyCompleteSemaphore->set_custom_deleter([
+			ownedCommandBuffer{ std::move(commandBuffer) } // Just take care of the commandBuffer's lifetime
+		](){});
+		
 		pDstImage.set_current_layout(pSrcImage.current_layout()); // Just optimistically set it
-
-		if (_SemaphoreHandler) { // Did the user provide a handler?
-			copyCompleteSemaphore->set_custom_deleter([
-				ownedCommandBuffer{ std::move(commandBuffer) } // Just take care of the commandBuffer's lifetime
-			](){});
-			_SemaphoreHandler(std::move(copyCompleteSemaphore)); // Transfer ownership and be done with it
-		}
-		else {
-			copyCompleteSemaphore->wait_idle();
-		}
+		handle_semaphore(std::move(copyCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, cgb::image_usage _ImageUsage)

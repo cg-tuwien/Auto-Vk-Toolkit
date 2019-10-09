@@ -4,12 +4,12 @@ namespace cgb
 {	
 	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
 
-	extern void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+	extern void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
 
-	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, const semaphore_t* _WaitSemaphore = nullptr, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {});
+	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
 
 	template <typename Bfr>
-	owning_resource<semaphore_t> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, const semaphore_t* _WaitSemaphore = nullptr)
+	owning_resource<semaphore_t> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, std::vector<semaphore> _WaitSemaphores = {})
 	{
 		//auto commandBuffer = context().create_command_buffers_for_transfer(1);
 		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -41,20 +41,8 @@ namespace cgb
 		commandBuffer.end_recording();
 
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto copyCompleteSemaphore = semaphore_t::create();
-		copyCompleteSemaphore->set_designated_queue(cgb::context().graphics_queue()); //< Just store the info
-
-		vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
-		auto submitInfo = vk::SubmitInfo()
-			.setCommandBufferCount(1u)
-			.setPCommandBuffers(commandBuffer.handle_addr())
-			.setWaitSemaphoreCount(nullptr != _WaitSemaphore ? 1u : 0u)
-			.setPWaitSemaphores(nullptr != _WaitSemaphore ? _WaitSemaphore->handle_addr() : nullptr)
-			.setPWaitDstStageMask(&waitMask)
-			.setSignalSemaphoreCount(1u)
-			.setPSignalSemaphores(copyCompleteSemaphore->handle_addr());
-
-		cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr);
+		auto copyCompleteSemaphore = cgb::context().graphics_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+		// copyCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
 
 		// Take care of the lifetime of:
 		//  - commandBuffer
@@ -70,28 +58,21 @@ namespace cgb
 			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
 			cgb::memory_usage::host_coherent,
 			_Color.data(),
-			nullptr,
+			{}, {},
 			vk::BufferUsageFlagBits::eTransferSrc);
 			
 		auto img = cgb::image_t::create(1, 1, cgb::image_format(vk::Format::eR8G8B8A8Unorm), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
+		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
 			// 2. Copy buffer to image
-			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
+			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
 			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), &*sem2, [&](semaphore sem3) {
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					sem3->set_custom_deleter([
-						ownBuffer = std::move(stagingBuffer),
-						ownSem1 = std::move(sem1),
-						ownSem2 = std::move(sem2)
-					](){});
-					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
-				}
-				else {
-					sem3->wait_idle();
-				}
-			});
+			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), [&](semaphore sem3) {
+				sem3->set_custom_deleter([
+					ownBuffer = std::move(stagingBuffer)
+				](){});
+				handle_semaphore(std::move(sem3), std::move(_SemaphoreHandler));
+			}, cgb::make_vector(std::move(sem2)));
 		});
 		
 		return img;
@@ -112,30 +93,23 @@ namespace cgb
 			cgb::generic_buffer_meta::create_from_size(imageSize),
 			cgb::memory_usage::host_coherent,
 			pixels,
-			nullptr,
+			{}, {},
 			vk::BufferUsageFlagBits::eTransferSrc);
 			
 		stbi_image_free(pixels);
 
 		auto img = cgb::image_t::create(width, height, cgb::image_format(vk::Format::eR8G8B8A8Unorm), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, nullptr, [&](semaphore sem1) {
+		cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
 			// 2. Copy buffer to image
-			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, &*sem1);
+			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
 			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), &*sem2, [&](semaphore sem3) {
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					sem3->set_custom_deleter([
-						ownBuffer = std::move(stagingBuffer),
-						ownSem1 = std::move(sem1),
-						ownSem2 = std::move(sem2)
-					](){});
-					_SemaphoreHandler(std::move(sem3)); // Transfer ownership and be done with it
-				}
-				else {
-					sem3->wait_idle();
-				}
-			});
+			cgb::transition_image_layout(img, vk::Format::eR8G8B8A8Unorm, img->target_layout(), [&](semaphore sem3) {
+				sem3->set_custom_deleter([
+					ownBuffer = std::move(stagingBuffer)
+				](){});
+				handle_semaphore(std::move(sem3), std::move(_SemaphoreHandler));
+			}, cgb::make_vector(std::move(sem2)));
 		});
 		
 		return img;
