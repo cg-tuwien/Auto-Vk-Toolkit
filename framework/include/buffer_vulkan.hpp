@@ -171,8 +171,7 @@ namespace cgb
 			//  - stagingBuffer, and
 			//  - commandBuffer
 			fillCompleteSemaphore->set_custom_deleter([ 
-				ownedStagingBuffer{ std::move(stagingBuffer) },
-				ownedCommandBuffer{ std::move(commandBuffer) } 
+				ownedStagingBuffer{ std::move(stagingBuffer) }
 			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just holding them. */ });
 			return std::move(fillCompleteSemaphore);
 		}

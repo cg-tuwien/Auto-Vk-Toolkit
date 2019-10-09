@@ -16,6 +16,9 @@ namespace cgb
 		// TODO: This has to be reworked entirely!!
 
 		auto oldImageLayout = _Image.current_layout();
+		if (oldImageLayout == _NewLayout) {
+			return;
+		}
 
 		// There are two transitions we need to handle [3]:
 		//  - Undefined --> transfer destination : transfer writes that don't need to wait on anything
@@ -182,13 +185,7 @@ namespace cgb
 		// transitionCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
 
 		_Image.set_current_layout(_NewLayout); // Just optimistically set it
-
-		// Take care of the lifetime of:
-		//  - commandBuffer
-		transitionCompleteSemaphore->set_custom_deleter([
-			ownedCommandBuffer{ std::move(commandBuffer) }
-		]() { /* Nothing to do here, the destructors will do the cleanup, the lambda is just holding them. */ });
-
+		
 		handle_semaphore(std::move(transitionCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
@@ -219,7 +216,7 @@ namespace cgb
 			pSrcImage.image_handle(),
 			pSrcImage.current_layout(),
 			pDstImage.image_handle(),
-			pSrcImage.current_layout(), // same layout as src?
+			pDstImage.current_layout(),
 			1u, &copyRegion);
 
 		// That's all
@@ -228,11 +225,9 @@ namespace cgb
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto copyCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
 		// copyCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
-		copyCompleteSemaphore->set_custom_deleter([
-			ownedCommandBuffer{ std::move(commandBuffer) } // Just take care of the commandBuffer's lifetime
-		](){});
 		
 		pDstImage.set_current_layout(pSrcImage.current_layout()); // Just optimistically set it
+
 		handle_semaphore(std::move(copyCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
@@ -454,7 +449,7 @@ namespace cgb
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto [positionsData, indicesData] = get_combined_vertices_and_indices_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
@@ -464,17 +459,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			positionsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(positionsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(positionsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
@@ -482,16 +472,10 @@ namespace cgb
 			cgb::memory_usage::device,
 			indicesData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(indicesData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(indicesData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
 			}
 		);
 
@@ -512,7 +496,7 @@ namespace cgb
 		return normalsData;
 	}
 	
-	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto normalsData = get_combined_normals_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
@@ -521,17 +505,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			normalsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(normalsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(normalsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return normalsBuffer;
@@ -551,7 +530,7 @@ namespace cgb
 		return tangentsData;
 	}
 	
-	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto tangentsData = get_combined_tangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
@@ -560,17 +539,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			tangentsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(tangentsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(tangentsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return tangentsBuffer;
@@ -590,7 +564,7 @@ namespace cgb
 		return bitangentsData;
 	}
 	
-	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto bitangentsData = get_combined_bitangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
@@ -599,17 +573,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			bitangentsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(bitangentsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(bitangentsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return bitangentsBuffer;
@@ -629,7 +598,7 @@ namespace cgb
 		return colorsData;
 	}
 	
-	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto colorsData = get_combined_colors_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _ColorsSet);
 		
@@ -638,17 +607,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			colorsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(colorsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(colorsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return colorsBuffer;
@@ -668,7 +632,7 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto texCoordsData = get_combined_2d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
@@ -677,17 +641,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			texCoordsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return texCoordsBuffer;
@@ -707,7 +666,7 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler)
+	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
 	{
 		auto texCoordsData = get_combined_3d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
@@ -716,17 +675,12 @@ namespace cgb
 			cgb::memory_usage::device,
 			texCoordsData.data(),
 			[&] (semaphore _Semaphore) {  
-				if (_SemaphoreHandler) { // Did the user provide a handler?
-					_Semaphore->set_custom_deleter([
-						ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
-					](){});
-
-					_SemaphoreHandler( std::move(*_Semaphore) ); // Transfer ownership and be done with it
-				}
-				else {
-					_Semaphore->wait_idle();
-				}
-			}
+				_Semaphore->set_custom_deleter([
+					ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
+				](){});
+				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
+			},
+			std::move(_WaitSemaphores)
 		);
 
 		return texCoordsBuffer;
