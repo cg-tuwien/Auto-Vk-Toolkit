@@ -937,7 +937,7 @@ namespace cgb
 		pWindow->mImageAvailableSemaphores.reserve(numSyncObjects);
 		pWindow->mRenderFinishedSemaphores.reserve(numSyncObjects);
 		for (uint32_t i = 0; i < numSyncObjects; ++i) {
-			pWindow->mFences.push_back(fence_t::create(false)); // false => Create the fences in UNsignalled state
+			pWindow->mFences.push_back(fence_t::create(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
 			pWindow->mImageAvailableSemaphores.push_back(semaphore_t::create());
 			pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
 		}

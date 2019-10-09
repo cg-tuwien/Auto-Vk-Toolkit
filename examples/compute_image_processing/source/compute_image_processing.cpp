@@ -146,7 +146,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		});	
 
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
-		mComputeFence = cgb::fence_t::create();
+		mComputeFence = cgb::fence_t::create(true); // Create in signaled state, because the first operation we'll call 
 
 		// Record render command buffers - one for each frame in flight:
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
