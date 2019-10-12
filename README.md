@@ -70,7 +70,7 @@ They can be used like follows:
 auto depthImage = cgb::image_t::create_depth(1920, 1080, cgb::image_format::default_depth_format());
 ```
 
-*Resource Ownership*
+**Resource Ownership**
 
 From such factory methods, instances of such move-only types that represent resources are returned in `cgb::owning_resource` wrappers. These wrappers are, by default, still move-only but offer additional functionality. Their `enable_shared_ownership()` method moves the resource type into a shared pointer internally which has the effect that from that point onwards, the wrapped resource can have multiple owners. Shared ownership, however, should rather be the exception than the rule. Hence, `cgb::owning_resource::enable_shared_ownership` is opt-in. If you enable shared ownership, the represented resource will be moved into heap memory, otherwise it stays on the stack.
 
@@ -79,5 +79,27 @@ There are type aliases for all such resource types wrapped in a `cgb::owning_res
 using image	= owning_resource<image_t>;
 ```
 
-That means, **ownership** of an image is represented by the type name `cgb::image`, whereas **non-owning usage** of an image is represented by `const cgb::image_t&`, `cgb::image_t&`, `const cgb::image_t*`, or `cgb::image_t*`, where the reference types are far more common. Whenever you encounter a method taking a `cgb::image` parameter, it means that the method needs to take ownership of the image resource. You can either move an image into its parameter, or enable shared ownership on the `owning_resource` wrapper and pass a copy to its parameter. On the contrary, if you encounter a method taking a `const cgb::image_t&` parameter, it means that the method just needs read access to the image. A `owning_resource` wrapper can automatically cast to a const-reference of the type it represents. You don't have to cast manually.
+That means, *ownership* of an image is represented by the type name `cgb::image`, whereas *non-owning usage* of an image is represented by `const cgb::image_t&`, `cgb::image_t&`, `const cgb::image_t*`, or `cgb::image_t*`, where the reference types are far more common. Whenever you encounter a method taking a `cgb::image` parameter, it means that the method needs to take ownership of the image resource. You can either move an image into its parameter, or enable shared ownership on the `owning_resource` wrapper and pass a copy to its parameter. On the contrary, if you encounter a method taking a `const cgb::image_t&` parameter, it means that the method just needs read access to the image. A `owning_resource` wrapper can automatically cast to a const-reference of the type it represents. You don't have to cast manually.
 
+## Synchronization by Semaphores
+
+Often, you'll encounter scenarios where an operation on the GPU needs to wait until a previous operation has finished on the GPU. Whenever synchronization can not be handled internally, cg_base handles such synchronization dependencies via semaphores. 
+
+Whenever a semaphore CAN occur inside some method, the method will offer a **semaphore handler** which has a signature like follows: `std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler`. It means that the semaphore handler must take care of the semaphore's ownership and handle it somehow. Such semaphore handlers are generally *optional*. If you do not pass a semaphore handler, the semaphore will be handled internally. However, that could result in bad performance, because internally, cg_base will issue a "wait idle" call, meaning that it will wait until a device queue or the device has completed all pending work before resuming. You will see warnings on the console in such cases.
+
+In order to handle a semaphore, you will want to pass it on as a "wait semaphore" to a command which requires the work represented by the original semaphore to be completed. Such semaphore dependencies can be provided to methods via `std::vector<semaphore> _WaitSemaphores` parameters.
+
+In many cases, you'll just require the rendering of the current frame to wait on the completion of an operation. For such cases, you can forward the semaphore to a window. In the following example, a semaphore is created for the creating and filling of a vertex buffer, and is set as an extra semaphore dependency to the rendering of the current frame via `cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));`:
+
+```
+auto vertexPositionsBuffer = cgb::create_and_fill(
+  cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
+  cgb::memory_usage::device,
+  vertexPositions.data(),
+  // Handle the semaphore, if one gets created (which will happen 
+  // since we've requested to upload the buffer to the device)
+  [] (auto _Semaphore) {  
+  	cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
+  }
+);
+```
