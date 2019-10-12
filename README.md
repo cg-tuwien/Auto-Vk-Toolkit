@@ -89,7 +89,7 @@ Whenever a semaphore CAN occur inside some method, the method will offer a **sem
 
 In order to handle a semaphore, you will want to pass it on as a "wait semaphore" to a command which requires the work represented by the original semaphore to be completed. Such semaphore dependencies can be provided to methods via `std::vector<semaphore> _WaitSemaphores` parameters.
 
-In many cases, you'll just require the rendering of the current frame to wait on the completion of an operation. For such cases, you can forward the semaphore to a window. In the following example, a semaphore is created for the creating and filling of a vertex buffer, and is set as an extra semaphore dependency to the rendering of the current frame via `cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));`:
+In many cases, you'll just require the rendering of the current frame to wait on the completion of an operation. For such cases, you can forward the semaphore to a window. In the following example, a semaphore is created for the creating and filling of a vertex buffer, and is set as an extra semaphore dependency to the rendering of the current frame via `cgb::window`'s `set_extra_semaphore_dependency` method:
 
 ```
 auto vertexPositionsBuffer = cgb::create_and_fill(
