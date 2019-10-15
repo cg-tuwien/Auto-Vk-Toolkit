@@ -422,7 +422,19 @@ namespace cgb
 			cgbLight.mName = std::string(aiLight->mName.C_Str());
 			aiVec = aiLight->mPosition;
 			cgbLight.mPosition = transfo * glm::vec4(aiVec.x, aiVec.y, aiVec.z, 1.0f);
-			cgbLight.mType = aiLight->mType;
+			switch (aiLight->mType) {
+			case aiLightSource_DIRECTIONAL:
+				cgbLight.mType = lightsource_type::directional;
+				break;
+			case aiLightSource_POINT:
+				cgbLight.mType = lightsource_type::point;
+				break;
+			case aiLightSource_SPOT:
+				cgbLight.mType = lightsource_type::spot;
+				break;
+			default:
+				cgbLight.mType = lightsource_type::undefined;
+			}
 			result.push_back(cgbLight);
 		}
 		return result;

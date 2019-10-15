@@ -2,6 +2,11 @@
 
 namespace cgb
 {
+
+	enum struct lightsource_type {
+		directional = 1, point = 2, spot = 3, undefined = 0
+	};
+
 	/**	Lightsource struct which hold all the concrete data,
 	*/
 	struct lightsource
@@ -18,7 +23,7 @@ namespace cgb
 		glm::vec3 mColorSpecular;
 		glm::vec3 mDirection;
 		glm::vec3 mPosition;
-		int mType;
+		lightsource_type mType;
 	};
 
 	static bool operator ==(const lightsource& left, const lightsource& right) {
