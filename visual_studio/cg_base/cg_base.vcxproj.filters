@@ -22,9 +22,6 @@
     <ClCompile Include="..\..\framework\src\cg_element.cpp">
       <Filter>Source Files\application_structure_and_general_stuff</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\universal\src\format.cc">
-      <Filter>Source Files\external</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
       <Filter>Source Files\external\FileWatcher</Filter>
     </ClCompile>
