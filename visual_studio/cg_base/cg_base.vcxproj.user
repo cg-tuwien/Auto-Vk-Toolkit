@@ -24,4 +24,7 @@
     <LocalDebuggerWorkingDirectory>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup>
+    <ShowAllFiles>false</ShowAllFiles>
+  </PropertyGroup>
 </Project>

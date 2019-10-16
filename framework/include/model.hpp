@@ -196,6 +196,8 @@ namespace cgb
 		 */
 		std::vector<size_t> select_all_meshes() const;
 
+		std::vector<lightsource> get_all_lights() const;
+
 		std::vector<glm::vec3> positions_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
 		std::vector<glm::vec3> normals_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
 		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
@@ -229,6 +231,7 @@ namespace cgb
 
 	private:
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const;
+		std::optional<glm::mat4> transformation_matrix_traverser_for_light(const aiLight* _Light, const aiNode* _Node, const aiMatrix4x4& _M) const;
 
 		std::unique_ptr<Assimp::Importer> mImporter;
 		std::string mModelPath;
