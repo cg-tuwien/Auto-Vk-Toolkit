@@ -417,7 +417,11 @@ namespace cgb
 
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_image_from_file(pair.first, cgb::memory_usage::device, _ImageUsage, _SemaphoreHandler)),
+					image_view_t::create(create_image_from_file(
+						pair.first,
+						{}, // <-- let the format be determined automatically
+						cgb::memory_usage::device, _ImageUsage, 
+						_SemaphoreHandler)),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
 			);

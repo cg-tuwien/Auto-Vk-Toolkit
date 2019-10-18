@@ -355,6 +355,7 @@ int main() // <== Starting point ==
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing Example");

@@ -290,12 +290,14 @@ int main() // <== Starting point ==
 	try {
 		// What's the name of our application
 		cgb::settings::gApplicationName = "cg_base::orca_loader";
+		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
+		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 
 
 		// Create an instance of vertex_buffers_app which, in this case,

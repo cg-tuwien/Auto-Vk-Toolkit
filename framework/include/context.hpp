@@ -48,6 +48,12 @@ namespace cgb
 		 *	factor would be the number of concurrent frames ("frames in flight").
 		 */
 		extern uint32_t gDescriptorPoolSizeFactor;
+
+		/**	Whenever images are loaded automatically or when the format of an image
+		 *	shall be detected automatically, an sRGB format is preferred.
+		 *	Default = false.
+		 */
+		extern bool gLoadImagesInSrgbFormatByDefault;
 	}
 
 #if defined(USE_OPENGL_CONTEXT)
