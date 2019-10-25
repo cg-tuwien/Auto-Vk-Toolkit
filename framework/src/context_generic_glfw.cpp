@@ -347,6 +347,7 @@ namespace cgb
 			break;
 		case GLFW_RELEASE:
 			inputBackBuffer.mMouseKeys[button] |= key_state::released;
+			inputBackBuffer.mMouseKeys[button] &= ~key_state::down;
 			break;
 		case GLFW_REPEAT:
 			inputBackBuffer.mMouseKeys[button] |= key_state::down;

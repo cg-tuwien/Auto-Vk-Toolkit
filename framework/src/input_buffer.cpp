@@ -20,12 +20,12 @@ namespace cgb
 		// pBackBufferToBe = previous front buffer
 
 		// Handle all the keyboard input
-		for (auto i = 0; i < pFrontBufferToBe.mKeyboardKeys.size(); ++i) {
+		for (size_t i = 0; i < pFrontBufferToBe.mKeyboardKeys.size(); ++i) {
 			// Retain those down-states:
 			pBackBufferToBe.mKeyboardKeys[i] = (pFrontBufferToBe.mKeyboardKeys[i] & key_state::down);
 		}
 		// Handle all the mouse button input
-		for (auto i = 0; i < pFrontBufferToBe.mMouseKeys.size(); ++i) {
+		for (size_t i = 0; i < pFrontBufferToBe.mMouseKeys.size(); ++i) {
 			// Retain those down-states:
 			pBackBufferToBe.mMouseKeys[i] = (pFrontBufferToBe.mMouseKeys[i] & key_state::down);
 		}
