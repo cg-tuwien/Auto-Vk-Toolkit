@@ -196,8 +196,6 @@ namespace cgb
 		 */
 		std::vector<size_t> select_all_meshes() const;
 
-		std::vector<lightsource> get_all_lights() const;
-
 		std::vector<glm::vec3> positions_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
 		std::vector<glm::vec3> normals_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
 		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
@@ -226,7 +224,11 @@ namespace cgb
 			return result;
 		}
 
-		std::vector<cgb::camera> get_cameras() const;
+		/** Returns all lightsources stored in the model file */
+		std::vector<lightsource> lights() const;
+
+		/** Returns all cameras stored in the model file */
+		std::vector<cgb::camera> cameras() const;
 
 		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
 		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);

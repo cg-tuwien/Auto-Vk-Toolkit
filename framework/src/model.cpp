@@ -397,49 +397,6 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<lightsource> model_t::get_all_lights() const
-	{
-		std::vector<lightsource> result;
-		auto n = mScene->mNumLights;
-		result.reserve(n);
-		for (decltype(n) i = 0; i < n; ++i) {
-			const aiLight* aiLight = mScene->mLights[i];
-			glm::mat4 transfo = transformation_matrix_traverser_for_light(aiLight, mScene->mRootNode, aiMatrix4x4()).value();
-			lightsource cgbLight;
-			cgbLight.mAngleInnerCone = aiLight->mAngleInnerCone;
-			cgbLight.mAngleOuterCone = aiLight->mAngleOuterCone;
-			cgbLight.mAttenuationConstant = aiLight->mAttenuationConstant;
-			cgbLight.mAttenuationLinear = aiLight->mAttenuationLinear;
-			cgbLight.mAttenuationQuadratic = aiLight->mAttenuationQuadratic;
-			auto aiColor = aiLight->mColorAmbient;
-			cgbLight.mColorAmbient = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
-			aiColor = aiLight->mColorDiffuse;
-			cgbLight.mColorDiffuse = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
-			aiColor = aiLight->mColorSpecular;
-			cgbLight.mColorSpecular = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
-			auto aiVec = aiLight->mDirection;
-			cgbLight.mDirection = glm::mat3(glm::inverse(glm::transpose(transfo))) * glm::vec3(aiVec.x, aiVec.y, aiVec.z);
-			cgbLight.mName = std::string(aiLight->mName.C_Str());
-			aiVec = aiLight->mPosition;
-			cgbLight.mPosition = transfo * glm::vec4(aiVec.x, aiVec.y, aiVec.z, 1.0f);
-			switch (aiLight->mType) {
-			case aiLightSource_DIRECTIONAL:
-				cgbLight.mType = lightsource_type::directional;
-				break;
-			case aiLightSource_POINT:
-				cgbLight.mType = lightsource_type::point;
-				break;
-			case aiLightSource_SPOT:
-				cgbLight.mType = lightsource_type::spot;
-				break;
-			default:
-				cgbLight.mType = lightsource_type::undefined;
-			}
-			result.push_back(cgbLight);
-		}
-		return result;
-	}
-
 	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_light(const aiLight* _Light, const aiNode* _Node, const aiMatrix4x4& _M) const
 	{
 		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
@@ -507,8 +464,50 @@ namespace cgb
 		return result;
 	}
 
+	std::vector<lightsource> model_t::lights() const
+	{
+		std::vector<lightsource> result;
+		auto n = mScene->mNumLights;
+		result.reserve(n);
+		for (decltype(n) i = 0; i < n; ++i) {
+			const aiLight* aiLight = mScene->mLights[i];
+			glm::mat4 transfo = transformation_matrix_traverser_for_light(aiLight, mScene->mRootNode, aiMatrix4x4()).value();
+			lightsource cgbLight;
+			cgbLight.mAngleInnerCone = aiLight->mAngleInnerCone;
+			cgbLight.mAngleOuterCone = aiLight->mAngleOuterCone;
+			cgbLight.mAttenuationConstant = aiLight->mAttenuationConstant;
+			cgbLight.mAttenuationLinear = aiLight->mAttenuationLinear;
+			cgbLight.mAttenuationQuadratic = aiLight->mAttenuationQuadratic;
+			auto aiColor = aiLight->mColorAmbient;
+			cgbLight.mColorAmbient = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
+			aiColor = aiLight->mColorDiffuse;
+			cgbLight.mColorDiffuse = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
+			aiColor = aiLight->mColorSpecular;
+			cgbLight.mColorSpecular = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
+			auto aiVec = aiLight->mDirection;
+			cgbLight.mDirection = glm::mat3(glm::inverse(glm::transpose(transfo))) * glm::vec3(aiVec.x, aiVec.y, aiVec.z);
+			cgbLight.mName = std::string(aiLight->mName.C_Str());
+			aiVec = aiLight->mPosition;
+			cgbLight.mPosition = transfo * glm::vec4(aiVec.x, aiVec.y, aiVec.z, 1.0f);
+			switch (aiLight->mType) {
+			case aiLightSource_DIRECTIONAL:
+				cgbLight.mType = lightsource_type::directional;
+				break;
+			case aiLightSource_POINT:
+				cgbLight.mType = lightsource_type::point;
+				break;
+			case aiLightSource_SPOT:
+				cgbLight.mType = lightsource_type::spot;
+				break;
+			default:
+				cgbLight.mType = lightsource_type::undefined;
+			}
+			result.push_back(cgbLight);
+		}
+		return result;
+	}
 
-	std::vector<cgb::camera> model_t::get_cameras() const
+	std::vector<cgb::camera> model_t::cameras() const
 	{
 		std::vector<cgb::camera> result;
 		result.reserve(mScene->mNumCameras);
