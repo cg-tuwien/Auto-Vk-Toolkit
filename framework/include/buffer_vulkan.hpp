@@ -103,14 +103,15 @@ namespace cgb
 		Meta pConfig, 
 		cgb::memory_usage pMemoryUsage, 
 		const void* pData, 
-		std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler,
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores,
 		vk::BufferUsageFlags pUsage);
 
 	// SET DATA
 	template <typename Meta>
 	std::optional<owning_resource<semaphore_t>> fill_and_get_semaphore(
 		const cgb::buffer_t<Meta>& target,
-		const void* pData)
+		const void* pData, 
+		std::vector<semaphore> _WaitSemaphores = {})
 	{
 		auto bufferSize = static_cast<vk::DeviceSize>(target.size());
 
@@ -147,7 +148,7 @@ namespace cgb
 				generic_buffer_meta::create_from_size(target.size()),
 				cgb::memory_usage::host_coherent, 
 				pData, 
-				nullptr, //< It's host coherent memory => no semaphore will be created.
+				{}, {}, //< It's host coherent memory => no semaphore will be created.
 				vk::BufferUsageFlagBits::eTransferSrc);
 
 			auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -162,30 +163,17 @@ namespace cgb
 			// That's in terms of Vk-commands
 			commandBuffer.end_recording();
 
-			// Create a semaphore which can, or rather, MUST be used to wait for the results
-			auto transferCompleteSemaphore = semaphore_t::create();
-			transferCompleteSemaphore->set_designated_queue(cgb::context().transfer_queue()); //< Just store the info
-			// Let the semaphore take care of the buffer's lifetime:
-
-			auto submitInfo = vk::SubmitInfo{}
-				.setCommandBufferCount(1u)
-				.setPCommandBuffers(commandBuffer.handle_addr())
-				.setSignalSemaphoreCount(1u)
-				.setPSignalSemaphores(transferCompleteSemaphore->handle_addr());
-				
-			cgb::context().transfer_queue().handle().submit({ submitInfo }, nullptr); // TODO: Is there any situation where we would want to use a fence here?
-
-			// TODO: Handle has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCached) case
-
+			auto fillCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+			// fillCompleteSemaphore->set_semaphore_wait_stage(....); TODO: Which stage?
+			
 			// Take care of the lifetime handling of the two buffers which 
 			// we may not delete yet, because they are still in use: 
 			//  - stagingBuffer, and
 			//  - commandBuffer
-			transferCompleteSemaphore->set_custom_deleter([ 
-				ownedStagingBuffer{ std::move(stagingBuffer) },
-				ownedCommandBuffer{ std::move(commandBuffer) } 
+			fillCompleteSemaphore->set_custom_deleter([ 
+				ownedStagingBuffer{ std::move(stagingBuffer) }
 			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just holding them. */ });
-			return std::move(transferCompleteSemaphore);
+			return std::move(fillCompleteSemaphore);
 		}
 	}
 
@@ -193,30 +181,24 @@ namespace cgb
 	void fill(
 		const cgb::buffer_t<Meta>& target,
 		const void* pData,
-		std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
 	{
-		auto semaph = fill_and_get_semaphore(target, pData);
-		if (semaph.has_value()) {
-			// If we got a semaphore back from `fill_and_get_semaphore`, we have to do something with it!
-			if (pSemaphoreHandler) { // Did the user provide a handler?
-				pSemaphoreHandler( std::move(*semaph) ); // Transfer ownership and be done with it
-			}
-			else {
-				semaph.value()->wait_idle();
-			}
+		auto fillCompleteSemaphore = fill_and_get_semaphore(target, pData, std::move(_WaitSemaphores));
+		if (fillCompleteSemaphore.has_value()) {
+			handle_semaphore(std::move(fillCompleteSemaphore.value()), std::move(_SemaphoreHandler));
 		}
 	}
 
 	// For convenience:
 
-	inline void fill(const generic_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<generic_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const uniform_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<uniform_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const uniform_texel_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)	{ fill<uniform_texel_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const storage_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<storage_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const storage_texel_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)	{ fill<storage_texel_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const vertex_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<vertex_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const index_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<index_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
-	inline void fill(const instance_buffer_t& target, const void* pData, std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr)			{ fill<instance_buffer_meta>(target, pData, std::move(pSemaphoreHandler)); }
+	inline void fill(const generic_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<generic_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const uniform_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<uniform_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const uniform_texel_buffer_t& target, const void* pData,	std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<uniform_texel_buffer_meta>(target, pData,	std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const storage_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<storage_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const storage_texel_buffer_t& target, const void* pData,	std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<storage_texel_buffer_meta>(target, pData,	std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const vertex_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<vertex_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const index_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<index_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void fill(const instance_buffer_t& target, const void* pData,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<instance_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
 
 	// CREATE 
 	template <typename Meta>
@@ -310,11 +292,11 @@ namespace cgb
 		Meta pConfig, 
 		cgb::memory_usage pMemoryUsage, 
 		const void* pData, 
-		std::function<void(owning_resource<semaphore_t>)> pSemaphoreHandler = nullptr,
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {},
 		vk::BufferUsageFlags pUsage = vk::BufferUsageFlags())
 	{
 		cgb::owning_resource<buffer_t<Meta>> result = create(pConfig, pMemoryUsage, pUsage);
-		fill(static_cast<const cgb::buffer_t<Meta>&>(result), pData, std::move(pSemaphoreHandler));
+		fill(static_cast<const cgb::buffer_t<Meta>&>(result), pData, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
 		return std::move(result);
 	}
 }

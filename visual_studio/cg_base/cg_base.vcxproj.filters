@@ -22,9 +22,6 @@
     <ClCompile Include="..\..\framework\src\cg_element.cpp">
       <Filter>Source Files\application_structure_and_general_stuff</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\universal\src\format.cc">
-      <Filter>Source Files\external</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
       <Filter>Source Files\external\FileWatcher</Filter>
     </ClCompile>
@@ -228,6 +225,9 @@
     </ClCompile>
     <ClCompile Include="..\..\framework\src\geometry_instance_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp">
+      <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -530,6 +530,12 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\buffer_view_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\lightsource.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

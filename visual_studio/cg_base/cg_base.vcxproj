@@ -29,7 +29,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
-    <ClCompile Include="..\..\external\universal\src\format.cc" />
     <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
@@ -45,6 +44,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp" />
     <ClCompile Include="..\..\framework\src\attachment.cpp" />
     <ClCompile Include="..\..\framework\src\binding_data_vulkan.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
@@ -546,6 +546,8 @@
     </ClInclude>
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
+    <ClInclude Include="..\..\framework\include\lightsource.hpp" />
+    <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\framework\include\geometry_instance_vulkan.hpp" />

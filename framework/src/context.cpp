@@ -25,5 +25,7 @@ namespace cgb
 		bool gPreferSameQueueForGraphicsAndPresent = true;
 
 		uint32_t gDescriptorPoolSizeFactor = 10u;
+
+		bool gLoadImagesInSrgbFormatByDefault = false;
 	}
 }

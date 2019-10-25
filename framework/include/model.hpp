@@ -224,11 +224,19 @@ namespace cgb
 			return result;
 		}
 
+		/** Returns all lightsources stored in the model file */
+		std::vector<lightsource> lights() const;
+
+		/** Returns all cameras stored in the model file */
+		std::vector<cgb::camera> cameras() const;
+
 		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
 		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
 
 	private:
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const;
+		std::optional<glm::mat4> transformation_matrix_traverser_for_light(const aiLight* _Light, const aiNode* _Node, const aiMatrix4x4& _M) const;
+		std::optional<glm::mat4> transformation_matrix_traverser_for_camera(const aiCamera* _Camera, const aiNode* _Node, const aiMatrix4x4& _M) const;
 
 		std::unique_ptr<Assimp::Importer> mImporter;
 		std::string mModelPath;

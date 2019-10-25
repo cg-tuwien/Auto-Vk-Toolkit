@@ -79,7 +79,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mTargetImageAndSampler->get_image_view()->get_image().format().mFormat, 
 			vk::ImageLayout::eGeneral); // TODO: This must be abstracted!
 		// Initialize the image with the contents of the input image:
-		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image(), nullptr,
+		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image(), 
 			[](cgb::semaphore _CopyCompleteSemaphore) {
 				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
 			});
@@ -146,7 +146,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		});	
 
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
-		mComputeFence = cgb::fence_t::create();
+		mComputeFence = cgb::fence_t::create(true); // Create in signaled state, because the first operation we'll call 
 
 		// Record render command buffers - one for each frame in flight:
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
@@ -224,7 +224,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::copy_image_to_another(
 				mInputImageAndSampler->get_image_view()->get_image(), 
 				mTargetImageAndSampler->get_image_view()->get_image(),
-				nullptr, // no seamphore to wait for
 				[](cgb::semaphore _CopyCompleteSemaphore) {
 					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
 				});
@@ -298,7 +297,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
-		cgb::settings::gApplicationName = "cg_base example: Compute Image Effects";
+		cgb::settings::gApplicationName = "Compute Image Effects Example";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it

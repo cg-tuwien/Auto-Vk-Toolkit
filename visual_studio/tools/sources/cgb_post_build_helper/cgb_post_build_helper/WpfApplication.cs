@@ -728,9 +728,10 @@ namespace CgbPostBuildHelper
                 Trace.TraceInformation($"stage 4 {config.VcxprojPath}");
 
                 // In addition, deploy the DLLs from the framework's external directory!
+                foreach (var configCgbExternalPath in config.CgbExternalPaths)
                 {
                     var pathToExtBinDlls = Path.Combine(
-						config.CgbExternalPath, 
+                        configCgbExternalPath, 
 						CgbPostBuildHelper.Properties.Settings.Default.AlwaysDeployReleaseDlls 
 							? CgbPostBuildHelper.Properties.Settings.Default.ReleaseSubPathInExternals
 							: config.Configuration == BuildConfiguration.Debug
@@ -744,7 +745,7 @@ namespace CgbPostBuildHelper
 					{
 						AddToMessagesList(Message.Create(MessageType.Error, $"Path to framework's externals does not exist?! This one => '{dirInfo.FullName}'", () =>
 						{
-							CgbUtils.ShowDirectoryInExplorer(config.CgbExternalPath);
+							CgbUtils.ShowDirectoryInExplorer(configCgbExternalPath);
 						}), config);
 					}
 					

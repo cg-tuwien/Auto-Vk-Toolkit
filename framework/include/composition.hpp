@@ -33,8 +33,7 @@ namespace cgb
 			mInputBufferForegroundIndex(0),
 			mInputBufferBackgroundIndex(1),
 			mShouldStop(false),
-			mShouldSwapInputBuffers(false),
-			mInputBufferGoodToGo(true),
+			mInputBufferSwapPending(false),
 			mIsRunning(false)
 		{
 		}
@@ -47,8 +46,7 @@ namespace cgb
 			mInputBufferForegroundIndex(0),
 			mInputBufferBackgroundIndex(1),
 			mShouldStop(false),
-			mShouldSwapInputBuffers(false),
-			mInputBufferGoodToGo(true),
+			mInputBufferSwapPending(false),
 			mIsRunning(false)
 		{
 		}
@@ -120,57 +118,70 @@ namespace cgb
 			return nullptr;
 		}
 
+	private:
 		/** Add all elements which are about to be added to the composition */
 		void add_pending_elements()
 		{
 			// Make a copy of all the elements to be added to not interfere with erase-operations:
+			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			auto toBeAdded = mElementsToBeAdded;
+			guard.unlock();
 			for (auto el : toBeAdded) {
 				add_element_immediately(*el);
 			}
-			assert(mElementsToBeAdded.size() == 0);
 		}
 
 		/** Remove all elements which are about to be removed */
 		void remove_pending_elements()
 		{
 			// Make a copy of all the elements to be added to not interfere with erase-operations:
+			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			auto toBeRemoved = mElementsToBeRemoved;
+			guard.unlock();
 			for (auto el : toBeRemoved) {
 				remove_element_immediately(*el);
 			}
 			assert(mElementsToBeRemoved.size() == 0);
 		}
 
-	private:
 		/** Signal the main thread to start swapping input buffers */
 		static void please_swap_input_buffers(composition* thiz)
 		{
-			thiz->mShouldSwapInputBuffers = true;
-			thiz->mInputBufferGoodToGo = false;
+			{
+				std::scoped_lock<std::mutex> guard(sCompMutex);
+				assert(false == thiz->mInputBufferSwapPending);
+				thiz->mInputBufferSwapPending = true;
+			}
 			context().signal_waiting_main_thread();
-		}
-
-		/** Signal the rendering thread that input buffers have been swapped */
-		void have_swapped_input_buffers()
-		{
-			mShouldSwapInputBuffers = false;
-			mInputBufferGoodToGo = true;
 		}
 
 		/** Wait on the rendering thread until the main thread has swapped the input buffers */
 		static void wait_for_input_buffers_swapped(composition* thiz)
 		{
-			for (int i=0; !thiz->mInputBufferGoodToGo; ++i)
-			{
-#if _DEBUG
-				if ((i+1) % 10000 == 0)
-				{
-					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));
+			using namespace std::chrono_literals;
+			
+			std::unique_lock<std::mutex> lk(sCompMutex);
+			if (thiz->mInputBufferSwapPending) {
+#if defined(_DEBUG)
+				auto totalWaitTime = 0ms;
+				auto timeout = 1ms;
+				int cnt = 0;
+				while (!sInputBufferCondVar.wait_for(lk, timeout, [thiz]{ return !thiz->mInputBufferSwapPending; })) {
+					cnt++;
+					totalWaitTime += timeout;
+					LOG_DEBUG(fmt::format("Condition variable waits for timed out. Total wait time in current frame is {}", totalWaitTime));	
 				}
+#else
+				sInputBufferCondVar.wait(lk, [thiz]{ return !thiz->mInputBufferSwapPending; });
 #endif
 			}
-			assert(thiz->mShouldSwapInputBuffers == false);
+			assert(thiz->mInputBufferSwapPending == false);
+//#if _DEBUG
+//				if ((i+1) % 10000 == 0)
+//				{
+//					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));
+//				}
+//#endif
 		}
 
 		/** Rendering thread's main function */
@@ -296,11 +307,13 @@ namespace cgb
 	public:
 		void add_element(cg_element& pElement) override
 		{
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			mElementsToBeAdded.push_back(&pElement);
 		}
 
 		void add_element_immediately(cg_element& pElement) override
 		{
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			mElements.push_back(&pElement);
 			// 1. initialize
 			pElement.initialize();
@@ -310,11 +323,13 @@ namespace cgb
 
 		void remove_element(cg_element& pElement) override
 		{
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			mElementsToBeRemoved.push_back(&pElement);
 		}
 
 		void remove_element_immediately(cg_element& pElement, bool pIsBeingDestructed = false) override
 		{
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			if (!pIsBeingDestructed) {
 				assert(std::find(std::begin(mElements), std::end(mElements), &pElement) != mElements.end());
 				// 9. finalize
@@ -369,9 +384,9 @@ namespace cgb
 			{
 				context().work_off_all_pending_main_thread_actions();
 				context().work_off_event_handlers();
-				
-				if (mShouldSwapInputBuffers)
-				{
+
+				std::unique_lock<std::mutex> lk(sCompMutex);
+				if (mInputBufferSwapPending) {
 					auto* windowForCursorActions = context().window_in_focus();
 					// The buffer which has been updated becomes the buffer which will be consumed in the next frame
 					//  update-buffer = previous frame, i.e. done
@@ -381,7 +396,16 @@ namespace cgb
 						mInputBuffers[mInputBufferForegroundIndex], 
 						windowForCursorActions);
 					std::swap(mInputBufferForegroundIndex, mInputBufferBackgroundIndex);
-					have_swapped_input_buffers();
+
+					// reset flag:
+					mInputBufferSwapPending = false;
+
+					// resume render_thread:
+					lk.unlock();
+					sInputBufferCondVar.notify_one();
+				}
+				else {
+					lk.unlock();
 				}
 
 				context().wait_for_input_events();
@@ -422,7 +446,13 @@ namespace cgb
 		}
 
 	private:
-		static composition* sComposition;
+		static std::mutex sCompMutex;
+		std::atomic_bool mShouldStop;
+		bool mInputBufferSwapPending;
+		static std::condition_variable sInputBufferCondVar;
+
+		bool mIsRunning;
+
 		std::vector<window*> mWindowsReceivingInputFrom;
 		std::vector<cg_element*> mElements;
 		std::vector<cg_element*> mElementsToBeAdded;
@@ -432,9 +462,13 @@ namespace cgb
 		std::array<input_buffer, 2> mInputBuffers;
 		int32_t mInputBufferForegroundIndex;
 		int32_t mInputBufferBackgroundIndex;
-		std::atomic_bool mShouldStop;
-		std::atomic_bool mShouldSwapInputBuffers;
-		std::atomic_bool mInputBufferGoodToGo;
-		bool mIsRunning;
 	};
+
+	template <typename TTimer, typename TExecutor>
+	std::mutex composition<TTimer, TExecutor>::sCompMutex{};
+
+	template <typename TTimer, typename TExecutor>
+	std::condition_variable composition<TTimer, TExecutor>::sInputBufferCondVar{};
+		
 }
+

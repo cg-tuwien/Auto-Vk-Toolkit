@@ -40,8 +40,8 @@ namespace cgb
 		fence_t result;
 		result.mCreateInfo = vk::FenceCreateInfo()
 			.setFlags(_CreateInSignaledState 
-						? vk::FenceCreateFlags() 
-						: vk::FenceCreateFlagBits::eSignaled
+						? vk::FenceCreateFlagBits::eSignaled
+						: vk::FenceCreateFlags() 
 			);
 
 		// Maybe alter the config?

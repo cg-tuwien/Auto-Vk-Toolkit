@@ -39,6 +39,7 @@
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/chrono.h>
 #include <stb_image.h>
 
 #include <assimp/Importer.hpp>  // C++ importer interface
@@ -241,8 +242,10 @@ namespace cgb
 #include "material_config.hpp"
 #include "material_gpu_data.hpp"
 #include "material.hpp"
-#include "model.hpp"
+#include "lightsource.hpp"
+#include "lightsource_gpu_data.hpp"
 #include "camera.hpp"
+#include "model.hpp"
 #include "quake_camera.hpp"
 #include "orca_scene.hpp"
 

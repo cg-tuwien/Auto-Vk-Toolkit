@@ -242,17 +242,6 @@ namespace cgb
 			context().mContextState = cgb::context_state::frame_begun;
 			context().work_off_event_handlers();
 		});
-		//mFrameCounter += 1;
-	
-		// Wait for the prev-prev frame (fence-ping-pong)
-		// TODO: We should only wait for fences if some were submitted 
-		//       ...during the last RENDER-call!!!
-		
-		// TODO: auskommentiert während StSt-Meeting
-
-		//auto& fence = fence_current_frame();
-		//mLogicalDevice.waitForFences(1u, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-		//mLogicalDevice.resetFences(1u, &fence);
 	}
 
 	void vulkan::update_stage_done()
@@ -937,7 +926,7 @@ namespace cgb
 		pWindow->mImageAvailableSemaphores.reserve(numSyncObjects);
 		pWindow->mRenderFinishedSemaphores.reserve(numSyncObjects);
 		for (uint32_t i = 0; i < numSyncObjects; ++i) {
-			pWindow->mFences.push_back(fence_t::create(false)); // false => Create the fences in UNsignalled state
+			pWindow->mFences.push_back(fence_t::create(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
 			pWindow->mImageAvailableSemaphores.push_back(semaphore_t::create());
 			pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
 		}

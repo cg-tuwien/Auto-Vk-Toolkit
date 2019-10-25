@@ -65,7 +65,7 @@ namespace cgb
 				cgb::generic_buffer_meta::create_from_data(geomInstances),
 				cgb::memory_usage::host_coherent,
 				geomInstances.data(),
-				nullptr,
+				{}, {},
 				vk::BufferUsageFlagBits::eRayTracingNV
 			);
 		

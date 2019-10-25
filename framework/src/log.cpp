@@ -175,7 +175,6 @@ namespace cgb
 	}
 
 #ifdef LOGGING_ON_SEPARATE_THREAD
-	std::mutex gLogMutex;
 
 	void dispatch_log(log_pack pToBeLogged)
 	{
@@ -229,12 +228,13 @@ namespace cgb
 					}
 				}
 
-				if (!sContinueLogging) continue;
-
 				// No more messages => wait
 				{
-					// Do not occupy 100% of the CPU
 					std::unique_lock<std::mutex> lock(sLogMutex);
+					if (!sContinueLogging) {
+						break;
+					}
+					
 					sCondVar.wait(lock);
 				}
 			}
@@ -244,26 +244,29 @@ namespace cgb
 			cgb::reset_console_output_color();
 			std::cout << std::endl;
 		});
+		
 		static struct thread_stopper {
 			~thread_stopper() {
 				{
 					std::unique_lock<std::mutex> lock(sLogMutex);
 					sContinueLogging = false;
-					sCondVar.notify_all();
 				}
+				sCondVar.notify_one();
 				sLogThread.join();
 			}
 		} sThreadStopper;
 
 		// Enqueue the message and wake the logger thread
-		std::scoped_lock<std::mutex> guard(sLogMutex);
+		{
+			std::scoped_lock<std::mutex> guard(sLogMutex);
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
-		if (pToBeLogged.mLogType == log_type::error) {
-			pToBeLogged.mStacktrace = get_current_callstack();
-		}
+			if (pToBeLogged.mLogType == log_type::error) {
+				pToBeLogged.mStacktrace = get_current_callstack();
+			}
 #endif
-		sLogQueue.push(pToBeLogged);
-		sCondVar.notify_all();
+			sLogQueue.push(pToBeLogged);
+		}
+		sCondVar.notify_one();
 	}
 #else
 	void dispatch_log(log_pack pToBeLogged)

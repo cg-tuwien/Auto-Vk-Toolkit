@@ -34,6 +34,7 @@ namespace cgb
 	/** Returns true if the given image format is a sRGB format
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_srgb_format(const image_format& pImageFormat);
+	
 	/** Returns true if the given image format stores the color channels in uint8-type storage
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_uint8_format(const image_format& pImageFormat);
@@ -61,24 +62,40 @@ namespace cgb
 	/** Returns true if the given image format stores the color channels in float64-type storage
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_float64_format(const image_format& pImageFormat);
+	/** Returns true if the given image format is a format which has only one color component.
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_1component_format(const image_format& pImageFormat);
+
+	/** Returns true if the given image format is a format which has two color components.
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_2component_format(const image_format& pImageFormat);
+	
 	/** Returns true if the given image's color channels are ordered like follows: RGB
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_rgb_format(const image_format& pImageFormat);
+	/** Returns true if the given image's color channels are ordered like follows: BGR
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_bgr_format(const image_format& pImageFormat);
+	/** Returns true if the given image format is a format which has three color component.
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_3component_format(const image_format& pImageFormat);
+	
 	/** Returns true if the given image's color channels are ordered like follows: RGBA
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_rgba_format(const image_format& pImageFormat);
 	/** Returns true if the given image's color channels are ordered like follows: ARGB
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_argb_format(const image_format& pImageFormat);
-	/** Returns true if the given image's color channels are ordered like follows: BGR
-	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
-	extern bool is_bgr_format(const image_format& pImageFormat);
 	/** Returns true if the given image's color channels are ordered like follows: BGRA
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_bgra_format(const image_format& pImageFormat);
 	/** Returns true if the given image's color channels are ordered like follows: ABGR
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_abgr_format(const image_format& pImageFormat);
+	/** Returns true if the given image format is a format which has four color components (or three color components + one alpha component, more precisely).
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_4component_format(const image_format& pImageFormat);
+	
 	/** Returns true if the given image format is a depth/depth-stencil format and has a stencil component.
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool has_stencil_component(const image_format& pImageFormat);
