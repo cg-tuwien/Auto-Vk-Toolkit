@@ -39,7 +39,7 @@ namespace CgbPostBuildHelper.Model
 	class InvocationParams
 	{
 		public string CgbFrameworkPath { get; set; }
-		public string CgbExternalPath { get; set; }
+		public List<string> CgbExternalPaths { get; set; }
 		public BuildTargetApi TargetApi { get; set; }
 		public BuildConfiguration Configuration { get; set; }
 		public BuildPlatform Platform { get; set; }

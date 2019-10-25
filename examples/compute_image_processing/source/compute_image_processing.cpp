@@ -297,7 +297,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
-		cgb::settings::gApplicationName = "cg_base example: Compute Image Effects";
+		cgb::settings::gApplicationName = "Compute Image Effects Example";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it

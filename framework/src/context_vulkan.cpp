@@ -242,17 +242,6 @@ namespace cgb
 			context().mContextState = cgb::context_state::frame_begun;
 			context().work_off_event_handlers();
 		});
-		//mFrameCounter += 1;
-	
-		// Wait for the prev-prev frame (fence-ping-pong)
-		// TODO: We should only wait for fences if some were submitted 
-		//       ...during the last RENDER-call!!!
-		
-		// TODO: auskommentiert während StSt-Meeting
-
-		//auto& fence = fence_current_frame();
-		//mLogicalDevice.waitForFences(1u, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-		//mLogicalDevice.resetFences(1u, &fence);
 	}
 
 	void vulkan::update_stage_done()

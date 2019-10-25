@@ -125,18 +125,61 @@ namespace CgbPostBuildHelper.Utils
 			throw new ArgumentException($"There is no argument named '{argName}'.");
 		}
 
-		/// <summary>
-		/// Parse command line arguments and put them into an InvocationParams struct, if parsing was successful.
-		/// </summary>
-		/// <param name="args">Command line arguments</param>
-		/// <returns>A new instance of InvocationParams</returns>
-		public static InvocationParams ParseCommandLineArgs(string[] args)
+        /// <summary>
+        /// Helper function for extracting a value for a named argument out of the command line arguments.
+        /// Names and values always come in pairs of the form: "-paramName C:\parameter_value"
+        /// </summary>
+        /// <param name="argName">Name of the argument we are looking for</param>
+        /// <param name="args">All command line parameters</param>
+        /// <returns>String containing the requested argument's associated value.</returns>
+        private static List<string> ExtractMultipleValuesForNamedArguments(string argName, string[] args)
+        {
+            argName = argName.Trim();
+
+            if (!argName.StartsWith("-"))
+            {
+                throw new ArgumentException($"'{argName}' is not a valid argument name; valid argument names start with '-'.");
+            }
+
+            List<string> results = new List<string>();
+
+            for (int i = 0; i < args.Length; ++i)
+            {
+                if (string.Compare(argName, args[i].Trim(), true) == 0)
+                {
+                    if (args.Length == i + 1)
+                    {
+                        throw new ArgumentException($"There is no value after the argument named '{argName}'");
+                    }
+                    if (args[i + 1].Trim().StartsWith("-"))
+                    {
+                        throw new ArgumentException($"Invalid value following argument name '{argName}' or value not present after it.");
+                    }
+                    // all good (hopefully)
+                    results.Add(args[i + 1].Trim());
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                return results;
+            }
+
+            throw new ArgumentException($"There is no argument named '{argName}'.");
+        }
+
+        /// <summary>
+        /// Parse command line arguments and put them into an InvocationParams struct, if parsing was successful.
+        /// </summary>
+        /// <param name="args">Command line arguments</param>
+        /// <returns>A new instance of InvocationParams</returns>
+        public static InvocationParams ParseCommandLineArgs(string[] args)
 		{
 			var configuration = ExtractValueForNamedArgument("-configuration", args).ToLowerInvariant();
 			var p = new InvocationParams
 			{
 				CgbFrameworkPath = ExtractValueForNamedArgument("-framework", args),
-				CgbExternalPath = ExtractValueForNamedArgument("-external", args),
+				CgbExternalPaths = ExtractMultipleValuesForNamedArguments("-external", args),
 				TargetApi = configuration.Contains("gl") 
 							? BuildTargetApi.OpenGL 
 							: configuration.Contains("vulkan")
@@ -214,7 +257,14 @@ namespace CgbPostBuildHelper.Utils
 			//  #2: If it is a shader file and we're building for OpenGL => modify GLSL
 			//  #3: If it is an .obj 3D Model file => get its materials file
 
-			var isExternalDependency = CgbUtils.NormalizePath(inputFile.FullName).Contains(CgbUtils.NormalizePath(config.CgbExternalPath));
+			bool isExternalDependency = false;
+            foreach (var configCgbExternalPath in config.CgbExternalPaths)
+            {
+                if (CgbUtils.NormalizePath(inputFile.FullName).Contains(CgbUtils.NormalizePath(configCgbExternalPath)))
+                {
+                    isExternalDependency = true;
+                }
+            }
 			var isAsset = RegexIsInAssets.IsMatch(filterPath);
 			var isShader = RegexIsInShaders.IsMatch(filterPath);
 			if (!isAsset && !isShader && !isExternalDependency)

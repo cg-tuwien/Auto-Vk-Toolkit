@@ -2,13 +2,16 @@
 
 namespace cgb
 {
-
+	/** Type of a light source */
 	enum struct lightsource_type {
-		directional = 1, point = 2, spot = 3, undefined = 0
+		undefined		= 0,
+		directional		= 1,
+		point			= 2,
+		spot			= 3, 
 	};
 
-	/**	Lightsource struct which hold all the concrete data,
-	*/
+	/**	Struct containing data about a specific light source
+	 */
 	struct lightsource
 	{
 		std::string mName;
@@ -26,6 +29,8 @@ namespace cgb
 		lightsource_type mType;
 	};
 
+	/** Compare two light source data for equality. Only the lightsource settings are
+	 *	used for comparison, the name is ignored. */
 	static bool operator ==(const lightsource& left, const lightsource& right) {
 		if (left.mAngleInnerCone != right.mAngleInnerCone) return false;
 		if (left.mAngleOuterCone != right.mAngleOuterCone) return false;
@@ -42,6 +47,8 @@ namespace cgb
 		return true;
 	}
 
+	/** Compare two light source data for inequality. Only the lightsource settings are
+	 *	used for comparison, the name is ignored. */
 	static bool operator !=(const lightsource& left, const lightsource& right) {
 		return !(left == right);
 	}
@@ -54,7 +61,8 @@ namespace std
 		std::size_t operator()(cgb::lightsource const& o) const noexcept
 		{
 			std::size_t h = 0;
-			cgb::hash_combine(h, o.mAngleInnerCone,
+			cgb::hash_combine(h, 
+				o.mAngleInnerCone,
 				o.mAngleOuterCone,
 				o.mAttenuationConstant,
 				o.mAttenuationLinear,
