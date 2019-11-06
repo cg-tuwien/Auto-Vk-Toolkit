@@ -69,6 +69,12 @@ namespace cgb
 		return *this;
 	}
 
+	geometry_instance& geometry_instance::reset_flags()
+	{
+		mFlags = vk::GeometryInstanceFlagsNV();
+		return *this;
+	}
+
 	VkGeometryInstanceNV convert_for_gpu_usage(const geometry_instance& _GeomInst)
 	{
 		VkGeometryInstanceNV element;
