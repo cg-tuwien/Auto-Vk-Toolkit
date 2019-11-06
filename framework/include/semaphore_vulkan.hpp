@@ -43,12 +43,15 @@ namespace cgb
 		template <typename F>
 		semaphore_t& set_custom_deleter(F&& _Deleter) 
 		{
-			if (mCustomDeleter) {
+			if (mCustomDeleter.has_value()) {
 				// There is already a custom deleter! Make sure that this stays alive as well.
 				mCustomDeleter = [
-					existingDeleter = std::move(mCustomDeleter),
+					existingDeleter = std::move(mCustomDeleter.value()),
 					additionalDeleter = std::forward<F>(_Deleter)
-				]() {};
+				]() {
+					additionalDeleter();
+					existingDeleter();
+				};
 			}
 			else {
 				mCustomDeleter = std::forward<F>(_Deleter);

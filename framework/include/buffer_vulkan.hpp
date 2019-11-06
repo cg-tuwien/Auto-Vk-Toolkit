@@ -121,7 +121,6 @@ namespace cgb
 		if (cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
 			void* mapped = cgb::context().logical_device().mapMemory(target.memory_handle(), 0, bufferSize);
 			memcpy(mapped, pData, bufferSize);
-			cgb::context().logical_device().unmapMemory(target.memory_handle());
 			// Coherent memory is done; non-coherent memory not yet
 			if (!cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCoherent)) {
 				// Setup the range 
@@ -132,6 +131,7 @@ namespace cgb
 				// Flush the range
 				cgb::context().logical_device().flushMappedMemoryRanges(1, &range);
 			}
+			cgb::context().logical_device().unmapMemory(target.memory_handle());
 			// TODO: Handle has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCached) case
 
 			return std::nullopt; // TODO: This should be okay, is it?
@@ -180,15 +180,15 @@ namespace cgb
 	template <typename Meta>
 	void fill(
 		const cgb::buffer_t<Meta>& target,
-		const void* pData,
+		const void* _Data,
 		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
 	{
-		auto fillCompleteSemaphore = fill_and_get_semaphore(target, pData, std::move(_WaitSemaphores));
+		auto fillCompleteSemaphore = fill_and_get_semaphore(target, _Data, std::move(_WaitSemaphores));
 		if (fillCompleteSemaphore.has_value()) {
 			handle_semaphore(std::move(fillCompleteSemaphore.value()), std::move(_SemaphoreHandler));
 		}
 	}
-
+	
 	// For convenience:
 
 	inline void fill(const generic_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<generic_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
@@ -199,6 +199,7 @@ namespace cgb
 	inline void fill(const vertex_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<vertex_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
 	inline void fill(const index_buffer_t& target, const void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<index_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
 	inline void fill(const instance_buffer_t& target, const void* pData,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ fill<instance_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+
 
 	// CREATE 
 	template <typename Meta>
@@ -299,4 +300,111 @@ namespace cgb
 		fill(static_cast<const cgb::buffer_t<Meta>&>(result), pData, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
 		return std::move(result);
 	}
+
+
+	
+	template <typename Meta>
+	void read(
+		const cgb::buffer_t<Meta>& _Source,
+		void* _Data,
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}
+	)
+	{
+		auto bufferSize = static_cast<vk::DeviceSize>(_Source.size());
+		auto memProps = _Source.memory_properties();
+
+		// #1: Is our memory accessible on the CPU-SIDE? 
+		if (cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
+			
+			const void* mapped = cgb::context().logical_device().mapMemory(_Source.memory_handle(), 0, bufferSize);
+			if (!cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCoherent)) {
+				// Setup the range 
+				auto range = vk::MappedMemoryRange()
+					.setMemory(_Source.memory_handle())
+					.setOffset(0)
+					.setSize(bufferSize);
+				// Flush the range
+				cgb::context().logical_device().invalidateMappedMemoryRanges(1, &range); // TODO: Test this! (should be okay, but double-check against spec.: https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkInvalidateMappedMemoryRanges.html)
+			}
+			memcpy(_Data, mapped, bufferSize);
+			cgb::context().logical_device().unmapMemory(_Source.memory_handle());
+			// TODO: Handle has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCached) case
+		}
+
+		// #2: Otherwise, it must be on the GPU-SIDE!
+		else {
+			assert(cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eDeviceLocal));
+
+			// We have to create a (somewhat temporary) staging buffer and transfer it to the GPU
+			// "somewhat temporary" means that it can not be deleted in this function, but only
+			//						after the transfer operation has completed => handle via semaphore!
+			auto stagingBuffer = create(
+				generic_buffer_meta::create_from_size(_Source.size()),
+				cgb::memory_usage::host_coherent);
+			// TODO: Creating a staging buffer in every read()-call is probably not optimal. => Think about alternative ways!
+
+			// TODO: What about queue ownership?! If not the device_queue_selection_strategy::prefer_everything_on_single_queue strategy is being applied, it could very well be that this fails.
+			auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+			commandBuffer.begin_recording();
+
+			auto copyRegion = vk::BufferCopy{}
+				.setSrcOffset(0u)
+				.setDstOffset(0u)
+				.setSize(bufferSize);
+			commandBuffer.handle().copyBuffer(_Source.buffer_handle(), stagingBuffer->buffer_handle(), { copyRegion });
+
+			commandBuffer.end_recording();
+
+			auto fillCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
+			// fillCompleteSemaphore->set_semaphore_wait_stage(....); TODO: Which stage?
+			
+			// Take care of the lifetime handling of the two buffers which 
+			// we may not delete yet, because they are still in use: 
+			//  - stagingBuffer, and
+			//  - commandBuffer (already added to the semaphore via submit_and_handle_with_semaphore)
+			fillCompleteSemaphore->set_custom_deleter([ 
+				ownedStagingBuffer{ std::move(stagingBuffer) }, _Data
+			]() {
+				read(ownedStagingBuffer, _Data); 
+			});
+
+			handle_semaphore(std::move(fillCompleteSemaphore), std::move(_SemaphoreHandler));
+		}
+	}
+
+	inline void read(const generic_buffer_t& target, void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<generic_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const uniform_buffer_t& target, void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<uniform_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const uniform_texel_buffer_t& target, void* pData,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<uniform_texel_buffer_meta>(target, pData,	std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const storage_buffer_t& target, void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<storage_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const storage_texel_buffer_t& target, void* pData,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<storage_texel_buffer_meta>(target, pData,	std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const vertex_buffer_t& target, void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<vertex_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const index_buffer_t& target, void* pData,				std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<index_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	inline void read(const instance_buffer_t& target, void* pData,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ read<instance_buffer_meta>(target, pData,			std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+
+	// Convenience overload:
+	// TODO: Support collection types and resize them according to memory requirements!
+	template <typename Meta, typename Ret>
+	Ret read(
+		const cgb::buffer_t<Meta>& _Source,
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}
+	)
+	{
+		auto memProps = _Source.memory_properties();
+		if (!cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
+			throw std::runtime_error("This cgb::read overload can only be used with host-visible buffers. Use cgb::read(const cgb::buffer_t<Meta>&, void*, std::function<void(owning_resource<semaphore_t>)>, std::vector<semaphore>) instead!");
+		}
+		Ret result;
+		read(_Source, static_cast<void*>(&result), std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+		return result;
+	}
+
+	template <typename Ret> Ret read(const generic_buffer_t& target,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<generic_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const uniform_buffer_t& target,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<uniform_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const uniform_texel_buffer_t& target,	std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<uniform_texel_buffer_meta, Ret>(target, std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const storage_buffer_t& target,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<storage_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const storage_texel_buffer_t& target,	std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<storage_texel_buffer_meta, Ret>(target, std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const vertex_buffer_t& target,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<vertex_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const index_buffer_t& target,			std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<index_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+	template <typename Ret> Ret read(const instance_buffer_t& target,		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})	{ return read<instance_buffer_meta, Ret>(target,		 std::move(_SemaphoreHandler), std::move(_WaitSemaphores)); }
+
 }
