@@ -154,6 +154,7 @@ namespace cgb
 				throw new std::runtime_error("Failed to create window with the title '" + mTitle + "'");
 			}
 			mHandle = window_handle{ handle };
+			initialize_after_open();
 
 			// There will be some pending work regarding this newly created window stored within the
 			// context's events, like creating a swap chain and so on. 

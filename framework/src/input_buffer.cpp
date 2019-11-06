@@ -19,6 +19,7 @@ namespace cgb
 		// pFrontBufferToBe = previous back buffer
 		// pBackBufferToBe = previous front buffer
 
+
 		// Handle all the keyboard input
 		for (size_t i = 0; i < pFrontBufferToBe.mKeyboardKeys.size(); ++i) {
 			// Retain those down-states:
@@ -32,13 +33,13 @@ namespace cgb
 
 		// Handle window changes (different window in focus) and other window-related actions
 		pFrontBufferToBe.mWindow = pWindow;
+		pFrontBufferToBe.mCursorDisabled = pFrontBufferToBe.mWindow->is_cursor_disabled();
 		pFrontBufferToBe.mCursorPosition = pFrontBufferToBe.mWindow->cursor_position();
-		if (pFrontBufferToBe.mWindow == pBackBufferToBe.mWindow) {
+		if (pFrontBufferToBe.mWindow == pBackBufferToBe.mWindow && pBackBufferToBe.is_cursor_disabled() == pFrontBufferToBe.is_cursor_disabled()) {
 			pFrontBufferToBe.mDeltaCursorPosition = pBackBufferToBe.mCursorPosition - pFrontBufferToBe.mCursorPosition;
 		}
 		else { // Window has changed!
 			pFrontBufferToBe.mDeltaCursorPosition = { 0.0, 0.0 };
-			pFrontBufferToBe.mCursorDisabled = pFrontBufferToBe.mWindow->is_cursor_disabled(); // Query GLFW for cursor-hidden status
 		}
 
 		if (pBackBufferToBe.mCenterCursorPosition.has_value() || pBackBufferToBe.mSetCursorPosition.has_value()) {
@@ -62,8 +63,6 @@ namespace cgb
 			assert(context().are_we_on_the_main_thread());
 			bool hidden = pBackBufferToBe.mSetCursorDisabled.value();
 			pWindow->disable_cursor(hidden);
-			// Optimistic approach: Do not query GLFW for actual cursor-hidden status
-			pFrontBufferToBe.mCursorDisabled = pBackBufferToBe.mCursorDisabled = hidden;
 			// Mark action as done:
 			pBackBufferToBe.mSetCursorDisabled = std::nullopt;
 		}

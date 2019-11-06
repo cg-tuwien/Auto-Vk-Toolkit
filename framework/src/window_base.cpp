@@ -74,6 +74,12 @@ namespace cgb
 		return *this;
 	}
 
+	void window_base::initialize_after_open()
+	{
+		assert(context().are_we_on_the_main_thread());
+		mIsCursorDisabled = glfwGetInputMode(handle()->mHandle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+	}
+
 	void window_base::set_is_in_use(bool value)
 	{
 		mIsInUse = value;
@@ -171,16 +177,15 @@ namespace cgb
 				glfwSetInputMode(handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			}
 
-
-
 			mIsCursorDisabled = pDisable;
+			// Also update the cursor position, because window-coordinates and raw-coordinates can be different
+			glfwGetCursorPos(handle()->mHandle, &mCursorPosition.x, &mCursorPosition.y);
 		});
 	}
 
 	bool window_base::is_cursor_disabled() const
 	{
-		assert(context().are_we_on_the_main_thread());
-		return glfwGetInputMode(handle()->mHandle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+		return mIsCursorDisabled;	
 	}
 
 	void window_base::set_cursor_pos(glm::dvec2 pCursorPos)

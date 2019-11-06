@@ -49,16 +49,16 @@ namespace cgb
 
 		/** @brief starts receiving mouse and keyboard input from specified window.
 		 *
-		 *	@param[in] pWindow The window to receive input from
-		 *	@param[ref] pInputBuffer The input buffer to be filled with user input
+		 *	@param[in] _Window The window to receive input from
+		 *	@param[ref] _InputBuffer The input buffer to be filled with user input
 		 */
-		void start_receiving_input_from_window(const window& pWindow, input_buffer& pInputBuffer);
+		void start_receiving_input_from_window(const window& _Window, input_buffer& _InputBuffer);
 
 		/**	@brief stops receiving mouse and keyboard input from specified window.
 		 *
-		 *	@param[in] pWindow The window to stop receiving input from
+		 *	@param[in] _Window The window to stop receiving input from
 		 */
-		void stop_receiving_input_from_window(const window& pWindow);
+		void stop_receiving_input_from_window(const window& _Window);
 
 		/** Sets the given window as the new main window.
 		 */

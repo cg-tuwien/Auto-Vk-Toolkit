@@ -273,22 +273,22 @@ namespace cgb
 		LOG_ERROR(fmt::format("GLFW-Error: hex[0x{0:x}] int[{0}] description[{1}]", error, description));
 	}
 
-	void generic_glfw::start_receiving_input_from_window(const window& pWindow, input_buffer& pInputBuffer)
+	void generic_glfw::start_receiving_input_from_window(const window& _Window, input_buffer& _InputBuffer)
 	{
 		assert(are_we_on_the_main_thread());
-		glfwSetMouseButtonCallback(pWindow.handle()->mHandle, glfw_mouse_button_callback);
-		glfwSetCursorPosCallback(pWindow.handle()->mHandle, glfw_cursor_pos_callback);
-		glfwSetScrollCallback(pWindow.handle()->mHandle, glfw_scroll_callback);
-		glfwSetKeyCallback(pWindow.handle()->mHandle, glfw_key_callback);
+		glfwSetMouseButtonCallback(_Window.handle()->mHandle, glfw_mouse_button_callback);
+		glfwSetCursorPosCallback(_Window.handle()->mHandle, glfw_cursor_pos_callback);
+		glfwSetScrollCallback(_Window.handle()->mHandle, glfw_scroll_callback);
+		glfwSetKeyCallback(_Window.handle()->mHandle, glfw_key_callback);
 	}
 
-	void generic_glfw::stop_receiving_input_from_window(const window& pWindow)
+	void generic_glfw::stop_receiving_input_from_window(const window& _Window)
 	{
 		assert(are_we_on_the_main_thread());
-		glfwSetMouseButtonCallback(pWindow.handle()->mHandle, nullptr);
-		glfwSetCursorPosCallback(pWindow.handle()->mHandle, nullptr);
-		glfwSetScrollCallback(pWindow.handle()->mHandle, nullptr);
-		glfwSetKeyCallback(pWindow.handle()->mHandle, nullptr);
+		glfwSetMouseButtonCallback(_Window.handle()->mHandle, nullptr);
+		glfwSetCursorPosCallback(_Window.handle()->mHandle, nullptr);
+		glfwSetScrollCallback(_Window.handle()->mHandle, nullptr);
+		glfwSetKeyCallback(_Window.handle()->mHandle, nullptr);
 	}
 
 	window* generic_glfw::main_window() const

@@ -42,6 +42,9 @@ namespace cgb
 		 *	or has been destroyed. */
 		std::optional<window_handle> handle() const { return mHandle; }
 
+		/** Perform whatever initialization is necessary after the window has been opened. */
+		void initialize_after_open();
+
 		/** Returns the aspect ratio of the window, which is width/height */
 		float aspect_ratio() const;
 
