@@ -97,12 +97,12 @@ namespace cgb
 		}
 	}
 
-	void window_base::set_title(std::string pTitle)
+	void window_base::set_title(std::string _Title)
 	{
-		mTitle = pTitle;
+		mTitle = _Title;
 		if (mHandle.has_value()) {
-			context().dispatch_to_main_thread([this, pTitle]() {
-				glfwSetWindowTitle(mHandle->mHandle, pTitle.c_str());
+			context().dispatch_to_main_thread([this, _Title]() {
+				glfwSetWindowTitle(mHandle->mHandle, _Title.c_str());
 			});
 		}
 	}

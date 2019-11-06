@@ -267,13 +267,14 @@ namespace cgb
 	}
 
 
-	window* vulkan::create_window(const std::string& pTitle)
+	window* vulkan::create_window(const std::string& _Title)
 	{
 		assert(are_we_on_the_main_thread());
 		context().work_off_event_handlers();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		auto* wnd = generic_glfw::prepare_window();
+		wnd->set_title(_Title);
 
 		// Wait for the window to receive a valid handle before creating its surface
 		context().add_event_handler(context_state::halfway_initialized | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {

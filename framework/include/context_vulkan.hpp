@@ -57,7 +57,7 @@ namespace cgb
 		 *
 		 *  @thread_safety This function must only be called from the main thread.
 		 */
-		window* create_window(const std::string& pTitle);
+		window* create_window(const std::string& _Title);
 
 		void draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer& pCommandBuffer);
 
