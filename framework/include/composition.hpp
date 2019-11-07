@@ -26,7 +26,6 @@ namespace cgb
 	{
 	public:
 		composition() :
-			mElements(),
 			mTimer(),
 			mExecutor(this),
 			mInputBuffers(),
@@ -39,7 +38,6 @@ namespace cgb
 		}
 
 		composition(std::initializer_list<cg_element*> pObjects) :
-			mElements(pObjects),
 			mTimer(),
 			mExecutor(this),
 			mInputBuffers(),
@@ -49,6 +47,10 @@ namespace cgb
 			mInputBufferSwapPending(false),
 			mIsRunning(false)
 		{
+			for (auto* el : pObjects) {
+				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const cg_element* left, const cg_element* right) { return left->priority() < right->priority(); });
+				mElements.insert(it, el);
+			}
 		}
 
 		/** Provides access to the timer which is used by this composition */
@@ -314,7 +316,9 @@ namespace cgb
 		void add_element_immediately(cg_element& pElement) override
 		{
 			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
-			mElements.push_back(&pElement);
+			// Find right place to insert:
+			auto it = std::lower_bound(std::begin(mElements), std::end(mElements), &pElement, [](const cg_element* left, const cg_element* right) { return left->priority() < right->priority(); });
+			mElements.insert(it, &pElement);
 			// 1. initialize
 			pElement.initialize();
 			// Remove from mElementsToBeAdded container (if it was contained in it)
