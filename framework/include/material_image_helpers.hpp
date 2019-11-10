@@ -74,73 +74,94 @@ namespace cgb
 		return img;
 	}
 
-	static image create_image_from_file(const std::string& _Path, std::optional<cgb::image_format> _Format = {}, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
+	static image create_image_from_file(const std::string& _Path, cgb::image_format _Format, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
 	{
-		int width, height, channelsInFile;
-		stbi_set_flip_vertically_on_load(true);
+		generic_buffer stagingBuffer;
+		int width = 0;
+		int height = 0;
 
-		// 4component textures by default!
-		int channelsInImage = STBI_rgb_alpha;
-		if (_Format.has_value() && !is_4component_format(_Format.value())) {
-			// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
-			if (is_3component_format(_Format.value())) {
-				channelsInImage = STBI_rgb;
+		// ============ RGB 8-bit formats ==========
+		if (is_uint8_format(_Format) || is_int8_format(_Format)) {
+
+			stbi_set_flip_vertically_on_load(true);
+			int desiredColorChannels = STBI_rgb_alpha;
+			
+			if (!is_4component_format(_Format)) { 
+				if (is_3component_format(_Format)) {
+					desiredColorChannels = STBI_rgb;
+				}
+				else if (is_2component_format(_Format)) {
+					desiredColorChannels = STBI_grey_alpha;
+				}
+				else if (is_1component_format(_Format)) {
+					desiredColorChannels = STBI_grey;
+				}
 			}
-			else if (is_2component_format(_Format.value())) {
-				channelsInImage = STBI_grey_alpha;
+			
+			int channelsInFile = 0;
+			stbi_uc* pixels = stbi_load(_Path.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
+			size_t imageSize = width * height * desiredColorChannels;
+
+			if (!pixels) {
+				throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
 			}
-			else if (is_1component_format(_Format.value())) {
-				channelsInImage = STBI_grey;
+
+			stagingBuffer = cgb::create_and_fill(
+				cgb::generic_buffer_meta::create_from_size(imageSize),
+				cgb::memory_usage::host_coherent,
+				pixels,
+				{}, {},
+				vk::BufferUsageFlagBits::eTransferSrc);
+
+			stbi_image_free(pixels);
+		}
+		// ============ RGB 16-bit float formats (HDR) ==========
+		else if (is_float16_format(_Format)) {
+			
+			stbi_set_flip_vertically_on_load(true);
+			int desiredColorChannels = STBI_rgb_alpha;
+			
+			if (!is_4component_format(_Format)) { 
+				if (is_3component_format(_Format)) {
+					desiredColorChannels = STBI_rgb;
+				}
+				else if (is_2component_format(_Format)) {
+					desiredColorChannels = STBI_grey_alpha;
+				}
+				else if (is_1component_format(_Format)) {
+					desiredColorChannels = STBI_grey;
+				}
 			}
+
+			int channelsInFile = 0;
+			float* pixels = stbi_loadf(_Path.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
+			size_t imageSize = width * height * desiredColorChannels;
+
+			if (!pixels) {
+				throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", _Path));
+			}
+
+			stagingBuffer = cgb::create_and_fill(
+				cgb::generic_buffer_meta::create_from_size(imageSize),
+				cgb::memory_usage::host_coherent,
+				pixels,
+				{}, {},
+				vk::BufferUsageFlagBits::eTransferSrc);
+
+			stbi_image_free(pixels);
+		}
+		// ========= TODO: Support DDS loader, maybe also further loaders
+		else {
+			throw std::runtime_error("No loader for the given image format implemented.");
 		}
 		
-		stbi_uc* pixels = stbi_load(_Path.c_str(), &width, &height, &channelsInFile, channelsInImage); // TODO: Support different formats!
-		size_t imageSize = width * height * channelsInImage;
-
-		if (!pixels) {
-			throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
-		}
-
-		vk::Format selectedOrDemandedFormat;
-		if (_Format.has_value()) {
-			selectedOrDemandedFormat = _Format->mFormat;
-		}
-		else {
-			// Set a default format if none was specified:
-			switch (channelsInImage) {
-			case 4:
-				selectedOrDemandedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
-				break;
-			case 3:
-				selectedOrDemandedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8Srgb : vk::Format::eR8G8B8Unorm;
-				break;
-			case 2:
-				selectedOrDemandedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8Srgb : vk::Format::eR8G8Unorm;
-				break;
-			case 1:
-				selectedOrDemandedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8Srgb : vk::Format::eR8Unorm;
-				break;
-			default:
-				throw std::runtime_error(fmt::format("Unexpected number of channels ({}).", channelsInImage));
-			}
-		}
-
-		auto stagingBuffer = cgb::create_and_fill(
-			cgb::generic_buffer_meta::create_from_size(imageSize),
-			cgb::memory_usage::host_coherent,
-			pixels,
-			{}, {},
-			vk::BufferUsageFlagBits::eTransferSrc);
-			
-		stbi_image_free(pixels);
-
-		auto img = cgb::image_t::create(width, height, cgb::image_format(selectedOrDemandedFormat), false, 1, _MemoryUsage, _ImageUsage);
+		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, selectedOrDemandedFormat, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
+		cgb::transition_image_layout(img, _Format.mFormat, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
 			// 2. Copy buffer to image
 			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
 			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-			cgb::transition_image_layout(img, selectedOrDemandedFormat, img->target_layout(), [&](semaphore sem3) {
+			cgb::transition_image_layout(img, _Format.mFormat, img->target_layout(), [&](semaphore sem3) {
 				sem3->set_custom_deleter([
 					ownBuffer = std::move(stagingBuffer)
 				](){});
@@ -150,8 +171,81 @@ namespace cgb
 		
 		return img;
 	}
-
-	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, cgb::image_usage _ImageUsage = cgb::image_usage::read_only_sampled_image);
+	
+	static image create_image_from_file(const std::string& _Path, bool _LoadHdrIfPossible = true, bool _LoadSrgbIfApplicable = true, int _PreferredNumberOfTextureComponents = 4, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
+	{
+		cgb::image_format imFmt;
+		if (_LoadHdrIfPossible) {
+			if (stbi_is_hdr(_Path.c_str())) {
+				switch (_PreferredNumberOfTextureComponents) {
+				case 4:
+					imFmt = image_format::default_rgb16f_4comp_format();
+					break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+				case 3:
+					imFmt = image_format::default_rgb16f_3comp_format();
+					break;
+				case 2:
+					imFmt = image_format::default_rgb16f_2comp_format();
+					break;
+				case 1:
+					imFmt = image_format::default_rgb16f_1comp_format();
+					break;
+				default:
+					imFmt = image_format::default_rgb16f_4comp_format();
+					break;
+				}
+				return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+			}
+		}
+		if (_LoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
+			switch (_PreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = image_format::default_srgb_4comp_format();
+				break;
+			// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = image_format::default_srgb_3comp_format();
+				break;
+			case 2:
+				imFmt = image_format::default_srgb_2comp_format();
+				break;
+			case 1:
+				imFmt = image_format::default_srgb_1comp_format();
+				break;
+			default:
+				imFmt = image_format::default_srgb_4comp_format();
+				break;
+			}
+			return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+		}
+		switch (_PreferredNumberOfTextureComponents) {
+		case 4:
+			imFmt = image_format::default_rgb8_4comp_format();
+			break;
+		// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+		case 3:
+			imFmt = image_format::default_rgb8_3comp_format();
+			break;
+		case 2:
+			imFmt = image_format::default_rgb8_2comp_format();
+			break;
+		case 1:
+			imFmt = image_format::default_rgb8_1comp_format();
+			break;
+		default:
+			imFmt = image_format::default_rgb8_4comp_format();
+			break;
+		}
+		return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+	}
+	
+	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
+		std::vector<cgb::material_config> _MaterialConfigs, 
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, 
+		cgb::image_usage _ImageUsage = cgb::image_usage::read_only_sampled_image,
+		cgb::filter_mode _TextureFilterMode = cgb::filter_mode::bilinear, // TODO: Implement MIP-mapping and default to anisotropic 16x
+		cgb::border_handling_mode _BorderHandlingMode = cgb::border_handling_mode::repeat);
 
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_combined_vertices_and_indices_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
 	extern std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});

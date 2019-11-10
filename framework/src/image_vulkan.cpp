@@ -15,6 +15,67 @@ namespace cgb
 		: mFormat{ pSrfFrmt.format }
 	{ }
 
+	image_format image_format::default_rgb8_4comp_format() noexcept
+	{
+		return { vk::Format::eR8G8B8A8Unorm };
+	}
+	
+	image_format image_format::default_rgb8_3comp_format() noexcept
+	{
+		return { vk::Format::eR8G8B8Unorm };
+	}
+	
+	image_format image_format::default_rgb8_2comp_format() noexcept
+	{
+		return { vk::Format::eR8G8Unorm };
+	}
+	
+	image_format image_format::default_rgb8_1comp_format() noexcept
+	{
+		return { vk::Format::eR8Unorm };
+	}
+	
+	image_format image_format::default_srgb_4comp_format() noexcept
+	{
+		return { vk::Format::eR8G8B8A8Srgb };
+	}
+	
+	image_format image_format::default_srgb_3comp_format() noexcept
+	{
+		return { vk::Format::eR8G8B8Srgb };
+	}
+	
+	image_format image_format::default_srgb_2comp_format() noexcept
+	{
+		return { vk::Format::eR8G8Srgb };
+	}
+	
+	image_format image_format::default_srgb_1comp_format() noexcept
+	{
+		return { vk::Format::eR8Srgb };
+	}
+	
+	image_format image_format::default_rgb16f_4comp_format() noexcept
+	{
+		return { vk::Format::eR16G16B16A16Sfloat };
+	}
+	
+	image_format image_format::default_rgb16f_3comp_format() noexcept
+	{
+		return { vk::Format::eR16G16B16Sfloat };
+	}
+	
+	image_format image_format::default_rgb16f_2comp_format() noexcept
+	{
+		return { vk::Format::eR16G16Sfloat };
+	}
+	
+	image_format image_format::default_rgb16f_1comp_format() noexcept
+	{
+		return { vk::Format::eR16Sfloat };
+	}
+	
+
 	image_format image_format::default_depth_format() noexcept
 	{
 		return { vk::Format::eD32Sfloat };

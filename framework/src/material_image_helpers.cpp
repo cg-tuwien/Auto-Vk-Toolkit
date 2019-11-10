@@ -231,10 +231,18 @@ namespace cgb
 		handle_semaphore(std::move(copyCompleteSemaphore), std::move(_SemaphoreHandler));
 	}
 
-	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(std::vector<cgb::material_config> _MaterialConfigs, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, cgb::image_usage _ImageUsage)
+	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
+		std::vector<cgb::material_config> _MaterialConfigs, 
+		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, 
+		cgb::image_usage _ImageUsage,
+		cgb::filter_mode _TextureFilterMode, 
+		cgb::border_handling_mode _BorderHandlingMode)
 	{
-		// These are the texture names loaded from file:
+		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
+		// Textures contained in this array shall be loaded into an sRGB format
+		std::set<std::string> srgbTextures;
+		
 		// However, if some textures are missing, provide 1x1 px textures in those spots
 		std::vector<int*> whiteTexUsages;				// Provide a 1x1 px almost everywhere in those cases,
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
@@ -275,7 +283,11 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mDiffuseTex)].push_back(&gm.mDiffuseTexIndex);
+				auto path = cgb::clean_up_path(mc.mDiffuseTex);
+				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
+				if (settings::gLoadImagesInSrgbFormatByDefault) {
+					srgbTextures.insert(path);
+				}
 			}
 
 			gm.mSpecularTexIndex			= -1;							 
@@ -291,7 +303,11 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mAmbientTex)].push_back(&gm.mAmbientTexIndex);
+				auto path = cgb::clean_up_path(mc.mAmbientTex);
+				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
+				if (settings::gLoadImagesInSrgbFormatByDefault) {
+					srgbTextures.insert(path);
+				}
 			}
 
 			gm.mEmissiveTexIndex			= -1;							 
@@ -384,7 +400,7 @@ namespace cgb
 		imageSamplers.reserve(texNamesToUsages.size() + 2); // + 2 => one for the white tex, one for the normals tex
 
 		// Create the white texture and assign its index to all usages
-		if (whiteTexUsages.size() > 0) {
+		if (!whiteTexUsages.empty()) {
 			imageSamplers.push_back(
 				image_sampler_t::create(
 					image_view_t::create(create_1px_texture({ 255, 255, 255, 255 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
@@ -398,7 +414,7 @@ namespace cgb
 		}
 
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
-		if (straightUpNormalTexUsages.size() > 0) {
+		if (!straightUpNormalTexUsages.empty()) {
 			imageSamplers.push_back(
 				image_sampler_t::create(
 					image_view_t::create(create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
@@ -415,14 +431,16 @@ namespace cgb
 		for (auto& pair : texNamesToUsages) {
 			assert (!pair.first.empty());
 
+			bool potentiallySrgb = srgbTextures.contains(pair.first);
+			
 			imageSamplers.push_back(
 				image_sampler_t::create(
 					image_view_t::create(create_image_from_file(
 						pair.first,
-						{}, // <-- let the format be determined automatically
+						true, potentiallySrgb, 4,
 						cgb::memory_usage::device, _ImageUsage, 
 						_SemaphoreHandler)),
-					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
+					sampler_t::create(_TextureFilterMode, _BorderHandlingMode)
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);

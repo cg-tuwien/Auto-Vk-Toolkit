@@ -50,7 +50,8 @@ namespace cgb
 		extern uint32_t gDescriptorPoolSizeFactor;
 
 		/**	Whenever images are loaded automatically or when the format of an image
-		 *	shall be detected automatically, an sRGB format is preferred.
+		 *	shall be detected automatically, an sRGB format is preferred if the
+		 *	images's content seems to be sRGB-compressed.
 		 *	Default = false.
 		 */
 		extern bool gLoadImagesInSrgbFormatByDefault;
