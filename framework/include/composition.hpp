@@ -48,7 +48,7 @@ namespace cgb
 			mIsRunning(false)
 		{
 			for (auto* el : pObjects) {
-				auto it = std::upper_bound(std::begin(mElements), std::end(mElements), el, [](const cg_element* left, const cg_element* right) { return left->priority() < right->priority(); });
+				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const cg_element* left, const cg_element* right) { return left->execution_order() < right->execution_order(); });
 				mElements.insert(it, el);
 			}
 		}
@@ -317,7 +317,7 @@ namespace cgb
 		{
 			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
 			// Find right place to insert:
-			auto it = std::upper_bound(std::begin(mElements), std::end(mElements), &pElement, [](const cg_element* left, const cg_element* right) { return left->priority() < right->priority(); });
+			auto it = std::lower_bound(std::begin(mElements), std::end(mElements), &pElement, [](const cg_element* left, const cg_element* right) { return left->execution_order() < right->execution_order(); });
 			mElements.insert(it, &pElement);
 			// 1. initialize
 			pElement.initialize();

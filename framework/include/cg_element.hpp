@@ -61,10 +61,12 @@ namespace cgb
 		/** Returns the name of this cg_element */
 		const std::string& name() const { return mName; }
 
-		/** Returns the (constant) priority of this element. 
-		 *	0 represents the default priority.
+		/** Returns the desired execution order of this cg_element w.r.t. the default time 0.
+		 *	cg_elements with negative execution orders will get their initialize-, update-,
+		 *	render-, etc. methods invoked earlier; cg_elements with positive execution orders
+		 *	will be invoked later.
 		 */
-		virtual int32_t priority() const { return 0; }
+		virtual int32_t execution_order() const { return 0; }
 
 		/**	@brief Initialize this cg_element
 		 *
