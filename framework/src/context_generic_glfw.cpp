@@ -278,7 +278,7 @@ namespace cgb
 	{
 		assert(are_we_on_the_main_thread());
 		glfwSetMouseButtonCallback(_Window.handle()->mHandle, glfw_mouse_button_callback);
-		glfwSetCursorPosCallback(_Window.handle()->mHandle, glfw_cursor_pos_callback);
+		//glfwSetCursorPosCallback(_Window.handle()->mHandle, glfw_cursor_pos_callback);
 		glfwSetScrollCallback(_Window.handle()->mHandle, glfw_scroll_callback);
 		glfwSetKeyCallback(_Window.handle()->mHandle, glfw_key_callback);
 	}
@@ -287,7 +287,7 @@ namespace cgb
 	{
 		assert(are_we_on_the_main_thread());
 		glfwSetMouseButtonCallback(_Window.handle()->mHandle, nullptr);
-		glfwSetCursorPosCallback(_Window.handle()->mHandle, nullptr);
+		//glfwSetCursorPosCallback(_Window.handle()->mHandle, nullptr);
 		glfwSetScrollCallback(_Window.handle()->mHandle, nullptr);
 		glfwSetKeyCallback(_Window.handle()->mHandle, nullptr);
 	}

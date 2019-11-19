@@ -198,4 +198,13 @@ namespace cgb
 		});
 	}
 
+	void window_base::update_cursor_position()
+	{
+		assert(handle());
+		context().dispatch_to_main_thread([this]() {
+			assert(handle());
+			glfwGetCursorPos(handle()->mHandle, &mCursorPosition[0], &mCursorPosition[1]);
+		});
+	}
+
 }

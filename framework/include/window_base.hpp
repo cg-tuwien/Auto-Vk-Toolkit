@@ -99,6 +99,7 @@ namespace cgb
 		/** Sets the cursor to the given coordinates */
 		void set_cursor_pos(glm::dvec2 pCursorPos);
 
+		void update_cursor_position();
 
 		/** Get the cursor position w.r.t. the given window 
 		 */

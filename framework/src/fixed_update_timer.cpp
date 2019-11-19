@@ -26,13 +26,13 @@ namespace cgb
 		{
 			mLastFixedTick = mNextFixedTick;
 			mNextFixedTick += mFixedDeltaTime;
-			return timer_frame_type::fixed;
+			return timer_frame_type::fixed; // simulate only
 		}
 
 		mDeltaTime = dt;
 		mLastTime = mTimeSinceStart;
 		mCurrentRenderHz = 1.0 / mDeltaTime;
-		return timer_frame_type::varying;
+		return timer_frame_type::any; // simulate and render
 	}
 
 	void fixed_update_timer::set_max_render_delta_time(double pMaxRenderDt)

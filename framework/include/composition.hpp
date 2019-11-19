@@ -208,12 +208,12 @@ namespace cgb
 				thiz->mExecutor.execute_handle_enablings(thiz->mElements);
 
 				// 3. fixed_update
-				if ((frameType & timer_frame_type::fixed) != timer_frame_type::none)
+				if ((frameType & timer_frame_type::fixed) == timer_frame_type::fixed)
 				{
 					thiz->mExecutor.execute_fixed_updates(thiz->mElements);
 				}
 
-				if ((frameType & timer_frame_type::varying) != timer_frame_type::none)
+				if ((frameType & timer_frame_type::varying) == timer_frame_type::varying)
 				{
 					// 4. update
 					thiz->mExecutor.execute_updates(thiz->mElements);

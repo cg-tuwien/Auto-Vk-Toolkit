@@ -16,9 +16,9 @@ namespace cgb
 
 	void input_buffer::prepare_for_next_frame(input_buffer& pFrontBufferToBe, input_buffer& pBackBufferToBe, window* pWindow)
 	{
+		pWindow->update_cursor_position();
 		// pFrontBufferToBe = previous back buffer
 		// pBackBufferToBe = previous front buffer
-
 
 		// Handle all the keyboard input
 		for (size_t i = 0; i < pFrontBufferToBe.mKeyboardKeys.size(); ++i) {
