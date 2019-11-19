@@ -32,7 +32,7 @@ namespace cgb
 		mDeltaTime = dt;
 		mLastTime = mTimeSinceStart;
 		mCurrentRenderHz = 1.0 / mDeltaTime;
-		return timer_frame_type::any; // simulate and render
+		return timer_frame_type::varying; // render only
 	}
 
 	void fixed_update_timer::set_max_render_delta_time(double pMaxRenderDt)
