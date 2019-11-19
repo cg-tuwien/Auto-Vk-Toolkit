@@ -264,7 +264,8 @@ namespace cgb
 
 	double generic_glfw::get_time()
 	{
-		assert(are_we_on_the_main_thread());
+		// Removed the restriction that the caller must be on the main thread.
+		// However, this sort of implies, that glfwSetTime() is a forbidden function.
 		return glfwGetTime();
 	}
 

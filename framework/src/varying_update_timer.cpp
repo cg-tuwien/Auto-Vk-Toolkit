@@ -12,7 +12,7 @@ namespace cgb
 
 	timer_frame_type varying_update_timer::tick()
 	{
-		mAbsTime = glfwGetTime();
+		mAbsTime = context().get_time();
 		mTimeSinceStart = mAbsTime - mStartTime;
 		mDeltaTime = mTimeSinceStart - mLastTime;
 		mLastTime = mTimeSinceStart;
