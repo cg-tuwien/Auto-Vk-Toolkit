@@ -2,6 +2,12 @@
 
 namespace cgb
 {
+	template <typename V, typename F>
+	bool has_flag(V value, F flag)
+	{
+		return (value & flag) == flag;
+	}
+	
 	/** Intended to be used to sync access to context() calls.
 	 *	I.e. if you are using a parallel executor, wrap all calls to 
 	 *	the context in the SYNC_CALL macro or use the SYNC_THIS_SCOPE macro!
