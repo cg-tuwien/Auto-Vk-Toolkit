@@ -232,6 +232,7 @@ namespace cgb
 		dispatch_to_main_thread([]() {
 			context().mContextState = cgb::context_state::composition_ending;
 			context().work_off_event_handlers();
+			
 			context().mLogicalDevice.waitIdle();
 		});
 	}

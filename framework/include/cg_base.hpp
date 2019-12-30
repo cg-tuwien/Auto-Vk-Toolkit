@@ -106,6 +106,7 @@
 #include "image_view_opengl.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
 #include <vulkan/vulkan.hpp>
+static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.1.130.0) or greater." );
 #include "buffer_member_format_vulkan.hpp"
 #include "image_vulkan.hpp"
 #include "image_view_vulkan.hpp"
