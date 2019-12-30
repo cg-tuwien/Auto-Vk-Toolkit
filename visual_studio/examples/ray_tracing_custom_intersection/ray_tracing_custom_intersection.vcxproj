@@ -33,14 +33,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rchit" />
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rgen" />
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rmiss" />
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rchit" />
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rmiss" />
+    <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_09_first.rchit" />
+    <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_09_first.rgen" />
+    <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_09_first.rmiss" />
+    <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_09_secondary.rchit" />
+    <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_09_secondary.rmiss" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\examples\real_time_ray_tracing\source\real_time_ray_tracing.cpp" />
+    <ClCompile Include="..\..\..\examples\ray_tracing_custom_intersection\source\ray_tracing_custom_intersection.cpp" />
     <ClCompile Include="cg_stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
@@ -56,11 +56,11 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{425d661f-8100-4142-a03c-4e6c842f5e50}</ProjectGuid>
+    <ProjectGuid>{1de6486d-2373-455b-8f2a-798439eb4600}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>realtimeraytracing</RootNamespace>
+    <RootNamespace>raytracingcustomintersection</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>real_time_ray_tracing</ProjectName>
+    <ProjectName>ray_tracing_custom_intersection</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">

@@ -8,27 +8,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{42
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_world", "examples\hello_world\hello_world.vcxproj", "{AAAC1485-846C-4F30-8824-125E8584D038}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hello_world", "hello_world", "{08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "vertex_buffers", "vertex_buffers", "{990D83B1-144C-4EC4-A22E-7D59170AE513}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "basic_usage", "basic_usage", "{08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vertex_buffers", "examples\vertex_buffers\vertex_buffers.vcxproj", "{8E7CC991-65C1-4B5B-9F18-F650A5378404}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_loader", "examples\model_loader\model_loader.vcxproj", "{017E78C0-EA95-4C68-866B-51664926D8C9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "model_loader", "model_loader", "{B883882B-129A-4528-86E3-68638929D9EC}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "model_loading", "model_loading", "{B883882B-129A-4528-86E3-68638929D9EC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compute_image_processing", "examples\compute_image_processing\compute_image_processing.vcxproj", "{87425D27-E858-4E57-A482-21346163B972}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "compute_image_processing", "compute_image_processing", "{E796A880-48FF-48FF-A7F0-A3A522223061}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "compute_shaders", "compute_shaders", "{E796A880-48FF-48FF-A7F0-A3A522223061}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "orca_loader", "examples\orca_loader\orca_loader.vcxproj", "{8397BAEB-C62F-4EE0-9402-E2D1B804A328}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orca_loader", "orca_loader", "{9172A409-595E-45E8-8F14-E18CF4E0A8C7}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "real_time_ray_tracing", "examples\real_time_ray_tracing\real_time_ray_tracing.vcxproj", "{425D661F-8100-4142-A03C-4E6C842F5E50}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_triangle_meshes", "examples\ray_tracing_triangle_meshes\ray_tracing_triangle_meshes.vcxproj", "{425D661F-8100-4142-A03C-4E6C842F5E50}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "real_time_ray_tracing", "real_time_ray_tracing", "{683E25DF-C29D-4BC6-980E-88F7C09D024F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_custom_intersection", "examples\ray_tracing_custom_intersection\ray_tracing_custom_intersection.vcxproj", "{1DE6486D-2373-455B-8F2A-798439EB4600}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -124,6 +122,18 @@ Global
 		{425D661F-8100-4142-A03C-4E6C842F5E50}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
 		{425D661F-8100-4142-A03C-4E6C842F5E50}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{425D661F-8100-4142-A03C-4E6C842F5E50}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -131,16 +141,15 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{AAAC1485-846C-4F30-8824-125E8584D038} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
 		{08A10CAA-9B1B-41DB-9EB5-8547AC3077EA} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
-		{990D83B1-144C-4EC4-A22E-7D59170AE513} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
-		{8E7CC991-65C1-4B5B-9F18-F650A5378404} = {990D83B1-144C-4EC4-A22E-7D59170AE513}
+		{8E7CC991-65C1-4B5B-9F18-F650A5378404} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
 		{017E78C0-EA95-4C68-866B-51664926D8C9} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{B883882B-129A-4528-86E3-68638929D9EC} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
 		{87425D27-E858-4E57-A482-21346163B972} = {E796A880-48FF-48FF-A7F0-A3A522223061}
 		{E796A880-48FF-48FF-A7F0-A3A522223061} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
-		{8397BAEB-C62F-4EE0-9402-E2D1B804A328} = {9172A409-595E-45E8-8F14-E18CF4E0A8C7}
-		{9172A409-595E-45E8-8F14-E18CF4E0A8C7} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{8397BAEB-C62F-4EE0-9402-E2D1B804A328} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{425D661F-8100-4142-A03C-4E6C842F5E50} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
 		{683E25DF-C29D-4BC6-980E-88F7C09D024F} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{1DE6486D-2373-455B-8F2A-798439EB4600} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

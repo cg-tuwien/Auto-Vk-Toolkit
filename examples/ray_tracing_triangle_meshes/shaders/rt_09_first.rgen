@@ -1,0 +1,40 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+
+layout(push_constant) uniform PushConstants {
+	mat4 viewMatrix;
+} pushConstants;
+
+layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
+layout(set = 1, binding = 0, rgba8) uniform image2D image;
+
+layout(location = 0) rayPayloadNV vec3 hitValue;
+
+void main() 
+{
+    const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
+    const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeNV.xy);
+
+    vec2 d = inUV * 2.0 - 1.0;
+    float aspectRatio = float(gl_LaunchSizeNV.x) / float(gl_LaunchSizeNV.y);
+	
+    vec3 origin = vec3(0, 0, 0.0);
+    vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, sqrt(3))); // 1 => sqrt(3) is the scaling factor from a fov of 90 to 60
+	vec4 p1 = vec4(origin, 1.0);
+	vec4 p2 = vec4(origin + direction, 1.0);
+	mat4 cameraTransform = inverse(pushConstants.viewMatrix);
+	vec4 vp1 = cameraTransform * p1;
+	vec4 vp2 = cameraTransform * p2;
+	origin = vec3(vp1);
+	direction = vec3(normalize(vp2 - vp1));
+	
+    imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(gl_LaunchIDNV.x / 1000.0, gl_LaunchIDNV.y / 1000.0, 0.0, 0.0));
+
+    uint rayFlags = gl_RayFlagsOpaqueNV;
+    uint cullMask = 0xff;
+    float tmin = 0.001;
+    float tmax = 100.0;
+    traceNV(topLevelAS, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 0 /*sbtRecordStride*/, 0 /*missIndex*/, origin, tmin, direction, tmax, 0 /*payload*/);
+
+    imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
+}

@@ -16,19 +16,19 @@
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene">
       <Filter>assets</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rchit">
+    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rchit">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rgen">
+    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rgen">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_first.rmiss">
+    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rmiss">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rchit">
+    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_secondary.rchit">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\real_time_ray_tracing\shaders\rt_09_secondary.rmiss">
+    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_secondary.rmiss">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -36,7 +36,7 @@
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\examples\real_time_ray_tracing\source\real_time_ray_tracing.cpp" />
+    <ClCompile Include="..\..\..\examples\ray_tracing_triangle_meshes\source\ray_tracing_triangle_meshes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

@@ -1,6 +1,6 @@
 #include <cg_base.hpp>
 
-class real_time_ray_tracing_app : public cgb::cg_element
+class ray_tracing_custom_intersection_app : public cgb::cg_element
 {
 	struct transformation_matrices {
 		glm::mat4 mViewMatrix;
@@ -358,15 +358,15 @@ int main() // <== Starting point ==
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing Example");
+		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Custom Intersection Example");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->open(); 
 
-		// Create an instance of vertex_buffers_app which, in this case,
+		// Create an instance of ray_tracing_custom_intersection_app which, in this case,
 		// contains the entire functionality of our application. 
-		auto element = real_time_ray_tracing_app();
+		auto element = ray_tracing_custom_intersection_app();
 
 		// Create a composition of:
 		//  - a timer
