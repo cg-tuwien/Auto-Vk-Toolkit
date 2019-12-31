@@ -5,7 +5,7 @@ namespace cgb
 	class bottom_level_acceleration_structure_t
 	{
 		template <typename T>
-		friend void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> _AlterConfigBeforeMemoryAlloc);
+		friend void finish_acceleration_structure_creation(T&, cgb::context_specific_function<void(T&)>);
 
 	public:
 		bottom_level_acceleration_structure_t() = default;
@@ -26,15 +26,16 @@ namespace cgb
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
 		size_t required_scratch_buffer_update_size() const { return static_cast<size_t>(mMemoryRequirementsForScratchBufferUpdate.memoryRequirements.size); }
 
-		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<std::tuple<vertex_buffer, index_buffer>> _GeometryDescriptions, bool _AllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
-		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer _VertexBuffer, index_buffer _IndexBuffer, bool _AllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
+		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<std::tuple<vertex_buffer, index_buffer>> aGeometryDescriptions, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
+		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
+		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer aVertexBuffer, index_buffer aIndexBuffer, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 
-		void build(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
-		void update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
+		void build(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler = {}, std::vector<semaphore> aWaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler = {}, std::vector<semaphore> aWaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		
 	private:
 		enum struct blas_action { build, update };
-		void build_or_update(std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, blas_action _BuildAction);
+		void build_or_update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler, std::vector<semaphore> aWaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;
@@ -51,6 +52,8 @@ namespace cgb
 		uint64_t mDeviceHandle;
 
 		std::optional<generic_buffer> mScratchBuffer;
+
+		std::optional<generic_buffer> mAabbBuffer;
 		
 		context_tracker<bottom_level_acceleration_structure_t> mTracker;
 	};

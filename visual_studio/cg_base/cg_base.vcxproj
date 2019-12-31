@@ -266,6 +266,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\framework\include\aabb.hpp" />
     <ClInclude Include="..\..\framework\include\acceleration_structure_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\attachment.hpp" />
     <ClInclude Include="..\..\framework\include\bindings_opengl.hpp">

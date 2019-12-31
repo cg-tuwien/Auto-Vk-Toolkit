@@ -5,7 +5,7 @@ namespace cgb
 	class top_level_acceleration_structure_t
 	{
 		template <typename T>
-		friend void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> _AlterConfigBeforeMemoryAlloc);
+		friend void finish_acceleration_structure_creation(T& aResult, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc);
 
 	public:
 		top_level_acceleration_structure_t() = default;

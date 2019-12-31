@@ -537,6 +537,9 @@
     <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\aabb.hpp">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -670,6 +673,12 @@
     </Filter>
     <Filter Include="Source Files\materials">
       <UniqueIdentifier>{10fc3df0-04ba-4e48-a552-94a1d862d01d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\geometry">
+      <UniqueIdentifier>{69f88a68-5ba7-4e99-a4e2-613a71e3dc50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\geometry">
+      <UniqueIdentifier>{aa63a7ef-8226-409c-86fe-6b5a72cea179}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

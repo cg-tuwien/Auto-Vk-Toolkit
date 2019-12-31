@@ -98,6 +98,7 @@
 #include "device_queue_selection_strategy.hpp"
 #include "shader_type.hpp"
 #include "shader_info.hpp"
+#include "aabb.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
 #include <glad/glad.h>

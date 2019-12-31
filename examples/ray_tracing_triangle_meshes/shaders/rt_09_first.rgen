@@ -3,12 +3,13 @@
 
 layout(push_constant) uniform PushConstants {
 	mat4 viewMatrix;
+    vec4 lightDir;
 } pushConstants;
 
 layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
 layout(set = 1, binding = 0, rgba8) uniform image2D image;
 
-layout(location = 0) rayPayloadNV vec3 hitValue;
+layout(location = 0) rayPayloadNV vec3 hitValue; // payload to traceNV
 
 void main() 
 {
@@ -28,7 +29,7 @@ void main()
 	origin = vec3(vp1);
 	direction = vec3(normalize(vp2 - vp1));
 	
-    imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(gl_LaunchIDNV.x / 1000.0, gl_LaunchIDNV.y / 1000.0, 0.0, 0.0));
+    imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(0.0, 0.0, 0.0, 0.0));
 
     uint rayFlags = gl_RayFlagsOpaqueNV;
     uint cullMask = 0xff;

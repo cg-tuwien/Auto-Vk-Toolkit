@@ -5,8 +5,8 @@ layout(push_constant) uniform PushConstants {
 	mat4 viewMatrix;
 } pushConstants;
 
-layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
-layout(set = 1, binding = 0, rgba8) uniform image2D image;
+layout(set = 1, binding = 0) uniform accelerationStructureNV topLevelAS;
+layout(set = 0, binding = 0, rgba8) uniform image2D image;
 
 layout(location = 0) rayPayloadNV vec3 hitValue;
 

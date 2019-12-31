@@ -73,6 +73,11 @@ layout(location = 0) rayPayloadInNV vec3 hitValue;
 hitAttributeNV vec3 attribs;
 layout(location = 2) rayPayloadNV float secondaryRayHitValue;
 
+layout(push_constant) uniform PushConstants {
+	mat4 viewMatrix;
+    vec4 lightDir;
+} pushConstants;
+
 void main()
 {
     const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
@@ -84,18 +89,18 @@ void main()
 	const vec2 uv = (barycentrics.x * uv0 + barycentrics.y * uv1 + barycentrics.z * uv2);
 
     vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
-    vec3 direction = normalize(vec3(0.8, 1, 0));
+    vec3 direction = normalize(pushConstants.lightDir.xyz);
     uint rayFlags = gl_RayFlagsOpaqueNV | gl_RayFlagsTerminateOnFirstHitNV;
     uint cullMask = 0xff;
     float tmin = 0.001;
     float tmax = 100.0;
 
-//    traceNV(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
+    traceNV(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
 
-	// gl_InstanceCustomIndex = VkGeometryInstance::instanceId
+//	 gl_InstanceCustomIndex = VkGeometryInstance::instanceId
 //    hitValue = (barycentrics * 0.5 + vec3(0.5, 0.5, 0.5))
 //		* uniformBuffers[nonuniformEXT(gl_InstanceCustomIndexNV)].color.rgb
 //		* ( secondaryRayHitValue < tmax ? 0.25 : 1.0 );
 //	hitValue = barycentrics * 0.5 + vec3(0.5, 0.5, 0.5);
-	hitValue = vec3(uv, 0);
+	hitValue = vec3(clamp(uv,0,1), 0) * (secondaryRayHitValue < tmax ? 0.25 : 1.0);
 }

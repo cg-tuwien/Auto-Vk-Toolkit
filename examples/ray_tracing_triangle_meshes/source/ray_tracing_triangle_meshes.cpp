@@ -2,8 +2,9 @@
 
 class ray_tracing_triangle_meshes_app : public cgb::cg_element
 {
-	struct transformation_matrices {
+	struct push_const_data {
 		glm::mat4 mViewMatrix;
+		glm::vec4 mLightDirection;
 	};
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
@@ -11,6 +12,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
+		mLightDir = { 0.8f, 1.0f, 0.0f, 0.0f };
 
 		// Load an ORCA scene from file:
 		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
@@ -26,11 +28,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mIndexBufferViews.reserve(100);		// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		for (const auto& pair : distinctMaterialsOrca) {
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
-			allMatConfigs.push_back(pair.first);
+			allMatConfigs.push_back(pair.first); // pair.first = material config
 			auto matIndex = allMatConfigs.size() - 1;
 
 			// The data in distinctMaterialsOrca also references all the models and submesh-indices (at pair.second) which have a specific material (pair.first) 
-			for (const auto& indices : pair.second) {
+			for (const auto& indices : pair.second) { // pair.second = all models and meshes which use the material config (i.e. pair.first)
 				// However, we have to pay attention to the specific model's scene-properties,...
 				auto& modelData = orca->model_at_index(indices.mModelIndex);
 				// ... specifically, to its instances:
@@ -168,7 +170,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			),
 			cgb::max_recursion_depth::set_to_max(),
 			// Define push constants and descriptor bindings:
-			cgb::push_constant_binding_data { cgb::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
+			cgb::push_constant_binding_data { cgb::shader_type::ray_generation | cgb::shader_type::closest_hit, 0, sizeof(push_const_data) },
 			cgb::binding(0, 0, mImageSamplers),
 			cgb::binding(0, 1, mMaterialBuffer),
 			cgb::binding(0, 2, mIndexBufferViews),
@@ -264,6 +266,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mQuakeCam.enable();
 			}
 		}
+
+		if (cgb::input().key_down(cgb::key_code::j)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
+		}
+		if (cgb::input().key_down(cgb::key_code::l)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
+		}
+		if (cgb::input().key_down(cgb::key_code::i)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
+		}
+		if (cgb::input().key_down(cgb::key_code::k)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
+		}
+		if (cgb::input().key_down(cgb::key_code::u)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
+		}
+		if (cgb::input().key_down(cgb::key_code::o)) {
+			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
+		}
 	}
 
 	void render() override
@@ -290,10 +311,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			0, nullptr);
 
 		// Set the push constants:
-		auto pushConstantsForThisDrawCall = transformation_matrices { 
-			mQuakeCam.view_matrix()
+		auto pushConstantsForThisDrawCall = push_const_data { 
+			mQuakeCam.view_matrix(),
+			mLightDir
 		};
-		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV | vk::ShaderStageFlagBits::eClosestHitNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
 		cmdbfr.handle().traceRaysNV(
@@ -341,6 +363,8 @@ private: // v== Member variables ==v
 
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 
+	glm::vec4 mLightDir;
+	
 	cgb::ray_tracing_pipeline mPipeline;
 	cgb::graphics_pipeline mGraphicsPipeline;
 	cgb::quake_camera mQuakeCam;

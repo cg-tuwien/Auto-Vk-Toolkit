@@ -4,7 +4,7 @@ namespace cgb
 {	
 	// Helper function used in both, bottom_level_acceleration_structure_t::create and top_level_acceleration_structure_t::create
 	template <typename T>
-	void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> _AlterConfigBeforeMemoryAlloc)
+	void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc)
 	{
 		// ------------- Memory ------------
 		// 6. Query memory requirements
@@ -35,8 +35,8 @@ namespace cgb
 				vk::MemoryPropertyFlagBits::eDeviceLocal)); // TODO: Does it make sense to support other memory locations as eDeviceLocal?
 
 		// 8. Maybe alter the config?
-		if (_AlterConfigBeforeMemoryAlloc.mFunction) {
-			_AlterConfigBeforeMemoryAlloc.mFunction(result);
+		if (aAlterConfigBeforeMemoryAlloc.mFunction) {
+			aAlterConfigBeforeMemoryAlloc.mFunction(result);
 		}
 
 		// 9. Allocate the memory
