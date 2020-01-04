@@ -32,7 +32,7 @@ namespace cgb
 		
 	}
 
-	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent)
+	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> aCommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent)
 	{
 
 	}

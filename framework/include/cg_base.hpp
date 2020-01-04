@@ -154,6 +154,9 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "fence_vulkan.hpp"
 #include "command_buffer_vulkan.hpp"
 #include "command_pool_vulkan.hpp"
+
+#include "sync_vulkan.hpp"
+
 #include "buffer_vulkan.hpp"
 #include "buffer_view_vulkan.hpp"
 #include "queue_vulkan.hpp"

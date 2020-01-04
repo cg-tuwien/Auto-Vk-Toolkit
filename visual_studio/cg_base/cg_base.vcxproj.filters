@@ -229,6 +229,9 @@
     <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp">
       <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\include\sync_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -539,6 +542,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\aabb.hpp">
       <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\sync_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

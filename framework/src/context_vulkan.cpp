@@ -8,6 +8,8 @@ namespace cgb
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
+	std::mutex vulkan::sConcurrentAccessMutex;
+
 	auto vulkan::assemble_validation_layers()
 	{
 		std::vector<const char*> supportedValidationLayers;
@@ -261,7 +263,7 @@ namespace cgb
 		});
 	}
 
-	void vulkan::draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer& pCommandBuffer)
+	void vulkan::draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer_t& pCommandBuffer)
 	{
 		pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline.handle());
 		pCommandBuffer.handle().draw(3u, 1u, 0u, 0u);
@@ -1039,24 +1041,24 @@ namespace cgb
 	//	return framebuffers;
 	//}
 
-	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t pQueueFamilyIndex)
+	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
 	{
+		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
 		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
-							   [family_idx = pQueueFamilyIndex, thread_id = std::this_thread::get_id()](const std::tuple<std::thread::id, command_pool>& existing) {
-								   return std::get<0>(existing) == thread_id && std::get<1>(existing).queue_family_index() == family_idx;
+							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, command_pool>& existing) {
+									auto& tid = std::get<0>(existing);
+									auto& q = std::get<1>(existing);
+									return tid == lThreadId && q.queue_family_index() == lFamilyIdx && lFlags == q.create_info().flags;
 							   });
 		if (it == std::end(mCommandPools)) {
-			// TODO: Do we want different parameters depending on the queue? 
-			//       Like, for instance re-usable buffers for the graphics queue?
-			//		 There is a parameter to `command_pool::create` where this could be specified!
-			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), command_pool::create(pQueueFamilyIndex)));
+			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), command_pool::create(aQueueFamilyIndex, aFlags)));
 		}
 		return std::get<1>(*it);
 	}
 
-	command_pool& vulkan::get_command_pool_for_queue(const device_queue& pQueue)
+	command_pool& vulkan::get_command_pool_for_queue(const device_queue& aQueue, vk::CommandPoolCreateFlags aFlags)
 	{
-		return get_command_pool_for_queue_family(pQueue.family_index());
+		return get_command_pool_for_queue_family(aQueue.family_index(), aFlags);
 	}
 
 	uint32_t vulkan::find_memory_type_index(uint32_t pMemoryTypeBits, vk::MemoryPropertyFlags pMemoryProperties)

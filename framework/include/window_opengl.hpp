@@ -35,7 +35,7 @@ namespace cgb
 		/** Creates or opens the window */
 		void open();
 
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent = {});
+		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> aCommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> aCopyToPresent = {});
 
 	};
 }

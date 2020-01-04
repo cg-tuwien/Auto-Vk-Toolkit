@@ -13,17 +13,17 @@ namespace cgb // ========================== TODO/WIP ===========================
 	};
 
 	/** A command buffer which has been created for a certain queue family */
-	class command_buffer
+	class command_buffer_t
 	{
 		friend class device_queue;
 		
 	public:
-		command_buffer() = default;
-		command_buffer(command_buffer&&) = default;
-		command_buffer(const command_buffer&) = delete;
-		command_buffer& operator=(command_buffer&&) = default;
-		command_buffer& operator=(const command_buffer&) = delete;
-		~command_buffer() = default;
+		command_buffer_t() noexcept = default;
+		command_buffer_t(command_buffer_t&&) noexcept = default;
+		command_buffer_t(const command_buffer_t&) = delete;
+		command_buffer_t& operator=(command_buffer_t&&) noexcept = default;
+		command_buffer_t& operator=(const command_buffer_t&) = delete;
+		~command_buffer_t() = default;
 
 		void begin_recording();
 		void end_recording();
@@ -39,25 +39,28 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
 		 *									in flight (or `_Window->number_of_in_flight_frames()`).
 		 */
-		void begin_render_pass_for_window(window* _Window, std::optional<int64_t> _InFlightIndex = {});
+		void begin_render_pass_for_window(window* aWindow, std::optional<int64_t> aInFlightIndex = {});
 		
-		void begin_render_pass(const vk::RenderPass& pRenderPass, const vk::Framebuffer& pFramebuffer, const vk::Offset2D& pOffset, const vk::Extent2D& pExtent, std::vector<vk::ClearValue> _ClearValues);
-		void set_image_barrier(const vk::ImageMemoryBarrier& pBarrierInfo);
-		void copy_image(const image_t& pSource, const vk::Image& pDestination);
+		void begin_render_pass(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
+		void set_image_barrier(const vk::ImageMemoryBarrier& aBarrierInfo);
+		void copy_image(const image_t& aSource, const vk::Image& aDestination);
 		void end_render_pass();
 
 		auto& begin_info() const { return mBeginInfo; }
 		auto& handle() const { return mCommandBuffer.get(); }
 		auto* handle_addr() const { return &mCommandBuffer.get(); }
 		auto state() const { return mState; }
-
-		static std::vector<command_buffer> create_many(uint32_t pCount, command_pool& pPool, vk::CommandBufferUsageFlags pUsageFlags);
-		static command_buffer create(command_pool& pPool, vk::CommandBufferUsageFlags pUsageFlags);
-
+		
+		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
+		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
+		
 	private:
 		command_buffer_state mState;
 		vk::CommandBufferBeginInfo mBeginInfo;
 		vk::UniqueCommandBuffer mCommandBuffer;
 	};
 
+	// Typedef for a variable representing an owner of a command_buffer
+	using command_buffer = owning_resource<command_buffer_t>;
+	
 }

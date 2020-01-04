@@ -16,26 +16,26 @@ namespace cgb
 		window& operator =(window&&) = default;
 
 		/** Request a framebuffer for this window which is capable of sRGB formats */
-		void request_srgb_framebuffer(bool _RequestSrgb);
+		void request_srgb_framebuffer(bool aRequestSrgb);
 
 		/** Sets the presentation mode for this window's swap chain. */
-		void set_presentaton_mode(cgb::presentation_mode _Mode);
+		void set_presentaton_mode(cgb::presentation_mode aMode);
 
 		/** Sets the number of samples for MSAA */
-		void set_number_of_samples(int _NumSamples);
+		void set_number_of_samples(int aNumSamples);
 
 		/** Sets the number of presentable images for a swap chain */
-		void set_number_of_presentable_images(uint32_t _NumImages);
+		void set_number_of_presentable_images(uint32_t aNumImages);
 
 		/** Sets the number of images which can be rendered into concurrently,
 		 *	i.e. the number of "frames in flight"
 		 */
-		void set_number_of_concurrent_frames(uint32_t _NumConcurrent);
+		void set_number_of_concurrent_frames(uint32_t aNumConcurrent);
 
 		/** Sets additional attachments which shall be added to the back buffer 
 		 *	in addition to the obligatory color attachment.  
 		 */
-		void set_additional_back_buffer_attachments(std::vector<attachment> _AdditionalAttachments);
+		void set_additional_back_buffer_attachments(std::vector<attachment> aAdditionalAttachments);
 
 		/** Creates or opens the window */
 		void open();
@@ -43,12 +43,12 @@ namespace cgb
 		/** Gets the requested surface format for the given surface.
 		 *	A default value will be set if no other value has been configured.
 		 */
-		vk::SurfaceFormatKHR get_config_surface_format(const vk::SurfaceKHR& surface);
+		vk::SurfaceFormatKHR get_config_surface_format(const vk::SurfaceKHR& aSurface);
 
 		/** Gets the requested presentation mode for the given surface.
 		 *	A default value will be set if no other value has been configured.
 		 */
-		vk::PresentModeKHR get_config_presentation_mode(const vk::SurfaceKHR& surface);
+		vk::PresentModeKHR get_config_presentation_mode(const vk::SurfaceKHR& aSurface);
 
 		/**	Gets the number of samples that has been configured.
 		 *	A default value will be set if no other value has been configured.
@@ -95,16 +95,16 @@ namespace cgb
 			return mSwapChainImages;
 		}
 		/** Gets this window's swap chain's image at the specified index. */
-		const auto& swap_chain_image_at_index(size_t _Idx) { 
-			return mSwapChainImages[_Idx]; 
+		const auto& swap_chain_image_at_index(size_t aIdx) { 
+			return mSwapChainImages[aIdx]; 
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
 		const auto& swap_chain_image_views() { 
 			return mSwapChainImageViews; 
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		const auto& swap_chain_image_view_at_index(size_t _Idx) { 
-			return mSwapChainImageViews[_Idx]; 
+		const auto& swap_chain_image_view_at_index(size_t aIdx) { 
+			return mSwapChainImageViews[aIdx]; 
 		}
 
 		/** Gets a collection containing all this window's back buffers. */
@@ -112,8 +112,8 @@ namespace cgb
 			return mBackBuffers; 
 		}
 		/** Gets this window's back buffer at the specified index. */
-		const auto& backbuffer_at_index(size_t _Idx) { 
-			return mBackBuffers[_Idx]; 
+		const auto& backbuffer_at_index(size_t aIdx) { 
+			return mBackBuffers[aIdx]; 
 		}
 
 		/** Gets the number of how many frames are (potentially) concurrently rendered into,
@@ -129,74 +129,82 @@ namespace cgb
 		}
 
 		/** Returns the "in flight index" for the requested frame.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		auto in_flight_index_for_frame(std::optional<int64_t> _FrameId = {}) const { 
-			return _FrameId.value_or(current_frame()) % number_of_in_flight_frames(); 
+		auto in_flight_index_for_frame(std::optional<int64_t> aFrameId = {}) const { 
+			return aFrameId.value_or(current_frame()) % number_of_in_flight_frames(); 
 		}
 		
 		/** Returns the swap chain image for the requested frame, which depends on the frame's "in flight index.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const auto& image_for_frame(std::optional<int64_t> _FrameId = {}) const {
-			return mSwapChainImages[in_flight_index_for_frame(_FrameId)];
+		const auto& image_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mSwapChainImages[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the swap chain image view for the requested frame, which depends on the frame's "in flight index.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const image_view_t& image_view_for_frame(std::optional<int64_t> _FrameId = {}) const {
-			return mSwapChainImageViews[in_flight_index_for_frame(_FrameId)];
+		const image_view_t& image_view_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mSwapChainImageViews[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the fence for the requested frame, which depends on the frame's "in flight index.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const fence_t& fence_for_frame(std::optional<int64_t> _FrameId = {}) const {
-			return mFences[in_flight_index_for_frame(_FrameId)];
+		const fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mFences[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the "image available"-semaphore for the requested frame, which depends on the frame's "in flight index.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> _FrameId = {}) const {
-			return mImageAvailableSemaphores[in_flight_index_for_frame(_FrameId)];
+		const semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mImageAvailableSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the "render finished"-semaphore for the requested frame, which depends on the frame's "in flight index.
-		 *	@param _FrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const auto& render_finished_semaphore_for_frame(std::optional<int64_t> _FrameId = {}) const {
-			return mRenderFinishedSemaphores[in_flight_index_for_frame(_FrameId)];
+		const auto& render_finished_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mRenderFinishedSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 
 		/**	Add an extra semaphore to wait on for the given frame id.
-		 *	@param	_Semaphore		The semaphore to take ownership for and to set as dependency for a (future) frame.
-		 *	@param	_FrameId		The (future) frame-id which this semaphore shall be a dependency for.
+		 *	@param	aSemaphore		The semaphore to take ownership for and to set as dependency for a (future) frame.
+		 *	@param	aFrameId		The (future) frame-id which this semaphore shall be a dependency for.
 		 *							If the parameter is not set, the semaphore will be assigned to the current_frame()-id,
 		 *							which means for the next frame which will be rendered. The next frame which will be 
 		 *							rendered is the frame with the id current_frame(), assuming this function is called 
 		 *							before render_frame() is called.
 		 */
-		void set_extra_semaphore_dependency(semaphore _Semaphore, std::optional<int64_t> _FrameId = {});
+		void set_extra_semaphore_dependency(semaphore aSemaphore, std::optional<int64_t> aFrameId = {});
 
-		void set_one_time_submit_command_buffer(command_buffer _CommandBuffer, std::optional<int64_t> _FrameId = {});
+		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
+		 *	The lifetime of this command buffer will last until the given frame + number of frames in flight.
+		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
+		 *	@param	aFrameId		The frame this command buffer is associated to.
+		 */
+		void handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
-		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t _FrameId);
+		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t aFrameId);
 
-		std::vector<command_buffer> remove_all_one_time_submit_command_buffers_for_frame(int64_t _FrameId);
+		/** Remove all the "single use" command buffers for the given frame.
+		 *	The command buffers are moved out of the internal storage and returned to the caller.
+		 */
+		std::vector<command_buffer> remove_all_single_use_command_buffers_for_frame(int64_t aFrameId);
 
-		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId);
+		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId);
 
-		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId);
+		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId);
 
 		//std::vector<semaphore> set_num_extra_semaphores_to_generate_per_frame(uint32_t _NumExtraSemaphores);
 
 		//template<typename CBT, typename... CBTS>
 		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent = {});
+		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> aCopyToPresent = {});
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
@@ -288,7 +296,8 @@ namespace cgb
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
-		// Command buffers which are only submitted once; taking their ownership, handling their lifetime.
-		std::list<std::tuple<int64_t, command_buffer>> mOneTimeSubmitCommandBuffers;
+		// Command buffers which are only submitted once and only once - i.e., for a specific frame,
+		// taking their ownership, handling their lifetime (which lasts until current frame + frames in flight)
+		std::list<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
 	};
 }

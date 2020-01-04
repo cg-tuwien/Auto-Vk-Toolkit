@@ -11,16 +11,7 @@ namespace cgb
 	 */
 	class vulkan : public generic_glfw
 	{
-		friend struct texture_handle;
-		friend struct image_format;
-		friend struct swap_chain_data;
-		friend struct shader_handle;
-		friend struct pipeline;
-		friend class framebuffer_t;
-		friend class command_pool;
-		friend class command_buffer;
 	public:
-		
 		vulkan();
 		vulkan(const vulkan&) = delete;
 		vulkan(vulkan&&) = delete;
@@ -59,17 +50,17 @@ namespace cgb
 		 */
 		window* create_window(const std::string& _Title);
 
-		void draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer& pCommandBuffer);
+		void draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer_t& pCommandBuffer);
 
 		template <typename Bfr>
-		void draw_vertices(const graphics_pipeline& pPipeline, const command_buffer& pCommandBuffer, const Bfr& pVertexBuffer)
+		void draw_vertices(const graphics_pipeline& pPipeline, const command_buffer_t& pCommandBuffer, const Bfr& pVertexBuffer)
 		{
 			pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline->handle());
 			pCommandBuffer.handle().bindVertexBuffers(0u, { pVertexBuffer.buffer_handle() }, { 0 });
 			pCommandBuffer.handle().draw(pVertexBuffer.mVertexCount, 1u, 0u, 0u);                      
 		}
 
-		void draw_indexed(const graphics_pipeline& pPipeline, const command_buffer& pCommandBuffer, const vertex_buffer_t& pVertexBuffer, const index_buffer_t& pIndexBuffer)
+		void draw_indexed(const graphics_pipeline& pPipeline, const command_buffer_t& pCommandBuffer, const vertex_buffer_t& pVertexBuffer, const index_buffer_t& pIndexBuffer)
 		{
 			pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline->handle());
 			pCommandBuffer.handle().bindVertexBuffers(0u, { pVertexBuffer.buffer_handle() }, { 0 });
@@ -182,14 +173,16 @@ namespace cgb
 
 		/** Gets a command pool for the given queue family index.
 		 *	If the command pool does not exist already, it will be created.
+		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
 		 */
-		command_pool& get_command_pool_for_queue_family(uint32_t pQueueFamilyIndex);
+		command_pool& get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
 		
 		/** Gets a command pool for the given queue's queue family index.
 		 *	If the command pool does not exist already, it will be created.
 		 *	A command pool can be shared for multiple queue families if they have the same queue family index.
+		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
 		 */
-		command_pool& get_command_pool_for_queue(const device_queue& pQueue);
+		command_pool& get_command_pool_for_queue(const device_queue& aQueue, vk::CommandPoolCreateFlags aFlags);
 		
 		///** Calculates the semaphore index of the current frame */
 		//size_t sync_index_curr_frame() const { return mFrameCounter % sActualMaxFramesInFlight; }
@@ -221,6 +214,12 @@ namespace cgb
 
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;
+
+		// A mutex which protects the vulkan context from concurrent access from different threads
+		// e.g. during parallel recording of command buffers.
+		// It is only used in some functions, which are expected to be called during runtime (i.e.
+		// during `cg_element::update` or cg_element::render` calls), not during initialization.
+		static std::mutex sConcurrentAccessMutex;
 		
 		vk::Instance mInstance;
 		VkDebugUtilsMessengerEXT mDebugCallbackHandle;

@@ -274,7 +274,7 @@ namespace cgb
 							if (nullptr == wnd) {
 								wnd = cgb::context().main_window();
 							}
-							wnd->set_one_time_submit_command_buffer(std::move(cb), wnd->current_frame() - 1);
+							wnd->handle_single_use_command_buffer_lifetime(std::move(cb), wnd->current_frame() - 1);
 						}
 						// Also, cleanup the elements:
 						e->mSubmittedCommandBufferReferences.clear();

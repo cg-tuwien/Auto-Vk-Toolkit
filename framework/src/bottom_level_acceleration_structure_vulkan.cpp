@@ -32,12 +32,6 @@ namespace cgb
 			}
 			result.mIndexBuffers.push_back(std::move(std::get<index_buffer>(tpl)));
 
-
-			// Temporary check:
-			// TODO: Remove the following line:
-			assert(vk::Format::eR32G32B32Sfloat == posMember->mFormat.mFormat);
-
-
 			result.mGeometries.emplace_back()
 				.setGeometryType(vk::GeometryTypeNV::eTriangles)
 				.setGeometry(vk::GeometryDataNV{}
@@ -164,7 +158,7 @@ namespace cgb
 		return mScratchBuffer.value();
 	}
 	
-	void bottom_level_acceleration_structure_t::build_or_update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler, std::vector<semaphore> aWaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction)
+	void bottom_level_acceleration_structure_t::build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction)
 	{
 		// Set the aScratchBuffer parameter to an internal scratch buffer, if none has been passed:
 		const generic_buffer_t* scratchBuffer = nullptr;
@@ -174,11 +168,12 @@ namespace cgb
 		else {
 			scratchBuffer = &get_and_possibly_create_scratch_buffer();
 		}
-		
-		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		commandBuffer.begin_recording();
 
-		commandBuffer.handle().buildAccelerationStructureNV(
+		device_queue& queue = aSyncHandler.queue_to_use();
+		auto cmdBfr = queue.create_single_use_command_buffer();
+		cmdBfr->begin_recording();
+
+		cmdBfr->handle().buildAccelerationStructureNV(
 			config(),
 			nullptr, 0,								// no instance data for bottom level AS
 			aBuildAction == blas_action::build
@@ -191,21 +186,18 @@ namespace cgb
 			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
 			cgb::context().dynamic_dispatch());
 		
-		commandBuffer.end_recording();
-		
-		auto buildCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(aWaitSemaphores));
-		buildCompleteSemaphore->set_semaphore_wait_stage(vk::PipelineStageFlagBits::eAccelerationStructureBuildNV);
-		
-		handle_semaphore(std::move(buildCompleteSemaphore), std::move(aSemaphoreHandler));
+		aSyncHandler.handle_before_end_of_recording(cmdBfr);
+		cmdBfr->end_recording();
+		aSyncHandler.handle_after_end_of_recording(std::move(cmdBfr));
 	}
 
-	void bottom_level_acceleration_structure_t::build(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler, std::vector<semaphore> aWaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)
+	void bottom_level_acceleration_structure_t::build(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)
 	{
-		build_or_update(std::move(aSemaphoreHandler), std::move(aWaitSemaphores), std::move(aScratchBuffer), blas_action::build);
+		build_or_update(std::move(aSyncHandler), std::move(aScratchBuffer), blas_action::build);
 	}
 	
-	void bottom_level_acceleration_structure_t::update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler, std::vector<semaphore> aWaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)
+	void bottom_level_acceleration_structure_t::update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)
 	{
-		build_or_update(std::move(aSemaphoreHandler), std::move(aWaitSemaphores), std::move(aScratchBuffer), blas_action::update);
+		build_or_update(std::move(aSyncHandler), std::move(aScratchBuffer), blas_action::update);
 	}
 }

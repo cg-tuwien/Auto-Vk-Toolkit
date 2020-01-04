@@ -44,6 +44,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\framework\include\sync_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp" />
     <ClCompile Include="..\..\framework\src\attachment.cpp" />
     <ClCompile Include="..\..\framework\src\binding_data_vulkan.cpp">
@@ -511,6 +512,7 @@
     <ClInclude Include="..\..\framework\include\string_utils.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp" />
     <ClInclude Include="..\..\framework\include\shader_info.hpp" />
+    <ClInclude Include="..\..\framework\include\sync_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />
     <ClInclude Include="..\..\framework\include\timer_interface.hpp" />
     <ClInclude Include="..\..\framework\include\context_tracker.hpp" />

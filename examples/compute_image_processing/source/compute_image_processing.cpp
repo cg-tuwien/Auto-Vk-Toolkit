@@ -161,7 +161,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				.setSubresourceRange({ vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u })
 				.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
 				.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-			_CommandBuffer.handle().pipelineBarrier(
+			_CommandBuffer->handle().pipelineBarrier(
 				vk::PipelineStageFlagBits::eComputeShader,
 				vk::PipelineStageFlagBits::eFragmentShader,
 				{},
