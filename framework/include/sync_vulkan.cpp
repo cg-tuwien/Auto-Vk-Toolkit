@@ -26,22 +26,26 @@ namespace cgb
 		return result;
 	}
 	
-	sync sync::with_barrier(std::function<void(command_buffer&)> aEstablishBarrierCallback, std::function<void(command_buffer)> aCommandBufferLifetimeHandler)
+	sync sync::with_barrier(std::function<void(command_buffer)> aCommandBufferLifetimeHandler)
 	{
 		sync result;
-		result.mEstablishBarrierCallback = std::move(aEstablishBarrierCallback);
 		result.mCommandBufferLifetimeHandler = std::move(aCommandBufferLifetimeHandler);
 		return result;
 	}
 	
-	sync sync::with_barrier_on_current_frame(std::function<void(command_buffer&)> aEstablishBarrierCallback, cgb::window* aWindow)
+	sync sync::with_barrier_on_current_frame(cgb::window* aWindow)
 	{
 		sync result;
-		result.mEstablishBarrierCallback = std::move(aEstablishBarrierCallback);
 		result.mCommandBufferLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
 			wnd->handle_single_use_command_buffer_lifetime(std::move(aCmdBfr));
 		};
 		return result;
+	}
+
+	sync& sync::before_destination_stage(vk::PipelineStageFlags aStageWhichHasToWait)
+	{
+		set_destination_stage(aStageWhichHasToWait);
+		return *this;
 	}
 
 	sync& sync::on_queue(std::reference_wrapper<device_queue> aQueue)
@@ -54,6 +58,13 @@ namespace cgb
 	{
 		mQueueToTransferOwnershipTo = aQueue;
 		return *this;
+	}
+
+	sync::sync_type sync::get_sync_type() const
+	{
+		if (mSemaphoreHandler) return sync_type::via_semaphore;
+		if (mCommandBufferLifetimeHandler) return sync_type::via_barrier;
+		return sync_type::via_wait_idle();
 	}
 	
 	std::reference_wrapper<device_queue> sync::queue_to_use() const
@@ -78,35 +89,50 @@ namespace cgb
 		return q0 == q1;
 	}
 
-	void sync::handle_before_end_of_recording(command_buffer& aCommandBuffer) const
+	void sync::establish_barrier_if_applicable(command_buffer& aCommandBuffer, vk::PipelineStageFlags aSourcePipelineStage) const
 	{
-		if (mEstablishBarrierCallback) {
-			mEstablishBarrierCallback(aCommandBuffer);
+		if (sync_type::via_barrier != get_sync_type()) {
+			return; // nothing to do in this case
 		}
+		aCommandBuffer->handle().pipelineBarrier(
+			aSourcePipelineStage, mDstStage.value_or(vk::PipelineStageFlagBits::eAllCommands),
+			{}, // TODO: Dependency flags might become relevant with framebuffers and sub-passes (e.g. like the "by region" setting which can be a huge improvement on mobile)
+			{}, // TODO: Memory Barriers
+			{}, // TODO: Buffer Memory Barriers
+			{} // TODO: Image Memory Barriers
+		);
 	}
 	
-	void sync::handle_after_end_of_recording(command_buffer aCommandBuffer)
+	void sync::submit_and_sync(command_buffer aCommandBuffer)
 	{
 		device_queue& queue = queue_to_use();
-		if (mSemaphoreHandler) {
-			auto sema = queue.submit_and_handle_with_semaphore(std::move(aCommandBuffer), std::move(mWaitSemaphores));
-			if (mDstStage.has_value()) {
-				sema->set_semaphore_wait_stage(mDstStage.value());
-				// TODO: Also use mSrcStage, mSrcAccess, and mDstAccess?
+		auto syncType = get_sync_type();
+		switch (syncType) {
+		case sync_type::via_semaphore:
+			{
+				assert(mSemaphoreHandler);
+				auto sema = queue.submit_and_handle_with_semaphore(std::move(aCommandBuffer), std::move(mWaitSemaphores));
+				if (mDstStage.has_value()) {
+					sema->set_semaphore_wait_stage(mDstStage.value());
+				}
+				mSemaphoreHandler(std::move(sema)); // Transfer ownership and be done with it
+				mWaitSemaphores = {};
+				mSemaphoreHandler = {};
 			}
-			handle_semaphore(std::move(sema), std::move(mSemaphoreHandler));
-			mWaitSemaphores = {};
-			mSemaphoreHandler = {};
-		}
-		else {
+			break;
+		case sync_type::via_barrier:
+			assert(mCommandBufferLifetimeHandler);
 			queue.submit(aCommandBuffer);
-			assert(aCommandBuffer->state() == command_buffer_state::submitted);
-			if (mCommandBufferLifetimeHandler) {
-				mCommandBufferLifetimeHandler(std::move(aCommandBuffer));
-			}
-			else {
-				queue_to_use().get().handle().waitIdle();
-			}
+			mCommandBufferLifetimeHandler(std::move(aCommandBuffer));
+			mCommandBufferLifetimeHandler = {};
+			break;
+		case sync_type::via_wait_idle:
+			queue.submit(aCommandBuffer);
+			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
+			queue_to_use().get().handle().waitIdle();
+			break;
+		default:
+			throw std::logic_error("unknown syncType");
 		}
 	}
 }

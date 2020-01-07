@@ -270,6 +270,7 @@
     <ClInclude Include="..\..\framework\include\aabb.hpp" />
     <ClInclude Include="..\..\framework\include\acceleration_structure_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\attachment.hpp" />
+    <ClInclude Include="..\..\framework\include\memory_barrier_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\bindings_opengl.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
@@ -439,6 +440,7 @@
     <ClInclude Include="..\..\framework\include\material_gpu_data.hpp" />
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
+    <ClInclude Include="..\..\framework\include\memory_stages.hpp" />
     <ClInclude Include="..\..\framework\include\memory_usage.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\graphics_pipeline_config.hpp" />

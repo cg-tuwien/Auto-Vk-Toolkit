@@ -546,6 +546,12 @@
     <ClInclude Include="..\..\framework\include\sync_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\memory_barrier_vulkan.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\memory_stages.hpp">
+      <Filter>Header Files\data_buffers_images</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

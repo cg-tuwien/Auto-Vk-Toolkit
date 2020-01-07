@@ -132,8 +132,7 @@ namespace cgb
 		
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto signalWhenCompleteSemaphore = semaphore_t::create();
-		signalWhenCompleteSemaphore->set_designated_queue(*this); //< Just store the info
-
+		
 		if (0 == aWaitSemaphores.size()) {
 			// Optimized route for 0 _WaitSemaphores
 			const auto submitInfo = vk::SubmitInfo{}

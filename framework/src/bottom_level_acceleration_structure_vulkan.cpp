@@ -188,7 +188,7 @@ namespace cgb
 		
 		aSyncHandler.handle_before_end_of_recording(cmdBfr);
 		cmdBfr->end_recording();
-		aSyncHandler.handle_after_end_of_recording(std::move(cmdBfr));
+		aSyncHandler.submit_and_sync(std::move(cmdBfr));
 	}
 
 	void bottom_level_acceleration_structure_t::build(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)
