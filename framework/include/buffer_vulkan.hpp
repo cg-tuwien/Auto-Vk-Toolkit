@@ -79,7 +79,9 @@ namespace cgb
 		auto vkMemory = cgb::context().logical_device().allocateMemoryUnique(allocInfo);
 
 		// If memory allocation was successful, then we can now associate this memory with the buffer
-		cgb::context().logical_device().bindBufferMemory(vkBuffer.get(), vkMemory.get(), 0);
+		if (VK_SUCCESS != cgb::context().logical_device().bindBufferMemory(vkBuffer.get(), vkMemory.get(), 0)) {
+			throw std::runtime_error("Binding memory to buffer failed.");
+		}
 
 		cgb::buffer_t<Meta> b;
 		b.mMetaData = pConfig;

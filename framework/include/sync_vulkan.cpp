@@ -60,6 +60,12 @@ namespace cgb
 		return *this;
 	}
 
+	sync& sync::set_pipeline_barrier_parameters_alteration_handler(std::function<void(pipeline_barrier_parameters&)> aHandler)
+	{
+		mAlterPipelineBarrierParametersHandler = std::move(aHandler);
+		return *this;
+	}
+	
 	sync::sync_type sync::get_sync_type() const
 	{
 		if (mSemaphoreHandler) return sync_type::via_semaphore;
@@ -94,8 +100,20 @@ namespace cgb
 		if (sync_type::via_barrier != get_sync_type()) {
 			return; // nothing to do in this case
 		}
+
+		pipeline_barrier_parameters barrierParams
+		{
+			// For all previous(src) stages: wait until every stage up until the following has completed
+			aSourcePipelineStage,
+			// For all following(dst) stages: all stages beginning equal to or later as the following have to wait
+			mDstStage.value_or(vk::PipelineStageFlagBits::eAllCommands),
+			// Do not set any dependency flags, but a potential alteration-handler can set them
+			vk::DependencyFlags{},
+			
+		};
+		
 		aCommandBuffer->handle().pipelineBarrier(
-			aSourcePipelineStage, mDstStage.value_or(vk::PipelineStageFlagBits::eAllCommands),
+			aSourcePipelineStage, ,
 			{}, // TODO: Dependency flags might become relevant with framebuffers and sub-passes (e.g. like the "by region" setting which can be a huge improvement on mobile)
 			{}, // TODO: Memory Barriers
 			{}, // TODO: Buffer Memory Barriers

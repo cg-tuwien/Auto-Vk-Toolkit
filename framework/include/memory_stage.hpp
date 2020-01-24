@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	enum struct memory_stages
+	enum struct memory_stage
 	{
         indirect_command,
 		index,

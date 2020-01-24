@@ -2,7 +2,21 @@
 
 namespace cgb
 {
+	// Forward-declare the device-queue
 	class device_queue;
+
+	/** A type which holds all the data passed to a memory barrier.
+	 *	Used to alter the config before issuing the actual pipeline barrier.
+	 */
+	struct pipeline_barrier_parameters
+	{
+		vk::PipelineStageFlags mSrcStageMask;
+		vk::PipelineStageFlags mDstStageMask;
+		vk::DependencyFlags mDependencyFlags;
+		vk::ArrayProxy<const vk::MemoryBarrier> mMemoryBarriers;
+		vk::ArrayProxy<const vk::BufferMemoryBarrier> mBufferMemoryBarriers;
+		vk::ArrayProxy<const vk::ImageMemoryBarrier> mImageMemoryBarriers;
+	};
 
 	class sync
 	{
@@ -47,6 +61,10 @@ namespace cgb
 		 */
 		sync& then_transfer_to(std::reference_wrapper<device_queue> aQueue);
 
+		/**	Establish an (optional) handler which can be used to alter the parameters passed to a pipeline barrier
+		 */
+		sync& set_pipeline_barrier_parameters_alteration_handler(std::function<void(pipeline_barrier_parameters&)> aHandler);
+
 		/** Determine the fundamental sync approach configured in this `sync`. */
 		sync_type get_sync_type() const;
 		
@@ -70,6 +88,7 @@ namespace cgb
 		std::function<void(command_buffer)> mCommandBufferLifetimeHandler;
 		std::optional<std::reference_wrapper<device_queue>> mQueueToUse;
 		std::optional<std::reference_wrapper<device_queue>> mQueueToTransferOwnershipTo;
-		std::optional<vk::PipelineStageFlags> mDstStage; 
+		std::optional<vk::PipelineStageFlags> mDstStage;
+		std::function<void(pipeline_barrier_parameters&)> mAlterPipelineBarrierParametersHandler;
 	};
 }

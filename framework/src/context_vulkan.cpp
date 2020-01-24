@@ -1067,7 +1067,7 @@ namespace cgb
 		// Memory heaps are distinct memory resources like dedicated VRAM and swap space in RAM for 
 		// when VRAM runs out. The different types of memory exist within these heaps. Right now we'll 
 		// only concern ourselves with the type of memory and not the heap it comes from, but you can 
-		// imagine that this can affect performance.
+		// imagine that this can affect performance. (Source: https://vulkan-tutorial.com/)
 		auto memProperties = physical_device().getMemoryProperties();
 		for (auto i = 0u; i < memProperties.memoryTypeCount; ++i) {
 			if ((pMemoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & pMemoryProperties) == pMemoryProperties) {
