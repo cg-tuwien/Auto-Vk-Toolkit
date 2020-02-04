@@ -232,6 +232,9 @@
     <ClCompile Include="..\..\framework\include\sync_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\memory_barrier_vulkan.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">

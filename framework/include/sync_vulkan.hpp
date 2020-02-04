@@ -35,23 +35,26 @@ namespace cgb
 		static sync with_barrier(std::function<void(command_buffer)> aCommandBufferLifetimeHandler);
 		static sync with_barrier_on_current_frame(cgb::window* aWindow = nullptr);
 
-		/**	Set the sync destination stage, i.e. the stage of the SUBSEQUENT command
-		 *	which has to wait for this submission.
+		/**	Establish an EXECUTION BARRIER: The specified stage has to wait on the completion of the command to be synchronized.
+		 *  The command will set some source stage, this function can be used to set the destination stage of the pipeline execution barrier.
 		 *
 		 *	This flag applies to:
 		 *		- semaphores
 		 *		- memory barriers
 		 */
-		sync& before_destination_stage(vk::PipelineStageFlags aStageWhichHasToWait);
+		sync& continue_execution_in_stage(vk::PipelineStageFlags aStageWhichHasToWait);
 
-		/**	Set the sync destination stage, i.e. the stage of the SUBSEQUENT command
-		 *	which has to wait for this submission.
-		 *
-		 *	This flag applies to:
-		 *		- semaphores
-		 *		- memory barriers
-		 */
-		void set_destination_stage(vk::PipelineStageFlags aStageWhichHasToWait) { mDstStage = aStageWhichHasToWait; }
+		sync& make_memory_available_for_writing(memory_stage aMemoryToBeMadeAvailable);
+
+		sync& make_memory_available_for_reading(memory_stage aMemoryToBeMadeAvailable);
+
+		sync& make_memory_available_for_writing(memory_stage aMemoryToBeMadeAvailable, const image_t& aImage);
+
+		sync& make_memory_available_for_reading(memory_stage aMemoryToBeMadeAvailable, const image_t& aImage);
+
+		// TODO: Support buffer memory barriers after buffer-unification:
+		//sync& make_memory_available_for_writing(memory_stage aMemoryToBeMadeAvailable, const buffer_t& aBuffer);
+		//sync& make_memory_available_for_reading(memory_stage aMemoryToBeMadeAvailable, const buffer_t& aBuffer);
 
 		/**	Set the queue where the command is to be submitted to AND also where the sync will happen.
 		 */

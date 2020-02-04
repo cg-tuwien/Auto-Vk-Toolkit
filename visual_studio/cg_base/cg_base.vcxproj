@@ -164,6 +164,7 @@
     <ClCompile Include="..\..\framework\src\log.cpp" />
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp" />
     <ClCompile Include="..\..\framework\src\math_utils.cpp" />
+    <ClCompile Include="..\..\framework\src\memory_barrier_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
     <ClCompile Include="..\..\framework\src\pipeline_opengl.cpp">
