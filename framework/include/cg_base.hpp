@@ -99,6 +99,7 @@
 #include "shader_type.hpp"
 #include "shader_info.hpp"
 #include "aabb.hpp"
+#include "pipeline_stage.hpp"
 #include "memory_stage.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)

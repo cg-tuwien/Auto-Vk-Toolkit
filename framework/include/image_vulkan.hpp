@@ -70,6 +70,11 @@ namespace cgb
 		/** Gets the usage config flags as specified during image creation. */
 		const auto& usage_config() const { return mImageUsage; }
 
+		/** Gets a struct defining the subresource range, encompassing all subresources associated with this image,
+		 *	i.e. all layers, all mip-levels
+		 */
+		vk::ImageSubresourceRange entire_subresource_range() const;
+
 		/** Creates a new image
 		 *	@param	pWidth						The width of the image to be created
 		 *	@param	pHeight						The height of the image to be created
@@ -123,6 +128,8 @@ namespace cgb
 		vk::ImageLayout mCurrentLayout;
 		// The image_usage flags specified during creation
 		image_usage mImageUsage;
+		// Image aspect flags (set during creation)
+		vk::ImageAspectFlags mAspectFlags;
 	};
 
 	/** Typedef representing any kind of OWNING image representations. */

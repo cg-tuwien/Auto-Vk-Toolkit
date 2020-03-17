@@ -2,40 +2,40 @@
 
 namespace cgb
 {
-	void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	void transition_image_layout(image_t& aImage, vk::Format aFormat, vk::ImageLayout aNewLayout, sync aSyncHandler)
 	{
 		//auto commandBuffer = context().create_command_buffers_for_graphics(1, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		auto commandBuffer = context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		auto commandBuffer = context().graphics_queue().create_single_use_command_buffer();
 
 		// Immediately start recording the command buffer:
-		commandBuffer.begin_recording();
+		commandBuffer->begin_recording();
 
 		vk::AccessFlags sourceAccessMask, destinationAccessMask;
 		vk::PipelineStageFlags sourceStageFlags, destinationStageFlags;
 
 		// TODO: This has to be reworked entirely!!
 
-		auto oldImageLayout = _Image.current_layout();
-		if (oldImageLayout == _NewLayout) {
+		auto oldImageLayout = aImage.current_layout();
+		if (oldImageLayout == aNewLayout) {
 			return;
 		}
 
 		// There are two transitions we need to handle [3]:
 		//  - Undefined --> transfer destination : transfer writes that don't need to wait on anything
 		//  - Transfer destination --> shader reading : shader reads should wait on transfer writes, specifically the shader reads in the fragment shader, because that's where we're going to use the texture
-		if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eTransferDstOptimal) {
+		if (oldImageLayout == vk::ImageLayout::eUndefined && aNewLayout == vk::ImageLayout::eTransferDstOptimal) {
 			sourceAccessMask = vk::AccessFlags();
 			destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
 			destinationStageFlags = vk::PipelineStageFlagBits::eTransfer;
 		}
-		else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal && _NewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+		else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal && aNewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
 			sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
 			destinationAccessMask = vk::AccessFlagBits::eShaderRead;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTransfer;
 			destinationStageFlags = vk::PipelineStageFlagBits::eFragmentShader;
 		}
-		else if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+		else if (oldImageLayout == vk::ImageLayout::eUndefined && aNewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
 			sourceAccessMask = vk::AccessFlags();
 			destinationAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -109,7 +109,7 @@ namespace cgb
 
 			// Target layouts (new)
 			// Destination access mask controls the dependency for the new image layout
-			switch (_NewLayout)
+			switch (aNewLayout)
 			{
 			case vk::ImageLayout::eTransferDstOptimal:
 				// Image will be used as a transfer destination
@@ -161,7 +161,7 @@ namespace cgb
 		// is generally used to synchronize access to resources, like ensuring that a write to a buffer completes before reading from 
 		// it, but it can also be used to transition image layouts and transfer queue family ownership when VK_SHARING_MODE_EXCLUSIVE 
 		// is used.There is an equivalent buffer memory barrier to do this for buffers. [3]
-		auto barrier = _Image.create_barrier(sourceAccessMask, destinationAccessMask, oldImageLayout, _NewLayout);
+		auto barrier = aImage.create_barrier(sourceAccessMask, destinationAccessMask, oldImageLayout, aNewLayout);
 
 		// The pipeline stages that you are allowed to specify before and after the barrier depend on how you use the resource before and 
 		// after the barrier.The allowed values are listed in this table of the specification.For example, if you're going to read from a 
@@ -169,7 +169,7 @@ namespace cgb
 		// the uniform as pipeline stage, for example VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT. It would not make sense to specify a non-shader 
 		// pipeline stage for this type of usage and the validation layers will warn you when you specify a pipeline stage that does not 
 		// match the type of usage. [3]
-		commandBuffer.handle().pipelineBarrier(
+		commandBuffer->handle().pipelineBarrier(
 			sourceStageFlags,
 			destinationStageFlags,
 			vk::DependencyFlags(), // The third parameter is either 0 or VK_DEPENDENCY_BY_REGION_BIT. The latter turns the barrier into a per-region condition. That means that the implementation is allowed to already begin reading from the parts of a resource that were written so far, for example. [3]
@@ -178,13 +178,14 @@ namespace cgb
 			{ barrier });
 
 		// That's all
-		commandBuffer.end_recording();
+		aSyncHandler.set_sync_stages_and_establish_barrier(commandBuffer, sourceStageFlags, /* F***CK */)
+		commandBuffer->end_recording();
 
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto transitionCompleteSemaphore = cgb::context().graphics_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
 		// transitionCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
 
-		_Image.set_current_layout(_NewLayout); // Just optimistically set it
+		aImage.set_current_layout(aNewLayout); // Just optimistically set it
 		
 		handle_semaphore(std::move(transitionCompleteSemaphore), std::move(_SemaphoreHandler));
 	}

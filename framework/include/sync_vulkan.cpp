@@ -42,9 +42,55 @@ namespace cgb
 		return result;
 	}
 
-	sync& sync::before_destination_stage(vk::PipelineStageFlags aStageWhichHasToWait)
+	sync& sync::continue_execution_in_stages(pipeline_stage aStageWhichHasToWait)
 	{
-		set_destination_stage(aStageWhichHasToWait);
+		mBarrierParams.mDstStageMask = to_vk_pipeline_stage_flags(aStageWhichHasToWait);
+		return *this;
+	}
+	
+	sync& sync::make_memory_available_for_writing_in_stages(memory_stage aMemoryToBeMadeAvailable)
+	{
+		mBarrierParams.mMemoryBarriers.emplace_back(
+			vk::AccessFlags{} /* <-- to be set by the command */, 
+			to_vk_access_flags_for_writing(aMemoryToBeMadeAvailable)
+		);
+		return *this;
+	}
+
+	sync& sync::make_memory_available_for_reading_in_stages(memory_stage aMemoryToBeMadeAvailable)
+	{
+		mBarrierParams.mMemoryBarriers.emplace_back(
+			vk::AccessFlags{}, // <-- to be set by the command 
+			to_vk_access_flags_for_reading(aMemoryToBeMadeAvailable)
+		);
+		return *this;
+	}
+
+	sync& sync::make_image_available_for_writing_in_stages(const image_t& aImage, memory_stage aMemoryToBeMadeAvailable)
+	{
+		mBarrierParams.mImageMemoryBarriers.emplace_back(
+			vk::AccessFlags{},
+			to_vk_access_flags_for_writing(aMemoryToBeMadeAvailable),
+			aImage.current_layout(),
+			aImage.target_layout(),
+			0u, 0u, // <-- to be set later
+			aImage.image_handle(),
+			aImage.entire_subresource_range()
+		);
+		return *this;
+	}
+
+	sync& sync::make_image_available_for_reading_in_stages(const image_t& aImage, memory_stage aMemoryToBeMadeAvailable)
+	{
+		mBarrierParams.mImageMemoryBarriers.emplace_back(
+			vk::AccessFlags{},
+			to_vk_access_flags_for_reading(aMemoryToBeMadeAvailable),
+			aImage.current_layout(),
+			aImage.target_layout(),
+			0u, 0u, // <-- to be set later
+			aImage.image_handle(),
+			aImage.entire_subresource_range()
+		);
 		return *this;
 	}
 
@@ -95,29 +141,56 @@ namespace cgb
 		return q0 == q1;
 	}
 
-	void sync::establish_barrier_if_applicable(command_buffer& aCommandBuffer, vk::PipelineStageFlags aSourcePipelineStage) const
+	void sync::set_sync_stages_and_establish_barrier(command_buffer& aCommandBuffer, std::optional<pipeline_stage> aSourcePipelineStages, std::optional<memory_stage> aSourceMemoryStages)
 	{
+		// At this point, complete all the (prepared) synchronization settings in pipeline_barrier_parameters
+		// Most importantly, set all the source stages:
+		const auto sourcePipelineStages = to_vk_pipeline_stage_flags(aSourcePipelineStages);
+		const auto sourceMemoryStages = to_vk_access_flags_for_writing(aSourceMemoryStages);
+		mBarrierParams.mSrcStageMask = sourcePipelineStages;
+		for (auto& mb : mBarrierParams.mMemoryBarriers) {
+			mb.srcAccessMask = sourceMemoryStages;
+		}
+		for (auto& ib : mBarrierParams.mImageMemoryBarriers) {
+			ib.srcAccessMask = sourceMemoryStages;
+			if (queues_are_the_same()) {
+				ib.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				ib.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			}
+			else {
+				ib.srcQueueFamilyIndex = queue_to_use().get().family_index();
+				ib.dstQueueFamilyIndex = queue_to_transfer_to().get().family_index();	
+			}
+		}
+		for (auto& bb : mBarrierParams.mBufferMemoryBarriers) { // TODO: Implement buffer memory barriers!
+			bb.srcAccessMask = sourceMemoryStages;
+			if (queues_are_the_same()) {
+				bb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				bb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			}
+			else {
+				bb.srcQueueFamilyIndex = queue_to_use().get().family_index();
+				bb.dstQueueFamilyIndex = queue_to_transfer_to().get().family_index();	
+			}
+		}
+
+		// Allow the alteration of the barrier params, if a handler has been set
+		if (mAlterPipelineBarrierParametersHandler) {
+			mAlterPipelineBarrierParametersHandler(mBarrierParams);
+		}
+
+		// Now, for the "establish_barrier"-part:
 		if (sync_type::via_barrier != get_sync_type()) {
 			return; // nothing to do in this case
 		}
 
-		pipeline_barrier_parameters barrierParams
-		{
-			// For all previous(src) stages: wait until every stage up until the following has completed
-			aSourcePipelineStage,
-			// For all following(dst) stages: all stages beginning equal to or later as the following have to wait
-			mDstStage.value_or(vk::PipelineStageFlagBits::eAllCommands),
-			// Do not set any dependency flags, but a potential alteration-handler can set them
-			vk::DependencyFlags{},
-			
-		};
-		
+		// Do it:	
 		aCommandBuffer->handle().pipelineBarrier(
-			aSourcePipelineStage, ,
+			mBarrierParams.mSrcStageMask, mBarrierParams.mDstStageMask,
 			{}, // TODO: Dependency flags might become relevant with framebuffers and sub-passes (e.g. like the "by region" setting which can be a huge improvement on mobile)
-			{}, // TODO: Memory Barriers
-			{}, // TODO: Buffer Memory Barriers
-			{} // TODO: Image Memory Barriers
+			static_cast<uint32_t>(mBarrierParams.mMemoryBarriers.size()),		mBarrierParams.mMemoryBarriers.data(),
+			static_cast<uint32_t>(mBarrierParams.mBufferMemoryBarriers.size()), mBarrierParams.mBufferMemoryBarriers.data(),
+			static_cast<uint32_t>(mBarrierParams.mImageMemoryBarriers.size()),	mBarrierParams.mImageMemoryBarriers.data()
 		);
 	}
 	
@@ -130,8 +203,8 @@ namespace cgb
 			{
 				assert(mSemaphoreHandler);
 				auto sema = queue.submit_and_handle_with_semaphore(std::move(aCommandBuffer), std::move(mWaitSemaphores));
-				if (mDstStage.has_value()) {
-					sema->set_semaphore_wait_stage(mDstStage.value());
+				if (mBarrierParams.mDstStageMask) {
+					sema->set_semaphore_wait_stage(mBarrierParams.mDstStageMask);
 				}
 				mSemaphoreHandler(std::move(sema)); // Transfer ownership and be done with it
 				mWaitSemaphores = {};

@@ -738,13 +738,14 @@ namespace cgb
 			: 1u;
 
 		image_t result;
+		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
 		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(pWidth), static_cast<uint32_t>(pHeight), 1u))
 			.setMipLevels(mipLevels)
-			.setArrayLayers(1u)
+			.setArrayLayers(1u) // TODO: support multiple array layers
 			.setFormat(pFormat.mFormat)
 			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
@@ -793,7 +794,9 @@ namespace cgb
 		pImageUsage |= image_usage::depth_stencil_attachment;
 
 		// Create the image (by default only on the device which should be sufficient for a depth buffer => see pMemoryUsage's default value):
-		return image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth;
+		return result;
 	}
 
 	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
@@ -813,7 +816,19 @@ namespace cgb
 		}
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
-		return image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+		return result;
+	}
+
+
+	vk::ImageSubresourceRange image_t::entire_subresource_range() const
+	{
+		return vk::ImageSubresourceRange{
+			mAspectFlags,
+			0u, mInfo.mipLevels,	// MIP info
+			0u, mInfo.arrayLayers	// Layers info
+		};
 	}
 
 

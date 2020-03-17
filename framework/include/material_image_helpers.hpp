@@ -4,18 +4,18 @@ namespace cgb
 {	
 	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
 
-	extern void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern void transition_image_layout(image_t& aImage, vk::Format aFormat, vk::ImageLayout aNewLayout, sync aSyncHandler = sync::wait_idle());
 
 	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
 
 	template <typename Bfr>
-	owning_resource<semaphore_t> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, std::vector<semaphore> _WaitSemaphores = {})
+	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
 	{
 		//auto commandBuffer = context().create_command_buffers_for_transfer(1);
-		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		auto commandBuffer = cgb::context().transfer_queue().create_single_use_command_buffer();
 
 		// Immediately start recording the command buffer:
-		commandBuffer.begin_recording();
+		commandBuffer->begin_recording();
 
 		auto copyRegion = vk::BufferImageCopy()
 			.setBufferOffset(0)
@@ -31,22 +31,19 @@ namespace cgb
 			.setImageOffset({ 0u, 0u, 0u })
 			.setImageExtent(pDstImage.config().extent);
 
-		commandBuffer.handle().copyBufferToImage(
+		commandBuffer->handle().copyBufferToImage(
 			pSrcBuffer->buffer_handle(),
 			pDstImage.image_handle(),
 			vk::ImageLayout::eTransferDstOptimal,
 			{ copyRegion });
 
 		// That's all
-		commandBuffer.end_recording();
-
-		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto copyCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
-		// copyCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
-		return copyCompleteSemaphore;
+		aSyncHandler.set_sync_stages_and_establish_barrier(commandBuffer, pipeline_stage::transfer, memory_stage::transfer);
+		commandBuffer->end_recording();
+		aSyncHandler.submit_and_sync(std::move(commandBuffer));
 	}
 
-	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
+	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
 		auto stagingBuffer = cgb::create_and_fill(
 			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
@@ -59,7 +56,12 @@ namespace cgb
 
 		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, selectedFormat, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
+		transition_image_layout(img, selectedFormat, vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_on_current_frame()); // TODO: which sync?
+		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_on_current_frame());
+		// UIUIUIUIUI, TODO: Sind die syncs wohl in der richtigen Reihenfolge und so? => machen wir hier weiter!
+			
+			
+			[&](semaphore sem1) {
 			// 2. Copy buffer to image
 			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
 			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
