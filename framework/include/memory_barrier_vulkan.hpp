@@ -28,7 +28,7 @@ namespace cgb
 		 *	@param		aMemoryToMakeAvailable	This is the stage, which reads memory a.k.a. the DESTINATION-stage.
 		 *										There, the memory of the source stage shall be available (i.e. transferred into L1)
 		 */
-		static constexpr memory_barrier create_read_after_write(memory_stage aMemoryToMakeVisible, memory_stage aMemoryToMakeAvailable);
+		static constexpr memory_barrier create_read_after_write(memory_access aMemoryToMakeVisible, memory_access aMemoryToMakeAvailable);
 
 		/**	Create a global write-after-write memory barrier between two given memory stages.
 		 *	@param		aMemoryToMakeVisible	This is the stage, which writes memory a.k.a. the SOURCE-stage.
@@ -36,7 +36,7 @@ namespace cgb
 		 *	@param		aMemoryToMakeAvailable	This is the stage, which reads memory a.k.a. the DESTINATION-stage.
 		 *										There, the memory of the source stage shall be available (i.e. transferred into L1)
 		 */
-		static constexpr memory_barrier create_write_after_write(memory_stage aMemoryToMakeVisible, memory_stage aMemoryToMakeAvailable);
+		static constexpr memory_barrier create_write_after_write(memory_access aMemoryToMakeVisible, memory_access aMemoryToMakeAvailable);
 
 		/** Create a very coarse image memory barrier which makes the writes of all source stages
 		 *	available the reads of all destination stages.
@@ -58,7 +58,7 @@ namespace cgb
 		 *	@param		aMemoryToMakeAvailable	This is the stage, which reads memory a.k.a. the DESTINATION-stage.
 		 *										There, the memory of the source stage shall be available (i.e. transferred into L1)
 		 */
-		static constexpr memory_barrier create_read_after_write(memory_stage aMemoryToMakeVisible, memory_stage aMemoryToMakeAvailable, const image_t& aImage);
+		static constexpr memory_barrier create_read_after_write(memory_access aMemoryToMakeVisible, memory_access aMemoryToMakeAvailable, const image_t& aImage);
 
 		/**	Create a write-after-write image memory barrier between two given memory stages.
 		 *	@param		aMemoryToMakeVisible	This is the stage, which writes memory a.k.a. the SOURCE-stage.
@@ -66,13 +66,13 @@ namespace cgb
 		 *	@param		aMemoryToMakeAvailable	This is the stage, which reads memory a.k.a. the DESTINATION-stage.
 		 *										There, the memory of the source stage shall be available (i.e. transferred into L1)
 		 */
-		static constexpr memory_barrier create_write_after_write(memory_stage aMemoryToMakeVisible, memory_stage aMemoryToMakeAvailable, const image_t& aImage);
+		static constexpr memory_barrier create_write_after_write(memory_access aMemoryToMakeVisible, memory_access aMemoryToMakeAvailable, const image_t& aImage);
 
 		// TODO: Buffer barriers after buffer data types have been unified
 		
 	private:
-		static constexpr vk::AccessFlags get_write_flag_for_memory_stage(memory_stage aMemoryStage);
-		static constexpr vk::AccessFlags get_read_flag_for_memory_stage(memory_stage aMemoryStage);
+		static constexpr vk::AccessFlags get_write_flag_for_memory_stage(memory_access aMemoryStage);
+		static constexpr vk::AccessFlags get_read_flag_for_memory_stage(memory_access aMemoryStage);
 		
 		std::variant<vk::MemoryBarrier, vk::BufferMemoryBarrier, vk::ImageMemoryBarrier> mBarrier;
 	};

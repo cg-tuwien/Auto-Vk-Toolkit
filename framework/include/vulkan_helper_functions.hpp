@@ -44,10 +44,7 @@ namespace cgb
 	extern vk::PipelineStageFlags to_vk_pipeline_stage_flags(cgb::pipeline_stage aValue);
 	extern vk::PipelineStageFlags to_vk_pipeline_stage_flags(std::optional<cgb::pipeline_stage> aValue);
 
-	extern vk::AccessFlags to_vk_access_flags_for_reading(cgb::memory_stage aValue);
-	extern vk::AccessFlags to_vk_access_flags_for_reading(std::optional<cgb::memory_stage> aValue);
+	extern vk::AccessFlags to_vk_access_flags(cgb::memory_access aValue);
+	extern vk::AccessFlags to_vk_access_flags(std::optional<cgb::memory_access> aValue);
 
-	extern vk::AccessFlags to_vk_access_flags_for_writing(cgb::memory_stage aValue);
-	extern vk::AccessFlags to_vk_access_flags_for_writing(std::optional<cgb::memory_stage> aValue);
-	
 }

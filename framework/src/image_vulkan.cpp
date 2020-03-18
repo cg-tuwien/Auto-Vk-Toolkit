@@ -832,45 +832,37 @@ namespace cgb
 	}
 
 
-
-	vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange)
+	void image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
 	{
-		if (!pSubresourceRange) {
-			vk::ImageAspectFlags aspectMask;
-			if (pNewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-				aspectMask = vk::ImageAspectFlagBits::eDepth;
-				if (has_stencil_component(cgb::image_format(pFormat))) {
-					aspectMask |= vk::ImageAspectFlagBits::eStencil;
-				}
-			}
-			else {
-				aspectMask = vk::ImageAspectFlagBits::eColor;
-			}
+		const auto curLayout = current_layout();
+		const auto trgLayout = aTargetLayout.value_or(target_layout());
+		mTargetLayout = trgLayout;
 
-			pSubresourceRange = vk::ImageSubresourceRange()
-				.setAspectMask(aspectMask)
-				.setBaseMipLevel(0u)
-				.setLevelCount(1u)
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u);
+		if (curLayout == trgLayout) {
+			return; // done (:
 		}
 
-		return vk::ImageMemoryBarrier()
-			.setOldLayout(pOldLayout)
-			.setNewLayout(pNewLayout)
-			// If you are using the barrier to transfer queue family ownership, then these two fields should be the indices of the queue 
-			// families.They must be set to VK_QUEUE_FAMILY_IGNORED if you don't want to do this (not the default value!). [3]
-			.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-			.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-			.setImage(pImage)
-			.setSubresourceRange(*pSubresourceRange)
-			.setSrcAccessMask(pSrcAccessMask)
-			.setDstAccessMask(pDstAccessMask);
-	}
+		// Not done => perform a transition via an image memory barrier inside a command buffer
+		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
+		commandBuffer->begin_recording();
+		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, 
+			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
+			{}							// There's no need to make any memory visible. It's fine if it is available (which is handled outside, i.e. by the sync user)
+		);						
+		commandBuffer->establish_image_memory_barrier(*this,
+			pipeline_stage::transfer, pipeline_stage::transfer,
+			{}, {}						// There should be no need to make any memory available or visible... the image should be available already (see above)
+		);
 
-	vk::ImageMemoryBarrier image_t::create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange) const
-	{
-		return create_image_barrier(image_handle(), mInfo.format, pSrcAccessMask, pDstAccessMask, pOldLayout, pNewLayout, pSubresourceRange);
+		// Act as if the layout transition was successful already:
+		mCurrentLayout = mTargetLayout;
+		
+		aSyncHandler.establish_barrier_after_the_operation(commandBuffer,
+			pipeline_stage::transfer,	// The end of the execution dependency chain
+			{}							// No need to make any memory available, it already is.
+		);
+		commandBuffer->end_recording();
+		aSyncHandler.submit_and_sync(std::move(commandBuffer));
 	}
 
 

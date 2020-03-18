@@ -2,6 +2,18 @@
 
 namespace cgb
 {
+	command_buffer_t::~command_buffer_t()
+	{
+		if (mCustomDeleter.has_value() && *mCustomDeleter) {
+			// If there is a custom deleter => call it now
+			(*mCustomDeleter)();
+			mCustomDeleter.reset();
+		}
+		// Destroy the dependant instance before destroying myself
+		// ^ This is ensured by the order of the members
+		//   See: https://isocpp.org/wiki/faq/dtors#calling-member-dtors
+	}
+	
 	std::vector<owning_resource<command_buffer_t>> command_buffer_t::create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags)
 	{
 		auto bufferAllocInfo = vk::CommandBufferAllocateInfo()
@@ -97,13 +109,24 @@ namespace cgb
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
 	}
 
-	void command_buffer_t::set_image_barrier(const vk::ImageMemoryBarrier& aBarrierInfo)
+	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
 	{
 		mCommandBuffer->pipelineBarrier(
-			vk::PipelineStageFlagBits::eAllCommands,
-			vk::PipelineStageFlagBits::eAllCommands,
-			vk::DependencyFlags(),
-			{}, {}, { aBarrierInfo });
+			to_vk_pipeline_stage_flags(aSrcStage), // Up to which stage to execute starting to make memory available
+			to_vk_pipeline_stage_flags(aDstStage), // Which stage has to wait before memory is visible
+			vk::DependencyFlags{}, // TODO: support dependency flags
+			{}, {}, // no global memory barriers, no buffer memory barriers
+			{
+				vk::ImageMemoryBarrier{
+					to_vk_access_flags(aSrcAccessToBeMadeAvailable),	// After the aSrcStage, make this memory available
+					to_vk_access_flags(aDstAccessToBeMadeVisible),		// Before the aDstStage, make this memory visible
+					aImage.current_layout(), aImage.target_layout(),	// Transition for the former to the latter
+					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,	// TODO: Support queue family ownership transfer
+					aImage.image_handle(),
+					aImage.entire_subresource_range()					// TODO: Support different subresource ranges
+				}
+			}
+		);
 	}
 
 	void command_buffer_t::copy_image(const image_t& aSource, const vk::Image& aDestination)

@@ -6,7 +6,7 @@ namespace cgb
 
 	extern void transition_image_layout(image_t& aImage, vk::Format aFormat, vk::ImageLayout aNewLayout, sync aSyncHandler = sync::wait_idle());
 
-	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle());
 
 	template <typename Bfr>
 	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
@@ -38,10 +38,12 @@ namespace cgb
 			{ copyRegion });
 
 		// That's all
-		aSyncHandler.set_sync_stages_and_establish_barrier(commandBuffer, pipeline_stage::transfer, memory_stage::transfer);
+		aSyncHandler.set_sync_stages_and_establish_barrier(commandBuffer, pipeline_stage::transfer, memory_access::transfer);
 		commandBuffer->end_recording();
 		aSyncHandler.submit_and_sync(std::move(commandBuffer));
 	}
+
+	
 
 	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
@@ -55,28 +57,30 @@ namespace cgb
 		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
 		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), false, 1, _MemoryUsage, _ImageUsage);
+		auto finalTargetLayout = img->target_layout(); // store for later, because first, we need to transfer something into it
+		
 		// 1. Transition image layout to eTransferDstOptimal
-		transition_image_layout(img, selectedFormat, vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_on_current_frame()); // TODO: which sync?
-		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_on_current_frame());
-		// UIUIUIUIUI, TODO: Sind die syncs wohl in der richtigen Reihenfolge und so? => machen wir hier weiter!
-			
-			
-			[&](semaphore sem1) {
-			// 2. Copy buffer to image
-			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
-			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-			cgb::transition_image_layout(img, selectedFormat, img->target_layout(), [&](semaphore sem3) {
-				sem3->set_custom_deleter([
-					ownBuffer = std::move(stagingBuffer)
-				](){});
-				handle_semaphore(std::move(sem3), std::move(_SemaphoreHandler));
-			}, cgb::make_vector(std::move(sem2)));
-		}, std::move(_WaitSemaphores));
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_subordinate(aSyncHandler, {}, {}, true)); // no need for additional sync
+
+		// 2. Copy buffer to image
+		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_subordinate(aSyncHandler,
+			[&img](command_buffer_t& cb, pipeline_stage srcStage, std::optional<memory_access> srcAccess){
+				// I have been provided with src*, my task is to fill in dst* (i.e. what comes after)
+				cb.establish_image_memory_barrier(img, 
+					srcStage, pipeline_stage::transfer, 
+					srcAccess, // make the transferred memory available
+					{}); // no need to make any memory visible
+			}
+			// no need to sync before
+		));
+		
+		// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
+		img->transition_to_layout(finalTargetLayout, std::move(aSyncHandler));
 		
 		return img;
 	}
 
-	static image create_image_from_file(const std::string& _Path, cgb::image_format _Format, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
+	static image create_image_from_file(const std::string& _Path, cgb::image_format _Format, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
 		generic_buffer stagingBuffer;
 		int width = 0;
@@ -156,25 +160,19 @@ namespace cgb
 		else {
 			throw std::runtime_error("No loader for the given image format implemented.");
 		}
-		
+
 		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
 		// 1. Transition image layout to eTransferDstOptimal
-		cgb::transition_image_layout(img, _Format.mFormat, vk::ImageLayout::eTransferDstOptimal, [&](semaphore sem1) {
-			// 2. Copy buffer to image
-			auto sem2 = cgb::copy_buffer_to_image(stagingBuffer, img, cgb::make_vector(std::move(sem1)));
-			// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-			cgb::transition_image_layout(img, _Format.mFormat, img->target_layout(), [&](semaphore sem3) {
-				sem3->set_custom_deleter([
-					ownBuffer = std::move(stagingBuffer)
-				](){});
-				handle_semaphore(std::move(sem3), std::move(_SemaphoreHandler));
-			}, cgb::make_vector(std::move(sem2)));
-		}, std::move(_WaitSemaphores));
+		transition_image_layout(img, _Format.mFormat, vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_subordinate(aSyncHandler));
+		// 2. Copy buffer to image
+		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_subordinate(aSyncHandler));
+		// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
+		transition_image_layout(img, _Format.mFormat, img->target_layout(), sync::with_barrier_subordinate(aSyncHandler));
 		
 		return img;
 	}
 	
-	static image create_image_from_file(const std::string& _Path, bool _LoadHdrIfPossible = true, bool _LoadSrgbIfApplicable = true, int _PreferredNumberOfTextureComponents = 4, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {})
+	static image create_image_from_file(const std::string& _Path, bool _LoadHdrIfPossible = true, bool _LoadSrgbIfApplicable = true, int _PreferredNumberOfTextureComponents = 4, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
 		cgb::image_format imFmt;
 		if (_LoadHdrIfPossible) {
@@ -197,7 +195,7 @@ namespace cgb
 					imFmt = image_format::default_rgb16f_4comp_format();
 					break;
 				}
-				return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+				return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
 			}
 		}
 		if (_LoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
@@ -219,7 +217,7 @@ namespace cgb
 				imFmt = image_format::default_srgb_4comp_format();
 				break;
 			}
-			return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+			return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
 		}
 		switch (_PreferredNumberOfTextureComponents) {
 		case 4:
@@ -239,7 +237,7 @@ namespace cgb
 			imFmt = image_format::default_rgb8_4comp_format();
 			break;
 		}
-		return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(_SemaphoreHandler), std::move(_WaitSemaphores));
+		return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(

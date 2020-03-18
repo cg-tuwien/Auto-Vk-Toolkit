@@ -552,10 +552,10 @@
     <ClInclude Include="..\..\framework\include\memory_barrier_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\memory_stage.hpp">
+    <ClInclude Include="..\..\framework\include\pipeline_stage.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\pipeline_stage.hpp">
+    <ClInclude Include="..\..\framework\include\memory_access.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
   </ItemGroup>

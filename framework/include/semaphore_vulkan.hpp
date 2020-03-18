@@ -14,7 +14,7 @@ namespace cgb
 		semaphore_t(semaphore_t&&) = default;
 		semaphore_t& operator=(const semaphore_t&) = delete;
 		semaphore_t& operator=(semaphore_t&&) = default;
-		virtual ~semaphore_t();
+		~semaphore_t();
 
 		/**	Stage where to wait for this semaphore, i.e. stage which the following operation has to wait for.
 		 *	The default value is `vk::PipelineStageFlagBits::eAllCommands`

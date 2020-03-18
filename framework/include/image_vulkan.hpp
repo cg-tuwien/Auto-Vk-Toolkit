@@ -75,6 +75,7 @@ namespace cgb
 		 */
 		vk::ImageSubresourceRange entire_subresource_range() const;
 
+#pragma region static creation methods
 		/** Creates a new image
 		 *	@param	pWidth						The width of the image to be created
 		 *	@param	pHeight						The height of the image to be created
@@ -111,10 +112,10 @@ namespace cgb
 		*	@return	Returns a newly created depth+stencil buffer.
 		*/
 		static owning_resource<image_t> create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat = std::nullopt, bool pUseMipMaps = false, int pNumLayers = 1,  memory_usage pMemoryUsage = memory_usage::device, image_usage pImageUsage = image_usage::read_only_depth_stencil_attachment, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
+#pragma endregion
 
-		// TODO: What to do with this one: ??
-		vk::ImageMemoryBarrier create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt) const;
-
+		void transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler = sync::wait_idle());
+		
 	private:
 		// The memory handle. This member will contain a valid handle only after successful image creation.
 		vk::UniqueDeviceMemory mMemory;

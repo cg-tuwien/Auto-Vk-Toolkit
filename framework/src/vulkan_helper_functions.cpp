@@ -464,73 +464,48 @@ namespace cgb
 		return vk::PipelineStageFlags{};
 	}
 
-	vk::AccessFlags to_vk_access_flags_for_reading(cgb::memory_stage aValue)
+	vk::AccessFlags to_vk_access_flags(cgb::memory_access aValue)
 	{
 		vk::AccessFlags result;
 		// TODO: This might be a bit expensive. Is there a different possible solution to this?
-		if (cgb::is_included(aValue, cgb::memory_stage::indirect_command			)) { result |= vk::AccessFlagBits::eIndirectCommandRead					; }
-		if (cgb::is_included(aValue, cgb::memory_stage::index						)) { result |= vk::AccessFlagBits::eIndexRead							; }
-		if (cgb::is_included(aValue, cgb::memory_stage::vertex_attribute			)) { result |= vk::AccessFlagBits::eVertexAttributeRead					; }
-		if (cgb::is_included(aValue, cgb::memory_stage::uniform						)) { result |= vk::AccessFlagBits::eUniformRead							; }
-		if (cgb::is_included(aValue, cgb::memory_stage::input_attachment			)) { result |= vk::AccessFlagBits::eInputAttachmentRead					; }
-		if (cgb::is_included(aValue, cgb::memory_stage::color_attachment			)) { result |= vk::AccessFlagBits::eColorAttachmentRead					; }
-		if (cgb::is_included(aValue, cgb::memory_stage::color_attachment_noncoherent)) { result |= vk::AccessFlagBits::eColorAttachmentReadNoncoherentEXT	; }
-		if (cgb::is_included(aValue, cgb::memory_stage::depth_stencil_attachment	)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentRead			; }
-		if (cgb::is_included(aValue, cgb::memory_stage::transfer					)) { result |= vk::AccessFlagBits::eTransferRead						; }
-		if (cgb::is_included(aValue, cgb::memory_stage::conditional_rendering		)) { result |= vk::AccessFlagBits::eConditionalRenderingReadEXT			; }
-		if (cgb::is_included(aValue, cgb::memory_stage::transform_feedback			)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterReadEXT		; }
-		if (cgb::is_included(aValue, cgb::memory_stage::command_process				)) { result |= vk::AccessFlagBits::eCommandProcessReadNVX				; }
-		if (cgb::is_included(aValue, cgb::memory_stage::shading_rate_image			)) { result |= vk::AccessFlagBits::eShadingRateImageReadNV				; }
-		if (cgb::is_included(aValue, cgb::memory_stage::acceleration_structure		)) { result |= vk::AccessFlagBits::eAccelerationStructureReadNV			; }
-		if (cgb::is_included(aValue, cgb::memory_stage::fragment_density_map		)) { result |= vk::AccessFlagBits::eFragmentDensityMapReadEXT			; }
-		if (cgb::is_included(aValue, cgb::memory_stage::shader_access				)) { result |= vk::AccessFlagBits::eShaderRead							; }
-		if (cgb::is_included(aValue, cgb::memory_stage::host_access					)) { result |= vk::AccessFlagBits::eHostRead							; }
-		if (cgb::is_included(aValue, cgb::memory_stage::any_access					)) { result |= vk::AccessFlagBits::eMemoryRead							; }
+		if (cgb::is_included(aValue, cgb::memory_access::indirect_command_data_read_access			)) { result |= vk::AccessFlagBits::eIndirectCommandRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::index_buffer_read_access					)) { result |= vk::AccessFlagBits::eIndexRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::vertex_buffer_read_access					)) { result |= vk::AccessFlagBits::eVertexAttributeRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::uniform_buffer_read_access					)) { result |= vk::AccessFlagBits::eUniformRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::input_attachment_read_access				)) { result |= vk::AccessFlagBits::eInputAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::shader_buffers_and_images_read_access		)) { result |= vk::AccessFlagBits::eShaderRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::shader_buffers_and_images_write_access		)) { result |= vk::AccessFlagBits::eShaderWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_read_access				)) { result |= vk::AccessFlagBits::eColorAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_write_access				)) { result |= vk::AccessFlagBits::eColorAttachmentWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::depth_stencil_attachment_read_access		)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::depth_stencil_attachment_write_access		)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::transfer_read_access						)) { result |= vk::AccessFlagBits::eTransferRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::transfer_write_access						)) { result |= vk::AccessFlagBits::eTransferWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::host_read_access							)) { result |= vk::AccessFlagBits::eHostRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::host_write_access							)) { result |= vk::AccessFlagBits::eHostWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::any_read_access							)) { result |= vk::AccessFlagBits::eMemoryRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::any_write_access					 		)) { result |= vk::AccessFlagBits::eMemoryWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_write_access			)) { result |= vk::AccessFlagBits::eTransformFeedbackWriteEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_read_access		)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterReadEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_write_access	)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterWriteEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::conditional_rendering_predicate_read_access)) { result |= vk::AccessFlagBits::eConditionalRenderingReadEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::command_process_read_access				)) { result |= vk::AccessFlagBits::eCommandProcessReadNVX; }
+		if (cgb::is_included(aValue, cgb::memory_access::command_process_write_access				)) { result |= vk::AccessFlagBits::eCommandProcessWriteNVX; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_noncoherent_read_access	)) { result |= vk::AccessFlagBits::eColorAttachmentReadNoncoherentEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::shading_rate_image_read_access				)) { result |= vk::AccessFlagBits::eShadingRateImageReadNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_read_access			)) { result |= vk::AccessFlagBits::eAccelerationStructureReadNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_write_access		)) { result |= vk::AccessFlagBits::eAccelerationStructureWriteNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::fragment_density_map_attachment_read_access)) { result |= vk::AccessFlagBits::eFragmentDensityMapReadEXT; }
+
 		return result;
 	}
 
-	vk::AccessFlags to_vk_access_flags_for_reading(std::optional<cgb::memory_stage> aValue)
+	vk::AccessFlags to_vk_access_flags(std::optional<cgb::memory_access> aValue)
 	{
 		if (aValue.has_value()) {
-			return to_vk_access_flags_for_reading(aValue.value());
+			return to_vk_access_flags(aValue.value());
 		}
 		return vk::AccessFlags{};
 	}
-	
-	vk::AccessFlags to_vk_access_flags_for_writing(cgb::memory_stage aValue)
-	{
-		vk::AccessFlags result;
-		// TODO: This might be a bit expensive. Is there a different possible solution to this?
-		if (cgb::is_included(aValue, cgb::memory_stage::color_attachment			)) { result |= vk::AccessFlagBits::eColorAttachmentWrite															 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::depth_stencil_attachment	)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentWrite														 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::transfer					)) { result |= vk::AccessFlagBits::eTransferWrite																	 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::transform_feedback			)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterWriteEXT | vk::AccessFlagBits::eTransformFeedbackWriteEXT; }
-		if (cgb::is_included(aValue, cgb::memory_stage::command_process				)) { result |= vk::AccessFlagBits::eCommandProcessWriteNVX															 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::acceleration_structure		)) { result |= vk::AccessFlagBits::eAccelerationStructureWriteNV													 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::shader_access				)) { result |= vk::AccessFlagBits::eShaderWrite																		 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::host_access					)) { result |= vk::AccessFlagBits::eHostWrite																		 ; }
-		if (cgb::is_included(aValue, cgb::memory_stage::any_access					)) { result |= vk::AccessFlagBits::eMemoryWrite																		 ; }
-#ifdef _DEBUG
-		const auto validWriteStages =
-			cgb::memory_stage::color_attachment		    |
-			cgb::memory_stage::depth_stencil_attachment |
-			cgb::memory_stage::transfer				    |
-			cgb::memory_stage::transform_feedback		|
-			cgb::memory_stage::command_process			|
-			cgb::memory_stage::acceleration_structure	|
-			cgb::memory_stage::shader_access			|
-			cgb::memory_stage::host_access				|
-			cgb::memory_stage::any_access				;
-		assert((aValue | validWriteStages) == validWriteStages);
-#endif
-		return result;
-	}
-	
-	vk::AccessFlags to_vk_access_flags_for_writing(std::optional<cgb::memory_stage> aValue)
-	{
-		if (aValue.has_value()) {
-			return to_vk_access_flags_for_writing(aValue.value());
-		}
-		return vk::AccessFlags{};
-	}
+
 }

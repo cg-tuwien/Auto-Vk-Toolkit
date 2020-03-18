@@ -3,6 +3,8 @@
 namespace cgb // ========================== TODO/WIP =================================
 {
 	class command_pool;
+	class window;
+	class image_t;
 
 	enum struct command_buffer_state
 	{
@@ -23,7 +25,29 @@ namespace cgb // ========================== TODO/WIP ===========================
 		command_buffer_t(const command_buffer_t&) = delete;
 		command_buffer_t& operator=(command_buffer_t&&) noexcept = default;
 		command_buffer_t& operator=(const command_buffer_t&) = delete;
-		~command_buffer_t() = default;
+		~command_buffer_t();
+
+		/** Set a custom deleter function.
+		 *	This is often used for resource cleanup, e.g. a buffer which can be deleted when this semaphore is destroyed.
+		 */
+		template <typename F>
+		command_buffer_t& set_custom_deleter(F&& _Deleter) 
+		{
+			if (mCustomDeleter.has_value()) {
+				// There is already a custom deleter! Make sure that this stays alive as well.
+				mCustomDeleter = [
+					existingDeleter = std::move(mCustomDeleter.value()),
+					additionalDeleter = std::forward<F>(_Deleter)
+				]() {
+					additionalDeleter();
+					existingDeleter();
+				};
+			}
+			else {
+				mCustomDeleter = std::forward<F>(_Deleter);
+			}
+			return *this;
+		}
 
 		void begin_recording();
 		void end_recording();
@@ -42,7 +66,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		void begin_render_pass_for_window(window* aWindow, std::optional<int64_t> aInFlightIndex = {});
 		
 		void begin_render_pass(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
-		void set_image_barrier(const vk::ImageMemoryBarrier& aBarrierInfo);
+		void establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
 		void copy_image(const image_t& aSource, const vk::Image& aDestination);
 		void end_render_pass();
 
@@ -58,6 +82,9 @@ namespace cgb // ========================== TODO/WIP ===========================
 		command_buffer_state mState;
 		vk::CommandBufferBeginInfo mBeginInfo;
 		vk::UniqueCommandBuffer mCommandBuffer;
+		
+		/** A custom deleter function called upon destruction of this command buffer */
+		std::optional<cgb::unique_function<void()>> mCustomDeleter;
 	};
 
 	// Typedef for a variable representing an owner of a command_buffer

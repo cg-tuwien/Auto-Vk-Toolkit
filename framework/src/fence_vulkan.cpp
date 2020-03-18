@@ -9,7 +9,7 @@ namespace cgb
 			(*mCustomDeleter)();
 			mCustomDeleter.reset();
 		}
-		// Destroy the dependant semaphore before destroying "my actual semaphore"
+		// Destroy the dependant instance before destroying myself
 		// ^ This is ensured by the order of the members
 		//   See: https://isocpp.org/wiki/faq/dtors#calling-member-dtors
 	}

@@ -2,159 +2,195 @@
 
 namespace cgb
 {
-	void transition_image_layout(image_t& aImage, vk::Format aFormat, vk::ImageLayout aNewLayout, sync aSyncHandler)
+	void transition_image_layout(image_t& aImage, sync aSyncHandler)
 	{
-		//auto commandBuffer = context().create_command_buffers_for_graphics(1, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		auto commandBuffer = context().graphics_queue().create_single_use_command_buffer();
+		auto curLayout = aImage.current_layout();
+		auto trgLayout = aImage.target_layout();
 
-		// Immediately start recording the command buffer:
+		if (curLayout == trgLayout) {
+			return; // done (:
+		}
+
+		// Not done => perform a transition via an image memory barrier inside a command buffer
+		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
 		commandBuffer->begin_recording();
 
-		vk::AccessFlags sourceAccessMask, destinationAccessMask;
-		vk::PipelineStageFlags sourceStageFlags, destinationStageFlags;
+		std::optional<memory_access> srcAccess;
+		std::optional<memory_access> dstAccess;
 
-		// TODO: This has to be reworked entirely!!
+		//sourceStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
+		//destinationStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
 
-		auto oldImageLayout = aImage.current_layout();
-		if (oldImageLayout == aNewLayout) {
-			return;
-		}
+		// The following code is based on and adapted from VulkanTools.cpp from Sascha Willems' Vulkan Examples
+		//
+		// * Assorted commonly used Vulkan helper functions
+		// *
+		// * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+		// *
+		// * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
-		// There are two transitions we need to handle [3]:
-		//  - Undefined --> transfer destination : transfer writes that don't need to wait on anything
-		//  - Transfer destination --> shader reading : shader reads should wait on transfer writes, specifically the shader reads in the fragment shader, because that's where we're going to use the texture
-		if (oldImageLayout == vk::ImageLayout::eUndefined && aNewLayout == vk::ImageLayout::eTransferDstOptimal) {
-			sourceAccessMask = vk::AccessFlags();
-			destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
-			destinationStageFlags = vk::PipelineStageFlagBits::eTransfer;
-		}
-		else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal && aNewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-			sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
-			destinationAccessMask = vk::AccessFlagBits::eShaderRead;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTransfer;
-			destinationStageFlags = vk::PipelineStageFlagBits::eFragmentShader;
-		}
-		else if (oldImageLayout == vk::ImageLayout::eUndefined && aNewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-			sourceAccessMask = vk::AccessFlags();
-			destinationAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
-			destinationStageFlags = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-		}
-		else {
-			// TODO: This has to be reworked entirely! (I have no idea what I'm doing...)
-			sourceStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
-			destinationStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
+		//// Source layouts (old)
+		//// Source access mask controls actions that have to be finished on the old layout
+		//// before it will be transitioned to the new layout
+		//switch (curLayout)
+		//{
+		//case vk::ImageLayout::eUndefined:
+		//	// Image layout is undefined (or does not matter)
+		//	// Only valid as initial layout
+		//	// No flags required, listed only for completeness
+		//	srcAccess = {};
+		//	break;
 
-			// The following is copied from VulkanTools.cpp from Sascha Willems' Vulkan Examples
-			//
-			// * Assorted commonly used Vulkan helper functions
-			// *
-			// * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
-			// *
-			// * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+		//case vk::ImageLayout::ePreinitialized:
+		//	// Image is preinitialized
+		//	// Only valid as initial layout for linear images, preserves memory contents
+		//	// Make sure host writes have been finished
+		//	srcAccess = memory_access::host_write_access;
+		//	break;
 
-			// Source layouts (old)
-			// Source access mask controls actions that have to be finished on the old layout
-			// before it will be transitioned to the new layout
-			switch (oldImageLayout)
-			{
-			case vk::ImageLayout::eUndefined:
-				// Image layout is undefined (or does not matter)
-				// Only valid as initial layout
-				// No flags required, listed only for completeness
-				sourceAccessMask = {};
-				break;
+		//case vk::ImageLayout::eColorAttachmentOptimal:
+		//	// Image is a color attachment
+		//	// Make sure any writes to the color buffer have been finished
+		//	srcAccess = memory_access::color_attachment_write_access;
+		//	break;
 
-			case vk::ImageLayout::ePreinitialized:
-				// Image is preinitialized
-				// Only valid as initial layout for linear images, preserves memory contents
-				// Make sure host writes have been finished
-				sourceAccessMask = vk::AccessFlagBits::eHostWrite;
-				break;
+		//case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
+		//	// Image is a depth/stencil attachment
+		//	// Make sure any writes to the depth/stencil buffer have been finished
+		//	srcAccess = memory_access::depth_stencil_attachment_write_access;
+		//	break;
 
-			case vk::ImageLayout::eColorAttachmentOptimal:
-				// Image is a color attachment
-				// Make sure any writes to the color buffer have been finished
-				sourceAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-				break;
+		//case vk::ImageLayout::eTransferSrcOptimal:
+		//	// Image is a transfer source 
+		//	// Make sure any reads from the image have been finished
+		//	srcAccess = memory_access::any_read_access; // Original: only transfer_read_access, so this is more strict
+		//	break;
 
-			case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
-				// Image is a depth/stencil attachment
-				// Make sure any writes to the depth/stencil buffer have been finished
-				sourceAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-				break;
+		//case vk::ImageLayout::eTransferDstOptimal:
+		//	// Image is a transfer destination
+		//	// Make sure any writes to the image have been finished
+		//	srcAccess = memory_access::transfer_write_access;
+		//	break;
 
-			case vk::ImageLayout::eTransferSrcOptimal:
-				// Image is a transfer source 
-				// Make sure any reads from the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eTransferRead;
-				break;
+		//case vk::ImageLayout::eShaderReadOnlyOptimal:
+		//	// Image is read by a shader
+		//	// Make sure any shader reads from the image have been finished
+		//	srcAccess = memory_access::shader_buffers_and_images_read_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eGeneral:
+		//	// Image is in general layout, which supports all types of device access
+		//	// Make sure any device access has finished
+		//	// TODO: verify
+		//	srcAccess = memory_access::any_device_access_to_image;
+		//	break;
+		//	
+		//case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+		//	// TODO: verify
+		//	srcAccess = memory_access::depth_stencil_attachment_any_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eDepthStencilReadOnlyOptimal: 
+		//	// TODO: verify
+		//	srcAccess = memory_access::depth_stencil_attachment_write_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eDepthAttachmentStencilReadOnlyOptimal:
+		//	// TODO: verify
+		//	srcAccess = memory_access::depth_stencil_attachment_write_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::ePresentSrcKHR:
+		//	// TODO: verify
+		//	srcAccess = memory_access::any_read_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eSharedPresentKHR:
+		//	// TODO: verify
+		//	srcAccess = memory_access::any_read_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eShadingRateOptimalNV: 
+		//	// TODO: verify
+		//	srcAccess = memory_access::shading_rate_image_read_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eFragmentDensityMapOptimalEXT: 
+		//	// TODO: verify
+		//	srcAccess = memory_access::fragment_density_map_attachment_read_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eDepthAttachmentOptimalKHR: 
+		//	// TODO: optimize
+		//	srcAccess = memory_access::depth_stencil_attachment_any_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eDepthReadOnlyOptimalKHR: 
+		//	// TODO: optimize
+		//	srcAccess = memory_access::depth_stencil_attachment_any_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eStencilAttachmentOptimalKHR: 
+		//	// TODO: optimize
+		//	srcAccess = memory_access::depth_stencil_attachment_any_access;
+		//	break;
+		//	
+		//case vk::ImageLayout::eStencilReadOnlyOptimalKHR: 
+		//	// TODO: optimize
+		//	srcAccess = memory_access::depth_stencil_attachment_any_access;
+		//	break;
+		//	
+		//default:
+		//	assert(false); throw std::runtime_error("How did we end up here?");
+		//}
 
-			case vk::ImageLayout::eTransferDstOptimal:
-				// Image is a transfer destination
-				// Make sure any writes to the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
-				break;
+		//// Target layouts (new)
+		//// Destination access mask controls the dependency for the new image layout
+		//switch (trgLayout)
+		//{
+		//case vk::ImageLayout::eTransferDstOptimal:
+		//	// Image will be used as a transfer destination
+		//	// Make sure any writes to the image have been finished
+		//	destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
+		//	break;
 
-			case vk::ImageLayout::eShaderReadOnlyOptimal:
-				// Image is read by a shader
-				// Make sure any shader reads from the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eShaderRead;
-				break;
-			default:
-				// Other source layouts aren't handled (yet)
-				throw std::runtime_error("Other source layouts aren't handled (yet)");
-			}
+		//case vk::ImageLayout::eTransferSrcOptimal:
+		//	// Image will be used as a transfer source
+		//	// Make sure any reads from the image have been finished
+		//	destinationAccessMask = vk::AccessFlagBits::eTransferRead;
+		//	break;
 
-			// Target layouts (new)
-			// Destination access mask controls the dependency for the new image layout
-			switch (aNewLayout)
-			{
-			case vk::ImageLayout::eTransferDstOptimal:
-				// Image will be used as a transfer destination
-				// Make sure any writes to the image have been finished
-				destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
-				break;
+		//case vk::ImageLayout::eColorAttachmentOptimal:
+		//	// Image will be used as a color attachment
+		//	// Make sure any writes to the color buffer have been finished
+		//	destinationAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+		//	break;
 
-			case vk::ImageLayout::eTransferSrcOptimal:
-				// Image will be used as a transfer source
-				// Make sure any reads from the image have been finished
-				destinationAccessMask = vk::AccessFlagBits::eTransferRead;
-				break;
+		//case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
+		//	// Image layout will be used as a depth/stencil attachment
+		//	// Make sure any writes to depth/stencil buffer have been finished
+		//	destinationAccessMask = destinationAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+		//	break;
 
-			case vk::ImageLayout::eColorAttachmentOptimal:
-				// Image will be used as a color attachment
-				// Make sure any writes to the color buffer have been finished
-				destinationAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-				break;
+		//case vk::ImageLayout::eShaderReadOnlyOptimal:
+		//	// Image will be read in a shader (sampler, input attachment)
+		//	// Make sure any writes to the image have been finished
+		//	if (sourceAccessMask)
+		//	{
+		//		sourceAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
+		//	}
+		//	destinationAccessMask = vk::AccessFlagBits::eShaderRead;
+		//	break;
 
-			case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
-				// Image layout will be used as a depth/stencil attachment
-				// Make sure any writes to depth/stencil buffer have been finished
-				destinationAccessMask = destinationAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-				break;
+		//case vk::ImageLayout::eGeneral:
+		//	// TODO: This should be valid... but set something? I have no idea what I'm doing...
+		//	destinationAccessMask = vk::AccessFlagBits::eShaderWrite; // TODO: this can't be the right choice
+		//	break;
 
-			case vk::ImageLayout::eShaderReadOnlyOptimal:
-				// Image will be read in a shader (sampler, input attachment)
-				// Make sure any writes to the image have been finished
-				if (sourceAccessMask)
-				{
-					sourceAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
-				}
-				destinationAccessMask = vk::AccessFlagBits::eShaderRead;
-				break;
-
-			case vk::ImageLayout::eGeneral:
-				// TODO: This should be valid... but set something? I have no idea what I'm doing...
-				destinationAccessMask = vk::AccessFlagBits::eShaderWrite; // TODO: this can't be the right choice
-				break;
-
-			default:
-				// Other destination layouts aren't handled (yet)
-				throw std::runtime_error("Other destination layouts aren't handled (yet)");
-			}
-		}
+		//default:
+		//	// Other destination layouts aren't handled (yet)
+		//	throw std::runtime_error("Other destination layouts aren't handled (yet)");
+		//}
 
 
 		// One of the most common ways to perform layout transitions is using an image memory barrier. A pipeline barrier like that 

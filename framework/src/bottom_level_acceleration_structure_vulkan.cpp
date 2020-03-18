@@ -186,7 +186,7 @@ namespace cgb
 			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
 			cgb::context().dynamic_dispatch());
 
-		aSyncHandler.set_sync_stages_and_establish_barrier(cmdBfr, pipeline_stage::acceleration_structure_build, memory_stage::acceleration_structure);
+		aSyncHandler.set_sync_stages_and_establish_barrier(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure);
 		cmdBfr->end_recording();
 		aSyncHandler.submit_and_sync(std::move(cmdBfr));
 	}
