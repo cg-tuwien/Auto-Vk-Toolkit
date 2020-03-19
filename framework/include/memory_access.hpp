@@ -80,4 +80,47 @@ namespace cgb
 	{
 		return (toTest & includee) == includee;
 	}
+
+	extern bool is_read_access(memory_access aValue);
+
+	// Constructur is noexcept => throws on usage if the value is invalid
+	class read_memory_access
+	{
+	public:
+		read_memory_access(memory_access aValue) noexcept : mMemoryAccess{aValue} {}
+		read_memory_access(const read_memory_access&) noexcept = default;
+		read_memory_access(read_memory_access&&) noexcept = default;
+		read_memory_access& operator=(memory_access aValue) noexcept { mMemoryAccess = aValue; return *this; }
+		read_memory_access& operator=(const read_memory_access&) noexcept = default;
+		read_memory_access& operator=(read_memory_access&&) noexcept = default;
+		~read_memory_access() = default;
+
+		operator memory_access() const;
+		
+	private:
+		void validate_or_throw() const;
+		
+		memory_access mMemoryAccess;
+	};
+
+	// Constructur is noexcept => throws on usage if the value is invalid
+	class write_memory_access
+	{
+	public:
+		write_memory_access(memory_access aValue) noexcept : mMemoryAccess{aValue} {}
+		write_memory_access(const write_memory_access&) noexcept = default;
+		write_memory_access(write_memory_access&&) noexcept = default;
+		write_memory_access& operator=(memory_access aValue) noexcept { mMemoryAccess = aValue; return *this; }
+		write_memory_access& operator=(const write_memory_access&) noexcept = default;
+		write_memory_access& operator=(write_memory_access&&) noexcept = default;
+		~write_memory_access() = default;
+
+		operator memory_access() const;
+		
+	private:
+		void validate_or_throw() const;
+		
+		memory_access mMemoryAccess;
+	};
+
 }

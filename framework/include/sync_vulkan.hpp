@@ -21,6 +21,18 @@ namespace cgb
 		sync& operator=(sync&&) noexcept = default;
 
 #pragma region static creation functions
+		static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<read_memory_access> aSourceAccess)
+		{
+			// We do not know which operation came before. Hence, we have to be overly cautious and
+			// establish a (possibly) hefty barrier w.r.t. write access that happened before.
+			aCommandBuffer.establish
+		}
+		
+		static void default_handler_after_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess)
+		{
+			
+		}
+		
 		/**	Establish very coarse (and inefficient) synchronization by waiting for the queue to become idle before continuing.
 		 */
 		static sync wait_idle();
@@ -42,16 +54,16 @@ namespace cgb
 		 */
 		static sync with_barriers(
 			std::function<void(command_buffer)> aCommandBufferLifetimeHandler,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {}
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation
 		);
 
 		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
 		 *	@param	aCommandBufferLifetimeHandler	A function to handle the lifetime of a command buffer.
 		 */
 		static sync with_barriers_on_current_frame(
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation,
 			cgb::window* aWindow = nullptr
 		);
 
@@ -64,10 +76,10 @@ namespace cgb
 		 *	@param	aMasterSync		Master sync handler which is being modified by this method
 		 *							in order to also handle lifetime of subordinate command buffers.
 		 */
-		static sync with_barrier_subordinate(
+		static sync with_barriers_subordinate(
 			sync& aMasterSync,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
 			bool aStealMastersBeforeHandler = false
 		);
 #pragma endregion 
@@ -87,8 +99,8 @@ namespace cgb
 #pragma endregion 
 
 #pragma region essential functions which establish the actual sync. Used by the framework internally.
-		void establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<memory_access> aDestinationMemoryStages) const;
-		void establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<memory_access> aSourceMemoryStages) const;
+		void establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const;
+		void establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const;
 
 		/**	Submit the command buffer and engage sync!
 		 *	This method is intended not to be used by framework-consuming code, but by the framework-internals.
@@ -105,8 +117,8 @@ namespace cgb
 		std::function<void(semaphore)> mSemaphoreSignalAfterAndLifetimeHandler;
 		std::vector<semaphore> mWaitBeforeSemaphores;
 		std::function<void(command_buffer)> mCommandBufferLifetimeHandler;
-		std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<memory_access> /* source access */)>	  mEstablishBarrierAfterOperationCallback;
-		std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> mEstablishBarrierBeforeOperationCallback;
+		std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> mEstablishBarrierBeforeOperationCallback;
+		std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)>	  mEstablishBarrierAfterOperationCallback;
 		std::optional<std::reference_wrapper<device_queue>> mQueueToUse;
 	};
 }

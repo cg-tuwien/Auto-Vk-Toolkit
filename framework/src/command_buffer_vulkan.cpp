@@ -109,13 +109,37 @@ namespace cgb
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
 	}
 
+	void command_buffer_t::establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage)
+	{
+		mCommandBuffer->pipelineBarrier(
+			to_vk_pipeline_stage_flags(aSrcStage), // Up to which stage to execute before making memory available
+			to_vk_pipeline_stage_flags(aDstStage), // Which stage has to wait until memory has been made visible
+			vk::DependencyFlags{}, // TODO: support dependency flags
+			{},	{}, {} // no memory barriers
+		);
+	}
+
+	void command_buffer_t::establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
+	{
+		mCommandBuffer->pipelineBarrier(
+			to_vk_pipeline_stage_flags(aSrcStage),				// Up to which stage to execute before making memory available
+			to_vk_pipeline_stage_flags(aDstStage),				// Which stage has to wait until memory has been made visible
+			vk::DependencyFlags{},								// TODO: support dependency flags
+			{ vk::MemoryBarrier{								// Establish a global memory barrier, ...
+				to_vk_access_flags(aSrcAccessToBeMadeAvailable),//  ... making memory from these access types available (after aSrcStage),
+				to_vk_access_flags(aDstAccessToBeMadeVisible)	//  ... and for these access types visible (before aDstStage)
+			}},
+			{}, {} // no buffer/image memory barriers
+		);
+	}
+
 	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
 	{
 		mCommandBuffer->pipelineBarrier(
-			to_vk_pipeline_stage_flags(aSrcStage), // Up to which stage to execute starting to make memory available
-			to_vk_pipeline_stage_flags(aDstStage), // Which stage has to wait before memory is visible
-			vk::DependencyFlags{}, // TODO: support dependency flags
-			{}, {}, // no global memory barriers, no buffer memory barriers
+			to_vk_pipeline_stage_flags(aSrcStage),						// Up to which stage to execute before making memory available
+			to_vk_pipeline_stage_flags(aDstStage),						// Which stage has to wait until memory has been made visible
+			vk::DependencyFlags{},										// TODO: support dependency flags
+			{}, {},														// no global memory barriers, no buffer memory barriers
 			{
 				vk::ImageMemoryBarrier{
 					to_vk_access_flags(aSrcAccessToBeMadeAvailable),	// After the aSrcStage, make this memory available

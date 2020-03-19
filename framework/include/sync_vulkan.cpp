@@ -26,10 +26,10 @@ namespace cgb
 		return result;
 	}
 	
-	sync sync:: with_barriers(
+	sync sync::with_barriers(
 			std::function<void(command_buffer)> aCommandBufferLifetimeHandler,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		)
 	{
 		sync result;
@@ -40,8 +40,8 @@ namespace cgb
 	}
 	
 	sync sync::with_barriers_on_current_frame(
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
 			cgb::window* aWindow
 		)
 	{
@@ -54,10 +54,10 @@ namespace cgb
 		return result;
 	}
 
-	sync sync::with_barrier_subordinate(
+	sync sync::with_barriers_subordinate(
 			sync& aMasterSync,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
 			bool aStealMastersBeforeHandler
 		)
 	{
@@ -81,8 +81,8 @@ namespace cgb
 						lMasterHandler(std::move(aSemaphore));
 					};
 				},
-				std::move(aEstablishBarrierAfterOperation),
-				std::move(aEstablishBarrierBeforeOperation)
+				std::move(aEstablishBarrierBeforeOperation),
+				std::move(aEstablishBarrierAfterOperation)
 			);
 		case sync_type::via_barrier:
 			return sync::with_barriers([&aMasterSync](command_buffer aCbToHandle){
@@ -95,8 +95,8 @@ namespace cgb
 						lMasterHandler(std::move(aMasterCb));
 					};
 				},
-				std::move(aEstablishBarrierAfterOperation),
-				std::move(aEstablishBarrierBeforeOperation)
+				std::move(aEstablishBarrierBeforeOperation),
+				std::move(aEstablishBarrierAfterOperation)
 			);
 		default:
 			assert(false); throw std::logic_error("How did we end up here?");
@@ -138,7 +138,7 @@ namespace cgb
 	//	return q0 == q1;
 	//}
 
-	void sync::establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<memory_access> aDestinationMemoryStages) const
+	void sync::establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const
 	{
 		if (!mEstablishBarrierBeforeOperationCallback) {
 			return; // nothing to do here
@@ -146,7 +146,7 @@ namespace cgb
 		mEstablishBarrierBeforeOperationCallback(aCommandBuffer, aDestinationPipelineStages, aDestinationMemoryStages);
 	}
 
-	void sync::establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<memory_access> aSourceMemoryStages) const
+	void sync::establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const
 	{
 		if (!mEstablishBarrierAfterOperationCallback) {
 			return; // nothing to do here

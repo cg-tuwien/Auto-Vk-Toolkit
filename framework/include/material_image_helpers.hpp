@@ -60,7 +60,7 @@ namespace cgb
 		auto finalTargetLayout = img->target_layout(); // store for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_subordinate(aSyncHandler, {}, {}, true)); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::with_barriers_subordinate(aSyncHandler, {}, {}, true)); // no need for additional sync
 
 		// 2. Copy buffer to image
 		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_subordinate(aSyncHandler,
