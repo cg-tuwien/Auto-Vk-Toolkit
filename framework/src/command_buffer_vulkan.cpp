@@ -30,11 +30,11 @@ namespace cgb
 			std::back_inserter(buffers),
 			// ...transform them into `cgb::command_buffer_t` objects:
 			[lUsageFlags = aUsageFlags](auto& vkCb) {
-				command_buffer_t result;
-				result.mBeginInfo = vk::CommandBufferBeginInfo()
+				owning_resource<command_buffer_t> result;
+				result->mBeginInfo = vk::CommandBufferBeginInfo()
 					.setFlags(lUsageFlags)
 					.setPInheritanceInfo(nullptr);
-				result.mCommandBuffer = std::move(vkCb);
+				result->mCommandBuffer = std::move(vkCb);
 				return result;
 			});
 		return buffers;
@@ -133,6 +133,11 @@ namespace cgb
 		);
 	}
 
+	void command_buffer_t::establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
+	{
+		establish_global_memory_barrier(aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
+	}
+
 	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
 	{
 		mCommandBuffer->pipelineBarrier(
@@ -151,6 +156,11 @@ namespace cgb
 				}
 			}
 		);
+	}
+	
+	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
+	{
+		establish_image_memory_barrier(aImage, aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
 	}
 
 	void command_buffer_t::copy_image(const image_t& aSource, const vk::Image& aDestination)

@@ -12,7 +12,19 @@ namespace cgb
 	class sync
 	{
 	public:
-		enum struct sync_type { via_wait_idle, via_semaphore, via_barrier };
+		enum struct sync_type { not_required, via_wait_idle, via_semaphore, via_barrier };
+		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
+		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
+		static void steal_before_handler(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
+		static void steal_after_handler(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
+		static bool is_before_handler_stolen(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_before_handler_t>();
+			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler ? true : false;
+		}
+		static bool is_after_handler_stolen(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_after_handler_t>();
+			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler ? true : false;
+		}
 		
 		sync() = default;
 		sync(const sync&) = delete;
@@ -21,17 +33,29 @@ namespace cgb
 		sync& operator=(sync&&) noexcept = default;
 
 #pragma region static creation functions
-		static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<read_memory_access> aSourceAccess)
+		static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess)
 		{
 			// We do not know which operation came before. Hence, we have to be overly cautious and
 			// establish a (possibly) hefty barrier w.r.t. write access that happened before.
-			aCommandBuffer.establish
+			aCommandBuffer.establish_global_memory_barrier(
+				pipeline_stage::all_commands,	 aDestinationStage,	// Wait for all previous command before continuing with the operation's command
+				memory_access::any_write_access, aDestinationAccess	// Make any write access available before making the operation's read access type visible
+			);
 		}
 		
 		static void default_handler_after_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess)
 		{
-			
+			// We do not know which operation comes after. Hence, we have to be overly cautious and
+			// establish a (possibly) hefty barrier w.r.t. read access that happens after.
+			aCommandBuffer.establish_global_memory_barrier(
+				aSourceStage,	pipeline_stage::all_commands,	// All subsequent stages have to wait until the operation has completed
+				aSourceAccess, 	memory_access::any_read_access	// Make the operation's writes available and visible to all memory stages
+			);
 		}
+
+		/**	Indicate that no sync is required. If you are wrong, there will be an exception.
+		 */
+		static sync not_required();
 		
 		/**	Establish very coarse (and inefficient) synchronization by waiting for the queue to become idle before continuing.
 		 */
@@ -76,11 +100,10 @@ namespace cgb
 		 *	@param	aMasterSync		Master sync handler which is being modified by this method
 		 *							in order to also handle lifetime of subordinate command buffers.
 		 */
-		static sync with_barriers_subordinate(
+		static sync auxiliary(
 			sync& aMasterSync,
 			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			bool aStealMastersBeforeHandler = false
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		);
 #pragma endregion 
 
@@ -99,8 +122,10 @@ namespace cgb
 #pragma endregion 
 
 #pragma region essential functions which establish the actual sync. Used by the framework internally.
-		void establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const;
-		void establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const;
+		void set_queue_hint(std::reference_wrapper<device_queue> aQueueRecommendation);
+		
+		void establish_barrier_before_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const;
+		void establish_barrier_after_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const;
 
 		/**	Submit the command buffer and engage sync!
 		 *	This method is intended not to be used by framework-consuming code, but by the framework-internals.
@@ -111,9 +136,12 @@ namespace cgb
 		 *										The command buffer will be submitted to a queue (whichever queue is configured in this `cgb::sync`)
 		 */
 		void submit_and_sync(command_buffer aCommandBuffer);
+
+		void sync_with_dummy_command_buffer();
 #pragma endregion
 		
 	private:
+		bool mNoSyncRequired = false;
 		std::function<void(semaphore)> mSemaphoreSignalAfterAndLifetimeHandler;
 		std::vector<semaphore> mWaitBeforeSemaphores;
 		std::function<void(command_buffer)> mCommandBufferLifetimeHandler;

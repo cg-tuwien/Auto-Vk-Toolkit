@@ -232,9 +232,6 @@
     <ClCompile Include="..\..\framework\include\sync_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\memory_barrier_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\memory_access.cpp">
       <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
@@ -550,9 +547,6 @@
       <Filter>Header Files\geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\sync_vulkan.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\memory_barrier_vulkan.hpp">
       <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\pipeline_stage.hpp">

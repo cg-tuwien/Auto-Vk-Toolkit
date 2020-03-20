@@ -2,6 +2,13 @@
 
 namespace cgb
 {
+	sync sync::not_required()
+	{
+		sync result;
+		result.mNoSyncRequired = true; // User explicitely stated that there's no sync required.
+		return result;
+	}
+	
 	sync sync::wait_idle()
 	{
 		sync result;
@@ -54,24 +61,36 @@ namespace cgb
 		return result;
 	}
 
-	sync sync::with_barriers_subordinate(
+	sync sync::auxiliary(
 			sync& aMasterSync,
 			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			bool aStealMastersBeforeHandler
+			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		)
 	{
-		assert(aStealMastersBeforeHandler != static_cast<bool>(aEstablishBarrierBeforeOperation));
-		if (aStealMastersBeforeHandler) {
+		const auto stealBeforeHandler = is_before_handler_stolen(aEstablishBarrierBeforeOperation);
+		const auto stealAfterHandler = is_after_handler_stolen(aEstablishBarrierAfterOperation);
+		assert(stealBeforeHandler != static_cast<bool>(aEstablishBarrierBeforeOperation));
+		assert(stealAfterHandler != static_cast<bool>(aEstablishBarrierAfterOperation));
+		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandler)); // redundant
+		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandler));	// redundant
+		if (stealBeforeHandler) {
 			aEstablishBarrierBeforeOperation = std::move(aMasterSync.mEstablishBarrierBeforeOperationCallback);
 			aMasterSync.mEstablishBarrierBeforeOperationCallback = {};
 		}
+		if (stealAfterHandler) {
+			aEstablishBarrierAfterOperation = std::move(aMasterSync.mEstablishBarrierAfterOperationCallback);
+			aMasterSync.mEstablishBarrierAfterOperationCallback = {};
+		}
+
+		sync result;
 		
 		switch (aMasterSync.get_sync_type()) {
+		case sync_type::not_required:
+			return sync::not_required();
 		case sync_type::via_wait_idle:
 			return sync::wait_idle(); // <-- Nothing really matters
 		case sync_type::via_semaphore:
-			return sync::with_barriers([&aMasterSync](command_buffer aCbToHandle) {
+			result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle) {
 					assert(aMasterSync.mSemaphoreSignalAfterAndLifetimeHandler);
 					// Let's do something sneaky => swap out master's semaphore handler:
 					auto tmp = std::move(aMasterSync.mSemaphoreSignalAfterAndLifetimeHandler);
@@ -83,9 +102,10 @@ namespace cgb
 				},
 				std::move(aEstablishBarrierBeforeOperation),
 				std::move(aEstablishBarrierAfterOperation)
-			);
+			));
+			break;
 		case sync_type::via_barrier:
-			return sync::with_barriers([&aMasterSync](command_buffer aCbToHandle){
+			result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle){
 					assert(aMasterSync.mCommandBufferLifetimeHandler);
 					// Let's do something sneaky => swap out master's command buffer handler:
 					auto tmp = std::move(aMasterSync.mCommandBufferLifetimeHandler);
@@ -97,10 +117,14 @@ namespace cgb
 				},
 				std::move(aEstablishBarrierBeforeOperation),
 				std::move(aEstablishBarrierAfterOperation)
-			);
+			));
+			break;
 		default:
 			assert(false); throw std::logic_error("How did we end up here?");
 		}
+
+		result.on_queue(aMasterSync.queue_to_use());
+		return result; // TODO: move neccessary?
 	}
 
 	sync& sync::on_queue(std::reference_wrapper<device_queue> aQueue)
@@ -113,7 +137,7 @@ namespace cgb
 	{
 		if (mSemaphoreSignalAfterAndLifetimeHandler) return sync_type::via_semaphore;
 		if (mCommandBufferLifetimeHandler) return sync_type::via_barrier;
-		return sync_type::via_wait_idle();
+		return mNoSyncRequired ? sync_type::not_required : sync_type::via_wait_idle;
 	}
 	
 	std::reference_wrapper<device_queue> sync::queue_to_use() const
@@ -138,7 +162,14 @@ namespace cgb
 	//	return q0 == q1;
 	//}
 
-	void sync::establish_barrier_before_the_operation(command_buffer& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const
+	void sync::set_queue_hint(std::reference_wrapper<device_queue> aQueueRecommendation)
+	{
+		if (!mQueueToUse.has_value()) {
+			mQueueToUse = aQueueRecommendation;
+		}
+	}
+	
+	void sync::establish_barrier_before_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const
 	{
 		if (!mEstablishBarrierBeforeOperationCallback) {
 			return; // nothing to do here
@@ -146,7 +177,7 @@ namespace cgb
 		mEstablishBarrierBeforeOperationCallback(aCommandBuffer, aDestinationPipelineStages, aDestinationMemoryStages);
 	}
 
-	void sync::establish_barrier_after_the_operation(command_buffer& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const
+	void sync::establish_barrier_after_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const
 	{
 		if (!mEstablishBarrierAfterOperationCallback) {
 			return; // nothing to do here
@@ -179,8 +210,19 @@ namespace cgb
 			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
 			queue_to_use().get().handle().waitIdle();
 			break;
+		case sync_type::not_required:
+			throw std::runtime_error("You were wrong with your assumption that there was no sync required! => Provide a concrete sync strategy!");
 		default:
+			assert(false);
 			throw std::logic_error("unknown syncType");
 		}
+	}
+
+	void sync::sync_with_dummy_command_buffer()
+	{
+		auto dummy = queue_to_use().get().create_single_use_command_buffer();
+		dummy->begin_recording(); // TODO: neccessary?
+		dummy->end_recording();
+		submit_and_sync(std::move(dummy)); 
 	}
 }

@@ -36,6 +36,7 @@ namespace cgb
 		any_vertex_input_read_access				= index_buffer_read_access | vertex_buffer_read_access,
 		any_shader_input_read_access				= any_vertex_input_read_access | input_attachment_read_access | uniform_buffer_read_access | shader_buffers_and_images_read_access,
 		shader_buffers_and_images_any_access		= shader_buffers_and_images_read_access | shader_buffers_and_images_write_access,
+		any_buffer_read_access						= index_buffer_read_access | vertex_buffer_read_access | uniform_buffer_read_access | shader_buffers_and_images_read_access,
 		color_attachment_any_access					= color_attachment_read_access | color_attachment_write_access,
 		depth_stencil_attachment_any_access			= depth_stencil_attachment_read_access | depth_stencil_attachment_write_access,
 		transfer_any_access							= transfer_read_access | transfer_write_access,

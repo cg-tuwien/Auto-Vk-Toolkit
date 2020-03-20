@@ -126,7 +126,6 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "push_constants.hpp"
 #include "filter_mode.hpp"
 #include "border_handling_mode.hpp"
-#include "memory_barrier_vulkan.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
 #include "context_generic_glfw_types.hpp"

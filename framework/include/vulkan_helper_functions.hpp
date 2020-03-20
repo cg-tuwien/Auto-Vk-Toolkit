@@ -46,9 +46,9 @@ namespace cgb
 
 	extern vk::AccessFlags to_vk_access_flags(cgb::memory_access aValue);
 	extern vk::AccessFlags to_vk_access_flags(std::optional<cgb::memory_access> aValue);
-	extern vk::AccessFlags to_vk_access_flags(cgb::read_memory_access aValue);
-	extern vk::AccessFlags to_vk_access_flags(std::optional<cgb::read_memory_access> aValue);
-	extern vk::AccessFlags to_vk_access_flags(cgb::write_memory_access aValue);
-	extern vk::AccessFlags to_vk_access_flags(std::optional<cgb::write_memory_access> aValue);
+	extern cgb::memory_access to_memory_access(cgb::read_memory_access aValue);
+	extern std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::read_memory_access> aValue);
+	extern cgb::memory_access to_memory_access(cgb::write_memory_access aValue);
+	extern std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::write_memory_access> aValue);
 
 }

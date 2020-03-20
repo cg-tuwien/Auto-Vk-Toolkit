@@ -508,30 +508,30 @@ namespace cgb
 		return vk::AccessFlags{};
 	}
 
-	vk::AccessFlags to_vk_access_flags(cgb::read_memory_access aValue)
+	cgb::memory_access to_memory_access(cgb::read_memory_access aValue)
 	{
-		to_vk_access_flags(static_cast<cgb::memory_access>(aValue));
+		return static_cast<cgb::memory_access>(aValue);
 	}
 	
-	vk::AccessFlags to_vk_access_flags(std::optional<cgb::read_memory_access> aValue)
+	std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::read_memory_access> aValue)
 	{
 		if (aValue.has_value()) {
-			return to_vk_access_flags(aValue.value());
+			return to_memory_access(aValue.value());
 		}
-		return vk::AccessFlags{};
+		return {};
 	}
 	
-	vk::AccessFlags to_vk_access_flags(cgb::write_memory_access aValue)
+	cgb::memory_access to_memory_access(cgb::write_memory_access aValue)
 	{
-		to_vk_access_flags(static_cast<cgb::memory_access>(aValue));
+		return static_cast<cgb::memory_access>(aValue);
 	}
 	
-	vk::AccessFlags to_vk_access_flags(std::optional<cgb::write_memory_access> aValue)
+	std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::write_memory_access> aValue)
 	{
 		if (aValue.has_value()) {
-			return to_vk_access_flags(aValue.value());
+			return to_memory_access(aValue.value());
 		}
-		return vk::AccessFlags{};
+		return {};
 	}
 	
 }

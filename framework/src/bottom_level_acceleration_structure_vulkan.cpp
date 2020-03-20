@@ -93,7 +93,7 @@ namespace cgb
 			cgb::generic_buffer_meta::create_from_data(aBoundingBoxes),
 			memory_usage::host_coherent,
 			aBoundingBoxes.data(),
-			{}, {},
+			sync::not_required(),
 			vk::BufferUsageFlagBits::eRayTracingNV // TODO: Abstract flags
 		);
 		
@@ -172,7 +172,10 @@ namespace cgb
 		device_queue& queue = aSyncHandler.queue_to_use();
 		auto cmdBfr = queue.create_single_use_command_buffer();
 		cmdBfr->begin_recording();
+		// Sync before:
+		aSyncHandler.establish_barrier_before_the_operation(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
 
+		// Operation:
 		cmdBfr->handle().buildAccelerationStructureNV(
 			config(),
 			nullptr, 0,								// no instance data for bottom level AS
@@ -186,8 +189,11 @@ namespace cgb
 			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
 			cgb::context().dynamic_dispatch());
 
-		aSyncHandler.set_sync_stages_and_establish_barrier(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure);
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
 		cmdBfr->end_recording();
+		
+		// Finish him:
 		aSyncHandler.submit_and_sync(std::move(cmdBfr));
 	}
 

@@ -11,6 +11,7 @@ namespace cgb
 			case memory_access::uniform_buffer_read_access					:
 			case memory_access::input_attachment_read_access				:
 			case memory_access::shader_buffers_and_images_read_access		:
+			case memory_access::any_buffer_read_access						:
 			case memory_access::color_attachment_read_access				:
 			case memory_access::depth_stencil_attachment_read_access		:
 			case memory_access::transfer_read_access						:

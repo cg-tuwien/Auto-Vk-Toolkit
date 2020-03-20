@@ -2,21 +2,19 @@
 
 namespace cgb
 {	
-	extern vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt);
-
-	extern void transition_image_layout(image_t& aImage, vk::Format aFormat, vk::ImageLayout aNewLayout, sync aSyncHandler = sync::wait_idle());
-
 	extern void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle());
 
 	template <typename Bfr>
 	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
 	{
-		//auto commandBuffer = context().create_command_buffers_for_transfer(1);
-		auto commandBuffer = cgb::context().transfer_queue().create_single_use_command_buffer();
-
-		// Immediately start recording the command buffer:
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
+		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
 		commandBuffer->begin_recording();
+		// Sync before:
+		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_read_access);
 
+		// Operation:
 		auto copyRegion = vk::BufferImageCopy()
 			.setBufferOffset(0)
 			// The bufferRowLength and bufferImageHeight fields specify how the pixels are laid out in memory. For example, you could have some padding 
@@ -30,20 +28,19 @@ namespace cgb
 				.setLayerCount(1u))
 			.setImageOffset({ 0u, 0u, 0u })
 			.setImageExtent(pDstImage.config().extent);
-
 		commandBuffer->handle().copyBufferToImage(
 			pSrcBuffer->buffer_handle(),
 			pDstImage.image_handle(),
 			vk::ImageLayout::eTransferDstOptimal,
 			{ copyRegion });
 
-		// That's all
-		aSyncHandler.set_sync_stages_and_establish_barrier(commandBuffer, pipeline_stage::transfer, memory_access::transfer);
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_write_access);
 		commandBuffer->end_recording();
+
+		// Finish him:
 		aSyncHandler.submit_and_sync(std::move(commandBuffer));
 	}
-
-	
 
 	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
@@ -51,30 +48,22 @@ namespace cgb
 			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
 			cgb::memory_usage::host_coherent,
 			_Color.data(),
-			{}, {},
+			sync::not_required(),
 			vk::BufferUsageFlagBits::eTransferSrc);
 
 		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
 		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), false, 1, _MemoryUsage, _ImageUsage);
-		auto finalTargetLayout = img->target_layout(); // store for later, because first, we need to transfer something into it
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::with_barriers_subordinate(aSyncHandler, {}, {}, true)); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
 
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_subordinate(aSyncHandler,
-			[&img](command_buffer_t& cb, pipeline_stage srcStage, std::optional<memory_access> srcAccess){
-				// I have been provided with src*, my task is to fill in dst* (i.e. what comes after)
-				cb.establish_image_memory_barrier(img, 
-					srcStage, pipeline_stage::transfer, 
-					srcAccess, // make the transferred memory available
-					{}); // no need to make any memory visible
-			}
-			// no need to sync before
-		));
+		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																						 // TODO: Verify the above ^ comment
 		
-		// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
+		// 3. Transition image layout to its target layout and handle lifetimes of things via sync
 		img->transition_to_layout(finalTargetLayout, std::move(aSyncHandler));
 		
 		return img;
@@ -116,7 +105,7 @@ namespace cgb
 				cgb::generic_buffer_meta::create_from_size(imageSize),
 				cgb::memory_usage::host_coherent,
 				pixels,
-				{}, {},
+				sync::not_required(),
 				vk::BufferUsageFlagBits::eTransferSrc);
 
 			stbi_image_free(pixels);
@@ -151,7 +140,7 @@ namespace cgb
 				cgb::generic_buffer_meta::create_from_size(imageSize),
 				cgb::memory_usage::host_coherent,
 				pixels,
-				{}, {},
+				sync::not_required(),
 				vk::BufferUsageFlagBits::eTransferSrc);
 
 			stbi_image_free(pixels);
@@ -162,13 +151,19 @@ namespace cgb
 		}
 
 		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
 		// 1. Transition image layout to eTransferDstOptimal
-		transition_image_layout(img, _Format.mFormat, vk::ImageLayout::eTransferDstOptimal, sync::with_barrier_subordinate(aSyncHandler));
-		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::with_barrier_subordinate(aSyncHandler));
-		// 3. Transition image layout to its target layout and handle the semaphore(s) and resources
-		transition_image_layout(img, _Format.mFormat, img->target_layout(), sync::with_barrier_subordinate(aSyncHandler));
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
 		
+		// 2. Copy buffer to image
+		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																						 // TODO: Verify the above ^ comment
+		
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, std::move(aSyncHandler));
+
 		return img;
 	}
 	
@@ -242,25 +237,25 @@ namespace cgb
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
 		std::vector<cgb::material_config> _MaterialConfigs, 
-		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, 
 		cgb::image_usage _ImageUsage = cgb::image_usage::read_only_sampled_image,
 		cgb::filter_mode _TextureFilterMode = cgb::filter_mode::bilinear, // TODO: Implement MIP-mapping and default to anisotropic 16x
-		cgb::border_handling_mode _BorderHandlingMode = cgb::border_handling_mode::repeat);
+		cgb::border_handling_mode _BorderHandlingMode = cgb::border_handling_mode::repeat,
+		sync aSyncHandler = sync::wait_idle());
 
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_combined_vertices_and_indices_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec3> get_combined_normals_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec3> get_combined_tangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec3> get_combined_bitangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec4> get_combined_colors_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet);
-	extern vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec2> get_combined_2d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet);
-	extern vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec3> get_combined_3d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet);
-	extern vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {});
+	extern vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 
 	// TODO: Not sure if the following leads somewhere:
 	//

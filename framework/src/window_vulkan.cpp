@@ -369,9 +369,9 @@ namespace cgb
 		if (aCopyToPresent.has_value()) {
 			// Create a one-time-submit command buffer. 
 			// TODO: Cache these command buffers, based on the input image!
-			auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer();
-			cmdbfr.begin_recording();
-			cmdbfr.handle().pipelineBarrier(
+			auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+			cmdbfr->begin_recording();
+			cmdbfr->handle().pipelineBarrier(
 				vk::PipelineStageFlagBits::eAllCommands,
 				vk::PipelineStageFlagBits::eAllCommands,
 				vk::DependencyFlags(),
@@ -388,9 +388,9 @@ namespace cgb
 					)
 				});
 
-			cmdbfr.copy_image(aCopyToPresent.value().get(), mSwapChainImages[imageIndex]);
+			cmdbfr->copy_image(aCopyToPresent.value().get(), mSwapChainImages[imageIndex]);
 
-			cmdbfr.handle().pipelineBarrier(
+			cmdbfr->handle().pipelineBarrier(
 				vk::PipelineStageFlagBits::eAllCommands,
 				vk::PipelineStageFlagBits::eAllCommands,
 				vk::DependencyFlags(),
@@ -406,9 +406,9 @@ namespace cgb
 						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
 					)
 				});
-			cmdbfr.end_recording();
+			cmdbfr->end_recording();
 
-			cmdBuffers.push_back(cmdbfr.handle());
+			cmdBuffers.push_back(cmdbfr->handle());
 			handle_single_use_command_buffer_lifetime(std::move(cmdbfr));
 		}
 

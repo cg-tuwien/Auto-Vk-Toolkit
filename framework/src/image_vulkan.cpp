@@ -847,11 +847,13 @@ namespace cgb
 		commandBuffer->begin_recording();
 		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, 
 			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
-			{}							// There's no need to make any memory visible. It's fine if it is available (which is handled outside, i.e. by the sync user)
-		);						
+			memory_access::transfer_read_access
+		);
+
+		// An image's layout is tranformed by the means of an image memory barrier:
 		commandBuffer->establish_image_memory_barrier(*this,
-			pipeline_stage::transfer, pipeline_stage::transfer,
-			{}, {}						// There should be no need to make any memory available or visible... the image should be available already (see above)
+			pipeline_stage::transfer, pipeline_stage::transfer,				// Execution dependency chain
+			std::optional<memory_access>{}, std::optional<memory_access>{}	// There should be no need to make any memory available or visible... the image should be available already (see above)
 		);
 
 		// Act as if the layout transition was successful already:
@@ -859,7 +861,7 @@ namespace cgb
 		
 		aSyncHandler.establish_barrier_after_the_operation(commandBuffer,
 			pipeline_stage::transfer,	// The end of the execution dependency chain
-			{}							// No need to make any memory available, it already is.
+			memory_access::transfer_write_access
 		);
 		commandBuffer->end_recording();
 		aSyncHandler.submit_and_sync(std::move(commandBuffer));

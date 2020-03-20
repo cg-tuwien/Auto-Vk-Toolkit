@@ -38,12 +38,12 @@ namespace cgb
 
 		static owning_resource<top_level_acceleration_structure_t> create(uint32_t _InstanceCount, bool _AllowUpdates = true, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 
-		void build(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
-		void update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler = {}, std::vector<semaphore> _WaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
+		void build(const std::vector<geometry_instance>& _GeometryInstances, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
+		void update(const std::vector<geometry_instance>& _GeometryInstances, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer = {});
 		
 	private:
 		enum struct tlas_action { build, update };
-		void build_or_update(const std::vector<geometry_instance>& _GeometryInstances, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction);
+		void build_or_update(const std::vector<geometry_instance>& _GeometryInstances, sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer, tlas_action _BuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;
