@@ -29,12 +29,12 @@ namespace cgb
 		std::transform(std::begin(tmp), std::end(tmp),
 			std::back_inserter(buffers),
 			// ...transform them into `cgb::command_buffer_t` objects:
-			[lUsageFlags = aUsageFlags](auto& vkCb) {
-				owning_resource<command_buffer_t> result;
-				result->mBeginInfo = vk::CommandBufferBeginInfo()
+			[lUsageFlags = aUsageFlags](auto& vkCb) -> owning_resource<command_buffer_t> {
+				command_buffer_t result;
+				result.mBeginInfo = vk::CommandBufferBeginInfo()
 					.setFlags(lUsageFlags)
 					.setPInheritanceInfo(nullptr);
-				result->mCommandBuffer = std::move(vkCb);
+				result.mCommandBuffer = std::move(vkCb);
 				return result;
 			});
 		return buffers;

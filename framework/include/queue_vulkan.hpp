@@ -37,14 +37,41 @@ namespace cgb // ========================== TODO/WIP ===========================
 		command_pool& pool_for(vk::CommandPoolCreateFlags aFlags) const;
 
 		/** Creates a "standard" command buffer which is not necessarily short-lived
-		 *	and can be re-submitted, but not necessarily re-recorded. */
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
 		command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false) const;
+
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		std::vector<command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
 		
 		/** Creates a command buffer which is intended to be used as a one time submit command buffer */
 		command_buffer create_single_use_command_buffer() const;
+		
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		std::vector<command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers) const;
 
 		/** Creates a command buffer which is intended to be reset (and possible re-recorded). */
 		command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false) const;
+		
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		std::vector<command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
 
 		/** TODO */
 		void submit(command_buffer_t& aCommandBuffer);

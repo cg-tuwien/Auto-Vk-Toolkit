@@ -243,6 +243,7 @@ namespace cgb
 #include "cg_element.hpp"
 #include "sequential_executor.hpp"
 #include "composition.hpp"
+#include "setup.hpp"
 
 #include "transform.hpp"
 #include "material_config.hpp"

@@ -6,45 +6,49 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void initialize() override
 	{
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
+		// Create a graphics pipeline:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_shader("shaders/a_triangle.vert"),
 			cgb::fragment_shader("shaders/a_triangle.frag"),
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
-			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
-			cgb::attachment::create_color(swapChainFormat)
+			cgb::cfg::viewport_depth_scissors_config::from_window(),
+			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer())
 		);
 
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer& _CommandBuffer, int64_t _InFlightIndex) {
-			_CommandBuffer.begin_render_pass_for_window(cgb::context().main_window(), _InFlightIndex);
-
-			_CommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			_CommandBuffer.handle().draw(3u, 1u, 0u, 0u);
-
-			_CommandBuffer.end_render_pass();
+		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+			commandBuffer.handle().draw(3u, 1u, 0u, 0u);
+			commandBuffer.end_render_pass();
 		});
 	}
 
 	void render() override
 	{
-		// Alternate drawing between the command buffers:
+		// Draw using the command buffer which is associated to the current frame in flight-index:
 		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
 		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
 	}
 
 	void update() override
 	{
+		// On H pressed,
 		if (cgb::input().key_pressed(cgb::key_code::h)) {
-			// Log a message:
+			// log a message:
 			LOG_INFO_EM("Hello cg_base!");
 		}
+
+		// On C pressed,
 		if (cgb::input().key_pressed(cgb::key_code::c)) {
-			// Center the cursor:
+			// center the cursor:
 			auto resolution = cgb::context().main_window()->resolution();
 			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
+
+		// On Esc pressed,
 		if (cgb::input().key_pressed(cgb::key_code::escape)) {
-			// Stop the current composition:
+			// stop the current composition:
 			cgb::current_composition().stop();
 		}
 	}
@@ -60,29 +64,20 @@ int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
-		cgb::settings::gApplicationName = "Hello, World!";
+		cgb::settings::gApplicationName = "Hello, cg_base World!";
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Hello World Window");
+		auto mainWnd = cgb::context().create_window("cg_base main window");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->open(); 
 
-		// Create an instance of my_first_cgb_app which, in this case,
-		// contains the entire functionality of our application. 
+		// Create an instance of our main cgb::element which contains all the functionality:
 		auto element = draw_a_triangle_app();
 
-		// Create a composition of:
-		//  - a timer
-		//  - an executor
-		//  - a behavior
-		// ...
-		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
-			});
-
-		// ... and start that composition!
-		hello.start();
+		// Setup an application by providing (an) element(s) which will be invoked:
+		auto helloWorld = cgb::setup(element);
+		helloWorld.start();
 	}
 	catch (std::runtime_error& re)
 	{

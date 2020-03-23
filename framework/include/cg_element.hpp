@@ -97,7 +97,7 @@ namespace cgb
 
 		/** @brief Submit a reference to a command buffer which should be executed before the swap chain's present stage
 		 */
-		void submit_command_buffer_ref(const cgb::command_buffer& _CommandBuffer, cgb::window* _Window = nullptr)
+		void submit_command_buffer_ref(const cgb::command_buffer_t& _CommandBuffer, cgb::window* _Window = nullptr)
 		{
 			mSubmittedCommandBufferReferences.emplace_back(std::cref(_CommandBuffer), _Window);
 		}
@@ -108,7 +108,13 @@ namespace cgb
 		{
 			auto& ref = mSubmittedCommandBufferInstances.emplace_back(std::move(_CommandBuffer), _Window);
 			// Also add to the references to keep the submission order intact
-			mSubmittedCommandBufferReferences.emplace_back(std::cref(std::get<command_buffer>(ref)), std::get<window*>(ref));
+			mSubmittedCommandBufferReferences.emplace_back(
+				std::cref(
+					static_cast<const command_buffer_t&>(
+						std::get<command_buffer>(ref)
+					)
+				), 
+				std::get<window*>(ref));
 		}
 
 		void clear_command_buffer_refs() { mSubmittedCommandBufferReferences.clear(); }
@@ -296,7 +302,7 @@ namespace cgb
 		bool is_render_gui_enabled() const { return mRenderGuiEnabled; }
 
 		/** Command buffers to be submitted to a window at the end of the current frame. */
-		std::vector<std::tuple<std::reference_wrapper<const cgb::command_buffer>, cgb::window*>> mSubmittedCommandBufferReferences;
+		std::vector<std::tuple<std::reference_wrapper<const cgb::command_buffer_t>, cgb::window*>> mSubmittedCommandBufferReferences;
 
 		/** Command buffers to be submitted to a window at the end of the current frame,
 		 *	AND ownership/lifetime management of which is to be handled internally (which means, by the window).

@@ -25,6 +25,8 @@ namespace cgb
 		static image_format default_depth_stencil_format() noexcept;
 
 		vk::Format mFormat;
+
+		static image_format from_window_color_buffer(window* aWindow = nullptr);
 	};
 
 	/** Analyze the given `cgb::image_usage` flags, and assemble some (hopefully valid) `vk::ImageUsageFlags`, and determine `vk::ImageLayout` and `vk::ImageTiling`. */

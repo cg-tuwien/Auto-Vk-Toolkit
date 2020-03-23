@@ -496,6 +496,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\setup.hpp" />
     <ClInclude Include="..\..\framework\include\shader_binding_table_vulkan.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>

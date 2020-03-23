@@ -20,10 +20,10 @@ namespace cgb // ========================== TODO/WIP ===========================
 		friend class device_queue;
 		
 	public:
-		command_buffer_t() noexcept = default;
-		command_buffer_t(command_buffer_t&&) noexcept = default;
+		command_buffer_t() = default;
+		command_buffer_t(command_buffer_t&&) = default;
 		command_buffer_t(const command_buffer_t&) = delete;
-		command_buffer_t& operator=(command_buffer_t&&) noexcept = default;
+		command_buffer_t& operator=(command_buffer_t&&) = default;
 		command_buffer_t& operator=(const command_buffer_t&) = delete;
 		~command_buffer_t();
 

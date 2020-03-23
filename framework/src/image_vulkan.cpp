@@ -86,6 +86,16 @@ namespace cgb
 		return { vk::Format::eD24UnormS8Uint };
 	}
 
+
+	image_format image_format::from_window_color_buffer(window* aWindow)
+	{
+		if (nullptr == aWindow) {
+			aWindow = cgb::context().main_window();
+		}
+		return aWindow->swap_chain_image_format();
+	}
+	
+
 	bool is_srgb_format(const image_format& pImageFormat)
 	{
 		// Note: Currently, the compressed formats are ignored => could/should be added in the future, maybe

@@ -555,6 +555,9 @@
     <ClInclude Include="..\..\framework\include\memory_access.hpp">
       <Filter>Header Files\data_buffers_images</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\setup.hpp">
+      <Filter>Header Files\application_structure_and_general_stuff</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

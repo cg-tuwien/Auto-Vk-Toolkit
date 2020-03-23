@@ -235,7 +235,7 @@ namespace cgb
 					thiz->mExecutor.execute_render_guis(thiz->mElements);
 
 					// Gather all the command buffers per window
-					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer>>> toRender;
+					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer_t>>> toRender;
 					for (auto& e : thiz->mElements)	{
 						for (auto [cb, wnd] : e->mSubmittedCommandBufferReferences) {
 							if (nullptr == wnd) {
@@ -473,6 +473,6 @@ namespace cgb
 
 	template <typename TTimer, typename TExecutor>
 	std::condition_variable composition<TTimer, TExecutor>::sInputBufferCondVar{};
-		
+
 }
 

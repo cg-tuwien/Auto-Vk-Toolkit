@@ -96,18 +96,37 @@ namespace cgb
 			.get_command_buffer(flags);
 		return result;
 	}
+
+	std::vector<command_buffer> device_queue::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled) const
+	{
+		auto flags = vk::CommandBufferUsageFlags();
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = pool_for(vk::CommandPoolCreateFlags{}) // no special flags
+			.get_command_buffers(aNumBuffers, flags);
+		return result;
+	}
 	
 	command_buffer device_queue::create_single_use_command_buffer() const
 	{
-		auto flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		const vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 		auto result = pool_for(vk::CommandPoolCreateFlagBits::eTransient)
 			.get_command_buffer(flags);
 		return result;
 	}
 
+	std::vector<command_buffer> device_queue::create_single_use_command_buffers(uint32_t aNumBuffers) const
+	{
+		const vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eTransient)
+			.get_command_buffers(aNumBuffers, flags);
+		return result;		
+	}
+
 	command_buffer device_queue::create_resettable_command_buffer(bool aSimultaneousUseEnabled) const
 	{
-		auto flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 		if (aSimultaneousUseEnabled) {
 			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 		}
@@ -116,6 +135,17 @@ namespace cgb
 		return result;
 	}
 
+	std::vector<command_buffer> device_queue::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled) const
+	{
+		vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+			.get_command_buffers(aNumBuffers, flags);
+		return result;
+	}
+	
 	void device_queue::submit(command_buffer_t& aCommandBuffer)
 	{
 		assert(aCommandBuffer.state() == command_buffer_state::finished_recording);
