@@ -40,48 +40,58 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Create vertex buffers, but don't upload vertices yet; we'll do that in the render() method.
 		// Create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
 		mVertexBuffers.reserve(cgb::context().main_window()->number_of_in_flight_frames()); // TODO: Comment and it will crash!
-		for (size_t i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
+		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [this](int64_t inFlightIndex){
 			mVertexBuffers.push_back(
-				// We want our buffer to "live" in GPU memory
-				cgb::create(cgb::vertex_buffer_meta::create_from_data(mVertexData),	cgb::memory_usage::device)
+				cgb::create(
+					cgb::vertex_buffer_meta::create_from_data(mVertexData),	// Pass/create meta data about the vertex data
+					cgb::memory_usage::device								// We want our buffer to "live" in GPU memory
+				)
 			);
+		});
+
+		// Create index buffer. Upload data already since we won't change it ever
+		// (hence the usage of cgb::create_and_fill instead of just cgb::create)
+		mIndexBuffer = cgb::create_and_fill(
+			cgb::index_buffer_meta::create_from_data(mIndices),	// Pass/create meta data about the indices
+			cgb::memory_usage::device,							// Also this buffer should "live" in GPU memory
+			mIndices.data(),									// Since we also want to upload the data => pass a data pointer
+			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
+		);
+
+		// Create graphics pipeline for rasterization with the required configuration:
+		mPipeline = cgb::graphics_pipeline_for(
+			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
+			cgb::vertex_input_location(1, &Vertex::color),								// Describe the color vertex attribute
+			cgb::vertex_shader("shaders/passthrough.vert"),								// Add a vertex shader
+			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
+			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
+			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
+			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer())// Create a color output attachment
+		);
+
+		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+			cgb::context().draw_indexed(mPipeline, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
+			commandBuffer.end_render_pass();
+		});
+	}
+
+	void update() override
+	{
+		// On C pressed,
+		if (cgb::input().key_pressed(cgb::key_code::c)) {
+			// center the cursor:
+			auto resolution = cgb::context().main_window()->resolution();
+			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
 
-		// Create and upload the indices now, since we won't change them ever:
-		mIndexBuffer = cgb::create_and_fill(
-			// Also this buffer should "live" in GPU memory
-			cgb::index_buffer_meta::create_from_data(mIndices),	cgb::memory_usage::device,
-			// We're calling `create_and_fill`, so already pass a pointer to the data:
-			mIndices.data(),
-			// Handle the semaphore, if one gets created (which will actually happen in 
-			// this case since we've requested to upload the buffer to the device)
-			[] (auto _Semaphore) { 
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-			}
-		);
-
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
-		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = cgb::graphics_pipeline_for(
-			cgb::vertex_input_location(0, &Vertex::pos),
-			cgb::vertex_input_location(1, &Vertex::color),
-			"shaders/passthrough.vert",
-			"shaders/color.frag",
-			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
-			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
-			//cgb::renderpass(cgb::renderpass_t::create_good_renderpass((VkFormat)cgb::context().main_window()->swap_chain_image_format().mFormat))
-			//std::get<std::shared_ptr<cgb::renderpass_t>>(cgb::context().main_window()->getrenderpass())
-			cgb::attachment::create_color(swapChainFormat)
-		);
-
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer& _CommandBuffer, int64_t _InFlightIndex) {
-			_CommandBuffer.begin_render_pass_for_window(cgb::context().main_window(), _InFlightIndex);
-
-			_CommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			cgb::context().draw_indexed(mPipeline, _CommandBuffer, mVertexBuffers[_InFlightIndex], mIndexBuffer);
-
-			_CommandBuffer.end_render_pass();
-		});
+		// On Esc pressed,
+		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+			// stop the current composition:
+			cgb::current_composition().stop();
+		}
 	}
 
 	void render() override
@@ -92,6 +102,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
 		auto invTranslZ = glm::inverse(translateZ);
 
+		// Store modified vertices in vertexDataCurrentFrame:
 		std::vector<Vertex> vertexDataCurrentFrame;
 		for (const Vertex& vtx : mVertexData) {
 			glm::vec4 origPos{ vtx.pos, 1.0f };
@@ -101,35 +112,32 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			});
 		}
 
-		auto curIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
+		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
+		//		 in sync --- it can make a difference.
+		//		 Since the buffer-updates here are solely rendering-relevant and do not depend on other aspects
+		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
+		//		 will ensure correct and smooth rendering regardless of the timer used.
 
+		// For the right vertex buffer, ...
+		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+
+		// ... update its vertex data:
 		cgb::fill(
-			mVertexBuffers[curIndex],
-			vertexDataCurrentFrame.data(), 
-			[] (auto _Semaphore) { 
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-			}
+			mVertexBuffers[inFlightIndex],
+			vertexDataCurrentFrame.data(),
+			// Sync this fill-operation with pipeline memory barriers:
+			cgb::sync::with_barriers_on_current_frame()
+			// ^ This handler is a convenience method which hands over the (internally created, but externally
+			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
+			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
+			//   cgb::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
 		);
 
-		submit_command_buffer_ref(mCmdBfrs[curIndex]);
+		// Finally, submit the right command buffer in order to issue the draw call:
+		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
 	}
 
-	void update() override
-	{
-		if (cgb::input().key_pressed(cgb::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
-		}
-		if (cgb::input().key_pressed(cgb::key_code::c)) {
-			// Center the cursor:
-			auto resolution = cgb::context().main_window()->resolution();
-			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
-		}
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
-			// Stop the current composition:
-			cgb::current_composition().stop();
-		}
-	}
 
 private: // v== Member variables ==v
 	
@@ -143,12 +151,11 @@ private: // v== Member variables ==v
 int main() // <== Starting point ==
 {
 	try {
-		// What's the name of our application
-		cgb::settings::gApplicationName = "Hello, World!";
+		cgb::settings::gApplicationName = "cg_base Example: Vertex Buffers";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Hello World Window");
+		auto mainWnd = cgb::context().create_window("Vertex Buffers main window");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->open(); 
@@ -157,17 +164,8 @@ int main() // <== Starting point ==
 		// contains the entire functionality of our application. 
 		auto element = vertex_buffers_app();
 
-		// Create a composition of:
-		//  - a timer
-		//  - an executor
-		//  - a behavior
-		// ...
-		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
-			});
-
-		// ... and start that composition!
-		hello.start();
+		auto vertexBuffers = cgb::setup(element);
+		vertexBuffers.start();
 	}
 	catch (std::runtime_error& re)
 	{

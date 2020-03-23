@@ -211,6 +211,7 @@ namespace cgb
 			queue_to_use().get().handle().waitIdle();
 			break;
 		case sync_type::not_required:
+			assert(false);
 			throw std::runtime_error("You were wrong with your assumption that there was no sync required! => Provide a concrete sync strategy!");
 		default:
 			assert(false);

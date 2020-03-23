@@ -74,7 +74,16 @@ namespace cgb
 		static sync with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation = {}, cgb::window* aWindow = nullptr);
 
 		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
-		 *	@param	aCommandBufferLifetimeHandler	A function to handle the lifetime of a command buffer.
+		 *
+		 *	@param	aCommandBufferLifetimeHandler		A function to handle the lifetime of a command buffer.
+		 *	
+		 *	@param	aEstablishBarrierBeforeOperation	Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::read_memory_access>)
+		 *												Callback which gets called at the beginning of the operation, in order to sync with whatever comes before.
+		 *												This handler is generally considered to be optional an hence, set to {} by default --- i.e. not used.
+		 *												
+		 *	@param	aEstablishBarrierAfterOperation		Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::write_memory_access>)
+		 *												Callback which gets called at the end of the operation, in order to sync with whatever comes after.
+		 *												This handler is generally considered to be neccessary and hence, set to a default handler by default.
 		 */
 		static sync with_barriers(
 			std::function<void(command_buffer)> aCommandBufferLifetimeHandler,
