@@ -838,8 +838,6 @@ namespace cgb
 
 	void image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		
 		const auto curLayout = current_layout();
 		const auto trgLayout = aTargetLayout.value_or(target_layout());
 		mTargetLayout = trgLayout;
@@ -847,6 +845,8 @@ namespace cgb
 		if (curLayout == trgLayout) {
 			return; // done (:
 		}
+		
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 
 		// Not done => perform a transition via an image memory barrier inside a command buffer
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
@@ -868,7 +868,6 @@ namespace cgb
 			pipeline_stage::transfer,	// The end of the execution dependency chain
 			memory_access::transfer_write_access
 		);
-		
 		aSyncHandler.submit_and_sync();
 	}
 

@@ -11,16 +11,32 @@ namespace cgb
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 
 		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		auto srcLayout = aSrcImage.current_layout();
+		auto initialSrcLayout = aSrcImage.target_layout();
+		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal
+									|| initialSrcLayout == vk::ImageLayout::eGeneral
+									|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableSrcLayout) {
+			// Just make sure that is really is in target layout:
+			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+		}
+		else {
+			// Not a suitable src layout => must transform
+			aSrcImage.transition_to_layout(vk::ImageLayout::eTransferSrcOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 
-
-		
-		// Citing the specs: "dstImageLayout must specify the layout of the image subresources of dstImage specified in pRegions at the time this command is executed on a VkDevice"
-
-		
-		
-		// TODO: Do we have to transfer source image's layout into VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-		//       and target image's layout into VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL here?
+		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto initialDstLayout = aDstImage.target_layout();
+		const bool suitableDstLayout = initialDstLayout == vk::ImageLayout::eTransferDstOptimal
+									|| initialDstLayout == vk::ImageLayout::eGeneral
+									|| initialDstLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableDstLayout) {
+			// Just make sure that is really is in target layout:
+			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+		}
+		else {
+			// Not a suitable dst layout => must transform
+			aDstImage.transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 		
 		// Operation:
 		auto copyRegion = vk::ImageCopy{}
@@ -46,7 +62,13 @@ namespace cgb
 			aDstImage.current_layout(),
 			1u, &copyRegion);
 
-		// TODO: Do we have to transfer source and destination images' layouts into their original layouts here?
+		if (!suitableSrcLayout) { // => restore original layout of the src image
+			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+
+		if (!suitableDstLayout) { // => restore original layout of the dst image
+			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 		
 		// Sync after:
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
@@ -56,14 +78,12 @@ namespace cgb
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
-		std::vector<cgb::material_config> _MaterialConfigs, 
-		cgb::image_usage _ImageUsage,
-		cgb::filter_mode _TextureFilterMode, 
-		cgb::border_handling_mode _BorderHandlingMode,
+		std::vector<cgb::material_config> aMaterialConfigs, 
+		cgb::image_usage aImageUsage,
+		cgb::filter_mode aTextureFilteMode, 
+		cgb::border_handling_mode aBorderHandlingMode,
 		sync aSyncHandler)
 	{
-		// aSyncHandler's establish_barrier_before_the_operation will never be invoked
-		
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
 		// Textures contained in this array shall be loaded into an sRGB format
@@ -74,9 +94,9 @@ namespace cgb
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
 
 		std::vector<material_gpu_data> gpuMaterial;
-		gpuMaterial.reserve(_MaterialConfigs.size()); // important because of the pointers
+		gpuMaterial.reserve(aMaterialConfigs.size()); // important because of the pointers
 
-		for (auto& mc : _MaterialConfigs) {
+		for (auto& mc : aMaterialConfigs) {
 			auto& gm = gpuMaterial.emplace_back();
 			gm.mDiffuseReflectivity			= mc.mDiffuseReflectivity		 ;
 			gm.mAmbientReflectivity			= mc.mAmbientReflectivity		 ;
@@ -226,16 +246,15 @@ namespace cgb
 		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
 		imageSamplers.reserve(numSamplers);
 
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
 		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> sync {
 			++lSyncCount;
-			if (1 == lSyncCount && numSamplers > 1) {
-				return sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {}); // Steal the begin sync for the first image				
-			}
 			if (lSyncCount < numSamplers) {
-				return sync::auxiliary_with_barriers(aSyncHandler, {}, {}); // We're only creating images within this function => only invoke the external sync method for the very last of them
+				return sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
 			}
 			assert (lSyncCount == numSamplers);
-			return std::move(aSyncHandler);
+			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
 		};
 
 		// Create the white texture and assign its index to all usages
@@ -258,7 +277,9 @@ namespace cgb
 		if (!straightUpNormalTexUsages.empty()) {
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, getSync())),
+					image_view_t::create(
+						create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, getSync())
+					),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
 			);
@@ -276,12 +297,9 @@ namespace cgb
 			
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_image_from_file(
-						pair.first,
-						true, potentiallySrgb, 4,
-						cgb::memory_usage::device, _ImageUsage, 
-						getSync())),
-					sampler_t::create(_TextureFilterMode, _BorderHandlingMode)
+					image_view_t::create(
+						create_image_from_file(pair.first, true, potentiallySrgb, 4, cgb::memory_usage::device, aImageUsage, getSync())),
+					sampler_t::create(aTextureFilteMode, aBorderHandlingMode)
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -321,7 +339,7 @@ namespace cgb
 				.describe_only_member(positionsData[0], 0, content_description::position),
 			cgb::memory_usage::device,
 			positionsData.data(),
-			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {})
+			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
 			// TODO: I think, the following is unneccessary, because the data is stored in a stagingBuffer, isn't it?!
 			//sync::auxiliary(
 			//	aSyncHandler,
@@ -383,8 +401,6 @@ namespace cgb
 			//)
 		);
 		
-		//aSyncHandler.sync_with_dummy_command_buffer();
-
 		return normalsBuffer;
 	}
 
@@ -457,8 +473,6 @@ namespace cgb
 			//)
 		);
 
-		//aSyncHandler.sync_with_dummy_command_buffer();
-
 		return bitangentsBuffer;
 	}
 
@@ -494,8 +508,6 @@ namespace cgb
 			//	}
 			//)
 		);
-
-		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return colorsBuffer;
 	}
@@ -533,8 +545,6 @@ namespace cgb
 			//)
 		);
 
-		//aSyncHandler.sync_with_dummy_command_buffer();
-
 		return texCoordsBuffer;
 	}
 
@@ -570,8 +580,6 @@ namespace cgb
 			//	}
 			//)
 		);
-
-		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return texCoordsBuffer;
 	}

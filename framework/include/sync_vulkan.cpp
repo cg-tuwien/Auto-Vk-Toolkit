@@ -2,6 +2,21 @@
 
 namespace cgb
 {
+	sync::~sync()
+	{
+		if (mCommandBuffer.has_value()) {
+			LOG_ERROR("Command buffer has not been submitted but cgb::sync instance is destructed. This must be a bug.");
+		}
+#ifdef _DEBUG
+		if (mEstablishBarrierBeforeOperationCallback) {
+			LOG_DEBUG("The before-operation-barrier-callback has never been invoked for this cgb::sync instance. This can be a bug, but it can be okay as well.");
+		}
+		if (mEstablishBarrierBeforeOperationCallback) {
+			LOG_DEBUG("The after-operation-barrier-callback has never been invoked for this cgb::sync instance. This can be a bug, but it can be okay as well.");
+		}
+#endif
+	}
+	
 	sync sync::not_required()
 	{
 		sync result;
@@ -68,22 +83,44 @@ namespace cgb
 		)
 	{
 		// Perform some checks
-		const auto stealBeforeHandler = is_before_handler_stolen(aEstablishBarrierBeforeOperation);
-		const auto stealAfterHandler = is_after_handler_stolen(aEstablishBarrierAfterOperation);
-		assert(stealBeforeHandler != static_cast<bool>(aEstablishBarrierBeforeOperation));
-		assert(stealAfterHandler != static_cast<bool>(aEstablishBarrierAfterOperation));
-		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandler)); // redundant
-		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandler));	// redundant
+		const auto stealBeforeHandlerOnDemand = is_about_to_steal_before_handler_on_demand(aEstablishBarrierBeforeOperation);
+		const auto stealAfterHandlerOnDemand = is_about_to_steal_after_handler_on_demand(aEstablishBarrierAfterOperation);
+		const auto stealBeforeHandlerImmediately = is_about_to_steal_before_handler_immediately(aEstablishBarrierBeforeOperation);
+		const auto stealAfterHandlerImmediately = is_about_to_steal_after_handler_immediately(aEstablishBarrierAfterOperation);
+		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandlerOnDemand)); 
+		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandlerOnDemand));	
+		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandlerImmediately));
+		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandlerImmediately));
+		assert(2 != (static_cast<int>(stealBeforeHandlerImmediately) + static_cast<int>(stealBeforeHandlerOnDemand)));
+		assert(2 != (static_cast<int>(stealAfterHandlerImmediately) + static_cast<int>(stealAfterHandlerOnDemand)));
 
-		// Possibly something
-		if (stealBeforeHandler) {
+		// Possibly steal something
+		if (stealBeforeHandlerOnDemand) {
+			aEstablishBarrierBeforeOperation = [&aMasterSync](command_buffer_t& cb, pipeline_stage stage, std::optional<read_memory_access> access) {
+				// Execute and invalidate:
+				auto handler = std::move(aMasterSync.mEstablishBarrierBeforeOperationCallback);
+				aMasterSync.mEstablishBarrierBeforeOperationCallback = {};
+				handler(cb, stage, access);
+			};
+		}
+		else if (stealBeforeHandlerImmediately) {
 			aEstablishBarrierBeforeOperation = std::move(aMasterSync.mEstablishBarrierBeforeOperationCallback);
 			aMasterSync.mEstablishBarrierBeforeOperationCallback = {};
 		}
-		if (stealAfterHandler) {
+		
+		if (stealAfterHandlerOnDemand) {
+			aEstablishBarrierAfterOperation = [&aMasterSync](command_buffer_t& cb, pipeline_stage stage, std::optional<write_memory_access> access) {
+				// Execute and invalidate:
+				auto handler = std::move(aMasterSync.mEstablishBarrierAfterOperationCallback);
+				aMasterSync.mEstablishBarrierAfterOperationCallback = {};
+				handler(cb, stage, access);
+			};
+		}
+		else if (stealAfterHandlerImmediately) {
 			aEstablishBarrierAfterOperation = std::move(aMasterSync.mEstablishBarrierAfterOperationCallback);
 			aMasterSync.mEstablishBarrierAfterOperationCallback = {};
 		}
+
 
 		// Prepare a shiny new sync instance
 		sync result;
@@ -205,6 +242,7 @@ namespace cgb
 			return; // nothing to do here
 		}
 		mEstablishBarrierBeforeOperationCallback(get_or_create_command_buffer(), aDestinationPipelineStages, aDestinationMemoryStages);
+		mEstablishBarrierBeforeOperationCallback = {};
 	}
 
 	void sync::establish_barrier_after_the_operation(pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages)
@@ -213,6 +251,7 @@ namespace cgb
 			return; // nothing to do here
 		}
 		mEstablishBarrierAfterOperationCallback(get_or_create_command_buffer(), aSourcePipelineStages, aSourceMemoryStages);
+		mEstablishBarrierAfterOperationCallback = {};
 	}
 
 	void sync::submit_and_sync()
@@ -236,6 +275,7 @@ namespace cgb
 			if (std::holds_alternative<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)) {
 				assert(mCommandBuffer.has_value());
 				mCommandBuffer.value()->end_recording();	// What started in get_or_create_command_buffer() ends here.
+				queue.submit(mCommandBuffer.value());
 				std::get<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)(std::move(mCommandBuffer.value())); // Transfer ownership and be done with it.
 				mCommandBuffer.reset();						// Command buffer has been moved from. It's gone.
 			}
@@ -251,6 +291,7 @@ namespace cgb
 			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
 			queue_to_use().get().handle().waitIdle();
 			mCommandBuffer.reset();							// Command buffer is fully handled after waitIdle() and can be destroyed.
+			mNoSyncRequired = true; // No further sync required
 			break;
 		case sync_type::not_required:
 			assert(false);

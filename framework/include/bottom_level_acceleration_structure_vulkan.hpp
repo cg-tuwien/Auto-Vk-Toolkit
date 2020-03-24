@@ -30,8 +30,8 @@ namespace cgb
 		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer aVertexBuffer, index_buffer aIndexBuffer, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 
-		void build(sync aSyncHandler = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
-		void update(sync aSyncHandler = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void build(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void update(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		
 	private:
 		enum struct blas_action { build, update };

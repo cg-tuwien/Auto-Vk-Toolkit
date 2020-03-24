@@ -15,15 +15,25 @@ namespace cgb
 		enum struct sync_type { not_required, via_wait_idle, via_semaphore, via_barrier };
 		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
 		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
-		static void steal_before_handler(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
-		static void steal_after_handler(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
-		static bool is_before_handler_stolen(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+		static void steal_before_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
+		static void steal_after_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
+		static void steal_before_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
+		static void steal_after_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
+		static bool is_about_to_steal_before_handler_on_demand(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
 			const auto trgPtr = aToTest.target<steal_before_handler_t>();
-			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler ? true : false;
+			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_on_demand ? true : false;
 		}
-		static bool is_after_handler_stolen(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+		static bool is_about_to_steal_after_handler_on_demand(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
 			const auto trgPtr = aToTest.target<steal_after_handler_t>();
-			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler ? true : false;
+			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_on_demand ? true : false;
+		}
+		static bool is_about_to_steal_before_handler_immediately(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_before_handler_t>();
+			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_immediately ? true : false;
+		}
+		static bool is_about_to_steal_after_handler_immediately(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_after_handler_t>();
+			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_immediately ? true : false;
 		}
 		
 		sync() = default;
@@ -31,7 +41,8 @@ namespace cgb
 		sync(sync&&) noexcept = default;
 		sync& operator=(const sync&) = delete;
 		sync& operator=(sync&&) noexcept = default;
-
+		~sync();
+		
 #pragma region static creation functions
 		static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess)
 		{
