@@ -57,24 +57,24 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// the same length.
 
 			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
-				[] (auto _Semaphore) {  
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				});
+			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes(
+				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
+				cgb::sync::with_semaphores_on_current_frame()
+			);
 			newElement.mPositionsBuffer = std::move(positionsBuffer);
 			newElement.mIndexBuffer = std::move(indicesBuffer);
 
 			// Get a buffer containing all texture coordinates for all submeshes with this material
-			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 0,
-				[] (auto _Semaphore) {  
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				});
+			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes(
+				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 0,
+				cgb::sync::with_semaphores_on_current_frame()
+			);
 
 			// Get a buffer containing all normals for all submeshes with this material
-			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
-				[] (auto _Semaphore) {  
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				});
+			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes(
+				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
+				cgb::sync::with_semaphores_on_current_frame()
+			);
 		}
 		// Same for the ORCA scene:
 		for (const auto& pair : distinctMaterialsOrca) {
@@ -105,25 +105,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  buffers for everything which could potentially be instanced.)
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
-					[] (auto _Semaphore) {  
-						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-					});
+				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes(
+					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					cgb::sync::with_semaphores_on_current_frame()
+				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
-					[] (auto _Semaphore) {  
-						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-					});
+				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes(
+					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
+					cgb::sync::with_semaphores_on_current_frame()
+				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
-					[] (auto _Semaphore) {  
-						cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-					});
+				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes(
+					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					cgb::sync::with_semaphores_on_current_frame()
+				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
@@ -139,14 +139,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatConfigs, 
-			[](auto _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			});
+		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
+			allMatConfigs, 
+			cgb::image_usage::read_only_sampled_image,
+			cgb::filter_mode::bilinear,
+			cgb::border_handling_mode::repeat,
+			cgb::sync::with_semaphores_on_current_frame()
+		);
+		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
 			cgb::memory_usage::host_coherent,
-			gpuMaterials.data()
+			gpuMaterials.data(),
+			cgb::sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
 		
@@ -193,24 +198,24 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		cmdbfr.begin_recording();
+		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		cmdbfr->begin_recording();
 
-		cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
+		cmdbfr->begin_render_pass_for_window(cgb::context().main_window());
 
 		// Bind the pipeline
-		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+		cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			
 
 		// Set the descriptors of the uniform buffer
-		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
+		cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
 			mDescriptorSet->number_of_descriptor_sets(),
 			mDescriptorSet->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {
 			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-			cmdbfr.handle().bindVertexBuffers(0u, {
+			cmdbfr->handle().bindVertexBuffers(0u, {
 				drawCall.mPositionsBuffer->buffer_handle(), 
 				drawCall.mTexCoordsBuffer->buffer_handle(), 
 				drawCall.mNormalsBuffer->buffer_handle()
@@ -222,16 +227,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
 				drawCall.mMaterialIndex
 			};
-			cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 			// Bind and use the index buffer to create the draw call:
 			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
-			cmdbfr.handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr.handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
+			cmdbfr->handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
+			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
 		}
 
-		cmdbfr.end_render_pass();
-		cmdbfr.end_recording();
+		cmdbfr->end_render_pass();
+		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
 	}
 
@@ -291,6 +296,7 @@ int main() // <== Starting point ==
 		// What's the name of our application
 		cgb::settings::gApplicationName = "cg_base::orca_loader";
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
+		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");

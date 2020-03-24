@@ -43,6 +43,7 @@ namespace cgb
 	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 		
 		auto stagingBuffer = cgb::create_and_fill(
@@ -63,6 +64,7 @@ namespace cgb
 		// 2. Copy buffer to image
 		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																									   // TODO: Verify the above ^ comment
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
 		// 3. Transition image layout to its target layout and handle lifetimes of things via sync
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
@@ -155,6 +157,7 @@ namespace cgb
 		}
 
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 
 		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
@@ -167,6 +170,7 @@ namespace cgb
 		// 2. Copy buffer to image
 		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																										// TODO: Verify the above ^ comment
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));

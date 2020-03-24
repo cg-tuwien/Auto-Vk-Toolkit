@@ -38,9 +38,9 @@ namespace cgb
 		
 		sync() = default;
 		sync(const sync&) = delete;
-		sync(sync&&) noexcept = default;
+		sync(sync&&) noexcept;
 		sync& operator=(const sync&) = delete;
-		sync& operator=(sync&&) noexcept = default;
+		sync& operator=(sync&&) noexcept;
 		~sync();
 		
 #pragma region static creation functions

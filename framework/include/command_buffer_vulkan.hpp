@@ -28,7 +28,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		~command_buffer_t();
 
 		/** Set a custom deleter function.
-		 *	This is often used for resource cleanup, e.g. a buffer which can be deleted when this semaphore is destroyed.
+		 *	This is often used for resource cleanup, e.g. a buffer which can be deleted when this command buffer is destroyed.
 		 */
 		template <typename F>
 		command_buffer_t& set_custom_deleter(F&& _Deleter) 

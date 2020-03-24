@@ -853,7 +853,7 @@ namespace cgb
 		aSyncHandler.establish_barrier_before_the_operation(
 			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
 			memory_access::transfer_read_access
-		);
+		);VkImageMemoryBarrier asfd; 
 
 		// An image's layout is tranformed by the means of an image memory barrier:
 		commandBuffer.establish_image_memory_barrier(*this,

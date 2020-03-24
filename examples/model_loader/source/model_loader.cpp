@@ -48,7 +48,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
 				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);					} ),
+					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);								} ),
 					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
 					cgb::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
 					cgb::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
@@ -61,34 +61,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
 				cgb::memory_usage::device,
 				newElement.mPositions.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) {  
-					// TODO: Do we have to set these extra dependencies to ALL (three or so) frames in flight??
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
+				cgb::sync::with_barriers_on_current_frame() // TODO: I wonder why validation layers do not complain here, but.... 
 			);
 			// 2.2 Texture Coordinates:
 			newElement.mTexCoordsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mTexCoords),
 				cgb::memory_usage::device,
 				newElement.mTexCoords.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
+				cgb::sync::with_barriers_on_current_frame()
 			);
 			// 2.3 Normals:
 			newElement.mNormalsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mNormals),
 				cgb::memory_usage::device,
 				newElement.mNormals.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
+				cgb::sync::with_barriers_on_current_frame()
 			);
 			// 2.4 Indices:
 			newElement.mIndexBuffer = cgb::create_and_fill(
@@ -97,11 +84,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::memory_usage::device,
 				// Pass pointer to the data:
 				newElement.mIndices.data(),
-				// Handle the semaphore, if one gets created (which will happen 
-				// since we've requested to upload the buffer to the device)
-				[] (auto _Semaphore) { 
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				}
+				cgb::sync::with_barriers_on_current_frame()
 			);
 		}
 
@@ -109,15 +92,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `cgb::convert_for_gpu_usage`:
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(allMatConfigs, 
-			[](auto _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			});
+		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
+			allMatConfigs, 
+			cgb::image_usage::read_only_sampled_image,
+			cgb::filter_mode::bilinear,
+			cgb::border_handling_mode::repeat,
+			cgb::sync::with_barriers_on_current_frame() // TODO: ....they complain here, if I use with_barriers_on_current_frame()
+		);
+		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
 			cgb::memory_usage::host_coherent,
-			gpuMaterials.data()
+			gpuMaterials.data(),
+			cgb::sync::not_required()
 		);
+		
 		mImageSamplers = std::move(imageSamplers);
 
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
@@ -163,24 +152,24 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		cmdbfr.begin_recording();
+		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		cmdbfr->begin_recording();
 
-		cmdbfr.begin_render_pass_for_window(cgb::context().main_window());
+		cmdbfr->begin_render_pass_for_window(cgb::context().main_window());
 
 		// Bind the pipeline
-		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+		cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			
 
 		// Set the descriptors of the uniform buffer
-		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
+		cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
 			mDescriptorSet->number_of_descriptor_sets(),
 			mDescriptorSet->descriptor_sets_addr(), 
 			0, nullptr);
 
 		for (auto& drawCall : mDrawCalls) {
 			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-			cmdbfr.handle().bindVertexBuffers(0u, {
+			cmdbfr->handle().bindVertexBuffers(0u, {
 				drawCall.mPositionsBuffer->buffer_handle(), 
 				drawCall.mTexCoordsBuffer->buffer_handle(), 
 				drawCall.mNormalsBuffer->buffer_handle()
@@ -192,16 +181,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
 				drawCall.mMaterialIndex
 			};
-			cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 			// Bind and use the index buffer to create the draw call:
 			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
-			cmdbfr.handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr.handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
+			cmdbfr->handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
+			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
 		}
 
-		cmdbfr.end_render_pass();
-		cmdbfr.end_recording();
+		cmdbfr->end_render_pass();
+		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
 	}
 
@@ -265,6 +254,7 @@ int main() // <== Starting point ==
 		// What's the name of our application
 		cgb::settings::gApplicationName = "Model Loader Example";
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
+		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("Hello World Window");

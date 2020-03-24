@@ -2,6 +2,49 @@
 
 namespace cgb
 {
+	sync::sync(sync&& aOther) noexcept
+		: mNoSyncRequired{ std::move(aOther.mNoSyncRequired) }
+		, mSemaphoreLifetimeHandler{ std::move(aOther.mSemaphoreLifetimeHandler) }
+		, mWaitBeforeSemaphores{ std::move(aOther.mWaitBeforeSemaphores) }
+		, mCommandBufferRefOrLifetimeHandler{ std::move(aOther.mCommandBufferRefOrLifetimeHandler) }
+		, mCommandBuffer{ std::move(aOther.mCommandBuffer) }
+		, mEstablishBarrierBeforeOperationCallback{ std::move(aOther.mEstablishBarrierBeforeOperationCallback) }
+		, mEstablishBarrierAfterOperationCallback{ std::move(aOther.mEstablishBarrierAfterOperationCallback) }
+		, mQueueToUse{ std::move(aOther.mQueueToUse) }
+	{
+		aOther.mNoSyncRequired = true;
+		aOther.mSemaphoreLifetimeHandler = {};
+		aOther.mWaitBeforeSemaphores.clear();
+		aOther.mCommandBufferRefOrLifetimeHandler = {};
+		aOther.mCommandBuffer.reset();
+		aOther.mEstablishBarrierBeforeOperationCallback = {};
+		aOther.mEstablishBarrierAfterOperationCallback = {};
+		aOther.mQueueToUse.reset();
+	}
+
+	sync& sync::operator=(sync&& aOther) noexcept
+	{
+		mNoSyncRequired = std::move(aOther.mNoSyncRequired);
+		mSemaphoreLifetimeHandler = std::move(aOther.mSemaphoreLifetimeHandler);
+		mWaitBeforeSemaphores = std::move(aOther.mWaitBeforeSemaphores);
+		mCommandBufferRefOrLifetimeHandler = std::move(aOther.mCommandBufferRefOrLifetimeHandler);
+		mCommandBuffer = std::move(aOther.mCommandBuffer);
+		mEstablishBarrierBeforeOperationCallback = std::move(aOther.mEstablishBarrierBeforeOperationCallback);
+		mEstablishBarrierAfterOperationCallback = std::move(aOther.mEstablishBarrierAfterOperationCallback);
+		mQueueToUse = std::move(aOther.mQueueToUse);
+		
+		aOther.mNoSyncRequired = true;
+		aOther.mSemaphoreLifetimeHandler = {};
+		aOther.mWaitBeforeSemaphores.clear();
+		aOther.mCommandBufferRefOrLifetimeHandler = {};
+		aOther.mCommandBuffer.reset();
+		aOther.mEstablishBarrierBeforeOperationCallback = {};
+		aOther.mEstablishBarrierAfterOperationCallback = {};
+		aOther.mQueueToUse.reset();
+
+		return *this;
+	}
+	
 	sync::~sync()
 	{
 		if (mCommandBuffer.has_value()) {
@@ -87,10 +130,6 @@ namespace cgb
 		const auto stealAfterHandlerOnDemand = is_about_to_steal_after_handler_on_demand(aEstablishBarrierAfterOperation);
 		const auto stealBeforeHandlerImmediately = is_about_to_steal_before_handler_immediately(aEstablishBarrierBeforeOperation);
 		const auto stealAfterHandlerImmediately = is_about_to_steal_after_handler_immediately(aEstablishBarrierAfterOperation);
-		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandlerOnDemand)); 
-		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandlerOnDemand));	
-		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandlerImmediately));
-		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandlerImmediately));
 		assert(2 != (static_cast<int>(stealBeforeHandlerImmediately) + static_cast<int>(stealBeforeHandlerOnDemand)));
 		assert(2 != (static_cast<int>(stealAfterHandlerImmediately) + static_cast<int>(stealAfterHandlerOnDemand)));
 
@@ -100,7 +139,9 @@ namespace cgb
 				// Execute and invalidate:
 				auto handler = std::move(aMasterSync.mEstablishBarrierBeforeOperationCallback);
 				aMasterSync.mEstablishBarrierBeforeOperationCallback = {};
-				handler(cb, stage, access);
+				if (handler) {
+					handler(cb, stage, access);
+				}
 			};
 		}
 		else if (stealBeforeHandlerImmediately) {
@@ -113,7 +154,9 @@ namespace cgb
 				// Execute and invalidate:
 				auto handler = std::move(aMasterSync.mEstablishBarrierAfterOperationCallback);
 				aMasterSync.mEstablishBarrierAfterOperationCallback = {};
-				handler(cb, stage, access);
+				if (handler) {
+					handler(cb, stage, access);
+				}
 			};
 		}
 		else if (stealAfterHandlerImmediately) {
@@ -211,7 +254,7 @@ namespace cgb
 		}
 
 		if (!mCommandBuffer.has_value()) {
-			mCommandBuffer = std::move(queue_to_use().get().create_single_use_command_buffer());
+			mCommandBuffer = queue_to_use().get().create_single_use_command_buffer();
 			mCommandBuffer.value()->begin_recording(); // Immediately start recording
 		}
 		return mCommandBuffer.value();
@@ -263,6 +306,11 @@ namespace cgb
 			{
 				assert(mSemaphoreLifetimeHandler);
 				assert(mCommandBuffer.has_value());
+				mCommandBuffer.value()->establish_global_memory_barrier(
+					pipeline_stage::all_commands, 
+					pipeline_stage::all_commands, 
+					std::optional<memory_access>{memory_access::any_access}, 
+					std::optional<memory_access>{memory_access::any_access});
 				mCommandBuffer.value()->end_recording();	// What started in get_or_create_command_buffer() ends here.
 				auto sema = queue.submit_and_handle_with_semaphore(std::move(mCommandBuffer.value()), std::move(mWaitBeforeSemaphores));
 				mSemaphoreLifetimeHandler(std::move(sema)); // Transfer ownership and be done with it

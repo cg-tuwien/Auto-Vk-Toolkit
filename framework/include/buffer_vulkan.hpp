@@ -282,7 +282,7 @@ namespace cgb
 		Meta pConfig, 
 		cgb::memory_usage pMemoryUsage, 
 		const void* pData, 
-		sync aSyncHandler,
+		sync aSyncHandler = cgb::sync::wait_idle(),
 		vk::BufferUsageFlags pUsage = vk::BufferUsageFlags())
 	{
 		cgb::owning_resource<buffer_t<Meta>> result = create(pConfig, pMemoryUsage, pUsage);
