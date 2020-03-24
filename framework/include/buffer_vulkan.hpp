@@ -155,29 +155,27 @@ namespace cgb
 				sync::not_required(), //< It's host coherent memory => no sync will be required
 				vk::BufferUsageFlagBits::eTransferSrc);
 
-			auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-			commandBuffer->begin_recording();
+			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 			// Sync before:
-			aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_read_access);
+			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 
 			// Operation:
 			auto copyRegion = vk::BufferCopy{}
 				.setSrcOffset(0u)
 				.setDstOffset(0u)
 				.setSize(bufferSize);
-			commandBuffer->handle().copyBuffer(stagingBuffer->buffer_handle(), target.buffer_handle(), { copyRegion });
+			commandBuffer.handle().copyBuffer(stagingBuffer->buffer_handle(), target.buffer_handle(), { copyRegion });
 
 			// Sync after:
-			aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_write_access);
-			commandBuffer->end_recording();
+			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
 
 			// Take care of the lifetime handling of the stagingBuffer, it might still be in use:
-			commandBuffer->set_custom_deleter([
+			commandBuffer.set_custom_deleter([
 				lOwnedStagingBuffer{ std::move(stagingBuffer) }
 			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
 			
 			// Finish him:
-			aSyncHandler.submit_and_sync(std::move(commandBuffer));			
+			aSyncHandler.submit_and_sync();			
 		}
 	}
 
@@ -337,24 +335,22 @@ namespace cgb
 			// TODO: Creating a staging buffer in every read()-call is probably not optimal. => Think about alternative ways!
 
 			// TODO: What about queue ownership?! If not the device_queue_selection_strategy::prefer_everything_on_single_queue strategy is being applied, it could very well be that this fails.
-			auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-			commandBuffer->begin_recording();
+			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 			// Sync before:
-			aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_read_access);
+			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 
 			// Operation:
 			auto copyRegion = vk::BufferCopy{}
 				.setSrcOffset(0u)
 				.setDstOffset(0u)
 				.setSize(bufferSize);
-			commandBuffer->handle().copyBuffer(_Source.buffer_handle(), stagingBuffer->buffer_handle(), { copyRegion });
+			commandBuffer.handle().copyBuffer(_Source.buffer_handle(), stagingBuffer->buffer_handle(), { copyRegion });
 
 			// Sync after:
-			aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_write_access);
-			commandBuffer->end_recording();
+			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
 
 			// Take care of the stagingBuffer's lifetime handling and also of reading the data for this branch:
-			commandBuffer->set_custom_deleter([ 
+			commandBuffer.set_custom_deleter([ 
 				lOwnedStagingBuffer{ std::move(stagingBuffer) }, 
 				_Data
 			]() {
@@ -362,7 +358,7 @@ namespace cgb
 			});
 
 			// Finish him:
-			aSyncHandler.submit_and_sync(std::move(commandBuffer));
+			aSyncHandler.submit_and_sync();
 		}
 	}
 

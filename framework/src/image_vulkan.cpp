@@ -706,19 +706,13 @@ namespace cgb
 		return std::make_tuple(imageUsage, targetLayout, imageTiling, imageCreateFlags);
 	}
 
-
-
-
-
-
-
-	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, image_format aFormat, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
-		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(pImageUsage);
+		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
 
 		vk::MemoryPropertyFlags memoryFlags{};
-		switch (pMemoryUsage) {
+		switch (aMemoryUsage) {
 		case cgb::memory_usage::host_visible:
 			memoryFlags = vk::MemoryPropertyFlagBits::eHostVisible;
 			break;
@@ -743,8 +737,8 @@ namespace cgb
 		}
 
 		// How many MIP-map levels are we going to use?
-		auto mipLevels = pUseMipMaps
-			? static_cast<uint32_t>(std::floor(std::log2(std::max(pWidth, pHeight))) + 1)
+		auto mipLevels = aUseMipMaps
+			? static_cast<uint32_t>(std::floor(std::log2(std::max(aWidth, aHeight))) + 1)
 			: 1u;
 
 		image_t result;
@@ -753,10 +747,10 @@ namespace cgb
 		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
-			.setExtent(vk::Extent3D(static_cast<uint32_t>(pWidth), static_cast<uint32_t>(pHeight), 1u))
+			.setExtent(vk::Extent3D(static_cast<uint32_t>(aWidth), static_cast<uint32_t>(aHeight), 1u))
 			.setMipLevels(mipLevels)
 			.setArrayLayers(1u) // TODO: support multiple array layers
-			.setFormat(pFormat.mFormat)
+			.setFormat(aFormat.mFormat)
 			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
@@ -765,8 +759,8 @@ namespace cgb
 			.setFlags(imageCreateFlags); // Optional;
 
 		// Maybe alter the config?!
-		if (pAlterConfigBeforeCreation.mFunction) {
-			pAlterConfigBeforeCreation.mFunction(result);
+		if (aAlterConfigBeforeCreation.mFunction) {
+			aAlterConfigBeforeCreation.mFunction(result);
 		}
 
 		// Create the image...
@@ -844,6 +838,8 @@ namespace cgb
 
 	void image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
 		const auto curLayout = current_layout();
 		const auto trgLayout = aTargetLayout.value_or(target_layout());
 		mTargetLayout = trgLayout;
@@ -853,15 +849,14 @@ namespace cgb
 		}
 
 		// Not done => perform a transition via an image memory barrier inside a command buffer
-		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-		commandBuffer->begin_recording();
-		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, 
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(
 			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
 			memory_access::transfer_read_access
 		);
 
 		// An image's layout is tranformed by the means of an image memory barrier:
-		commandBuffer->establish_image_memory_barrier(*this,
+		commandBuffer.establish_image_memory_barrier(*this,
 			pipeline_stage::transfer, pipeline_stage::transfer,				// Execution dependency chain
 			std::optional<memory_access>{}, std::optional<memory_access>{}	// There should be no need to make any memory available or visible... the image should be available already (see above)
 		);
@@ -869,12 +864,12 @@ namespace cgb
 		// Act as if the layout transition was successful already:
 		mCurrentLayout = mTargetLayout;
 		
-		aSyncHandler.establish_barrier_after_the_operation(commandBuffer,
+		aSyncHandler.establish_barrier_after_the_operation(
 			pipeline_stage::transfer,	// The end of the execution dependency chain
 			memory_access::transfer_write_access
 		);
-		commandBuffer->end_recording();
-		aSyncHandler.submit_and_sync(std::move(commandBuffer));
+		
+		aSyncHandler.submit_and_sync();
 	}
 
 

@@ -160,6 +160,8 @@ namespace cgb
 	
 	void bottom_level_acceleration_structure_t::build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue()); // TODO: Transfer queue okay? Or graphics queue better?
+		
 		// Set the aScratchBuffer parameter to an internal scratch buffer, if none has been passed:
 		const generic_buffer_t* scratchBuffer = nullptr;
 		if (aScratchBuffer.has_value()) {
@@ -169,14 +171,12 @@ namespace cgb
 			scratchBuffer = &get_and_possibly_create_scratch_buffer();
 		}
 
-		device_queue& queue = aSyncHandler.queue_to_use();
-		auto cmdBfr = queue.create_single_use_command_buffer();
-		cmdBfr->begin_recording();
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
 
 		// Operation:
-		cmdBfr->handle().buildAccelerationStructureNV(
+		commandBuffer.handle().buildAccelerationStructureNV(
 			config(),
 			nullptr, 0,								// no instance data for bottom level AS
 			aBuildAction == blas_action::build
@@ -190,11 +190,10 @@ namespace cgb
 			cgb::context().dynamic_dispatch());
 
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(cmdBfr, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
-		cmdBfr->end_recording();
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
 		
 		// Finish him:
-		aSyncHandler.submit_and_sync(std::move(cmdBfr));
+		aSyncHandler.submit_and_sync();
 	}
 
 	void bottom_level_acceleration_structure_t::build(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)

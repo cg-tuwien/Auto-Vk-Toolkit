@@ -18,7 +18,7 @@ namespace cgb
 	sync sync::with_semaphores(std::function<void(semaphore)> aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation)
 	{
 		sync result;
-		result.mSemaphoreSignalAfterAndLifetimeHandler = std::move(aSignalledAfterOperation);
+		result.mSemaphoreLifetimeHandler = std::move(aSignalledAfterOperation);
 		result.mWaitBeforeSemaphores = std::move(aWaitBeforeOperation);
 		return result;
 	}
@@ -26,7 +26,7 @@ namespace cgb
 	sync sync::with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation, cgb::window* aWindow)
 	{
 		sync result;
-		result.mSemaphoreSignalAfterAndLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aSemaphore) {  
+		result.mSemaphoreLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aSemaphore) {  
 			wnd->set_extra_semaphore_dependency(std::move(aSemaphore));
 		};
 		result.mWaitBeforeSemaphores = std::move(aWaitBeforeOperation);
@@ -40,7 +40,7 @@ namespace cgb
 		)
 	{
 		sync result;
-		result.mCommandBufferLifetimeHandler = std::move(aCommandBufferLifetimeHandler);
+		result.mCommandBufferRefOrLifetimeHandler = std::move(aCommandBufferLifetimeHandler); // <-- Set the lifetime handler, not the command buffer reference.
 		result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
 		result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
 		return result;
@@ -53,26 +53,29 @@ namespace cgb
 		)
 	{
 		sync result;
-		result.mCommandBufferLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
+		result.mCommandBufferRefOrLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
 			wnd->handle_single_use_command_buffer_lifetime(std::move(aCmdBfr));
-		};
+		};  // <-- Set the lifetime handler, not the command buffer reference.
 		result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
 		result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
 		return result;
 	}
 
-	sync sync::auxiliary(
+	sync sync::auxiliary_with_barriers(
 			sync& aMasterSync,
 			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
 			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		)
 	{
+		// Perform some checks
 		const auto stealBeforeHandler = is_before_handler_stolen(aEstablishBarrierBeforeOperation);
 		const auto stealAfterHandler = is_after_handler_stolen(aEstablishBarrierAfterOperation);
 		assert(stealBeforeHandler != static_cast<bool>(aEstablishBarrierBeforeOperation));
 		assert(stealAfterHandler != static_cast<bool>(aEstablishBarrierAfterOperation));
 		assert((nullptr == aEstablishBarrierBeforeOperation) == (false == stealBeforeHandler)); // redundant
 		assert((nullptr == aEstablishBarrierAfterOperation) == (false == stealAfterHandler));	// redundant
+
+		// Possibly something
 		if (stealBeforeHandler) {
 			aEstablishBarrierBeforeOperation = std::move(aMasterSync.mEstablishBarrierBeforeOperationCallback);
 			aMasterSync.mEstablishBarrierBeforeOperationCallback = {};
@@ -82,49 +85,59 @@ namespace cgb
 			aMasterSync.mEstablishBarrierAfterOperationCallback = {};
 		}
 
+		// Prepare a shiny new sync instance
 		sync result;
 		
 		switch (aMasterSync.get_sync_type()) {
 		case sync_type::not_required:
-			return sync::not_required();
+			result = std::move(sync::not_required());
 		case sync_type::via_wait_idle:
-			return sync::wait_idle(); // <-- Nothing really matters
+			result = std::move(sync::wait_idle());
 		case sync_type::via_semaphore:
-			result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle) {
-					assert(aMasterSync.mSemaphoreSignalAfterAndLifetimeHandler);
-					// Let's do something sneaky => swap out master's semaphore handler:
-					auto tmp = std::move(aMasterSync.mSemaphoreSignalAfterAndLifetimeHandler);
-					aMasterSync.mSemaphoreSignalAfterAndLifetimeHandler = [&aCbToHandle, lMasterHandler{std::move(tmp)}](semaphore aSemaphore) {
-						aSemaphore->set_custom_deleter([lCmdBfr{std::move(aCbToHandle)}](){});
-						// Call the original handler:
-						lMasterHandler(std::move(aSemaphore));
-					};
-				},
-				std::move(aEstablishBarrierBeforeOperation),
-				std::move(aEstablishBarrierAfterOperation)
-			));
-			break;
+			//result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle) {
+			//		assert(aMasterSync.mSemaphoreLifetimeHandler);
+			//		// Let's do something sneaky => swap out master's semaphore handler:
+			//		auto tmp = std::move(aMasterSync.mSemaphoreLifetimeHandler);
+			//		aMasterSync.mSemaphoreLifetimeHandler = [&aCbToHandle, lMasterHandler{std::move(tmp)}](semaphore aSemaphore) {
+			//			aSemaphore->set_custom_deleter([lCmdBfr{std::move(aCbToHandle)}](){});
+			//			// Call the original handler:
+			//			lMasterHandler(std::move(aSemaphore));
+			//		};
+			//	},
+			//	std::move(aEstablishBarrierBeforeOperation),
+			//	std::move(aEstablishBarrierAfterOperation)
+			//));
+
+			// TODO: Semaphore and barrier options are the very same from this point on, are they?!
+			
+			//result.mCommandBufferRefOrLifetimeHandler = std::ref(aMasterCommandBuffer); // <-- Set the command buffer reference, not the lifetime handler
+			//result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
+			//result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
+			//break;
 		case sync_type::via_barrier:
-			result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle){
-					assert(aMasterSync.mCommandBufferLifetimeHandler);
-					// Let's do something sneaky => swap out master's command buffer handler:
-					auto tmp = std::move(aMasterSync.mCommandBufferLifetimeHandler);
-					aMasterSync.mCommandBufferLifetimeHandler = [&aCbToHandle, lMasterHandler{std::move(tmp)}](command_buffer aMasterCb){
-						aMasterCb->set_custom_deleter([lCmdBfr{std::move(aCbToHandle)}]() {});
-						// Call the original handler:
-						lMasterHandler(std::move(aMasterCb));
-					};
-				},
-				std::move(aEstablishBarrierBeforeOperation),
-				std::move(aEstablishBarrierAfterOperation)
-			));
+			//result = std::move(sync::with_barriers([&aMasterSync](command_buffer aCbToHandle){
+			//		assert(aMasterSync.mCommandBufferLifetimeHandler);
+			//		// Let's do something sneaky => swap out master's command buffer handler:
+			//		auto tmp = std::move(aMasterSync.mCommandBufferLifetimeHandler);
+			//		aMasterSync.mCommandBufferLifetimeHandler = [&aCbToHandle, lMasterHandler{std::move(tmp)}](command_buffer aMasterCb){
+			//			aMasterCb->set_custom_deleter([lCmdBfr{std::move(aCbToHandle)}]() {});
+			//			// Call the original handler:
+			//			lMasterHandler(std::move(aMasterCb));
+			//		};
+			//	},
+			//	std::move(aEstablishBarrierBeforeOperation),
+			//	std::move(aEstablishBarrierAfterOperation)
+			//));
+			result.mCommandBufferRefOrLifetimeHandler = std::ref(aMasterSync.get_or_create_command_buffer()); // <-- Set the command buffer reference, not the lifetime handler
+			result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
+			result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
 			break;
 		default:
 			assert(false); throw std::logic_error("How did we end up here?");
 		}
 
 		result.on_queue(aMasterSync.queue_to_use());
-		return result; // TODO: move neccessary?
+		return result;
 	}
 
 	sync& sync::on_queue(std::reference_wrapper<device_queue> aQueue)
@@ -135,8 +148,12 @@ namespace cgb
 	
 	sync::sync_type sync::get_sync_type() const
 	{
-		if (mSemaphoreSignalAfterAndLifetimeHandler) return sync_type::via_semaphore;
-		if (mCommandBufferLifetimeHandler) return sync_type::via_barrier;
+		if (mSemaphoreLifetimeHandler) {
+			return sync_type::via_semaphore;
+		}
+		if (!std::holds_alternative<std::monostate>(mCommandBufferRefOrLifetimeHandler)) {
+			return sync_type::via_barrier;
+		}
 		return mNoSyncRequired ? sync_type::not_required : sync_type::via_wait_idle;
 	}
 	
@@ -148,6 +165,19 @@ namespace cgb
 		}
 #endif
 		return mQueueToUse.value_or(cgb::context().graphics_queue());
+	}
+
+	command_buffer_t& sync::get_or_create_command_buffer()
+	{
+		if (std::holds_alternative<std::reference_wrapper<command_buffer_t>>(mCommandBufferRefOrLifetimeHandler)) {
+			return std::get<std::reference_wrapper<command_buffer_t>>(mCommandBufferRefOrLifetimeHandler).get();
+		}
+
+		if (!mCommandBuffer.has_value()) {
+			mCommandBuffer = std::move(queue_to_use().get().create_single_use_command_buffer());
+			mCommandBuffer.value()->begin_recording(); // Immediately start recording
+		}
+		return mCommandBuffer.value();
 	}
 	
 	//std::reference_wrapper<device_queue> sync::queue_to_transfer_to() const
@@ -169,46 +199,58 @@ namespace cgb
 		}
 	}
 	
-	void sync::establish_barrier_before_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const
+	void sync::establish_barrier_before_the_operation(pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages)
 	{
 		if (!mEstablishBarrierBeforeOperationCallback) {
 			return; // nothing to do here
 		}
-		mEstablishBarrierBeforeOperationCallback(aCommandBuffer, aDestinationPipelineStages, aDestinationMemoryStages);
+		mEstablishBarrierBeforeOperationCallback(get_or_create_command_buffer(), aDestinationPipelineStages, aDestinationMemoryStages);
 	}
 
-	void sync::establish_barrier_after_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const
+	void sync::establish_barrier_after_the_operation(pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages)
 	{
 		if (!mEstablishBarrierAfterOperationCallback) {
 			return; // nothing to do here
 		}
-		mEstablishBarrierAfterOperationCallback(aCommandBuffer, aSourcePipelineStages, aSourceMemoryStages);
+		mEstablishBarrierAfterOperationCallback(get_or_create_command_buffer(), aSourcePipelineStages, aSourceMemoryStages);
 	}
 
-	void sync::submit_and_sync(command_buffer aCommandBuffer)
+	void sync::submit_and_sync()
 	{
 		device_queue& queue = queue_to_use();
 		auto syncType = get_sync_type();
 		switch (syncType) {
 		case sync_type::via_semaphore:
 			{
-				assert(mSemaphoreSignalAfterAndLifetimeHandler);
-				auto sema = queue.submit_and_handle_with_semaphore(std::move(aCommandBuffer), std::move(mWaitBeforeSemaphores));
-				mSemaphoreSignalAfterAndLifetimeHandler(std::move(sema)); // Transfer ownership and be done with it
-				mWaitBeforeSemaphores = {};
-				mSemaphoreSignalAfterAndLifetimeHandler = {};
+				assert(mSemaphoreLifetimeHandler);
+				assert(mCommandBuffer.has_value());
+				mCommandBuffer.value()->end_recording();	// What started in get_or_create_command_buffer() ends here.
+				auto sema = queue.submit_and_handle_with_semaphore(std::move(mCommandBuffer.value()), std::move(mWaitBeforeSemaphores));
+				mSemaphoreLifetimeHandler(std::move(sema)); // Transfer ownership and be done with it
+				mCommandBuffer.reset();						// Command buffer has been moved from. It's gone.
+				mWaitBeforeSemaphores.clear();				// Never ever use them again (they have been moved from)
 			}
 			break;
 		case sync_type::via_barrier:
-			assert(mCommandBufferLifetimeHandler);
-			queue.submit(aCommandBuffer);
-			mCommandBufferLifetimeHandler(std::move(aCommandBuffer));
-			mCommandBufferLifetimeHandler = {};
+			assert(!std::holds_alternative<std::monostate>(mCommandBufferRefOrLifetimeHandler));
+			if (std::holds_alternative<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)) {
+				assert(mCommandBuffer.has_value());
+				mCommandBuffer.value()->end_recording();	// What started in get_or_create_command_buffer() ends here.
+				std::get<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)(std::move(mCommandBuffer.value())); // Transfer ownership and be done with it.
+				mCommandBuffer.reset();						// Command buffer has been moved from. It's gone.
+			}
+			else { // Must mean that we are an auxiliary sync handler
+				assert(std::holds_alternative<std::reference_wrapper<command_buffer_t>>(mCommandBufferRefOrLifetimeHandler));
+				// ... that means: Nothing to do here. Master sync will submit the command buffer.
+			}
 			break;
 		case sync_type::via_wait_idle:
-			queue.submit(aCommandBuffer);
+			assert(mCommandBuffer.has_value());
+			mCommandBuffer.value()->end_recording();		// What started in get_or_create_command_buffer() ends here.
+			queue.submit(mCommandBuffer.value());
 			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
 			queue_to_use().get().handle().waitIdle();
+			mCommandBuffer.reset();							// Command buffer is fully handled after waitIdle() and can be destroyed.
 			break;
 		case sync_type::not_required:
 			assert(false);
@@ -219,11 +261,4 @@ namespace cgb
 		}
 	}
 
-	void sync::sync_with_dummy_command_buffer()
-	{
-		auto dummy = queue_to_use().get().create_single_use_command_buffer();
-		dummy->begin_recording(); // TODO: neccessary?
-		dummy->end_recording();
-		submit_and_sync(std::move(dummy)); 
-	}
 }

@@ -71,13 +71,12 @@ namespace cgb
 				vk::BufferUsageFlagBits::eRayTracingNV
 			);
 		
-		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-		commandBuffer->begin_recording();
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
 
 		// Operation:
-		commandBuffer->handle().buildAccelerationStructureNV(
+		commandBuffer.handle().buildAccelerationStructureNV(
 			config(),
 			geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
 			_BuildAction == tlas_action::build
@@ -91,10 +90,9 @@ namespace cgb
 			cgb::context().dynamic_dispatch());
 
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
-		commandBuffer->end_recording();
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
 
-		aSyncHandler.submit_and_sync(std::move(commandBuffer));
+		aSyncHandler.submit_and_sync();
 	}
 
 	void top_level_acceleration_structure_t::build(const std::vector<geometry_instance>& _GeometryInstances, sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> _ScratchBuffer)

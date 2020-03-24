@@ -2,21 +2,29 @@
 
 namespace cgb
 {
-	void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler)
+	void copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
-		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-		commandBuffer->begin_recording();
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+
+		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto srcLayout = aSrcImage.current_layout();
+
+
+		
+		// Citing the specs: "dstImageLayout must specify the layout of the image subresources of dstImage specified in pRegions at the time this command is executed on a VkDevice"
+
+		
 		
 		// TODO: Do we have to transfer source image's layout into VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
 		//       and target image's layout into VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL here?
 		
 		// Operation:
 		auto copyRegion = vk::ImageCopy{}
-			.setExtent(pSrcImage.config().extent) // TODO: Support different ranges/extents
+			.setExtent(aSrcImage.config().extent) // TODO: Support different ranges/extents
 			.setSrcOffset({0, 0})
 			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
 				.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -31,21 +39,20 @@ namespace cgb
 				.setLayerCount(1u)
 				.setMipLevel(0u));
 
-		commandBuffer->handle().copyImage(
-			pSrcImage.image_handle(),
-			pSrcImage.current_layout(),
-			pDstImage.image_handle(),
-			pDstImage.current_layout(),
+		commandBuffer.handle().copyImage(
+			aSrcImage.image_handle(),
+			aSrcImage.current_layout(),
+			aDstImage.image_handle(),
+			aDstImage.current_layout(),
 			1u, &copyRegion);
 
 		// TODO: Do we have to transfer source and destination images' layouts into their original layouts here?
 		
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_write_access);
-		commandBuffer->end_recording();
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
 
 		// Finish him:
-		aSyncHandler.submit_and_sync(std::move(commandBuffer));
+		aSyncHandler.submit_and_sync();
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
@@ -222,10 +229,10 @@ namespace cgb
 		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> sync {
 			++lSyncCount;
 			if (1 == lSyncCount && numSamplers > 1) {
-				return sync::auxiliary(aSyncHandler, sync::steal_before_handler, {}); // Steal the begin sync for the first image				
+				return sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {}); // Steal the begin sync for the first image				
 			}
 			if (lSyncCount < numSamplers) {
-				return sync::auxiliary(aSyncHandler, {}, {}); // We're only creating images within this function => only invoke the external sync method for the very last of them
+				return sync::auxiliary_with_barriers(aSyncHandler, {}, {}); // We're only creating images within this function => only invoke the external sync method for the very last of them
 			}
 			assert (lSyncCount == numSamplers);
 			return std::move(aSyncHandler);
@@ -314,30 +321,32 @@ namespace cgb
 				.describe_only_member(positionsData[0], 0, content_description::position),
 			cgb::memory_usage::device,
 			positionsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				sync::steal_before_handler, 
-				[&positionsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(positionsData) }](){});
-				}
-			)
+			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {})
+			// TODO: I think, the following is unneccessary, because the data is stored in a stagingBuffer, isn't it?!
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	sync::steal_before_handler, 
+			//	[&positionsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(positionsData) }](){});
+			//	}
+			//)
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(indicesData),
 			cgb::memory_usage::device,
 			indicesData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&indicesData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(indicesData) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO: I think, the following is unneccessary, because the data is stored in a stagingBuffer, isn't it?!
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&indicesData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(indicesData) }](){});
+			//	}
+			//)
 		);
 
-		aSyncHandler.sync_with_dummy_command_buffer();
-		
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
 
@@ -363,16 +372,18 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(normalsData),
 			cgb::memory_usage::device,
 			normalsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&normalsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(normalsData) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&normalsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(normalsData) }](){});
+			//	}
+			//)
 		);
 		
-		aSyncHandler.sync_with_dummy_command_buffer();
+		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return normalsBuffer;
 	}
@@ -399,13 +410,15 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(tangentsData),
 			cgb::memory_usage::device,
 			tangentsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&tangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(tangentsData) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&tangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(tangentsData) }](){});
+			//	}
+			//)
 		);
 
 		return tangentsBuffer;
@@ -433,16 +446,18 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
 			cgb::memory_usage::device,
 			bitangentsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&bitangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(bitangentsData) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&bitangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(bitangentsData) }](){});
+			//	}
+			//)
 		);
 
-		aSyncHandler.sync_with_dummy_command_buffer();
+		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return bitangentsBuffer;
 	}
@@ -469,16 +484,18 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(colorsData),
 			cgb::memory_usage::device,
 			colorsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&colorsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(colorsData) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&colorsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(colorsData) }](){});
+			//	}
+			//)
 		);
 
-		aSyncHandler.sync_with_dummy_command_buffer();
+		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return colorsBuffer;
 	}
@@ -505,16 +522,18 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,
 			texCoordsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
+			//	}
+			//)
 		);
 
-		aSyncHandler.sync_with_dummy_command_buffer();
+		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return texCoordsBuffer;
 	}
@@ -541,16 +560,18 @@ namespace cgb
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,
 			texCoordsData.data(),
-			sync::auxiliary(
-				aSyncHandler,
-				{},
-				[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-					aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
-				}
-			)
+			std::move(aSyncHandler)
+			// TODO:
+			//sync::auxiliary(
+			//	aSyncHandler,
+			//	{},
+			//	[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
+			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
+			//	}
+			//)
 		);
 
-		aSyncHandler.sync_with_dummy_command_buffer();
+		//aSyncHandler.sync_with_dummy_command_buffer();
 
 		return texCoordsBuffer;
 	}

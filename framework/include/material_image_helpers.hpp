@@ -9,10 +9,9 @@ namespace cgb
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
-		auto commandBuffer = aSyncHandler.queue_to_use().get().create_single_use_command_buffer();
-		commandBuffer->begin_recording();
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
 
 		// Operation:
 		auto copyRegion = vk::BufferImageCopy()
@@ -28,18 +27,17 @@ namespace cgb
 				.setLayerCount(1u))
 			.setImageOffset({ 0u, 0u, 0u })
 			.setImageExtent(pDstImage.config().extent);
-		commandBuffer->handle().copyBufferToImage(
+		commandBuffer.handle().copyBufferToImage(
 			pSrcBuffer->buffer_handle(),
 			pDstImage.image_handle(),
 			vk::ImageLayout::eTransferDstOptimal,
 			{ copyRegion });
 
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(commandBuffer, pipeline_stage::transfer, memory_access::transfer_write_access);
-		commandBuffer->end_recording();
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
 
 		// Finish him:
-		aSyncHandler.submit_and_sync(std::move(commandBuffer));
+		aSyncHandler.submit_and_sync();
 	}
 
 	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
@@ -57,11 +55,11 @@ namespace cgb
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
 
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																						 // TODO: Verify the above ^ comment
+		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																									   // TODO: Verify the above ^ comment
 		
 		// 3. Transition image layout to its target layout and handle lifetimes of things via sync
 		img->transition_to_layout(finalTargetLayout, std::move(aSyncHandler));
@@ -154,11 +152,11 @@ namespace cgb
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler, {})); // no need for additional sync
 		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
 		
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																						 // TODO: Verify the above ^ comment
 		
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync

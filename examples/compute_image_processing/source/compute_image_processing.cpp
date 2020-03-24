@@ -39,9 +39,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::vertex_buffer_meta::create_from_data(mVertexData), 
 			cgb::memory_usage::device,
 			mVertexData.data(),
-			[](cgb::semaphore _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			}
+			cgb::sync::with_barriers_on_current_frame()
 		);
 
 		// Create and upload incides for drawing the quad
@@ -49,9 +47,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::device,
 			mIndices.data(),
-			[](cgb::semaphore _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			}
+			cgb::sync::with_barriers_on_current_frame()
 		);
 
 		// Create a host-coherent buffer for the matrices
@@ -65,13 +61,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png")),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
+		auto wdth = mInputImageAndSampler->width();
+		auto hght = mInputImageAndSampler->height();
+		auto frmt = mInputImageAndSampler->format();
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
-			cgb::image_view_t::create(cgb::image_t::create(mInputImageAndSampler->width(), mInputImageAndSampler->height(), mInputImageAndSampler->format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image,
-				[](cgb::image_t& _ImgToBeCreated) {
-					_ImgToBeCreated.config().usage |= vk::ImageUsageFlagBits::eStorage; // TODO: Can this be abstracted somehow?!
-				})),
+			cgb::image_view_t::create(
+				cgb::image_t::create( // Create an image and set some properties:
+					wdth, hght, frmt, false /* no mip-maps */, 1 /* one layer */, cgb::memory_usage::device, /* in GPU memory */
+					cgb::image_usage::versatile_image // This flag means (among other usages) that the image can be written to
+				)
+			),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
 		cgb::transition_image_layout(

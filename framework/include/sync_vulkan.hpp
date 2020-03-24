@@ -109,7 +109,7 @@ namespace cgb
 		 *	@param	aMasterSync		Master sync handler which is being modified by this method
 		 *							in order to also handle lifetime of subordinate command buffers.
 		 */
-		static sync auxiliary(
+		static sync auxiliary_with_barriers(
 			sync& aMasterSync,
 			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
 			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
@@ -128,13 +128,16 @@ namespace cgb
 		
 		/** Queue which the command and sync will be submitted to. */
 		std::reference_wrapper<device_queue> queue_to_use() const;
+
+		/** Get the command buffer reference stored internally or create a single-use command buffer and store it within the sync object */
+		command_buffer_t& get_or_create_command_buffer();
 #pragma endregion 
 
 #pragma region essential functions which establish the actual sync. Used by the framework internally.
 		void set_queue_hint(std::reference_wrapper<device_queue> aQueueRecommendation);
 		
-		void establish_barrier_before_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages) const;
-		void establish_barrier_after_the_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages) const;
+		void establish_barrier_before_the_operation(pipeline_stage aDestinationPipelineStages, std::optional<read_memory_access> aDestinationMemoryStages);
+		void establish_barrier_after_the_operation(pipeline_stage aSourcePipelineStages, std::optional<write_memory_access> aSourceMemoryStages);
 
 		/**	Submit the command buffer and engage sync!
 		 *	This method is intended not to be used by framework-consuming code, but by the framework-internals.
@@ -144,16 +147,16 @@ namespace cgb
 		 *	@param	aCommandBuffer				Hand over ownership of a command buffer in a "fire and forget"-manner from this method call on.
 		 *										The command buffer will be submitted to a queue (whichever queue is configured in this `cgb::sync`)
 		 */
-		void submit_and_sync(command_buffer aCommandBuffer);
+		void submit_and_sync();
 
-		void sync_with_dummy_command_buffer();
 #pragma endregion
 		
 	private:
 		bool mNoSyncRequired = false;
-		std::function<void(semaphore)> mSemaphoreSignalAfterAndLifetimeHandler;
+		std::function<void(semaphore)> mSemaphoreLifetimeHandler;
 		std::vector<semaphore> mWaitBeforeSemaphores;
-		std::function<void(command_buffer)> mCommandBufferLifetimeHandler;
+		std::variant<std::monostate, std::function<void(command_buffer)>, std::reference_wrapper<command_buffer_t>> mCommandBufferRefOrLifetimeHandler;
+		std::optional<command_buffer> mCommandBuffer;
 		std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> mEstablishBarrierBeforeOperationCallback;
 		std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)>	  mEstablishBarrierAfterOperationCallback;
 		std::optional<std::reference_wrapper<device_queue>> mQueueToUse;
