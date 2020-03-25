@@ -138,7 +138,7 @@ namespace cgb
 		establish_global_memory_barrier(aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
 	}
 
-	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
+	void command_buffer_t::establish_image_memory_barrier(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible)
 	{
 		mCommandBuffer->pipelineBarrier(
 			to_vk_pipeline_stage_flags(aSrcStage),						// Up to which stage to execute before making memory available
@@ -151,14 +151,15 @@ namespace cgb
 					to_vk_access_flags(aDstAccessToBeMadeVisible),		// Before the aDstStage, make this memory visible
 					aImage.current_layout(), aImage.target_layout(),	// Transition for the former to the latter
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,	// TODO: Support queue family ownership transfer
-					aImage.image_handle(),
+					aImage.handle(),
 					aImage.entire_subresource_range()					// TODO: Support different subresource ranges
 				}
 			}
 		);
+		aImage.set_current_layout(aImage.target_layout()); // Just optimistically set it
 	}
 	
-	void command_buffer_t::establish_image_memory_barrier(const image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
+	void command_buffer_t::establish_image_memory_barrier(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
 	{
 		establish_image_memory_barrier(aImage, aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
 	}
@@ -178,7 +179,7 @@ namespace cgb
 			.setDstSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0u, 0u, 1u))
 			.setDstOffset(offset)
 			.setExtent(extent);
-		mCommandBuffer->copyImage(aSource.image_handle(), vk::ImageLayout::eTransferSrcOptimal, aDestination, vk::ImageLayout::eTransferDstOptimal, { copyInfo });
+		mCommandBuffer->copyImage(aSource.handle(), vk::ImageLayout::eTransferSrcOptimal, aDestination, vk::ImageLayout::eTransferDstOptimal, { copyInfo });
 	}
 
 	void command_buffer_t::end_render_pass()

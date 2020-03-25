@@ -2,19 +2,19 @@
 
 namespace cgb
 {
-	void copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler)
+	void copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
 		auto initialSrcLayout = aSrcImage.target_layout();
-		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal
-									|| initialSrcLayout == vk::ImageLayout::eGeneral
-									|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
+		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
+									//|| initialSrcLayout == vk::ImageLayout::eGeneral
+									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableSrcLayout) {
 			// Just make sure that is really is in target layout:
 			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
@@ -56,22 +56,22 @@ namespace cgb
 				.setMipLevel(0u));
 
 		commandBuffer.handle().copyImage(
-			aSrcImage.image_handle(),
+			aSrcImage.handle(),
 			aSrcImage.current_layout(),
-			aDstImage.image_handle(),
+			aDstImage.handle(),
 			aDstImage.current_layout(),
 			1u, &copyRegion);
 
-		if (!suitableSrcLayout) { // => restore original layout of the src image
+		if (!suitableSrcLayout && aRestoreSrcLayout) { // => restore original layout of the src image
 			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 
-		if (!suitableDstLayout) { // => restore original layout of the dst image
+		if (!suitableDstLayout && aRestoreDstLayout) { // => restore original layout of the dst image
 			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 		
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 		// Finish him:
 		aSyncHandler.submit_and_sync();
@@ -332,6 +332,7 @@ namespace cgb
 	
 	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto [positionsData, indicesData] = get_combined_vertices_and_indices_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
@@ -340,14 +341,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			positionsData.data(),
 			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
-			// TODO: I think, the following is unneccessary, because the data is stored in a stagingBuffer, isn't it?!
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	sync::steal_before_handler, 
-			//	[&positionsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(positionsData) }](){});
-			//	}
-			//)
+			// It is fine to let positionsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
@@ -355,14 +350,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			indicesData.data(),
 			std::move(aSyncHandler)
-			// TODO: I think, the following is unneccessary, because the data is stored in a stagingBuffer, isn't it?!
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&indicesData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(indicesData) }](){});
-			//	}
-			//)
+			// It is fine to let indicesData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
@@ -384,6 +373,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto normalsData = get_combined_normals_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer normalsBuffer = cgb::create_and_fill(
@@ -391,14 +381,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			normalsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&normalsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(normalsData) }](){});
-			//	}
-			//)
+			// It is fine to let normalsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 		
 		return normalsBuffer;
@@ -420,6 +404,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto tangentsData = get_combined_tangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer tangentsBuffer = cgb::create_and_fill(
@@ -427,14 +412,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			tangentsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&tangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(tangentsData) }](){});
-			//	}
-			//)
+			// It is fine to let tangentsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return tangentsBuffer;
@@ -456,6 +435,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto bitangentsData = get_combined_bitangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
@@ -463,14 +443,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			bitangentsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&bitangentsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(bitangentsData) }](){});
-			//	}
-			//)
+			// It is fine to let bitangentsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return bitangentsBuffer;
@@ -492,6 +466,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto colorsData = get_combined_colors_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _ColorsSet);
 		
 		vertex_buffer colorsBuffer = cgb::create_and_fill(
@@ -499,14 +474,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			colorsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&colorsData](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(colorsData) }](){});
-			//	}
-			//)
+			// It is fine to let colorsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return colorsBuffer;
@@ -528,6 +497,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto texCoordsData = get_combined_2d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
@@ -535,14 +505,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
-			//	}
-			//)
+			// It is fine to let texCoordsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return texCoordsBuffer;
@@ -564,6 +528,7 @@ namespace cgb
 	
 	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto texCoordsData = get_combined_3d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
@@ -571,14 +536,8 @@ namespace cgb
 			cgb::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)
-			// TODO:
-			//sync::auxiliary(
-			//	aSyncHandler,
-			//	{},
-			//	[&texCoordsBuffer](command_buffer_t& aCmdBfr, pipeline_stage aSrcStage, std::optional<write_memory_access> aSrcAccess){
-			//		aCmdBfr.set_custom_deleter([lOwnedData{ std::move(texCoordsBuffer) }](){});
-			//	}
-			//)
+			// It is fine to let texCoordsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return texCoordsBuffer;

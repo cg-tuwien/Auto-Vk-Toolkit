@@ -11,7 +11,7 @@ namespace cgb
 
 		std::vector<vk::ImageView> imageViewHandles;
 		for (const auto& iv : result.mImageViews) {
-			imageViewHandles.push_back(iv->view_handle());
+			imageViewHandles.push_back(iv->handle());
 		}
 
 		result.mCreateInfo = vk::FramebufferCreateInfo{}

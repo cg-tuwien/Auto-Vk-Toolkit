@@ -121,9 +121,9 @@ namespace cgb
 		
 		/** @brief The given image should be copied into the swap chain image before presenting.
 		 */
-		void present_image(const cgb::image_t& _ImageToPresent, cgb::window* _Window = nullptr)
+		void present_image(cgb::image_t& _ImageToPresent, cgb::window* _Window = nullptr)
 		{
-			mPresentImages.emplace_back(std::cref(_ImageToPresent), _Window);
+			mPresentImages.emplace_back(std::ref(_ImageToPresent), _Window);
 		}
 
 		void clear_present_image() 
@@ -311,7 +311,7 @@ namespace cgb
 
 		/** Tuple of images to present and associated windows (or, more specifically, the window's swap chain)
 		 */
-		std::vector<std::tuple<std::reference_wrapper<const cgb::image_t>, cgb::window*>> mPresentImages;
+		std::vector<std::tuple<std::reference_wrapper<cgb::image_t>, cgb::window*>> mPresentImages;
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;

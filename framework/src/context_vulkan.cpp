@@ -810,6 +810,8 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
+		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination;
+		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
 			.setFormat(surfaceFormat.format)
@@ -818,7 +820,7 @@ namespace cgb
 			.setArrayLayers(1)
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setTiling(vk::ImageTiling::eOptimal)
-			.setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst)
+			.setUsage(swapChainImageUsageVk)
 			.setInitialLayout(vk::ImageLayout::eUndefined);
 
 		auto nope = vk::QueueFlags();
@@ -876,14 +878,15 @@ namespace cgb
 		assert(swapChainImages.size() == pWindow->get_config_number_of_presentable_images());
 
 		// Store the images,
-		std::copy(std::begin(swapChainImages), std::end(swapChainImages),
-				  std::back_inserter(pWindow->mSwapChainImages));
+		for (auto& imageHandle : swapChainImages) {
+			pWindow->mSwapChainImages.emplace_back(image_t::wrap(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor));
+		}
 
 		// and create one image view per image
 		pWindow->mSwapChainImageViews.reserve(pWindow->mSwapChainImages.size());
 		for (auto& image : pWindow->mSwapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image, pWindow->mImageCreateInfoSwapChain, pWindow->swap_chain_image_format().mFormat));
+			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image));
 			pWindow->mSwapChainImageViews.back().enable_shared_ownership();
 		}
 
@@ -899,7 +902,7 @@ namespace cgb
 		// Create a back buffer per image
 		pWindow->mBackBuffers.reserve(pWindow->mSwapChainImageViews.size());
 		for (auto& imView: pWindow->mSwapChainImageViews) {
-			auto imExtent = imView->image_config().extent;
+			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
 			std::vector<image_view> imageViews;

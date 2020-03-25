@@ -2,75 +2,36 @@
 
 namespace cgb
 {
-	bool image_view_t::has_image_t() const
-	{
-		return std::holds_alternative<cgb::image>(mImage);
-	}
-
-	const image_t& image_view_t::get_image() const
-	{
-		if (!has_image_t()) {
-			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
-		}
-		return std::get<cgb::image>(mImage);
-	}
-
-	image_t& image_view_t::get_image()
-	{
-		if (!has_image_t()) {
-			throw std::logic_error("This `cgb::image_view_t` is not associated to a `cgb::image_t`");
-		}
-		return std::get<cgb::image>(mImage);		
-	}
-
-	const vk::Image& image_view_t::image_handle() const
-	{
-		if (std::holds_alternative<cgb::image>(mImage)) {
-			return std::get<cgb::image>(mImage)->image_handle();
-		}
-		//assert(std::holds_alternative<std::tuple<vk::Image, vk::ImageCreateInfo>>(mImage));
-		return std::get<vk::Image>(std::get<std::tuple<vk::Image, vk::ImageCreateInfo>>(mImage));	
-	}
-
-	const vk::ImageCreateInfo& image_view_t::image_config() const
-	{
-		if (std::holds_alternative<cgb::image>(mImage)) {
-			return std::get<cgb::image>(mImage)->config();
-		}
-		//assert(std::holds_alternative<std::tuple<vk::Image, vk::ImageCreateInfo>>(mImage));
-		return std::get<vk::ImageCreateInfo>(std::get<std::tuple<vk::Image, vk::ImageCreateInfo>>(mImage));
-	}
-
-	owning_resource<image_view_t> image_view_t::create(cgb::image _ImageToOwn, std::optional<image_format> _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
 		
 		// Transfer ownership:
-		result.mImage = std::move(_ImageToOwn);
+		result.mImage = std::move(aImageToOwn);
 
 		// What's the format of the image view?
-		if (!_ViewFormat) {
-			_ViewFormat = image_format(result.image_config().format);
+		if (!aViewFormat) {
+			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*_ViewFormat, std::move(_AlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, std::move(aAlterConfigBeforeCreation));
 		
 		return result;
 	}
 
-	owning_resource<image_view_t> image_view_t::create(vk::Image _ImageToReference, vk::ImageCreateInfo _ImageInfo, std::optional<image_format> _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat)
 	{
 		image_view_t result;
 		
 		// Transfer ownership:
-		result.mImage = std::make_tuple(_ImageToReference, _ImageInfo);
+		result.mImage = image_view_t::helper_t{ std::move(aImageToWrap) };
 
 		// What's the format of the image view?
-		if (!_ViewFormat) {
-			_ViewFormat = image_format(result.image_config().format);
+		if (!aViewFormat) {
+			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*_ViewFormat, std::move(_AlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, nullptr);
 		
 		return result;
 	}
@@ -81,7 +42,7 @@ namespace cgb
 		vk::ImageAspectFlags imageAspectFlags;
 		{
 			// Guess the vk::ImageAspectFlags:
-			auto imageFormat = image_format(image_config().format);
+			auto imageFormat = image_format(get_image().config().format);
 			if (is_depth_format(imageFormat)) {
 				imageAspectFlags |= vk::ImageAspectFlagBits::eDepth;
 				if (has_stencil_component(imageFormat)) {
@@ -96,8 +57,8 @@ namespace cgb
 
 		// Proceed with config creation (and use the imageAspectFlags there):
 		mInfo = vk::ImageViewCreateInfo{}
-			.setImage(image_handle())
-			.setViewType(to_image_view_type(image_config()))
+			.setImage(get_image().handle())
+			.setViewType(to_image_view_type(get_image().config()))
 			.setFormat(_ViewFormat.mFormat)
 			.setComponents(vk::ComponentMapping() // The components field allows you to swizzle the color channels around. In our case we'll stick to the default mapping. [3]
 							  .setR(vk::ComponentSwizzle::eIdentity)
@@ -107,9 +68,9 @@ namespace cgb
 			.setSubresourceRange(vk::ImageSubresourceRange() // The subresourceRange field describes what the image's purpose is and which part of the image should be accessed. Our images will be used as color targets without any mipmapping levels or multiple layers. [3]
 				.setAspectMask(imageAspectFlags)
 				.setBaseMipLevel(0u)
-				.setLevelCount(image_config().mipLevels)
+				.setLevelCount(get_image().config().mipLevels)
 				.setBaseArrayLayer(0u)
-				.setLayerCount(image_config().arrayLayers));
+				.setLayerCount(get_image().config().arrayLayers));
 
 		// Maybe alter the config?!
 		if (_AlterConfigBeforeCreation.mFunction) {
@@ -118,12 +79,9 @@ namespace cgb
 
 		mImageView = context().logical_device().createImageViewUnique(mInfo);
 		mDescriptorInfo = vk::DescriptorImageInfo{}
-			.setImageView(view_handle());
+			.setImageView(handle());
 
-		if (std::holds_alternative<cgb::image>(mImage)) {
-			mDescriptorInfo.setImageLayout(std::get<cgb::image>(mImage)->target_layout()); // Note: The image's current layout might be different to its target layout.
-		}
-		// else => We don't know about the layout, so leave it at the default (eUndefined)
+		mDescriptorInfo.setImageLayout(get_image().target_layout()); // Note: The image's current layout might be different to its target layout.
 
 		mDescriptorType = vk::DescriptorType::eStorageImage; // TODO: Is it storage image or sampled image?
 		mTracker.setTrackee(*this);
@@ -131,9 +89,9 @@ namespace cgb
 
 	attachment attachment::create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation)
 	{
-		auto& imageInfo = _ImageView.image_config();
+		auto& imageInfo = _ImageView.get_image().config();
 		auto format = image_format{ imageInfo.format };
-		std::optional<image_usage> imageUsage = _ImageView.has_image_t() ? _ImageView.get_image().usage_config() : std::optional<image_usage>{std::nullopt};
+		std::optional<image_usage> imageUsage = _ImageView.get_image().usage_config();
 		if (is_depth_format(format)) {
 			if (imageInfo.samples == vk::SampleCountFlagBits::e1) {
 				

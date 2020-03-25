@@ -38,6 +38,11 @@ namespace cgb
 		validate_or_throw();
 		return mMemoryAccess;
 	}
+
+	memory_access read_memory_access::value() const
+	{
+		return operator memory_access();
+	}
 	
 	void read_memory_access::validate_or_throw() const
 	{
@@ -52,6 +57,11 @@ namespace cgb
 		return mMemoryAccess;
 	}
 	
+	memory_access write_memory_access::value() const
+	{
+		return operator memory_access();
+	}
+
 	void write_memory_access::validate_or_throw() const
 	{
 		if (is_read_access(mMemoryAccess)) {

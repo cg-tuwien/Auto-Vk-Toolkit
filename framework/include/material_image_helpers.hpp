@@ -2,7 +2,7 @@
 
 namespace cgb
 {	
-	extern void copy_image_to_another(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle());
+	extern void copy_image_to_another(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
 
 	template <typename Bfr>
 	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
@@ -11,7 +11,7 @@ namespace cgb
 		
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 		// Operation:
 		auto copyRegion = vk::BufferImageCopy()
@@ -29,12 +29,12 @@ namespace cgb
 			.setImageExtent(pDstImage.config().extent);
 		commandBuffer.handle().copyBufferToImage(
 			pSrcBuffer->buffer_handle(),
-			pDstImage.image_handle(),
+			pDstImage.handle(),
 			vk::ImageLayout::eTransferDstOptimal,
 			{ copyRegion });
 
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 		// Finish him:
 		aSyncHandler.submit_and_sync();
@@ -44,7 +44,7 @@ namespace cgb
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 		
 		auto stagingBuffer = cgb::create_and_fill(
 			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
@@ -69,7 +69,7 @@ namespace cgb
 		// 3. Transition image layout to its target layout and handle lifetimes of things via sync
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 		aSyncHandler.submit_and_sync();
 		
 		return img;
@@ -158,7 +158,7 @@ namespace cgb
 
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
@@ -175,7 +175,7 @@ namespace cgb
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 		aSyncHandler.submit_and_sync();
 		return img;
 	}

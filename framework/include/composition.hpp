@@ -245,7 +245,7 @@ namespace cgb
 						}
 					}
 					// Gather all the present images per window - there can only be max. one.
-					std::unordered_map<window*, const cgb::image_t*> toPresent;
+					std::unordered_map<window*, cgb::image_t*> toPresent;
 					for (auto& e : thiz->mElements)	{
 						for (auto [img, wnd] : e->mPresentImages) {
 							if (nullptr == wnd) {
@@ -262,7 +262,7 @@ namespace cgb
 					// Render per window
 					for (auto& [wnd, cbs] : toRender) {
 						if (toPresent.contains(wnd)) {
-							wnd->render_frame(std::move(cbs), std::cref(*toPresent[wnd]));
+							wnd->render_frame(std::move(cbs), std::ref(*toPresent[wnd]));
 						}
 						else {
 							wnd->render_frame(std::move(cbs));

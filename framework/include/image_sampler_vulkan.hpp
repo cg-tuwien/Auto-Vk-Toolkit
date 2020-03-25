@@ -15,17 +15,17 @@ namespace cgb
 		const auto& get_image_view() const		{ return mImageView; }
 		auto& get_image_view()					{ return mImageView; }
 		const auto& get_sampler() const			{ return mSampler; }
-		const auto& view_handle() const			{ return mImageView->view_handle(); }
-		const auto& image_handle() const		{ return mImageView->image_handle(); }
+		const auto& view_handle() const			{ return mImageView->handle(); }
+		const auto& image_handle() const		{ return mImageView->get_image().handle(); }
 		const auto& sampler_handle() const		{ return mSampler->handle(); }
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		const auto& descriptor_type() const		{ return mDescriptorType; }
 		/** Gets the width of the image */
-		uint32_t width() const { return mImageView->width(); }
+		uint32_t width() const { return mImageView->get_image().width(); }
 		/** Gets the height of the image */
-		uint32_t height() const { return mImageView->height(); }
+		uint32_t height() const { return mImageView->get_image().height(); }
 		/** Gets the depth of the image */
-		uint32_t depth() const { return mImageView->depth(); }
+		uint32_t depth() const { return mImageView->get_image().depth(); }
 		/** Gets the format of the image */
 		image_format format() const { return mImageView->get_image().format(); }
 

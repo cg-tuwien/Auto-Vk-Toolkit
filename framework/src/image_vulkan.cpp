@@ -706,6 +706,22 @@ namespace cgb
 		return std::make_tuple(imageUsage, targetLayout, imageTiling, imageCreateFlags);
 	}
 
+	image_t::image_t(const image_t& aOther)
+	{
+		if (std::holds_alternative<vk::Image>(aOther.mImage)) {
+			assert(!aOther.mMemory);
+			mInfo = aOther.mInfo; 
+			mImage = std::get<vk::Image>(aOther.mImage);
+			mTargetLayout = aOther.mTargetLayout;
+			mCurrentLayout = aOther.mCurrentLayout;
+			mImageUsage = aOther.mImageUsage;
+			mAspectFlags = aOther.mAspectFlags;
+		}
+		else {
+			throw std::runtime_error("Can not copy this image instance!");
+		}
+	}
+	
 	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, image_format aFormat, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
@@ -767,14 +783,14 @@ namespace cgb
 		result.mImage = context().logical_device().createImageUnique(result.mInfo);
 
 		// ... and the memory:
-		auto memRequirements = context().logical_device().getImageMemoryRequirements(result.image_handle());
+		auto memRequirements = context().logical_device().getImageMemoryRequirements(result.handle());
 		auto allocInfo = vk::MemoryAllocateInfo()
 			.setAllocationSize(memRequirements.size)
 			.setMemoryTypeIndex(context().find_memory_type_index(memRequirements.memoryTypeBits, memoryFlags));
 		result.mMemory = context().logical_device().allocateMemoryUnique(allocInfo);
 
 		// bind them together:
-		context().logical_device().bindImageMemory(result.image_handle(), result.memory_handle(), 0);
+		context().logical_device().bindImageMemory(result.handle(), result.memory_handle(), 0);
 		
 		return result;
 	}
@@ -825,7 +841,20 @@ namespace cgb
 		return result;
 	}
 
-
+	image_t image_t::wrap(vk::Image aImageToWrap, vk::ImageCreateInfo aImageCreateInfo, image_usage aImageUsage, vk::ImageAspectFlags aImageAspectFlags)
+	{
+		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
+		
+		image_t result;
+		result.mInfo = aImageCreateInfo;
+		result.mImage = aImageToWrap;		
+		result.mTargetLayout = targetLayout;
+		result.mCurrentLayout = vk::ImageLayout::eUndefined;
+		result.mImageUsage = aImageUsage;
+		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
+		return result;
+	}
+	
 	vk::ImageSubresourceRange image_t::entire_subresource_range() const
 	{
 		return vk::ImageSubresourceRange{
@@ -852,7 +881,7 @@ namespace cgb
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(
 			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
-			memory_access::transfer_read_access
+			read_memory_access{memory_access::transfer_read_access}
 		);VkImageMemoryBarrier asfd; 
 
 		// An image's layout is tranformed by the means of an image memory barrier:
@@ -866,7 +895,7 @@ namespace cgb
 		
 		aSyncHandler.establish_barrier_after_the_operation(
 			pipeline_stage::transfer,	// The end of the execution dependency chain
-			memory_access::transfer_write_access
+			write_memory_access{memory_access::transfer_write_access}
 		);
 		aSyncHandler.submit_and_sync();
 	}

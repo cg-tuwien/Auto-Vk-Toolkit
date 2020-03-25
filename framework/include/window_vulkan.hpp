@@ -204,7 +204,7 @@ namespace cgb
 
 		//template<typename CBT, typename... CBTS>
 		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> aCopyToPresent = {});
+		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<cgb::image_t>> aCopyToPresent = {});
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
@@ -257,7 +257,7 @@ namespace cgb
 		// Image data of the swap chain images
 		vk::ImageCreateInfo mImageCreateInfoSwapChain;
 		// All the images of the swap chain
-		std::vector<vk::Image> mSwapChainImages; // They don't need to be destroyed explicitely (get...()), ... 
+		std::vector<image_t> mSwapChainImages; // They don't need to be destroyed explicitely (due to get...()), ... 
 		// All the image views of the swap chain
 		std::vector<image_view> mSwapChainImageViews; // ...but the image views do!
 #pragma endregion

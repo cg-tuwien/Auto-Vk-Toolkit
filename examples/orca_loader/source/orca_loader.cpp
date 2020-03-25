@@ -49,7 +49,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			newElement.mMaterialIndex = static_cast<int>(matIndex);
 			newElement.mModelMatrix = glm::scale(glm::vec3(0.01f));
 			
-			// Compared to the "model_loader" example, we are taking a mor optimistic appproach here.
+			// Compared to the "model_loader" example, we are taking a more optimistic appproach here.
 			// By not using `cgb::append_indices_and_vertex_data` directly, we have no guarantee that
 			// all vectors of vertex-data are of the same length. 
 			// Instead, here we use the (possibly more convenient) `cgb::get_combined*` functions and

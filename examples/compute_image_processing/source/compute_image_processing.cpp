@@ -61,9 +61,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png")),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
-		auto wdth = mInputImageAndSampler->width();
-		auto hght = mInputImageAndSampler->height();
-		auto frmt = mInputImageAndSampler->format();
+		const auto wdth = mInputImageAndSampler->width();
+		const auto hght = mInputImageAndSampler->height();
+		const auto frmt = mInputImageAndSampler->format();
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
@@ -293,6 +293,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("Compute Image Effects");
 		mainWnd->set_resolution({ 1280, 800 });
+		mainWnd->set_number_of_concurrent_frames(3);
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->open(); 
 

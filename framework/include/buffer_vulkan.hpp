@@ -157,7 +157,7 @@ namespace cgb
 
 			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 			// Sync before:
-			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 			// Operation:
 			auto copyRegion = vk::BufferCopy{}
@@ -167,7 +167,7 @@ namespace cgb
 			commandBuffer.handle().copyBuffer(stagingBuffer->buffer_handle(), target.buffer_handle(), { copyRegion });
 
 			// Sync after:
-			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 			// Take care of the lifetime handling of the stagingBuffer, it might still be in use:
 			commandBuffer.set_custom_deleter([
@@ -337,7 +337,7 @@ namespace cgb
 			// TODO: What about queue ownership?! If not the device_queue_selection_strategy::prefer_everything_on_single_queue strategy is being applied, it could very well be that this fails.
 			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 			// Sync before:
-			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, memory_access::transfer_read_access);
+			aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 			// Operation:
 			auto copyRegion = vk::BufferCopy{}
@@ -347,7 +347,7 @@ namespace cgb
 			commandBuffer.handle().copyBuffer(_Source.buffer_handle(), stagingBuffer->buffer_handle(), { copyRegion });
 
 			// Sync after:
-			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, memory_access::transfer_write_access);
+			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 			// Take care of the stagingBuffer's lifetime handling and also of reading the data for this branch:
 			commandBuffer.set_custom_deleter([ 

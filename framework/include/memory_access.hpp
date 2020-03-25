@@ -96,7 +96,8 @@ namespace cgb
 		read_memory_access& operator=(read_memory_access&&) noexcept = default;
 		~read_memory_access() = default;
 
-		operator memory_access() const;
+		explicit operator memory_access() const;
+		memory_access value() const;
 		
 	private:
 		void validate_or_throw() const;
@@ -116,7 +117,8 @@ namespace cgb
 		write_memory_access& operator=(write_memory_access&&) noexcept = default;
 		~write_memory_access() = default;
 
-		operator memory_access() const;
+		explicit operator memory_access() const;
+		memory_access value() const;
 		
 	private:
 		void validate_or_throw() const;

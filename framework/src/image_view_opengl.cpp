@@ -3,7 +3,7 @@
 namespace cgb
 {
 	
-	owning_resource<image_view_t> image_view_t::create(cgb::image _ImageToOwn, std::optional<image_format> _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> _ViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
 		return result;

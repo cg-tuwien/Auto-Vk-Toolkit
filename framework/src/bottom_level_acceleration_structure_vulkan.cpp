@@ -173,7 +173,7 @@ namespace cgb
 
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_read_access);
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, read_memory_access{memory_access::acceleration_structure_read_access});
 
 		// Operation:
 		commandBuffer.handle().buildAccelerationStructureNV(
@@ -190,7 +190,7 @@ namespace cgb
 			cgb::context().dynamic_dispatch());
 
 		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, memory_access::acceleration_structure_write_access);
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, write_memory_access{memory_access::acceleration_structure_write_access});
 		
 		// Finish him:
 		aSyncHandler.submit_and_sync();
