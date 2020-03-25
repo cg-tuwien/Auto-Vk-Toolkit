@@ -5,11 +5,11 @@ namespace cgb
 	std::deque<device_queue> device_queue::sPreparedQueues;
 
 	device_queue* device_queue::prepare(
-		vk::QueueFlags pFlagsRequired,
-		device_queue_selection_strategy pSelectionStrategy,
-		std::optional<vk::SurfaceKHR> pSupportForSurface)
+		vk::QueueFlags aFlagsRequired,
+		device_queue_selection_strategy aSelectionStrategy,
+		std::optional<vk::SurfaceKHR> aSupportForSurface)
 	{
-		auto families = context().find_best_queue_family_for(pFlagsRequired, pSelectionStrategy, pSupportForSurface);
+		auto families = context().find_best_queue_family_for(aFlagsRequired, aSelectionStrategy, aSupportForSurface);
 		if (families.size() == 0) {
 			throw std::runtime_error("Couldn't find queue families satisfying the given criteria.");
 		}
@@ -24,13 +24,13 @@ namespace cgb
 				auto alreadyInUse = std::find_if(
 					std::begin(sPreparedQueues), 
 					std::end(sPreparedQueues), 
-					[familyIndexInQuestion = std::get<0>(family), queueIndexInQuestion = qi](const auto& pq) {
-					return pq.family_index() == familyIndexInQuestion
-						&& pq.queue_index() == queueIndexInQuestion;
+					[lFamilyIndexInQuestion = std::get<0>(family), lQueueIndexInQuestion = qi](const auto& pq) {
+					return pq.family_index() == lFamilyIndexInQuestion
+						&& pq.queue_index() == lQueueIndexInQuestion;
 				});
 
 				// Pay attention to different selection strategies:
-				switch (pSelectionStrategy)
+				switch (aSelectionStrategy)
 				{
 				case cgb::device_queue_selection_strategy::prefer_separate_queues:
 					if (sPreparedQueues.end() == alreadyInUse) {
@@ -61,46 +61,113 @@ namespace cgb
 		return &prepd_queue;
 	}
 
-	device_queue device_queue::create(uint32_t pQueueFamilyIndex, uint32_t pQueueIndex)
+	device_queue device_queue::create(uint32_t aQueueFamilyIndex, uint32_t aQueueIndex)
 	{
 		device_queue result;
-		result.mQueueFamilyIndex = pQueueFamilyIndex;
-		result.mQueueIndex = pQueueIndex;
+		result.mQueueFamilyIndex = aQueueFamilyIndex;
+		result.mQueueIndex = aQueueIndex;
 		result.mPriority = 0.5f; // default priority of 0.5f
 		result.mQueue = context().logical_device().getQueue(result.mQueueFamilyIndex, result.mQueueIndex);
 		return result;
 	}
 
-	device_queue device_queue::create(const device_queue& pPreparedQueue)
+	device_queue device_queue::create(const device_queue& aPreparedQueue)
 	{
 		device_queue result;
-		result.mQueueFamilyIndex = pPreparedQueue.family_index();
-		result.mQueueIndex = pPreparedQueue.queue_index();
-		result.mPriority = pPreparedQueue.mPriority; // default priority of 0.5f
+		result.mQueueFamilyIndex = aPreparedQueue.family_index();
+		result.mQueueIndex = aPreparedQueue.queue_index();
+		result.mPriority = aPreparedQueue.mPriority; // default priority of 0.5f
 		result.mQueue = context().logical_device().getQueue(result.mQueueFamilyIndex, result.mQueueIndex);
 		return result;
 	}
 
-	command_pool& device_queue::pool() const 
+	command_pool& device_queue::pool_for(vk::CommandPoolCreateFlags aFlags) const
 	{ 
-		return context().get_command_pool_for_queue(*this); 
+		return context().get_command_pool_for_queue(*this, aFlags); 
 	}
 
-	semaphore device_queue::submit_and_handle_with_semaphore(command_buffer _CommandBuffer, std::vector<semaphore> _WaitSemaphores)
+	command_buffer device_queue::create_command_buffer(bool aSimultaneousUseEnabled) const
 	{
-		if (_CommandBuffer.state() != command_buffer_state::finished_recording) {
-			throw std::runtime_error("Command buffer is still in recording-state, but it should be submitted. Have you forgotten to call `end_recording()`?");
+		auto flags = vk::CommandBufferUsageFlags();
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 		}
+		auto result = pool_for(vk::CommandPoolCreateFlags{}) // no special flags
+			.get_command_buffer(flags);
+		return result;
+	}
+
+	std::vector<command_buffer> device_queue::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled) const
+	{
+		auto flags = vk::CommandBufferUsageFlags();
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = pool_for(vk::CommandPoolCreateFlags{}) // no special flags
+			.get_command_buffers(aNumBuffers, flags);
+		return result;
+	}
+	
+	command_buffer device_queue::create_single_use_command_buffer() const
+	{
+		const vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eTransient)
+			.get_command_buffer(flags);
+		return result;
+	}
+
+	std::vector<command_buffer> device_queue::create_single_use_command_buffers(uint32_t aNumBuffers) const
+	{
+		const vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eTransient)
+			.get_command_buffers(aNumBuffers, flags);
+		return result;		
+	}
+
+	command_buffer device_queue::create_resettable_command_buffer(bool aSimultaneousUseEnabled) const
+	{
+		vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+			.get_command_buffer(flags);
+		return result;
+	}
+
+	std::vector<command_buffer> device_queue::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled) const
+	{
+		vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		if (aSimultaneousUseEnabled) {
+			flags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = pool_for(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+			.get_command_buffers(aNumBuffers, flags);
+		return result;
+	}
+	
+	void device_queue::submit(command_buffer_t& aCommandBuffer)
+	{
+		assert(aCommandBuffer.state() == command_buffer_state::finished_recording);
+		const auto submitInfo = vk::SubmitInfo{}
+			.setCommandBufferCount(1u)
+			.setPCommandBuffers(aCommandBuffer.handle_addr());
+		handle().submit({ submitInfo }, nullptr);
+		aCommandBuffer.mState = command_buffer_state::submitted;
+	}
+	
+	semaphore device_queue::submit_and_handle_with_semaphore(command_buffer aCommandBuffer, std::vector<semaphore> aWaitSemaphores)
+	{
+		assert(aCommandBuffer->state() == command_buffer_state::finished_recording);
 		
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto signalWhenCompleteSemaphore = semaphore_t::create();
-		signalWhenCompleteSemaphore->set_designated_queue(*this); //< Just store the info
-
-		if (0 == _WaitSemaphores.size()) {
+		
+		if (0 == aWaitSemaphores.size()) {
 			// Optimized route for 0 _WaitSemaphores
-			const auto submitInfo = vk::SubmitInfo()
+			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(_CommandBuffer.handle_addr())
+				.setPCommandBuffers(aCommandBuffer->handle_addr())
 				.setWaitSemaphoreCount(0u)
 				.setPWaitSemaphores(nullptr)
 				.setPWaitDstStageMask(nullptr)
@@ -108,27 +175,27 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
-			_CommandBuffer.mState = command_buffer_state::submitted;
+			aCommandBuffer->mState = command_buffer_state::submitted;
 
 			signalWhenCompleteSemaphore->set_custom_deleter([
-				ownedCommandBuffer{ std::move(_CommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
+				lOwnedCommandBuffer{ std::move(aCommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
 			](){});
 		}
 		else {
 			// Also set the wait semaphores and take care of their lifetimes
 			std::vector<vk::Semaphore> waitSemaphoreHandles;
-			waitSemaphoreHandles.reserve(_WaitSemaphores.size());
+			waitSemaphoreHandles.reserve(aWaitSemaphores.size());
 			std::vector<vk::PipelineStageFlags> waitDstStageMasks;
-			waitDstStageMasks.reserve(_WaitSemaphores.size());
+			waitDstStageMasks.reserve(aWaitSemaphores.size());
 			
-			for (const auto& semaphoreDependency : _WaitSemaphores) {
+			for (const auto& semaphoreDependency : aWaitSemaphores) {
 				waitSemaphoreHandles.push_back(semaphoreDependency->handle());
 				waitDstStageMasks.push_back(semaphoreDependency->semaphore_wait_stage());
 			}
 			
-			const auto submitInfo = vk::SubmitInfo()
+			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(_CommandBuffer.handle_addr())
+				.setPCommandBuffers(aCommandBuffer->handle_addr())
 				.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphoreHandles.size()))
 				.setPWaitSemaphores(waitSemaphoreHandles.data())
 				.setPWaitDstStageMask(waitDstStageMasks.data())
@@ -136,11 +203,11 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
-			_CommandBuffer.mState = command_buffer_state::submitted;
+			aCommandBuffer->mState = command_buffer_state::submitted;
 
 			signalWhenCompleteSemaphore->set_custom_deleter([
-				ownedWaitSemaphores{ std::move(_WaitSemaphores) },
-				ownedCommandBuffer{ std::move(_CommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
+				lOwnedWaitSemaphores{ std::move(aWaitSemaphores) },
+				lOwnedCommandBuffer{ std::move(aCommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
 			](){});	
 		}
 		

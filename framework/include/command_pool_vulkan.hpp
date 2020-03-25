@@ -27,10 +27,10 @@ namespace cgb // ========================== TODO/WIP ===========================
 		const auto& handle() const { return mCommandPool.get(); }
 		const auto* handle_addr() const { return &mCommandPool.get(); }
 
-		static command_pool create(uint32_t pQueueFamilyIndex, vk::CommandPoolCreateFlags pCreateFlags = vk::CommandPoolCreateFlags());
+		static command_pool create(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aCreateFlags = vk::CommandPoolCreateFlags());
 
-		std::vector<command_buffer> get_command_buffers(uint32_t pCount, vk::CommandBufferUsageFlags pUsageFlags = vk::CommandBufferUsageFlags());
-		command_buffer get_command_buffer(vk::CommandBufferUsageFlags pUsageFlags = vk::CommandBufferUsageFlags());
+		std::vector<command_buffer> get_command_buffers(uint32_t aCount, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
+		command_buffer get_command_buffer(vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
 
 	private:
 		uint32_t mQueueFamilyIndex;

@@ -5,6 +5,11 @@ namespace cgb
 	/** Class representing an image view. */
 	class image_view_t
 	{
+		struct helper_t
+		{
+			image_t mImage;
+		};
+		
 	public:
 		image_view_t() = default;
 		image_view_t(const image_view_t&) = delete;
@@ -17,43 +22,42 @@ namespace cgb
 		const auto& config() const { return mInfo; }
 		/** Get the config which is used to created this image view with the API. */
 		auto& config() { return mInfo; }
-		/** Returns true if it has an associated `cgb::image_t` */
-		bool has_image_t() const;
+
 		/** Gets the associated image or throws if no `cgb::image` is associated. */
-		const image_t& get_image() const;
+		const image_t& get_image() const
+		{
+			assert(!std::holds_alternative<std::monostate>(mImage));
+			return std::holds_alternative<helper_t>(mImage) ? std::get<helper_t>(mImage).mImage : static_cast<const image_t&>(std::get<image>(mImage));
+		}
+
 		/** Gets the associated image or throws if no `cgb::image` is associated. */
-		image_t& get_image();
-		/** Gets the image handle which this view has been created for. */
-		const vk::Image& image_handle() const;
-		/** Gets the images's config */
-		const vk::ImageCreateInfo& image_config() const;
+		image_t& get_image() 
+		{
+			assert(!std::holds_alternative<std::monostate>(mImage));
+			return std::holds_alternative<helper_t>(mImage) ? std::get<helper_t>(mImage).mImage : static_cast<image_t&>(std::get<image>(mImage));
+		}
+		
 		/** Gets the image view's vulkan handle */
-		const auto& view_handle() const { return mImageView.get(); }
-		/** Gets the width of the image */
-		uint32_t width() const { return image_config().extent.width; }
-		/** Gets the height of the image */
-		uint32_t height() const { return image_config().extent.height; }
-		/** Gets the depth of the image */
-		uint32_t depth() const { return image_config().extent.depth; }
+		const auto& handle() const { return mImageView.get(); }
 
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		const auto& descriptor_type() const		{ return mDescriptorType; }
 
 		/** Creates a new image view upon a given image
-		*	@param	_ImageToOwn					The image which to create an image view for
-		*	@param	_ViewFormat					The format of the image view. If none is specified, it will be set to the same format as the image.
-		*	@param	_AlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageViewCreateInfo` just before the image view will be created. Use `.config()` to access the configuration structure!
+		*	@param	aImageToOwn					The image which to create an image view for
+		*	@param	aViewFormat					The format of the image view. If none is specified, it will be set to the same format as the image.
+		*	@param	aAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageViewCreateInfo` just before the image view will be created. Use `.config()` to access the configuration structure!
 		*	@return	Returns a newly created image.
 		*/
-		static owning_resource<image_view_t> create(cgb::image _ImageToOwn, std::optional<image_format> _ViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
 
-		static owning_resource<image_view_t> create(vk::Image _ImageToReference, vk::ImageCreateInfo _ImageInfo, std::optional<image_format> _ViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat = std::nullopt);
 
 	private:
 		void finish_configuration(image_format _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation);
 
-		// Owning XOR non-owning handle to an image. (Make sure it gets destructed after the image view if it is owning)
-		std::variant<cgb::image, std::tuple<vk::Image, vk::ImageCreateInfo>> mImage;
+		// The "wrapped" image:
+		std::variant<std::monostate, helper_t, cgb::image> mImage;
 		// Config which is passed to the create call and contains all the parameters for image view creation.
 		vk::ImageViewCreateInfo mInfo;
 		// The image view's handle. This member will contain a valid handle only after successful image view creation.
@@ -72,8 +76,8 @@ namespace cgb
 	 */
 	static bool operator==(const image_view_t& left, const image_view_t& right)
 	{
-		return left.view_handle() == right.view_handle()
-			&& left.image_handle() == right.image_handle();
+		return left.handle() == right.handle()
+			&& left.get_image().handle() == right.get_image().handle();
 	}
 
 	/** Returns `true` if the two `image_view_t`s are not equal. */
@@ -91,8 +95,8 @@ namespace std // Inject hash for `cgb::image_sampler_t` into std::
 		{
 			std::size_t h = 0;
 			cgb::hash_combine(h,
-				static_cast<VkImageView>(o.view_handle()),
-				static_cast<VkImage>(o.image_handle())
+				static_cast<VkImageView>(o.handle()),
+				static_cast<VkImage>(o.get_image().handle())
 			);
 			return h;
 		}

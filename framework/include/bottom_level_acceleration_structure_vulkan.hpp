@@ -30,12 +30,12 @@ namespace cgb
 		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer aVertexBuffer, index_buffer aIndexBuffer, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 
-		void build(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler = {}, std::vector<semaphore> aWaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
-		void update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler = {}, std::vector<semaphore> aWaitSemaphores = {}, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void build(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void update(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		
 	private:
 		enum struct blas_action { build, update };
-		void build_or_update(std::function<void(owning_resource<semaphore_t>)> aSemaphoreHandler, std::vector<semaphore> aWaitSemaphores, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
+		void build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;

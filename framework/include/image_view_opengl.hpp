@@ -13,7 +13,7 @@ namespace cgb
 		image_view_t& operator=(image_view_t&&) = default;
 		~image_view_t() = default;
 
-		static owning_resource<image_view_t> create(cgb::image _ImageToOwn, std::optional<image_format> _ViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
 
 	};
 

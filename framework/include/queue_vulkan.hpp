@@ -16,14 +16,14 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		/** Prepare another queue and eventually add it to `sPreparedQueues`. */
 		static device_queue* prepare(
-			vk::QueueFlags pFlagsRequired,
-			device_queue_selection_strategy pSelectionStrategy,
-			std::optional<vk::SurfaceKHR> pSupportForSurface);
+			vk::QueueFlags aFlagsRequired,
+			device_queue_selection_strategy aSelectionStrategy,
+			std::optional<vk::SurfaceKHR> aSupportForSurface);
 
 		/** Create a new queue on the logical device. */
-		static device_queue create(uint32_t pQueueFamilyIndex, uint32_t pQueueIndex);
+		static device_queue create(uint32_t aQueueFamilyIndex, uint32_t aQueueIndex);
 		/** Create a new queue on the logical device. */
-		static device_queue create(const device_queue& pPreparedQueue);
+		static device_queue create(const device_queue& aPreparedQueue);
 
 		/** Gets the queue family index of this queue */
 		auto family_index() const { return mQueueFamilyIndex; }
@@ -33,10 +33,51 @@ namespace cgb // ========================== TODO/WIP ===========================
 		const auto& handle() const { return mQueue; }
 		const auto* handle_addr() const { return &mQueue; }
 
-		/** Gets a pool which is usable for this queue and the current thread. */
-		command_pool& pool() const;
+		/** Gets a pool for the given flags which is usable for this queue and the current thread. */
+		command_pool& pool_for(vk::CommandPoolCreateFlags aFlags) const;
 
-		semaphore submit_and_handle_with_semaphore(command_buffer _CommandBuffer, std::vector<semaphore> _WaitSemaphores = {});
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false) const;
+
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		std::vector<command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
+		
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer */
+		command_buffer create_single_use_command_buffer() const;
+		
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		std::vector<command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers) const;
+
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded). */
+		command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false) const;
+		
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		std::vector<command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
+
+		/** TODO */
+		void submit(command_buffer_t& aCommandBuffer);
+
+		/** TODO */
+		semaphore submit_and_handle_with_semaphore(command_buffer aCommandBuffer, std::vector<semaphore> aWaitSemaphores = {});
 
 	private:
 		uint32_t mQueueFamilyIndex;
@@ -44,6 +85,14 @@ namespace cgb // ========================== TODO/WIP ===========================
 		float mPriority;
 		vk::Queue mQueue;
 	};
+
+	static bool operator==(const device_queue& left, const device_queue& right)
+	{
+		const auto same = left.family_index() == right.family_index() && left.queue_index() == right.queue_index();
+		assert(!same || left.priority() == right.priority());
+		assert(!same || left.handle() == right.handle());
+		return same;
+	}
 
 	struct queue_submit_proxy
 	{

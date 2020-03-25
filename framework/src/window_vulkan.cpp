@@ -2,12 +2,12 @@
 
 namespace cgb
 {
-	void window::request_srgb_framebuffer(bool _RequestSrgb)
+	void window::request_srgb_framebuffer(bool aRequestSrgb)
 	{
 		// Which formats are supported, depends on the surface.
-		mSurfaceFormatSelector = [srgbFormatRequested = _RequestSrgb](const vk::SurfaceKHR & _Surface) {
+		mSurfaceFormatSelector = [lSrgbFormatRequested = aRequestSrgb](const vk::SurfaceKHR & surface) {
 			// Get all the formats which are supported by the surface:
-			auto srfFrmts = context().physical_device().getSurfaceFormatsKHR(_Surface);
+			auto srfFrmts = context().physical_device().getSurfaceFormatsKHR(surface);
 
 			// Init with a default format...
 			auto selSurfaceFormat = vk::SurfaceFormatKHR{
@@ -18,7 +18,7 @@ namespace cgb
 			// ...and try to possibly find one which is definitely supported or better suited w.r.t. the surface.
 			if (!(srfFrmts.size() == 1 && srfFrmts[0].format == vk::Format::eUndefined)) {
 				for (const auto& e : srfFrmts) {
-					if (srgbFormatRequested) {
+					if (lSrgbFormatRequested) {
 						if (is_srgb_format(cgb::image_format(e))) {
 							selSurfaceFormat = e;
 							break;
@@ -42,15 +42,15 @@ namespace cgb
 		}
 	}
 
-	void window::set_presentaton_mode(cgb::presentation_mode _Mode)
+	void window::set_presentaton_mode(cgb::presentation_mode aMode)
 	{
-		mPresentationModeSelector = [presMode = _Mode](const vk::SurfaceKHR& _Surface) {
+		mPresentationModeSelector = [lPresMode = aMode](const vk::SurfaceKHR& surface) {
 			// Supported presentation modes must be queried from a device:
-			auto presModes = context().physical_device().getSurfacePresentModesKHR(_Surface);
+			auto presModes = context().physical_device().getSurfacePresentModesKHR(surface);
 
 			// Select a presentation mode:
 			auto selPresModeItr = presModes.end();
-			switch (presMode) {
+			switch (lPresMode) {
 			case cgb::presentation_mode::immediate:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eImmediate);
 				break;
@@ -81,9 +81,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_samples(int _NumSamples)
+	void window::set_number_of_samples(int aNumSamples)
 	{
-		mNumberOfSamplesGetter = [samples = to_vk_sample_count(_NumSamples)]() { return samples; };
+		mNumberOfSamplesGetter = [lSamples = to_vk_sample_count(aNumSamples)]() { return lSamples; };
 
 		mMultisampleCreateInfoBuilder = [this]() {
 			auto samples = mNumberOfSamplesGetter();
@@ -103,9 +103,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_presentable_images(uint32_t _NumImages)
+	void window::set_number_of_presentable_images(uint32_t aNumImages)
 	{
-		mNumberOfPresentableImagesGetter = [numImages = _NumImages]() { return numImages; };
+		mNumberOfPresentableImagesGetter = [lNumImages = aNumImages]() { return lNumImages; };
 
 		// If the window has already been created, the new setting can't 
 		// be applied unless the window is being recreated.
@@ -114,9 +114,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_number_of_concurrent_frames(uint32_t _NumConcurrent)
+	void window::set_number_of_concurrent_frames(uint32_t aNumConcurrent)
 	{
-		mNumberOfConcurrentFramesGetter = [numConcurrent = _NumConcurrent]() { return numConcurrent; };
+		mNumberOfConcurrentFramesGetter = [lNumConcurrent = aNumConcurrent]() { return lNumConcurrent; };
 
 		// If the window has already been created, the new setting can't 
 		// be applied unless the window is being recreated.
@@ -125,9 +125,9 @@ namespace cgb
 		}
 	}
 
-	void window::set_additional_back_buffer_attachments(std::vector<attachment> _AdditionalAttachments)
+	void window::set_additional_back_buffer_attachments(std::vector<attachment> aAdditionalAttachments)
 	{
-		mAdditionalBackBufferAttachmentsGetter = [additionalAttachments = std::move(_AdditionalAttachments)]() { return additionalAttachments; };
+		mAdditionalBackBufferAttachmentsGetter = [lAdditionalAttachments = std::move(aAdditionalAttachments)]() { return lAdditionalAttachments; };
 
 		// If the window has already been created, the new setting can't 
 		// be applied unless the window is being recreated.
@@ -163,24 +163,24 @@ namespace cgb
 		});
 	}
 
-	vk::SurfaceFormatKHR window::get_config_surface_format(const vk::SurfaceKHR & surface)
+	vk::SurfaceFormatKHR window::get_config_surface_format(const vk::SurfaceKHR & aSurface)
 	{
 		if (!mSurfaceFormatSelector) {
 			// Set the default:
 			request_srgb_framebuffer(false);
 		}
 		// Determine the format:
-		return mSurfaceFormatSelector(surface);
+		return mSurfaceFormatSelector(aSurface);
 	}
 
-	vk::PresentModeKHR window::get_config_presentation_mode(const vk::SurfaceKHR & surface)
+	vk::PresentModeKHR window::get_config_presentation_mode(const vk::SurfaceKHR & aSurface)
 	{
 		if (!mPresentationModeSelector) {
 			// Set the default:
 			set_presentaton_mode(cgb::presentation_mode::triple_buffering);
 		}
 		// Determine the presentation mode:
-		return mPresentationModeSelector(surface);
+		return mPresentationModeSelector(aSurface);
 	}
 
 	vk::SampleCountFlagBits window::get_config_number_of_samples()
@@ -234,28 +234,28 @@ namespace cgb
 		}
 	}
 
-	void window::set_extra_semaphore_dependency(semaphore _Semaphore, std::optional<int64_t> _FrameId)
+	void window::set_extra_semaphore_dependency(semaphore aSemaphore, std::optional<int64_t> aFrameId)
 	{
-		if (!_FrameId.has_value()) {
-			_FrameId = current_frame();
+		if (!aFrameId.has_value()) {
+			aFrameId = current_frame();
 		}
-		mExtraSemaphoreDependencies.emplace_back(_FrameId.value(), std::move(_Semaphore));
+		mExtraSemaphoreDependencies.emplace_back(aFrameId.value(), std::move(aSemaphore));
 	}
 
-	void window::set_one_time_submit_command_buffer(command_buffer _CommandBuffer, std::optional<int64_t> _FrameId)
+	void window::handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
-		if (!_FrameId.has_value()) {
-			_FrameId = current_frame();
+		if (!aFrameId.has_value()) {
+			aFrameId = current_frame();
 		}
-		mOneTimeSubmitCommandBuffers.emplace_back(_FrameId.value(), std::move(_CommandBuffer));
+		mSingleUseCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
 	}
-
-	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t _FrameId)
+	
+	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aFrameId)
 	{
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mExtraSemaphoreDependencies), std::end(mExtraSemaphoreDependencies),
-			[frameId = _FrameId](const auto& tpl) {
+			[frameId = aFrameId](const auto& tpl) {
 				return std::get<int64_t>(tpl) == frameId;
 			});
 		// return ownership of all the semaphores to remove to the caller
@@ -270,34 +270,34 @@ namespace cgb
 		return moved_semaphores;
 	}
 
-	std::vector<command_buffer> window::remove_all_one_time_submit_command_buffers_for_frame(int64_t _FrameId)
+	std::vector<command_buffer> window::remove_all_single_use_command_buffers_for_frame(int64_t aFrameId)
 	{
 		// Find all to remove
 		auto to_remove = std::remove_if(
-			std::begin(mOneTimeSubmitCommandBuffers), std::end(mOneTimeSubmitCommandBuffers),
-			[frameId = _FrameId](const auto& tpl) {
+			std::begin(mSingleUseCommandBuffers), std::end(mSingleUseCommandBuffers),
+			[frameId = aFrameId](const auto& tpl) {
 				return std::get<int64_t>(tpl) == frameId;
 			});
 		// return ownership of all the command_buffers to remove to the caller
 		std::vector<command_buffer> moved_command_buffers;
-		for (decltype(to_remove) it = to_remove; it != std::end(mOneTimeSubmitCommandBuffers); ++it) {
+		for (decltype(to_remove) it = to_remove; it != std::end(mSingleUseCommandBuffers); ++it) {
 			moved_command_buffers.push_back(std::move(std::get<command_buffer>(*it)));
 		}
 		// Erase and return
-		mOneTimeSubmitCommandBuffers.erase(to_remove, std::end(mOneTimeSubmitCommandBuffers));
+		mSingleUseCommandBuffers.erase(to_remove, std::end(mSingleUseCommandBuffers));
 		return moved_command_buffers;
 	}
 
-	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId)
+	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId)
 	{
 		for (const auto& [frameId, sem] : mExtraSemaphoreDependencies) {
-			if (frameId == _FrameId) {
-				_Semaphores.push_back(sem->handle());
+			if (frameId == aFrameId) {
+				aSemaphores.push_back(sem->handle());
 			}
 		}
 	}
 
-	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& _Semaphores, int64_t _FrameId)
+	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId)
 	{
 		// TODO: Fill mExtraRenderFinishedSemaphores with meaningful data
 		// TODO: Implement
@@ -312,7 +312,7 @@ namespace cgb
 
 	}*/
 
-	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer>> _CommandBufferRefs, std::optional<std::reference_wrapper<const cgb::image_t>> _CopyToPresent)
+	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<cgb::image_t>> aCopyToPresent)
 	{
 		vk::Result result;
 
@@ -327,7 +327,7 @@ namespace cgb
 		auto semaphoresToBeFreed 
 			= remove_all_extra_semaphore_dependencies_for_frame(current_frame() - number_of_in_flight_frames());
 		auto commandBuffersToBeFreed 
-			= remove_all_one_time_submit_command_buffers_for_frame(current_frame() - number_of_in_flight_frames());
+			= remove_all_single_use_command_buffers_for_frame(current_frame() - number_of_in_flight_frames());
 
 		//
 		//
@@ -363,53 +363,49 @@ namespace cgb
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
 		std::vector<vk::CommandBuffer> cmdBuffers;
-		for (auto cb : _CommandBufferRefs) {
+		for (auto cb : aCommandBufferRefs) {
 			cmdBuffers.push_back(cb.get().handle());
 		}
-		if (_CopyToPresent.has_value()) {
-			// Create a one-time-submit command buffer. 
-			// TODO: Cache these command buffers, based on the input image!
-			auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer();
-			cmdbfr.begin_recording();
-			cmdbfr.handle().pipelineBarrier(
-				vk::PipelineStageFlagBits::eAllCommands,
-				vk::PipelineStageFlagBits::eAllCommands,
-				vk::DependencyFlags(),
-				{}, {}, {
-					vk::ImageMemoryBarrier(
-						vk::AccessFlags(), 
-						vk::AccessFlagBits::eTransferWrite,
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::eTransferDstOptimal,
-						VK_QUEUE_FAMILY_IGNORED,
-						VK_QUEUE_FAMILY_IGNORED,
-						mSwapChainImages[imageIndex],
-						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
-					)
-				});
+		if (aCopyToPresent.has_value()) {
+			copy_image_to_another(aCopyToPresent.value().get(), mSwapChainImageViews[imageIndex]->get_image(), 
+				cgb::sync::with_barriers_on_current_frame(
+					// These are rather coarse barriers:
+					[&](command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess) {
+						// Must transfer the swap chain image's layout:
+						mSwapChainImages[imageIndex].set_current_layout(vk::ImageLayout::eUndefined);
+						mSwapChainImages[imageIndex].set_target_layout(vk::ImageLayout::eTransferDstOptimal);
+						aCommandBuffer.establish_image_memory_barrier(
+							mSwapChainImages[imageIndex],
+							pipeline_stage::top_of_pipe,					// Wait for nothing
+							pipeline_stage::transfer,						// Unblock TRANSFER after the layout transition is done
+							std::optional<memory_access>{},					// No pending writes to flush out
+							memory_access::transfer_write_access			// Transfer write access must have all required memory visible
+						);
 
-			cmdbfr.copy_image(_CopyToPresent.value().get(), mSwapChainImages[imageIndex]);
-
-			cmdbfr.handle().pipelineBarrier(
-				vk::PipelineStageFlagBits::eAllCommands,
-				vk::PipelineStageFlagBits::eAllCommands,
-				vk::DependencyFlags(),
-				{}, {}, {
-					vk::ImageMemoryBarrier(
-						vk::AccessFlags(), 
-						vk::AccessFlagBits::eTransferWrite,
-						vk::ImageLayout::eTransferDstOptimal,
-						vk::ImageLayout::ePresentSrcKHR,
-						VK_QUEUE_FAMILY_IGNORED,
-						VK_QUEUE_FAMILY_IGNORED,
-						mSwapChainImages[imageIndex],
-						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)
-					)
-				});
-			cmdbfr.end_recording();
-
-			cmdBuffers.push_back(cmdbfr.handle());
-			set_one_time_submit_command_buffer(std::move(cmdbfr));
+						// But, IMPORTANT: must also wait for writing to the image to complete!
+						aCommandBuffer.establish_image_memory_barrier(
+							aCopyToPresent.value().get(),
+							pipeline_stage::all_commands, /* -> */ aDestinationStage,	// Wait for all previous command before continuing with the operation's command
+							write_memory_access{memory_access::any_write_access},		// Make any write access available, ...
+							aDestinationAccess											// ... before making the operation's read access type visible
+						);
+					},
+					[&](command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess){
+						assert(vk::ImageLayout::eTransferDstOptimal == mSwapChainImages[imageIndex].current_layout());
+						mSwapChainImages[imageIndex].set_target_layout(vk::ImageLayout::ePresentSrcKHR); // From transfer-dst into present-src layout
+						aCommandBuffer.establish_image_memory_barrier(
+							mSwapChainImages[imageIndex],
+							pipeline_stage::transfer,						// When the TRANSFER has completed
+							pipeline_stage::bottom_of_pipe,					// Afterwards comes the semaphore -> present
+							memory_access::transfer_write_access,			// Copied memory must be available
+							std::optional<memory_access>{}					// Present does not need any memory access specified, it's synced with a semaphore anyways.
+						);
+						// No further sync required
+					}
+				),
+				true, // Restore layout of source image
+				false // Don't restore layout of destination image
+			);
 		}
 
 		// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:

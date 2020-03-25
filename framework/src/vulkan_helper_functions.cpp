@@ -4,15 +4,15 @@ namespace cgb
 {
 	using namespace cgb::cfg;
 
-	vk::IndexType to_vk_index_type(size_t pSize)
+	vk::IndexType to_vk_index_type(size_t aSize)
 	{
-		if (pSize == sizeof(uint16_t)) {
+		if (aSize == sizeof(uint16_t)) {
 			return vk::IndexType::eUint16;
 		}
-		if (pSize == sizeof(uint32_t)) {
+		if (aSize == sizeof(uint32_t)) {
 			return vk::IndexType::eUint32;
 		}
-		LOG_ERROR(fmt::format("The given size[{}] does not correspond to a valid vk::IndexType", pSize));
+		LOG_ERROR(fmt::format("The given size[{}] does not correspond to a valid vk::IndexType", aSize));
 		return vk::IndexType::eNoneNV;
 	}
 
@@ -45,9 +45,9 @@ namespace cgb
 		return value ? VK_TRUE : VK_FALSE;
 	}
 
-	vk::ShaderStageFlagBits to_vk_shader_stage(shader_type pType)
+	vk::ShaderStageFlagBits to_vk_shader_stage(shader_type aType)
 	{
-		switch (pType) {
+		switch (aType) {
 		case cgb::shader_type::vertex:
 			return vk::ShaderStageFlagBits::eVertex;
 		case cgb::shader_type::tessellation_control:
@@ -81,57 +81,57 @@ namespace cgb
 		}
 	}
 
-	vk::ShaderStageFlags to_vk_shader_stages(shader_type pType)
+	vk::ShaderStageFlags to_vk_shader_stages(shader_type aType)
 	{
 		vk::ShaderStageFlags result;
-		if ((pType & cgb::shader_type::vertex) == cgb::shader_type::vertex) {
+		if ((aType & cgb::shader_type::vertex) == cgb::shader_type::vertex) {
 			result |= vk::ShaderStageFlagBits::eVertex;
 		}
-		if ((pType & cgb::shader_type::tessellation_control) == cgb::shader_type::tessellation_control) {
+		if ((aType & cgb::shader_type::tessellation_control) == cgb::shader_type::tessellation_control) {
 			result |= vk::ShaderStageFlagBits::eTessellationControl;
 		}
-		if ((pType & cgb::shader_type::tessellation_evaluation) == cgb::shader_type::tessellation_evaluation) {
+		if ((aType & cgb::shader_type::tessellation_evaluation) == cgb::shader_type::tessellation_evaluation) {
 			result |= vk::ShaderStageFlagBits::eTessellationEvaluation;
 		}
-		if ((pType & cgb::shader_type::geometry) == cgb::shader_type::geometry) {
+		if ((aType & cgb::shader_type::geometry) == cgb::shader_type::geometry) {
 			result |= vk::ShaderStageFlagBits::eGeometry;
 		}
-		if ((pType & cgb::shader_type::fragment) == cgb::shader_type::fragment) {
+		if ((aType & cgb::shader_type::fragment) == cgb::shader_type::fragment) {
 			result |= vk::ShaderStageFlagBits::eFragment;
 		}
-		if ((pType & cgb::shader_type::compute) == cgb::shader_type::compute) {
+		if ((aType & cgb::shader_type::compute) == cgb::shader_type::compute) {
 			result |= vk::ShaderStageFlagBits::eCompute;
 		}
-		if ((pType & cgb::shader_type::ray_generation) == cgb::shader_type::ray_generation) {
+		if ((aType & cgb::shader_type::ray_generation) == cgb::shader_type::ray_generation) {
 			result |= vk::ShaderStageFlagBits::eRaygenNV;
 		}
-		if ((pType & cgb::shader_type::any_hit) == cgb::shader_type::any_hit) {
+		if ((aType & cgb::shader_type::any_hit) == cgb::shader_type::any_hit) {
 			result |= vk::ShaderStageFlagBits::eAnyHitNV;
 		}
-		if ((pType & cgb::shader_type::closest_hit) == cgb::shader_type::closest_hit) {
+		if ((aType & cgb::shader_type::closest_hit) == cgb::shader_type::closest_hit) {
 			result |= vk::ShaderStageFlagBits::eClosestHitNV;
 		}
-		if ((pType & cgb::shader_type::miss) == cgb::shader_type::miss) {
+		if ((aType & cgb::shader_type::miss) == cgb::shader_type::miss) {
 			result |= vk::ShaderStageFlagBits::eMissNV;
 		}
-		if ((pType & cgb::shader_type::intersection) == cgb::shader_type::intersection) {
+		if ((aType & cgb::shader_type::intersection) == cgb::shader_type::intersection) {
 			result |= vk::ShaderStageFlagBits::eIntersectionNV;
 		}
-		if ((pType & cgb::shader_type::callable) == cgb::shader_type::callable) {
+		if ((aType & cgb::shader_type::callable) == cgb::shader_type::callable) {
 			result |= vk::ShaderStageFlagBits::eCallableNV;
 		}
-		if ((pType & cgb::shader_type::task) == cgb::shader_type::task) {
+		if ((aType & cgb::shader_type::task) == cgb::shader_type::task) {
 			result |= vk::ShaderStageFlagBits::eTaskNV;
 		}
-		if ((pType & cgb::shader_type::mesh) == cgb::shader_type::mesh) {
+		if ((aType & cgb::shader_type::mesh) == cgb::shader_type::mesh) {
 			result |= vk::ShaderStageFlagBits::eMeshNV;
 		}
 		return result;
 	}
 
-	vk::SampleCountFlagBits to_vk_sample_count(int pSampleCount)
+	vk::SampleCountFlagBits to_vk_sample_count(int aSampleCount)
 	{
-		switch (pSampleCount) {
+		switch (aSampleCount) {
 		case 1:
 			return vk::SampleCountFlagBits::e1;
 		case 2:
@@ -151,9 +151,9 @@ namespace cgb
 		}
 	}
 
-	int to_cgb_sample_count(vk::SampleCountFlagBits pSampleCount)
+	int to_cgb_sample_count(vk::SampleCountFlagBits aSampleCount)
 	{
-		switch (pSampleCount)
+		switch (aSampleCount)
 		{
 		case vk::SampleCountFlagBits::e1: return 1;
 		case vk::SampleCountFlagBits::e2: return 2;
@@ -167,9 +167,9 @@ namespace cgb
 		}
 	}
 
-	vk::VertexInputRate to_vk_vertex_input_rate(input_binding_general_data::kind _Value)
+	vk::VertexInputRate to_vk_vertex_input_rate(input_binding_general_data::kind aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case input_binding_general_data::kind::instance:
 			return vk::VertexInputRate::eInstance;
 		case input_binding_general_data::kind::vertex:
@@ -179,9 +179,9 @@ namespace cgb
 		}
 	}
 
-	vk::PrimitiveTopology to_vk_primitive_topology(primitive_topology _Value)
+	vk::PrimitiveTopology to_vk_primitive_topology(primitive_topology aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case primitive_topology::points:
 			return vk::PrimitiveTopology::ePointList;
 		case primitive_topology::lines: 
@@ -209,9 +209,9 @@ namespace cgb
 		}
 	}
 
-	vk::PolygonMode to_vk_polygon_mode(polygon_drawing_mode _Value)
+	vk::PolygonMode to_vk_polygon_mode(polygon_drawing_mode aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case polygon_drawing_mode::fill: 
 			return vk::PolygonMode::eFill;
 		case polygon_drawing_mode::line:
@@ -223,9 +223,9 @@ namespace cgb
 		}
 	}
 
-	vk::CullModeFlags to_vk_cull_mode(culling_mode _Value)
+	vk::CullModeFlags to_vk_cull_mode(culling_mode aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case culling_mode::disabled:
 			return vk::CullModeFlagBits::eNone;
 		case culling_mode::cull_front_faces:
@@ -239,9 +239,9 @@ namespace cgb
 		}
 	}
 
-	vk::FrontFace to_vk_front_face(winding_order _Value)
+	vk::FrontFace to_vk_front_face(winding_order aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case winding_order::counter_clockwise:
 			return vk::FrontFace::eCounterClockwise;
 		case winding_order::clockwise:
@@ -251,9 +251,9 @@ namespace cgb
 		}
 	}
 
-	vk::CompareOp to_vk_compare_op(compare_operation _Value)
+	vk::CompareOp to_vk_compare_op(compare_operation aValue)
 	{
-		switch(_Value) {
+		switch(aValue) {
 		case compare_operation::never:
 			return vk::CompareOp::eNever;
 		case compare_operation::less: 
@@ -275,9 +275,9 @@ namespace cgb
 		}
 	}
 
-	vk::ColorComponentFlags to_vk_color_components(color_channel _Value)
+	vk::ColorComponentFlags to_vk_color_components(color_channel aValue)
 	{
-		switch (_Value)	{
+		switch (aValue)	{
 		case cgb::color_channel::none:
 			return vk::ColorComponentFlags{};
 		case cgb::color_channel::red:
@@ -299,9 +299,9 @@ namespace cgb
 		}
 	}
 
-	vk::BlendFactor to_vk_blend_factor(blending_factor _Value)
+	vk::BlendFactor to_vk_blend_factor(blending_factor aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case blending_factor::zero:
 			return vk::BlendFactor::eZero;
 		case blending_factor::one: 
@@ -337,9 +337,9 @@ namespace cgb
 		}
 	}
 
-	vk::BlendOp to_vk_blend_operation(color_blending_operation _Value)
+	vk::BlendOp to_vk_blend_operation(color_blending_operation aValue)
 	{
-		switch (_Value)
+		switch (aValue)
 		{
 		case color_blending_operation::add: 
 			return vk::BlendOp::eAdd;
@@ -356,9 +356,9 @@ namespace cgb
 		}
 	}
 
-	vk::LogicOp to_vk_logic_operation(blending_logic_operation _Value)
+	vk::LogicOp to_vk_logic_operation(blending_logic_operation aValue)
 	{
-		switch (_Value)
+		switch (aValue)
 		{
 		case blending_logic_operation::op_clear:
 			return vk::LogicOp::eClear;
@@ -397,9 +397,9 @@ namespace cgb
 		}
 	}
 
-	vk::AttachmentLoadOp to_vk_load_op(cfg::attachment_load_operation _Value)
+	vk::AttachmentLoadOp to_vk_load_op(cfg::attachment_load_operation aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case attachment_load_operation::dont_care:
 			return vk::AttachmentLoadOp::eDontCare;
 		case attachment_load_operation::clear: 
@@ -411,9 +411,9 @@ namespace cgb
 		}
 	}
 
-	vk::AttachmentStoreOp to_vk_store_op(cfg::attachment_store_operation _Value)
+	vk::AttachmentStoreOp to_vk_store_op(cfg::attachment_store_operation aValue)
 	{
-		switch (_Value) {
+		switch (aValue) {
 		case attachment_store_operation::dont_care:
 			return vk::AttachmentStoreOp::eDontCare;
 		case attachment_store_operation::store: 
@@ -422,4 +422,116 @@ namespace cgb
 			throw std::invalid_argument("Invalid attachment store operation.");
 		}
 	}
+
+	vk::PipelineStageFlags to_vk_pipeline_stage_flags(cgb::pipeline_stage aValue)
+	{
+		vk::PipelineStageFlags result;
+		// TODO: This might be a bit expensive. Is there a different possible solution to this?
+		if (cgb::is_included(aValue, cgb::pipeline_stage::top_of_pipe					)) { result |= vk::PipelineStageFlagBits::eTopOfPipe					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::draw_indirect					)) { result |= vk::PipelineStageFlagBits::eDrawIndirect					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::vertex_input					)) { result |= vk::PipelineStageFlagBits::eVertexInput					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::vertex_shader					)) { result |= vk::PipelineStageFlagBits::eVertexShader					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::tessellation_control_shader	)) { result |= vk::PipelineStageFlagBits::eTessellationControlShader	; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::tessellation_evaluation_shader)) { result |= vk::PipelineStageFlagBits::eTessellationEvaluationShader	; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::geometry_shader				)) { result |= vk::PipelineStageFlagBits::eGeometryShader				; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::fragment_shader				)) { result |= vk::PipelineStageFlagBits::eFragmentShader				; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::early_fragment_tests			)) { result |= vk::PipelineStageFlagBits::eEarlyFragmentTests			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::late_fragment_tests			)) { result |= vk::PipelineStageFlagBits::eLateFragmentTests			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::color_attachment_output		)) { result |= vk::PipelineStageFlagBits::eColorAttachmentOutput		; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::compute_shader				)) { result |= vk::PipelineStageFlagBits::eComputeShader				; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::transfer						)) { result |= vk::PipelineStageFlagBits::eTransfer						; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::bottom_of_pipe				)) { result |= vk::PipelineStageFlagBits::eBottomOfPipe					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::host							)) { result |= vk::PipelineStageFlagBits::eHost							; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::all_graphics_stages			)) { result |= vk::PipelineStageFlagBits::eAllGraphics					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::all_commands					)) { result |= vk::PipelineStageFlagBits::eAllCommands					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::transform_feedback			)) { result |= vk::PipelineStageFlagBits::eTransformFeedbackEXT			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::conditional_rendering			)) { result |= vk::PipelineStageFlagBits::eConditionalRenderingEXT		; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::command_processing			)) { result |= vk::PipelineStageFlagBits::eCommandProcessNVX			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::shading_rate_image			)) { result |= vk::PipelineStageFlagBits::eShadingRateImageNV			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::ray_tracing_shaders			)) { result |= vk::PipelineStageFlagBits::eRayTracingShaderNV			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::acceleration_structure_build	)) { result |= vk::PipelineStageFlagBits::eAccelerationStructureBuildNV	; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::task_shader					)) { result |= vk::PipelineStageFlagBits::eTaskShaderNV					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::mesh_shader					)) { result |= vk::PipelineStageFlagBits::eMeshShaderNV					; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::fragment_density_process		)) { result |= vk::PipelineStageFlagBits::eFragmentDensityProcessEXT	; }
+		return result;
+	}
+	
+	vk::PipelineStageFlags to_vk_pipeline_stage_flags(std::optional<cgb::pipeline_stage> aValue)
+	{
+		if (aValue.has_value()) {
+			return to_vk_pipeline_stage_flags(aValue.value());
+		}
+		return vk::PipelineStageFlags{};
+	}
+
+	vk::AccessFlags to_vk_access_flags(cgb::memory_access aValue)
+	{
+		vk::AccessFlags result;
+		// TODO: This might be a bit expensive. Is there a different possible solution to this?
+		if (cgb::is_included(aValue, cgb::memory_access::indirect_command_data_read_access			)) { result |= vk::AccessFlagBits::eIndirectCommandRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::index_buffer_read_access					)) { result |= vk::AccessFlagBits::eIndexRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::vertex_buffer_read_access					)) { result |= vk::AccessFlagBits::eVertexAttributeRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::uniform_buffer_read_access					)) { result |= vk::AccessFlagBits::eUniformRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::input_attachment_read_access				)) { result |= vk::AccessFlagBits::eInputAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::shader_buffers_and_images_read_access		)) { result |= vk::AccessFlagBits::eShaderRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::shader_buffers_and_images_write_access		)) { result |= vk::AccessFlagBits::eShaderWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_read_access				)) { result |= vk::AccessFlagBits::eColorAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_write_access				)) { result |= vk::AccessFlagBits::eColorAttachmentWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::depth_stencil_attachment_read_access		)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::depth_stencil_attachment_write_access		)) { result |= vk::AccessFlagBits::eDepthStencilAttachmentWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::transfer_read_access						)) { result |= vk::AccessFlagBits::eTransferRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::transfer_write_access						)) { result |= vk::AccessFlagBits::eTransferWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::host_read_access							)) { result |= vk::AccessFlagBits::eHostRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::host_write_access							)) { result |= vk::AccessFlagBits::eHostWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::any_read_access							)) { result |= vk::AccessFlagBits::eMemoryRead; }
+		if (cgb::is_included(aValue, cgb::memory_access::any_write_access					 		)) { result |= vk::AccessFlagBits::eMemoryWrite; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_write_access			)) { result |= vk::AccessFlagBits::eTransformFeedbackWriteEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_read_access		)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterReadEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_write_access	)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterWriteEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::conditional_rendering_predicate_read_access)) { result |= vk::AccessFlagBits::eConditionalRenderingReadEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::command_process_read_access				)) { result |= vk::AccessFlagBits::eCommandProcessReadNVX; }
+		if (cgb::is_included(aValue, cgb::memory_access::command_process_write_access				)) { result |= vk::AccessFlagBits::eCommandProcessWriteNVX; }
+		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_noncoherent_read_access	)) { result |= vk::AccessFlagBits::eColorAttachmentReadNoncoherentEXT; }
+		if (cgb::is_included(aValue, cgb::memory_access::shading_rate_image_read_access				)) { result |= vk::AccessFlagBits::eShadingRateImageReadNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_read_access			)) { result |= vk::AccessFlagBits::eAccelerationStructureReadNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_write_access		)) { result |= vk::AccessFlagBits::eAccelerationStructureWriteNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::fragment_density_map_attachment_read_access)) { result |= vk::AccessFlagBits::eFragmentDensityMapReadEXT; }
+
+		return result;
+	}
+
+	vk::AccessFlags to_vk_access_flags(std::optional<cgb::memory_access> aValue)
+	{
+		if (aValue.has_value()) {
+			return to_vk_access_flags(aValue.value());
+		}
+		return vk::AccessFlags{};
+	}
+
+	cgb::memory_access to_memory_access(cgb::read_memory_access aValue)
+	{
+		return static_cast<cgb::memory_access>(aValue);
+	}
+	
+	std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::read_memory_access> aValue)
+	{
+		if (aValue.has_value()) {
+			return to_memory_access(aValue.value());
+		}
+		return {};
+	}
+	
+	cgb::memory_access to_memory_access(cgb::write_memory_access aValue)
+	{
+		return static_cast<cgb::memory_access>(aValue);
+	}
+	
+	std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::write_memory_access> aValue)
+	{
+		if (aValue.has_value()) {
+			return to_memory_access(aValue.value());
+		}
+		return {};
+	}
+	
 }

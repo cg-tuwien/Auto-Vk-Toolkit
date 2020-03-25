@@ -11,7 +11,7 @@ namespace cgb
 		fence_t(fence_t&&) = default;
 		fence_t& operator=(const fence_t&) = delete;
 		fence_t& operator=(fence_t&&) = default;
-		virtual ~fence_t();
+		~fence_t();
 
 		/**	Set a queue where this fence is designated to be submitted to.
 		 *	This is only used for keeping the information of the queue. 

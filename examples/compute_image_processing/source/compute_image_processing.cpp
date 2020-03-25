@@ -39,9 +39,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::vertex_buffer_meta::create_from_data(mVertexData), 
 			cgb::memory_usage::device,
 			mVertexData.data(),
-			[](cgb::semaphore _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			}
+			cgb::sync::with_barriers_on_current_frame()
 		);
 
 		// Create and upload incides for drawing the quad
@@ -49,9 +47,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::device,
 			mIndices.data(),
-			[](cgb::semaphore _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			}
+			cgb::sync::with_barriers_on_current_frame()
 		);
 
 		// Create a host-coherent buffer for the matrices
@@ -65,26 +61,27 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png")),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
+		const auto wdth = mInputImageAndSampler->width();
+		const auto hght = mInputImageAndSampler->height();
+		const auto frmt = mInputImageAndSampler->format();
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
-			cgb::image_view_t::create(cgb::image_t::create(mInputImageAndSampler->width(), mInputImageAndSampler->height(), mInputImageAndSampler->format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image,
-				[](cgb::image_t& _ImgToBeCreated) {
-					_ImgToBeCreated.config().usage |= vk::ImageUsageFlagBits::eStorage; // TODO: Can this be abstracted somehow?!
-				})),
+			cgb::image_view_t::create(
+				cgb::image_t::create( // Create an image and set some properties:
+					wdth, hght, frmt, false /* no mip-maps */, 1 /* one layer */, cgb::memory_usage::device, /* in GPU memory */
+					cgb::image_usage::versatile_image // This flag means (among other usages) that the image can be written to
+				)
+			),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
-		cgb::transition_image_layout(
-			mTargetImageAndSampler->get_image_view()->get_image(), 
-			mTargetImageAndSampler->get_image_view()->get_image().format().mFormat, 
-			vk::ImageLayout::eGeneral); // TODO: This must be abstracted!
 		// Initialize the image with the contents of the input image:
-		cgb::copy_image_to_another(mInputImageAndSampler->get_image_view()->get_image(), mTargetImageAndSampler->get_image_view()->get_image(), 
-			[](cgb::semaphore _CopyCompleteSemaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
-			});
+		cgb::copy_image_to_another(
+			mInputImageAndSampler->get_image_view()->get_image(), 
+			mTargetImageAndSampler->get_image_view()->get_image(), 
+			cgb::sync::with_barriers_on_current_frame()
+		);
 
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
 		mGraphicsPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),
@@ -94,7 +91,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::culling_mode::disabled,
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()).enable_dynamic_viewport(),
-			cgb::attachment::create_color(swapChainFormat),
+			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer()),
 			cgb::binding(0, mUbo),
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
@@ -152,22 +149,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
 		auto halfW = w * 0.5f;
 		auto h = cgb::context().main_window()->swap_chain_extent().height;
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer& _CommandBuffer, int64_t _InFlightIndex) {
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+
 			// Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
-			auto barrier = vk::ImageMemoryBarrier{}
-				.setOldLayout(vk::ImageLayout::eGeneral)
-				.setNewLayout(vk::ImageLayout::eGeneral)
-				.setImage(mTargetImageAndSampler->image_handle())
-				.setSubresourceRange({ vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u })
-				.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-				.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-			_CommandBuffer.handle().pipelineBarrier(
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::PipelineStageFlagBits::eFragmentShader,
-				{},
-				0, nullptr,
-				0, nullptr,
-				1, &barrier);
+			commandBuffer.establish_image_memory_barrier(
+				mTargetImageAndSampler->get_image_view()->get_image(),
+				cgb::pipeline_stage::compute_shader, 
+				cgb::pipeline_stage::fragment_shader,
+				std::optional<cgb::write_memory_access>{cgb::memory_access::shader_buffers_and_images_write_access}, 
+				std::optional<cgb::read_memory_access>{cgb::memory_access::shader_buffers_and_images_read_access}
+			);
 
 			// Prepare some stuff:
 			auto scissor = vk::Rect2D{}.setOffset({0, 0}).setExtent({w, h});
@@ -175,27 +166,27 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
 
 			// Begin drawing:
-			_CommandBuffer.begin_render_pass_for_window(cgb::context().main_window(), _InFlightIndex);
+			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
 
 			// Draw left viewport (pre compute)
-			_CommandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
+			commandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
 				mDescriptorSetPreCompute[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
 				mDescriptorSetPreCompute[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
 				0, nullptr);
-			_CommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
-			_CommandBuffer.handle().setViewport(0, 1, &vpLeft);
-			cgb::context().draw_indexed(mGraphicsPipeline, _CommandBuffer, mVertexBuffer, mIndexBuffer);
+			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
+			commandBuffer.handle().setViewport(0, 1, &vpLeft);
+			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
 
 			// Draw right viewport (post compute)
-			_CommandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
+			commandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
 				mDescriptorSetPostCompute[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
 				mDescriptorSetPostCompute[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
 				0, nullptr);
-			_CommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
-			_CommandBuffer.handle().setViewport(0, 1, &vpRight);
-			cgb::context().draw_indexed(mGraphicsPipeline, _CommandBuffer, mVertexBuffer, mIndexBuffer);
+			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
+			commandBuffer.handle().setViewport(0, 1, &vpRight);
+			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
 
-			_CommandBuffer.end_render_pass();
+			commandBuffer.end_render_pass();
 		});
 	}
 
@@ -224,9 +215,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::copy_image_to_another(
 				mInputImageAndSampler->get_image_view()->get_image(), 
 				mTargetImageAndSampler->get_image_view()->get_image(),
-				[](cgb::semaphore _CopyCompleteSemaphore) {
-					cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_CopyCompleteSemaphore));
-				});
+				cgb::sync::with_barriers_on_current_frame()
+			);
 		}
 
 		if (cgb::input().key_down(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
@@ -241,25 +231,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			if (cgb::input().key_pressed(cgb::key_code::num3)) { computeIndex = 2; }
 
 			// [1] => Apply the first compute shader on the input image
-			auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-			cmdbfr.begin_recording();
+			auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+			cmdbfr->begin_recording();
 
 			// Bind the pipeline
 
 			// Set the descriptors of the uniform buffer
-			cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->layout_handle(), 0, 
+			cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->layout_handle(), 0, 
 				mComputeDescriptorSet->number_of_descriptor_sets(),
 				mComputeDescriptorSet->descriptor_sets_addr(), 
 				0, nullptr);
-			cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->handle());
-			cmdbfr.handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
+			cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->handle());
+			cmdbfr->handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
 
-			cmdbfr.end_recording();
+			cmdbfr->end_recording();
 			
 			vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
 			auto submitInfo = vk::SubmitInfo()
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(cmdbfr.handle_addr());
+				.setPCommandBuffers(cmdbfr->handle_addr());
 
 			cgb::context().graphics_queue().handle().submit({ submitInfo }, mComputeFence->handle());
 
@@ -303,6 +293,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("Compute Image Effects");
 		mainWnd->set_resolution({ 1280, 800 });
+		mainWnd->set_number_of_concurrent_frames(3);
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->open(); 
 

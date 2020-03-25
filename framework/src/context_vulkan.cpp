@@ -8,6 +8,8 @@ namespace cgb
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
+	std::mutex vulkan::sConcurrentAccessMutex;
+
 	auto vulkan::assemble_validation_layers()
 	{
 		std::vector<const char*> supportedValidationLayers;
@@ -261,7 +263,7 @@ namespace cgb
 		});
 	}
 
-	void vulkan::draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer& pCommandBuffer)
+	void vulkan::draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer_t& pCommandBuffer)
 	{
 		pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline.handle());
 		pCommandBuffer.handle().draw(3u, 1u, 0u, 0u);
@@ -808,6 +810,8 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
+		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination;
+		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
 			.setFormat(surfaceFormat.format)
@@ -816,7 +820,7 @@ namespace cgb
 			.setArrayLayers(1)
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setTiling(vk::ImageTiling::eOptimal)
-			.setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst)
+			.setUsage(swapChainImageUsageVk)
 			.setInitialLayout(vk::ImageLayout::eUndefined);
 
 		auto nope = vk::QueueFlags();
@@ -874,14 +878,15 @@ namespace cgb
 		assert(swapChainImages.size() == pWindow->get_config_number_of_presentable_images());
 
 		// Store the images,
-		std::copy(std::begin(swapChainImages), std::end(swapChainImages),
-				  std::back_inserter(pWindow->mSwapChainImages));
+		for (auto& imageHandle : swapChainImages) {
+			pWindow->mSwapChainImages.emplace_back(image_t::wrap(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor));
+		}
 
 		// and create one image view per image
 		pWindow->mSwapChainImageViews.reserve(pWindow->mSwapChainImages.size());
 		for (auto& image : pWindow->mSwapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image, pWindow->mImageCreateInfoSwapChain, pWindow->swap_chain_image_format().mFormat));
+			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image));
 			pWindow->mSwapChainImageViews.back().enable_shared_ownership();
 		}
 
@@ -897,7 +902,7 @@ namespace cgb
 		// Create a back buffer per image
 		pWindow->mBackBuffers.reserve(pWindow->mSwapChainImageViews.size());
 		for (auto& imView: pWindow->mSwapChainImageViews) {
-			auto imExtent = imView->image_config().extent;
+			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
 			std::vector<image_view> imageViews;
@@ -1039,24 +1044,24 @@ namespace cgb
 	//	return framebuffers;
 	//}
 
-	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t pQueueFamilyIndex)
+	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
 	{
+		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
 		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
-							   [family_idx = pQueueFamilyIndex, thread_id = std::this_thread::get_id()](const std::tuple<std::thread::id, command_pool>& existing) {
-								   return std::get<0>(existing) == thread_id && std::get<1>(existing).queue_family_index() == family_idx;
+							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, command_pool>& existing) {
+									auto& tid = std::get<0>(existing);
+									auto& q = std::get<1>(existing);
+									return tid == lThreadId && q.queue_family_index() == lFamilyIdx && lFlags == q.create_info().flags;
 							   });
 		if (it == std::end(mCommandPools)) {
-			// TODO: Do we want different parameters depending on the queue? 
-			//       Like, for instance re-usable buffers for the graphics queue?
-			//		 There is a parameter to `command_pool::create` where this could be specified!
-			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), command_pool::create(pQueueFamilyIndex)));
+			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), command_pool::create(aQueueFamilyIndex, aFlags)));
 		}
 		return std::get<1>(*it);
 	}
 
-	command_pool& vulkan::get_command_pool_for_queue(const device_queue& pQueue)
+	command_pool& vulkan::get_command_pool_for_queue(const device_queue& aQueue, vk::CommandPoolCreateFlags aFlags)
 	{
-		return get_command_pool_for_queue_family(pQueue.family_index());
+		return get_command_pool_for_queue_family(aQueue.family_index(), aFlags);
 	}
 
 	uint32_t vulkan::find_memory_type_index(uint32_t pMemoryTypeBits, vk::MemoryPropertyFlags pMemoryProperties)
@@ -1065,7 +1070,7 @@ namespace cgb
 		// Memory heaps are distinct memory resources like dedicated VRAM and swap space in RAM for 
 		// when VRAM runs out. The different types of memory exist within these heaps. Right now we'll 
 		// only concern ourselves with the type of memory and not the heap it comes from, but you can 
-		// imagine that this can affect performance.
+		// imagine that this can affect performance. (Source: https://vulkan-tutorial.com/)
 		auto memProperties = physical_device().getMemoryProperties();
 		for (auto i = 0u; i < memProperties.memoryTypeCount; ++i) {
 			if ((pMemoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & pMemoryProperties) == pMemoryProperties) {

@@ -99,6 +99,8 @@
 #include "shader_type.hpp"
 #include "shader_info.hpp"
 #include "aabb.hpp"
+#include "pipeline_stage.hpp"
+#include "memory_access.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
 #include <glad/glad.h>
@@ -109,6 +111,10 @@
 #include <vulkan/vulkan.hpp>
 static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.1.130.0) or greater." );
 #include "buffer_member_format_vulkan.hpp"
+#include "semaphore_vulkan.hpp"
+#include "fence_vulkan.hpp"
+#include "command_buffer_vulkan.hpp"
+#include "sync_vulkan.hpp"
 #include "image_vulkan.hpp"
 #include "image_view_vulkan.hpp"
 #endif
@@ -150,10 +156,8 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "context_generic_glfw.hpp"
 #include "sampler_vulkan.hpp"
 #include "image_sampler_vulkan.hpp"
-#include "semaphore_vulkan.hpp"
-#include "fence_vulkan.hpp"
-#include "command_buffer_vulkan.hpp"
 #include "command_pool_vulkan.hpp"
+
 #include "buffer_vulkan.hpp"
 #include "buffer_view_vulkan.hpp"
 #include "queue_vulkan.hpp"
@@ -239,6 +243,7 @@ namespace cgb
 #include "cg_element.hpp"
 #include "sequential_executor.hpp"
 #include "composition.hpp"
+#include "setup.hpp"
 
 #include "transform.hpp"
 #include "material_config.hpp"

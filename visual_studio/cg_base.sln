@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "real_time_ray_tracing", "re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_custom_intersection", "examples\ray_tracing_custom_intersection\ray_tracing_custom_intersection.vcxproj", "{1DE6486D-2373-455B-8F2A-798439EB4600}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_basic_usage", "examples\ray_tracing_basic_usage\ray_tracing_basic_usage.vcxproj", "{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_OpenGL|x64 = Debug_OpenGL|x64
@@ -134,6 +136,18 @@ Global
 		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
 		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{1DE6486D-2373-455B-8F2A-798439EB4600}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Publish_OpenGL|x64.ActiveCfg = Publish_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Publish_OpenGL|x64.Build.0 = Publish_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -150,6 +164,7 @@ Global
 		{425D661F-8100-4142-A03C-4E6C842F5E50} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
 		{683E25DF-C29D-4BC6-980E-88F7C09D024F} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
 		{1DE6486D-2373-455B-8F2A-798439EB4600} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
+		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

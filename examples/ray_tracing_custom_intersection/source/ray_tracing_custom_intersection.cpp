@@ -95,23 +95,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
 		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
 		mOffscreenImageViews.reserve(n);
-		for (size_t i = 0; i < n; ++i) {
+		const auto wdth = cgb::context().main_window()->resolution().x;
+		const auto hght = cgb::context().main_window()->resolution().y;
+		const auto frmt = cgb::image_format::from_window_color_buffer(cgb::context().main_window());
+		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
 			mOffscreenImageViews.emplace_back(
 				cgb::image_view_t::create(
-					cgb::image_t::create(
-						cgb::context().main_window()->swap_chain_extent().width, 
-						cgb::context().main_window()->swap_chain_extent().height, 
-						cgb::context().main_window()->swap_chain_image_format(), 
-						false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image
-					)
+					cgb::image_t::create(wdth, hght, frmt, false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image)
 				)
 			);
-			cgb::transition_image_layout(
-				mOffscreenImageViews.back()->get_image(), 
-				mOffscreenImageViews.back()->get_image().format().mFormat, 
-				mOffscreenImageViews.back()->get_image().target_layout()); // TODO: This must be abstracted!
+			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers_on_current_frame());
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
-		}
+		});
 
 		// Create our ray tracing pipeline with the required configuration:
 		mPipeline = cgb::ray_tracing_pipeline_for(
@@ -190,9 +185,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 			//
 			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			mTLAS[inFlightIndex]->update(mGeometryInstances, [](cgb::semaphore _Semaphore) {
-				cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore));
-			});
+			mTLAS[inFlightIndex]->update(mGeometryInstances, cgb::sync::with_barriers_on_current_frame(
+				{}, // Nothing to wait for
+				[](cgb::command_buffer_t& commandBuffer, cgb::pipeline_stage srcStage, std::optional<cgb::write_memory_access> srcAccess){
+					// We want this update to be as efficient/as tight as possible
+					commandBuffer.establish_global_memory_barrier(
+						srcStage, cgb::pipeline_stage::ray_tracing_shaders, // => ray tracing shaders must wait on the building of the acceleration structure
+						srcAccess, cgb::memory_access::acceleration_structure_read_access // TLAS-update's memory must be made visible to ray tracing shader's caches (so they can read from)
+					);
+				}
+			));
 		}
 
 		if (cgb::input().key_pressed(cgb::key_code::space)) {
@@ -218,21 +220,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
 		
-		auto cmdbfr = cgb::context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		cmdbfr.begin_recording();
-
-		cmdbfr.set_image_barrier(
-			cgb::create_image_barrier(
-				mOffscreenImageViews[inFlightIndex]->get_image().image_handle(),
-				mOffscreenImageViews[inFlightIndex]->get_image().format().mFormat,
-				vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral)
-		);
+		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		cmdbfr->begin_recording();
 
 		// Bind the pipeline
-		cmdbfr.handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, mPipeline->handle());
+		cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, mPipeline->handle());
 
 		// Set the descriptors:
-		cmdbfr.handle().bindDescriptorSets(vk::PipelineBindPoint::eRayTracingNV, mPipeline->layout_handle(), 0, 
+		cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eRayTracingNV, mPipeline->layout_handle(), 0, 
 			mDescriptorSet[inFlightIndex]->number_of_descriptor_sets(),
 			mDescriptorSet[inFlightIndex]->descriptor_sets_addr(), 
 			0, nullptr);
@@ -241,10 +236,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto pushConstantsForThisDrawCall = transformation_matrices { 
 			mQuakeCam.view_matrix()
 		};
-		cmdbfr.handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
-		cmdbfr.handle().traceRaysNV(
+		cmdbfr->handle().traceRaysNV(
 			mPipeline->shader_binding_table_handle(), 0,
 			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
@@ -252,15 +247,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
 			cgb::context().dynamic_dispatch());
 
-		
-		cmdbfr.set_image_barrier(
-			cgb::create_image_barrier(
-				mOffscreenImageViews[inFlightIndex]->get_image().image_handle(),
-				mOffscreenImageViews[inFlightIndex]->get_image().format().mFormat,
-				vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal)
-		);
-
-		cmdbfr.end_recording();
+		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
 		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
 	}

@@ -115,19 +115,7 @@ namespace cgb
 				}; 
 			}
 
-			static viewport_depth_scissors_config from_window(const window* window) 
-			{ 
-				auto dimensions = window->resolution(); // TODO: Is this the right one?
-				return viewport_depth_scissors_config{ 
-					{0.0f, 0.0f},
-					{static_cast<float>(dimensions.x), static_cast<float>(dimensions.y)}, 
-					0.0f, 1.0f,
-					{0, 0},
-					{static_cast<int32_t>(dimensions.x), static_cast<int32_t>(dimensions.y)},
-					false,
-					false
-				}; 
-			}
+			static viewport_depth_scissors_config from_window(window* aWindow = nullptr);
 
 			viewport_depth_scissors_config& enable_dynamic_viewport() { mDynamicViewportEnabled = true; return *this; }
 			viewport_depth_scissors_config& disable_dynamic_viewport() { mDynamicViewportEnabled = false; return *this; }

@@ -235,7 +235,7 @@ namespace cgb
 					thiz->mExecutor.execute_render_guis(thiz->mElements);
 
 					// Gather all the command buffers per window
-					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer>>> toRender;
+					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer_t>>> toRender;
 					for (auto& e : thiz->mElements)	{
 						for (auto [cb, wnd] : e->mSubmittedCommandBufferReferences) {
 							if (nullptr == wnd) {
@@ -245,7 +245,7 @@ namespace cgb
 						}
 					}
 					// Gather all the present images per window - there can only be max. one.
-					std::unordered_map<window*, const cgb::image_t*> toPresent;
+					std::unordered_map<window*, cgb::image_t*> toPresent;
 					for (auto& e : thiz->mElements)	{
 						for (auto [img, wnd] : e->mPresentImages) {
 							if (nullptr == wnd) {
@@ -262,7 +262,7 @@ namespace cgb
 					// Render per window
 					for (auto& [wnd, cbs] : toRender) {
 						if (toPresent.contains(wnd)) {
-							wnd->render_frame(std::move(cbs), std::cref(*toPresent[wnd]));
+							wnd->render_frame(std::move(cbs), std::ref(*toPresent[wnd]));
 						}
 						else {
 							wnd->render_frame(std::move(cbs));
@@ -274,7 +274,7 @@ namespace cgb
 							if (nullptr == wnd) {
 								wnd = cgb::context().main_window();
 							}
-							wnd->set_one_time_submit_command_buffer(std::move(cb), wnd->current_frame() - 1);
+							wnd->handle_single_use_command_buffer_lifetime(std::move(cb), wnd->current_frame() - 1);
 						}
 						// Also, cleanup the elements:
 						e->mSubmittedCommandBufferReferences.clear();
@@ -473,6 +473,6 @@ namespace cgb
 
 	template <typename TTimer, typename TExecutor>
 	std::condition_variable composition<TTimer, TExecutor>::sInputBufferCondVar{};
-		
+
 }
 

@@ -2,202 +2,45 @@
 
 namespace cgb
 {
-	void transition_image_layout(image_t& _Image, vk::Format _Format, vk::ImageLayout _NewLayout, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	void copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
 	{
-		//auto commandBuffer = context().create_command_buffers_for_graphics(1, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		auto commandBuffer = context().graphics_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		// Sync before:
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
-		// Immediately start recording the command buffer:
-		commandBuffer.begin_recording();
-
-		vk::AccessFlags sourceAccessMask, destinationAccessMask;
-		vk::PipelineStageFlags sourceStageFlags, destinationStageFlags;
-
-		// TODO: This has to be reworked entirely!!
-
-		auto oldImageLayout = _Image.current_layout();
-		if (oldImageLayout == _NewLayout) {
-			return;
-		}
-
-		// There are two transitions we need to handle [3]:
-		//  - Undefined --> transfer destination : transfer writes that don't need to wait on anything
-		//  - Transfer destination --> shader reading : shader reads should wait on transfer writes, specifically the shader reads in the fragment shader, because that's where we're going to use the texture
-		if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eTransferDstOptimal) {
-			sourceAccessMask = vk::AccessFlags();
-			destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
-			destinationStageFlags = vk::PipelineStageFlagBits::eTransfer;
-		}
-		else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal && _NewLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-			sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
-			destinationAccessMask = vk::AccessFlagBits::eShaderRead;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTransfer;
-			destinationStageFlags = vk::PipelineStageFlagBits::eFragmentShader;
-		}
-		else if (oldImageLayout == vk::ImageLayout::eUndefined && _NewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-			sourceAccessMask = vk::AccessFlags();
-			destinationAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-			sourceStageFlags = vk::PipelineStageFlagBits::eTopOfPipe;
-			destinationStageFlags = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto initialSrcLayout = aSrcImage.target_layout();
+		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
+									//|| initialSrcLayout == vk::ImageLayout::eGeneral
+									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableSrcLayout) {
+			// Just make sure that is really is in target layout:
+			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
 		}
 		else {
-			// TODO: This has to be reworked entirely! (I have no idea what I'm doing...)
-			sourceStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
-			destinationStageFlags = vk::PipelineStageFlagBits::eAllCommands; // TODO: Clearly, this is not optimal
-
-			// The following is copied from VulkanTools.cpp from Sascha Willems' Vulkan Examples
-			//
-			// * Assorted commonly used Vulkan helper functions
-			// *
-			// * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
-			// *
-			// * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-
-			// Source layouts (old)
-			// Source access mask controls actions that have to be finished on the old layout
-			// before it will be transitioned to the new layout
-			switch (oldImageLayout)
-			{
-			case vk::ImageLayout::eUndefined:
-				// Image layout is undefined (or does not matter)
-				// Only valid as initial layout
-				// No flags required, listed only for completeness
-				sourceAccessMask = {};
-				break;
-
-			case vk::ImageLayout::ePreinitialized:
-				// Image is preinitialized
-				// Only valid as initial layout for linear images, preserves memory contents
-				// Make sure host writes have been finished
-				sourceAccessMask = vk::AccessFlagBits::eHostWrite;
-				break;
-
-			case vk::ImageLayout::eColorAttachmentOptimal:
-				// Image is a color attachment
-				// Make sure any writes to the color buffer have been finished
-				sourceAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-				break;
-
-			case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
-				// Image is a depth/stencil attachment
-				// Make sure any writes to the depth/stencil buffer have been finished
-				sourceAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-				break;
-
-			case vk::ImageLayout::eTransferSrcOptimal:
-				// Image is a transfer source 
-				// Make sure any reads from the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eTransferRead;
-				break;
-
-			case vk::ImageLayout::eTransferDstOptimal:
-				// Image is a transfer destination
-				// Make sure any writes to the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eTransferWrite;
-				break;
-
-			case vk::ImageLayout::eShaderReadOnlyOptimal:
-				// Image is read by a shader
-				// Make sure any shader reads from the image have been finished
-				sourceAccessMask = vk::AccessFlagBits::eShaderRead;
-				break;
-			default:
-				// Other source layouts aren't handled (yet)
-				throw std::runtime_error("Other source layouts aren't handled (yet)");
-			}
-
-			// Target layouts (new)
-			// Destination access mask controls the dependency for the new image layout
-			switch (_NewLayout)
-			{
-			case vk::ImageLayout::eTransferDstOptimal:
-				// Image will be used as a transfer destination
-				// Make sure any writes to the image have been finished
-				destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
-				break;
-
-			case vk::ImageLayout::eTransferSrcOptimal:
-				// Image will be used as a transfer source
-				// Make sure any reads from the image have been finished
-				destinationAccessMask = vk::AccessFlagBits::eTransferRead;
-				break;
-
-			case vk::ImageLayout::eColorAttachmentOptimal:
-				// Image will be used as a color attachment
-				// Make sure any writes to the color buffer have been finished
-				destinationAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-				break;
-
-			case vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal:
-				// Image layout will be used as a depth/stencil attachment
-				// Make sure any writes to depth/stencil buffer have been finished
-				destinationAccessMask = destinationAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-				break;
-
-			case vk::ImageLayout::eShaderReadOnlyOptimal:
-				// Image will be read in a shader (sampler, input attachment)
-				// Make sure any writes to the image have been finished
-				if (sourceAccessMask)
-				{
-					sourceAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
-				}
-				destinationAccessMask = vk::AccessFlagBits::eShaderRead;
-				break;
-
-			case vk::ImageLayout::eGeneral:
-				// TODO: This should be valid... but set something? I have no idea what I'm doing...
-				destinationAccessMask = vk::AccessFlagBits::eShaderWrite; // TODO: this can't be the right choice
-				break;
-
-			default:
-				// Other destination layouts aren't handled (yet)
-				throw std::runtime_error("Other destination layouts aren't handled (yet)");
-			}
+			// Not a suitable src layout => must transform
+			aSrcImage.transition_to_layout(vk::ImageLayout::eTransferSrcOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 
-
-		// One of the most common ways to perform layout transitions is using an image memory barrier. A pipeline barrier like that 
-		// is generally used to synchronize access to resources, like ensuring that a write to a buffer completes before reading from 
-		// it, but it can also be used to transition image layouts and transfer queue family ownership when VK_SHARING_MODE_EXCLUSIVE 
-		// is used.There is an equivalent buffer memory barrier to do this for buffers. [3]
-		auto barrier = _Image.create_barrier(sourceAccessMask, destinationAccessMask, oldImageLayout, _NewLayout);
-
-		// The pipeline stages that you are allowed to specify before and after the barrier depend on how you use the resource before and 
-		// after the barrier.The allowed values are listed in this table of the specification.For example, if you're going to read from a 
-		// uniform after the barrier, you would specify a usage of VK_ACCESS_UNIFORM_READ_BIT and the earliest shader that will read from 
-		// the uniform as pipeline stage, for example VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT. It would not make sense to specify a non-shader 
-		// pipeline stage for this type of usage and the validation layers will warn you when you specify a pipeline stage that does not 
-		// match the type of usage. [3]
-		commandBuffer.handle().pipelineBarrier(
-			sourceStageFlags,
-			destinationStageFlags,
-			vk::DependencyFlags(), // The third parameter is either 0 or VK_DEPENDENCY_BY_REGION_BIT. The latter turns the barrier into a per-region condition. That means that the implementation is allowed to already begin reading from the parts of a resource that were written so far, for example. [3]
-			{},
-			{},
-			{ barrier });
-
-		// That's all
-		commandBuffer.end_recording();
-
-		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto transitionCompleteSemaphore = cgb::context().graphics_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
-		// transitionCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
-
-		_Image.set_current_layout(_NewLayout); // Just optimistically set it
+		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto initialDstLayout = aDstImage.target_layout();
+		const bool suitableDstLayout = initialDstLayout == vk::ImageLayout::eTransferDstOptimal
+									|| initialDstLayout == vk::ImageLayout::eGeneral
+									|| initialDstLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableDstLayout) {
+			// Just make sure that is really is in target layout:
+			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+		}
+		else {
+			// Not a suitable dst layout => must transform
+			aDstImage.transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 		
-		handle_semaphore(std::move(transitionCompleteSemaphore), std::move(_SemaphoreHandler));
-	}
-
-	void copy_image_to_another(const image_t& pSrcImage, image_t& pDstImage, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
-	{
-		auto commandBuffer = cgb::context().transfer_queue().pool().get_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-
-		// Start recording the command buffer:
-		commandBuffer.begin_recording();
-
+		// Operation:
 		auto copyRegion = vk::ImageCopy{}
-			.setExtent(pSrcImage.config().extent) // TODO: Support different ranges/extents
+			.setExtent(aSrcImage.config().extent) // TODO: Support different ranges/extents
 			.setSrcOffset({0, 0})
 			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
 				.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -213,30 +56,33 @@ namespace cgb
 				.setMipLevel(0u));
 
 		commandBuffer.handle().copyImage(
-			pSrcImage.image_handle(),
-			pSrcImage.current_layout(),
-			pDstImage.image_handle(),
-			pDstImage.current_layout(),
+			aSrcImage.handle(),
+			aSrcImage.current_layout(),
+			aDstImage.handle(),
+			aDstImage.current_layout(),
 			1u, &copyRegion);
 
-		// That's all
-		commandBuffer.end_recording();
+		if (!suitableSrcLayout && aRestoreSrcLayout) { // => restore original layout of the src image
+			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 
-		// Create a semaphore which can, or rather, MUST be used to wait for the results
-		auto copyCompleteSemaphore = cgb::context().transfer_queue().submit_and_handle_with_semaphore(std::move(commandBuffer), std::move(_WaitSemaphores));
-		// copyCompleteSemaphore->set_semaphore_wait_stage(...); TODO: Set wait stage
+		if (!suitableDstLayout && aRestoreDstLayout) { // => restore original layout of the dst image
+			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 		
-		pDstImage.set_current_layout(pSrcImage.current_layout()); // Just optimistically set it
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
-		handle_semaphore(std::move(copyCompleteSemaphore), std::move(_SemaphoreHandler));
+		// Finish him:
+		aSyncHandler.submit_and_sync();
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
-		std::vector<cgb::material_config> _MaterialConfigs, 
-		std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, 
-		cgb::image_usage _ImageUsage,
-		cgb::filter_mode _TextureFilterMode, 
-		cgb::border_handling_mode _BorderHandlingMode)
+		std::vector<cgb::material_config> aMaterialConfigs, 
+		cgb::image_usage aImageUsage,
+		cgb::filter_mode aTextureFilteMode, 
+		cgb::border_handling_mode aBorderHandlingMode,
+		sync aSyncHandler)
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
@@ -248,9 +94,9 @@ namespace cgb
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
 
 		std::vector<material_gpu_data> gpuMaterial;
-		gpuMaterial.reserve(_MaterialConfigs.size()); // important because of the pointers
+		gpuMaterial.reserve(aMaterialConfigs.size()); // important because of the pointers
 
-		for (auto& mc : _MaterialConfigs) {
+		for (auto& mc : aMaterialConfigs) {
 			auto& gm = gpuMaterial.emplace_back();
 			gm.mDiffuseReflectivity			= mc.mDiffuseReflectivity		 ;
 			gm.mAmbientReflectivity			= mc.mAmbientReflectivity		 ;
@@ -397,13 +243,27 @@ namespace cgb
 		}
 
 		std::vector<image_sampler> imageSamplers;
-		imageSamplers.reserve(texNamesToUsages.size() + 2); // + 2 => one for the white tex, one for the normals tex
+		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
+		imageSamplers.reserve(numSamplers);
+
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
+		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> sync {
+			++lSyncCount;
+			if (lSyncCount < numSamplers) {
+				return sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
+			}
+			assert (lSyncCount == numSamplers);
+			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
+		};
 
 		// Create the white texture and assign its index to all usages
 		if (!whiteTexUsages.empty()) {
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_1px_texture({ 255, 255, 255, 255 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
+					image_view_t::create(
+						create_1px_texture({ 255, 255, 255, 255 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, getSync())
+					),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
 			);
@@ -417,7 +277,9 @@ namespace cgb
 		if (!straightUpNormalTexUsages.empty()) {
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, _SemaphoreHandler)),
+					image_view_t::create(
+						create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, cgb::image_usage::read_only_sampled_image, getSync())
+					),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
 			);
@@ -435,12 +297,9 @@ namespace cgb
 			
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_image_from_file(
-						pair.first,
-						true, potentiallySrgb, 4,
-						cgb::memory_usage::device, _ImageUsage, 
-						_SemaphoreHandler)),
-					sampler_t::create(_TextureFilterMode, _BorderHandlingMode)
+					image_view_t::create(
+						create_image_from_file(pair.first, true, potentiallySrgb, 4, cgb::memory_usage::device, aImageUsage, getSync())),
+					sampler_t::create(aTextureFilteMode, aBorderHandlingMode)
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -471,8 +330,9 @@ namespace cgb
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto [positionsData, indicesData] = get_combined_vertices_and_indices_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
@@ -480,25 +340,18 @@ namespace cgb
 				.describe_only_member(positionsData[0], 0, content_description::position),
 			cgb::memory_usage::device,
 			positionsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(positionsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
+			// It is fine to let positionsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(indicesData),
 			cgb::memory_usage::device,
 			indicesData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(indicesData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			}
+			std::move(aSyncHandler)
+			// It is fine to let indicesData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
@@ -518,23 +371,20 @@ namespace cgb
 		return normalsData;
 	}
 	
-	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto normalsData = get_combined_normals_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer normalsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(normalsData),
 			cgb::memory_usage::device,
 			normalsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(normalsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let normalsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
-
+		
 		return normalsBuffer;
 	}
 
@@ -552,21 +402,18 @@ namespace cgb
 		return tangentsData;
 	}
 	
-	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto tangentsData = get_combined_tangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer tangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(tangentsData),
 			cgb::memory_usage::device,
 			tangentsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(tangentsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let tangentsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return tangentsBuffer;
@@ -582,25 +429,22 @@ namespace cgb
 				insert_into(bitangentsData, modelRef.bitangents_for_mesh(meshIndex));
 			}
 		}
-		
+
 		return bitangentsData;
 	}
 	
-	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto bitangentsData = get_combined_bitangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
 		
 		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
 			cgb::memory_usage::device,
 			bitangentsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(bitangentsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let bitangentsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return bitangentsBuffer;
@@ -620,21 +464,18 @@ namespace cgb
 		return colorsData;
 	}
 	
-	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto colorsData = get_combined_colors_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _ColorsSet);
 		
 		vertex_buffer colorsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(colorsData),
 			cgb::memory_usage::device,
 			colorsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(colorsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let colorsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return colorsBuffer;
@@ -654,21 +495,18 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto texCoordsData = get_combined_2d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,
 			texCoordsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let texCoordsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return texCoordsBuffer;
@@ -688,21 +526,18 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler, std::vector<semaphore> _WaitSemaphores)
+	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto texCoordsData = get_combined_3d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
 			cgb::memory_usage::device,
 			texCoordsData.data(),
-			[&] (semaphore _Semaphore) {  
-				_Semaphore->set_custom_deleter([
-					ownedData{ std::move(texCoordsData) } // Let the semaphore handle the lifetime of the data buffer
-				](){});
-				handle_semaphore(std::move(_Semaphore), _SemaphoreHandler);
-			},
-			std::move(_WaitSemaphores)
+			std::move(aSyncHandler)
+			// It is fine to let texCoordsData go out of scope, since its data has been copied to a
+			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 		);
 
 		return texCoordsBuffer;

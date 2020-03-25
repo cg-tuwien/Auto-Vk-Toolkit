@@ -86,6 +86,16 @@ namespace cgb
 		return { vk::Format::eD24UnormS8Uint };
 	}
 
+
+	image_format image_format::from_window_color_buffer(window* aWindow)
+	{
+		if (nullptr == aWindow) {
+			aWindow = cgb::context().main_window();
+		}
+		return aWindow->swap_chain_image_format();
+	}
+	
+
 	bool is_srgb_format(const image_format& pImageFormat)
 	{
 		// Note: Currently, the compressed formats are ignored => could/should be added in the future, maybe
@@ -696,19 +706,29 @@ namespace cgb
 		return std::make_tuple(imageUsage, targetLayout, imageTiling, imageCreateFlags);
 	}
 
-
-
-
-
-
-
-	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	image_t::image_t(const image_t& aOther)
+	{
+		if (std::holds_alternative<vk::Image>(aOther.mImage)) {
+			assert(!aOther.mMemory);
+			mInfo = aOther.mInfo; 
+			mImage = std::get<vk::Image>(aOther.mImage);
+			mTargetLayout = aOther.mTargetLayout;
+			mCurrentLayout = aOther.mCurrentLayout;
+			mImageUsage = aOther.mImageUsage;
+			mAspectFlags = aOther.mAspectFlags;
+		}
+		else {
+			throw std::runtime_error("Can not copy this image instance!");
+		}
+	}
+	
+	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, image_format aFormat, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
-		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(pImageUsage);
+		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
 
 		vk::MemoryPropertyFlags memoryFlags{};
-		switch (pMemoryUsage) {
+		switch (aMemoryUsage) {
 		case cgb::memory_usage::host_visible:
 			memoryFlags = vk::MemoryPropertyFlagBits::eHostVisible;
 			break;
@@ -733,19 +753,20 @@ namespace cgb
 		}
 
 		// How many MIP-map levels are we going to use?
-		auto mipLevels = pUseMipMaps
-			? static_cast<uint32_t>(std::floor(std::log2(std::max(pWidth, pHeight))) + 1)
+		auto mipLevels = aUseMipMaps
+			? static_cast<uint32_t>(std::floor(std::log2(std::max(aWidth, aHeight))) + 1)
 			: 1u;
 
 		image_t result;
+		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
 		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
-			.setExtent(vk::Extent3D(static_cast<uint32_t>(pWidth), static_cast<uint32_t>(pHeight), 1u))
+			.setExtent(vk::Extent3D(static_cast<uint32_t>(aWidth), static_cast<uint32_t>(aHeight), 1u))
 			.setMipLevels(mipLevels)
-			.setArrayLayers(1u)
-			.setFormat(pFormat.mFormat)
+			.setArrayLayers(1u) // TODO: support multiple array layers
+			.setFormat(aFormat.mFormat)
 			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
@@ -754,22 +775,22 @@ namespace cgb
 			.setFlags(imageCreateFlags); // Optional;
 
 		// Maybe alter the config?!
-		if (pAlterConfigBeforeCreation.mFunction) {
-			pAlterConfigBeforeCreation.mFunction(result);
+		if (aAlterConfigBeforeCreation.mFunction) {
+			aAlterConfigBeforeCreation.mFunction(result);
 		}
 
 		// Create the image...
 		result.mImage = context().logical_device().createImageUnique(result.mInfo);
 
 		// ... and the memory:
-		auto memRequirements = context().logical_device().getImageMemoryRequirements(result.image_handle());
+		auto memRequirements = context().logical_device().getImageMemoryRequirements(result.handle());
 		auto allocInfo = vk::MemoryAllocateInfo()
 			.setAllocationSize(memRequirements.size)
 			.setMemoryTypeIndex(context().find_memory_type_index(memRequirements.memoryTypeBits, memoryFlags));
 		result.mMemory = context().logical_device().allocateMemoryUnique(allocInfo);
 
 		// bind them together:
-		context().logical_device().bindImageMemory(result.image_handle(), result.memory_handle(), 0);
+		context().logical_device().bindImageMemory(result.handle(), result.memory_handle(), 0);
 		
 		return result;
 	}
@@ -793,7 +814,9 @@ namespace cgb
 		pImageUsage |= image_usage::depth_stencil_attachment;
 
 		// Create the image (by default only on the device which should be sufficient for a depth buffer => see pMemoryUsage's default value):
-		return image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth;
+		return result;
 	}
 
 	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
@@ -813,49 +836,68 @@ namespace cgb
 		}
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
-		return image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+		return result;
+	}
+
+	image_t image_t::wrap(vk::Image aImageToWrap, vk::ImageCreateInfo aImageCreateInfo, image_usage aImageUsage, vk::ImageAspectFlags aImageAspectFlags)
+	{
+		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
+		
+		image_t result;
+		result.mInfo = aImageCreateInfo;
+		result.mImage = aImageToWrap;		
+		result.mTargetLayout = targetLayout;
+		result.mCurrentLayout = vk::ImageLayout::eUndefined;
+		result.mImageUsage = aImageUsage;
+		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
+		return result;
+	}
+	
+	vk::ImageSubresourceRange image_t::entire_subresource_range() const
+	{
+		return vk::ImageSubresourceRange{
+			mAspectFlags,
+			0u, mInfo.mipLevels,	// MIP info
+			0u, mInfo.arrayLayers	// Layers info
+		};
 	}
 
 
-
-	vk::ImageMemoryBarrier create_image_barrier(vk::Image pImage, vk::Format pFormat, vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange)
+	void image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
 	{
-		if (!pSubresourceRange) {
-			vk::ImageAspectFlags aspectMask;
-			if (pNewLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-				aspectMask = vk::ImageAspectFlagBits::eDepth;
-				if (has_stencil_component(cgb::image_format(pFormat))) {
-					aspectMask |= vk::ImageAspectFlagBits::eStencil;
-				}
-			}
-			else {
-				aspectMask = vk::ImageAspectFlagBits::eColor;
-			}
+		const auto curLayout = current_layout();
+		const auto trgLayout = aTargetLayout.value_or(target_layout());
+		mTargetLayout = trgLayout;
 
-			pSubresourceRange = vk::ImageSubresourceRange()
-				.setAspectMask(aspectMask)
-				.setBaseMipLevel(0u)
-				.setLevelCount(1u)
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u);
+		if (curLayout == trgLayout) {
+			return; // done (:
 		}
+		
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 
-		return vk::ImageMemoryBarrier()
-			.setOldLayout(pOldLayout)
-			.setNewLayout(pNewLayout)
-			// If you are using the barrier to transfer queue family ownership, then these two fields should be the indices of the queue 
-			// families.They must be set to VK_QUEUE_FAMILY_IGNORED if you don't want to do this (not the default value!). [3]
-			.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-			.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-			.setImage(pImage)
-			.setSubresourceRange(*pSubresourceRange)
-			.setSrcAccessMask(pSrcAccessMask)
-			.setDstAccessMask(pDstAccessMask);
-	}
+		// Not done => perform a transition via an image memory barrier inside a command buffer
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(
+			pipeline_stage::transfer,	// Just use the transfer stage to create an execution dependency chain
+			read_memory_access{memory_access::transfer_read_access}
+		);VkImageMemoryBarrier asfd; 
 
-	vk::ImageMemoryBarrier image_t::create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange) const
-	{
-		return create_image_barrier(image_handle(), mInfo.format, pSrcAccessMask, pDstAccessMask, pOldLayout, pNewLayout, pSubresourceRange);
+		// An image's layout is tranformed by the means of an image memory barrier:
+		commandBuffer.establish_image_memory_barrier(*this,
+			pipeline_stage::transfer, pipeline_stage::transfer,				// Execution dependency chain
+			std::optional<memory_access>{}, std::optional<memory_access>{}	// There should be no need to make any memory available or visible... the image should be available already (see above)
+		);
+
+		// Act as if the layout transition was successful already:
+		mCurrentLayout = mTargetLayout;
+		
+		aSyncHandler.establish_barrier_after_the_operation(
+			pipeline_stage::transfer,	// The end of the execution dependency chain
+			write_memory_access{memory_access::transfer_write_access}
+		);
+		aSyncHandler.submit_and_sync();
 	}
 
 

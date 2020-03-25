@@ -25,6 +25,8 @@ namespace cgb
 		static image_format default_depth_stencil_format() noexcept;
 
 		vk::Format mFormat;
+
+		static image_format from_window_color_buffer(window* aWindow = nullptr);
 	};
 
 	/** Analyze the given `cgb::image_usage` flags, and assemble some (hopefully valid) `vk::ImageUsageFlags`, and determine `vk::ImageLayout` and `vk::ImageTiling`. */
@@ -36,7 +38,7 @@ namespace cgb
 	{
 	public:
 		image_t() = default;
-		image_t(const image_t&) = delete;
+		image_t(const image_t& aOther);
 		image_t(image_t&&) = default;
 		image_t& operator=(const image_t&) = delete;
 		image_t& operator=(image_t&&) = default;
@@ -47,7 +49,12 @@ namespace cgb
 		/** Get the config which is used to created this image with the API. */
 		auto& config() { return mInfo; }
 		/** Gets the image handle. */
-		const auto& image_handle() const { return mImage.get(); }
+		const auto& handle() const
+		{
+			assert(!std::holds_alternative<std::monostate>(mImage));
+			return std::holds_alternative<vk::Image>(mImage) ? std::get<vk::Image>(mImage) : std::get<vk::UniqueImage>(mImage).get();
+		}
+		
 		/** Gets the handle to the image's memory. */
 		const auto& memory_handle() const { return mMemory.get(); }
 		/** Gets the width of the image */
@@ -59,17 +66,31 @@ namespace cgb
 		/** Gets the format of the image */
 		image_format format() const { return image_format{ config().format }; }
 
-		/** Gets this image's target layout as specified during image creation. */
-		const auto& target_layout() const { return mTargetLayout; }
+		/**	Sets a new target layout for this image, simply overwriting any previous value.
+		 *	Attention: Only use if you know what you are doing!
+		 */
+		void set_target_layout(vk::ImageLayout aNewTargetLayout) { mTargetLayout = aNewTargetLayout; }
 
-		/** Sets the current image layout */
-		void set_current_layout(vk::ImageLayout _NewLayout) { mCurrentLayout = _NewLayout; }
+		/** Gets this image's target layout as specified during image creation. */
+		auto target_layout() const { return mTargetLayout; }
+
+		/** Sets the current image layout.
+		 *	Attention: Only use if you know what you are doing!
+		 */
+		void set_current_layout(vk::ImageLayout aNewLayout) { mCurrentLayout = aNewLayout; }
+		
 		/** Gets the current image layout */
-		const auto& current_layout() const { return mCurrentLayout; }
+		auto current_layout() const { return mCurrentLayout; }
 
 		/** Gets the usage config flags as specified during image creation. */
-		const auto& usage_config() const { return mImageUsage; }
+		auto usage_config() const { return mImageUsage; }
 
+		/** Gets a struct defining the subresource range, encompassing all subresources associated with this image,
+		 *	i.e. all layers, all mip-levels
+		 */
+		vk::ImageSubresourceRange entire_subresource_range() const;
+
+#pragma region static creation methods
 		/** Creates a new image
 		 *	@param	pWidth						The width of the image to be created
 		 *	@param	pHeight						The height of the image to be created
@@ -107,22 +128,26 @@ namespace cgb
 		*/
 		static owning_resource<image_t> create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat = std::nullopt, bool pUseMipMaps = false, int pNumLayers = 1,  memory_usage pMemoryUsage = memory_usage::device, image_usage pImageUsage = image_usage::read_only_depth_stencil_attachment, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
 
-		// TODO: What to do with this one: ??
-		vk::ImageMemoryBarrier create_barrier(vk::AccessFlags pSrcAccessMask, vk::AccessFlags pDstAccessMask, vk::ImageLayout pOldLayout, vk::ImageLayout pNewLayout, std::optional<vk::ImageSubresourceRange> pSubresourceRange = std::nullopt) const;
+		static image_t wrap(vk::Image aImageToWrap, vk::ImageCreateInfo aImageCreateInfo, image_usage aImageUsage, vk::ImageAspectFlags aImageAspectFlags);
+#pragma endregion
 
+		void transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout = {}, sync aSyncHandler = sync::wait_idle());
+		
 	private:
 		// The memory handle. This member will contain a valid handle only after successful image creation.
 		vk::UniqueDeviceMemory mMemory;
 		// The image create info which contains all the parameters for image creation
 		vk::ImageCreateInfo mInfo;
 		// The image handle. This member will contain a valid handle only after successful image creation.
-		vk::UniqueImage mImage;
+		std::variant<std::monostate, vk::UniqueImage, vk::Image> mImage;
 		// The image's target layout
 		vk::ImageLayout mTargetLayout;
 		// The current image layout
 		vk::ImageLayout mCurrentLayout;
 		// The image_usage flags specified during creation
 		image_usage mImageUsage;
+		// Image aspect flags (set during creation)
+		vk::ImageAspectFlags mAspectFlags;
 	};
 
 	/** Typedef representing any kind of OWNING image representations. */
@@ -134,7 +159,7 @@ namespace cgb
 	 */
 	static bool operator==(const image_t& left, const image_t& right)
 	{
-		return left.image_handle() == right.image_handle()
+		return left.handle() == right.handle()
 			&& left.memory_handle() == right.memory_handle();
 	}
 
@@ -151,7 +176,7 @@ namespace std // Inject hash for `cgb::image_sampler_t` into std::
 	{
 		std::size_t operator()(cgb::image_t const& o) const noexcept
 		{
-			std::size_t h = std::hash<VkImage>{}(o.image_handle());
+			std::size_t h = std::hash<VkImage>{}(o.handle());
 			return h;
 		}
 	};
