@@ -6,10 +6,10 @@ namespace cgb
 	class compute_pipeline_t
 	{
 	public:
-		compute_pipeline_t() = default;
-		compute_pipeline_t(compute_pipeline_t&&) = default;
+		compute_pipeline_t() noexcept = default;
+		compute_pipeline_t(compute_pipeline_t&&) noexcept = default;
 		compute_pipeline_t(const compute_pipeline_t&) = delete;
-		compute_pipeline_t& operator=(compute_pipeline_t&&) = default;
+		compute_pipeline_t& operator=(compute_pipeline_t&&) noexcept = default;
 		compute_pipeline_t& operator=(const compute_pipeline_t&) = delete;
 		~compute_pipeline_t() = default;
 

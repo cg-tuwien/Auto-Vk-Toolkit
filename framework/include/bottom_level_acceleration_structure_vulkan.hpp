@@ -8,11 +8,11 @@ namespace cgb
 		friend void finish_acceleration_structure_creation(T&, cgb::context_specific_function<void(T&)>);
 
 	public:
-		bottom_level_acceleration_structure_t() = default;
+		bottom_level_acceleration_structure_t() noexcept = default;
 		bottom_level_acceleration_structure_t(const bottom_level_acceleration_structure_t&) = delete;
-		bottom_level_acceleration_structure_t(bottom_level_acceleration_structure_t&&) = default;
+		bottom_level_acceleration_structure_t(bottom_level_acceleration_structure_t&&) noexcept = default;
 		bottom_level_acceleration_structure_t& operator=(const bottom_level_acceleration_structure_t&) = delete;
-		bottom_level_acceleration_structure_t& operator=(bottom_level_acceleration_structure_t&&) = default;
+		bottom_level_acceleration_structure_t& operator=(bottom_level_acceleration_structure_t&&) noexcept = default;
 		~bottom_level_acceleration_structure_t() = default;
 
 		const auto& config() const { return mAccStructureInfo; }

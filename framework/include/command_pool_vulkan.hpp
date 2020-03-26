@@ -15,11 +15,11 @@ namespace cgb // ========================== TODO/WIP ===========================
 	class command_pool
 	{
 	public:
-		command_pool() = default;
+		command_pool() noexcept = default;
 		command_pool(const command_pool&) = delete;
-		command_pool(command_pool&&) = default;
+		command_pool(command_pool&&) noexcept = default;
 		command_pool& operator=(const command_pool&) = delete;
-		command_pool& operator=(command_pool&&) = default;
+		command_pool& operator=(command_pool&&) noexcept = default;
 		~command_pool() = default;
 
 		auto queue_family_index() const { return mQueueFamilyIndex; }

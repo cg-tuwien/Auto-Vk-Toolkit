@@ -259,10 +259,10 @@ namespace cgb
 	public:
 		using value_type = T;
 
-		owning_resource() : std::variant<std::monostate, T, std::shared_ptr<T>>() {}
-		owning_resource(T&& r) : std::variant<std::monostate, T, std::shared_ptr<T>>(std::move(r)) {}
+		owning_resource() noexcept : std::variant<std::monostate, T, std::shared_ptr<T>>() {}
+		owning_resource(T&& r) noexcept : std::variant<std::monostate, T, std::shared_ptr<T>>(std::move(r)) {}
+		owning_resource(owning_resource<T>&&) noexcept = default;
 		owning_resource(const T&) = delete;
-		owning_resource(owning_resource<T>&&) = default;
 		owning_resource(const owning_resource<T>& other)
 		{
 			if (other.has_value()) {
@@ -289,9 +289,9 @@ namespace cgb
 				assert(!has_value());
 			}
 		}
-		owning_resource<T>& operator=(T&& r) { *this_as_variant() = std::move(r); return *this; }
+		owning_resource<T>& operator=(T&& r) noexcept { *this_as_variant() = std::move(r); return *this; }
 		owning_resource<T>& operator=(const T&) = delete;
-		owning_resource<T>& operator=(owning_resource<T>&& r) = default;
+		owning_resource<T>& operator=(owning_resource<T>&& r) noexcept = default;
 		owning_resource<T>& operator=(const owning_resource<T>& other)
 		{
 			if (other.has_value()) {
@@ -320,11 +320,11 @@ namespace cgb
 			return *this;
 		}
 
-		bool is_shared_ownership_enabled() const { return std::holds_alternative<std::shared_ptr<T>>(*this); }
-		bool has_value() const { return !std::holds_alternative<std::monostate>(*this); }
-		bool holds_item_directly() const { return std::holds_alternative<T>(*this); }
-		const std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() const { return static_cast<const std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
-		std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() { return static_cast<std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
+		bool is_shared_ownership_enabled() const noexcept { return std::holds_alternative<std::shared_ptr<T>>(*this); }
+		bool has_value() const noexcept { return !std::holds_alternative<std::monostate>(*this); }
+		bool holds_item_directly() const noexcept { return std::holds_alternative<T>(*this); }
+		const std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() const noexcept { return static_cast<const std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
+		std::variant<std::monostate, T, std::shared_ptr<T>>* this_as_variant() noexcept { return static_cast<std::variant<std::monostate, T, std::shared_ptr<T>>*>(this); }
 
 		void enable_shared_ownership()
 		{
@@ -337,36 +337,36 @@ namespace cgb
 			*this_as_variant() = std::make_shared<T>(std::move(std::get<T>(*this)));
 		}
 
-		operator const T&() const 
+		operator const T&() const noexcept
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
 			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 
-		operator T&() 
+		operator T&() noexcept 
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
 			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 		
-		const T& operator*() const
+		const T& operator*() const noexcept
 		{
 			return this->operator const T&();
 		}
 		
-		T& operator*()
+		T& operator*() noexcept
 		{
 			return this->operator T&();
 		}
 		
-		const T* operator->() const
+		const T* operator->() const noexcept
 		{
 			return &this->operator const T&();
 		}
 		
-		T* operator->()
+		T* operator->() noexcept
 		{
 			return &this->operator T&();
 		}
@@ -387,7 +387,7 @@ namespace cgb
 	        Fn fn;
 
 	        template<typename... Args>
-	        auto operator()(Args&&... args) { return fn(std::forward<Args>(args)...); }
+	        auto operator()(Args&&... args) noexcept { return fn(std::forward<Args>(args)...); }
 	    };
 
 	    // specialization for MoveConstructible-only Fn
@@ -397,59 +397,59 @@ namespace cgb
 	    {
 	        Fn fn;
 
-	        wrapper(Fn fn) : fn(std::move(fn)) { }
+	        wrapper(Fn fn) noexcept : fn(std::move(fn)) { }
 
-	        wrapper(wrapper&&) = default;
-	        wrapper& operator=(wrapper&&) = default;
+	        wrapper(wrapper&&) noexcept = default;
+	        wrapper& operator=(wrapper&&) noexcept = default;
 
 	        // these two functions are instantiated by std::function and are never called
-	        wrapper(const wrapper& rhs) : fn(const_cast<Fn&&>(rhs.fn)) { throw std::logic_error("never called"); } // hack to initialize fn for non-DefaultContructible types
-	        wrapper& operator=(const wrapper&) { throw std::logic_error("never called"); }
+	        wrapper(const wrapper& rhs) noexcept : fn(const_cast<Fn&&>(rhs.fn)) { throw std::logic_error("never called"); } // hack to initialize fn for non-DefaultContructible types
+	        wrapper& operator=(const wrapper&) noexcept { throw std::logic_error("never called"); }
 
 			~wrapper() = default;
 
 	        template<typename... Args>
-	        auto operator()(Args&&... args) { return fn(std::forward<Args>(args)...); }
+	        auto operator()(Args&&... args) noexcept { return fn(std::forward<Args>(args)...); }
 	    };
 
 	    using base = std::function<T>;
 
 	public:
-		unique_function() = default;
-		unique_function(std::nullptr_t) : base(nullptr) {}
-		unique_function(const unique_function&) = default;
-		unique_function(unique_function&&) = default;
+		unique_function() noexcept = default;
+		unique_function(std::nullptr_t) noexcept : base(nullptr) {}
+		unique_function(const unique_function&) noexcept = default;
+		unique_function(unique_function&&) noexcept = default;
 
 		template<class Fn> 
-		unique_function(Fn f) : base( wrapper<Fn>{ std::move(f) }) {}
+		unique_function(Fn f) noexcept : base( wrapper<Fn>{ std::move(f) }) {}
 
 		~unique_function() = default;
 
-		unique_function& operator=(const unique_function& other) = default;
-		unique_function& operator=(unique_function&& other) = default;
-		unique_function& operator=(std::nullptr_t)
+		unique_function& operator=(const unique_function&) noexcept = default;
+		unique_function& operator=(unique_function&&) noexcept = default;
+		unique_function& operator=(std::nullptr_t) noexcept
 		{
 			base::operator=(nullptr); return *this;
 		}
 
 		template<typename Fn>
-	    unique_function& operator=(Fn&& f)
+	    unique_function& operator=(Fn&& f) noexcept
 	    { base::operator=(wrapper<Fn>{ std::forward<Fn>(f) }); return *this; }
 
 		template<typename Fn>
-	    unique_function& operator=(std::reference_wrapper<Fn> f)
+	    unique_function& operator=(std::reference_wrapper<Fn> f) noexcept
 	    { base::operator=(wrapper<Fn>{ std::move(f) }); return *this; }
 
 		template<class Fn> 
-		Fn* target()
+		Fn* target() noexcept
 		{ return &base::template target<wrapper<Fn>>()->fn; }
 
 		template<class Fn> 
-		Fn* target() const
+		Fn* target() const noexcept
 		{ return &base::template target<wrapper<Fn>>()->fn; }
 
 		template<class Fn> 
-		const std::type_info& target_type() const
+		const std::type_info& target_type() const noexcept
 		{ return typeid(*target<Fn>()); }
 
 		using base::swap;
@@ -459,31 +459,31 @@ namespace cgb
 
 		
 	template< class R, class... Args >
-	static void swap( unique_function<R(Args...)> &lhs, unique_function<R(Args...)> &rhs )
+	static void swap( unique_function<R(Args...)> &lhs, unique_function<R(Args...)> &rhs ) noexcept
 	{
 		lhs.swap(rhs);
 	}
 
 	template< class R, class... ArgTypes >
-	static bool operator==( const unique_function<R(ArgTypes...)>& f, std::nullptr_t )
+	static bool operator==( const unique_function<R(ArgTypes...)>& f, std::nullptr_t ) noexcept
 	{
 		return !f;
 	}
 
 	template< class R, class... ArgTypes >
-	static bool operator==( std::nullptr_t, const unique_function<R(ArgTypes...)>& f )
+	static bool operator==( std::nullptr_t, const unique_function<R(ArgTypes...)>& f ) noexcept
 	{
 		return !f;
 	}
 
 	template< class R, class... ArgTypes >
-	static bool operator!=( const unique_function<R(ArgTypes...)>& f, std::nullptr_t )
+	static bool operator!=( const unique_function<R(ArgTypes...)>& f, std::nullptr_t ) noexcept
 	{
 		return static_cast<bool>(f);
 	}
 
 	template< class R, class... ArgTypes >
-	static bool operator!=( std::nullptr_t, const unique_function<R(ArgTypes...)>& f )
+	static bool operator!=( std::nullptr_t, const unique_function<R(ArgTypes...)>& f ) noexcept
 	{
 		return static_cast<bool>(f);
 	}
@@ -493,7 +493,7 @@ namespace cgb
 	 *  TODO: Should a larger magic constant be used since we're only supporting x64 and hence, size_t will always be 64bit?!
 	 */
 	template <typename T, typename... Rest>
-	void hash_combine(std::size_t& seed, const T& v, const Rest&... rest)
+	void hash_combine(std::size_t& seed, const T& v, const Rest&... rest) noexcept
 	{
 		seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		(hash_combine(seed, rest), ...);

@@ -10,11 +10,11 @@ namespace cgb
 	class descriptor_set_layout
 	{
 	public:
-		descriptor_set_layout() = default;
+		descriptor_set_layout() noexcept = default;
 		descriptor_set_layout(const descriptor_set_layout&) = delete;
-		descriptor_set_layout(descriptor_set_layout&&) = default;
+		descriptor_set_layout(descriptor_set_layout&&) noexcept = default;
 		descriptor_set_layout& operator=(const descriptor_set_layout&) = delete;
-		descriptor_set_layout& operator=(descriptor_set_layout&&) = default;
+		descriptor_set_layout& operator=(descriptor_set_layout&&) noexcept = default;
 		~descriptor_set_layout() = default;
 
 		const auto& required_pool_sizes() const { return mBindingRequirements; }
@@ -97,11 +97,11 @@ namespace cgb
 	class set_of_descriptor_set_layouts
 	{
 	public:
-		set_of_descriptor_set_layouts() = default;
+		set_of_descriptor_set_layouts() noexcept = default;
 		set_of_descriptor_set_layouts(const set_of_descriptor_set_layouts&) = delete;
-		set_of_descriptor_set_layouts(set_of_descriptor_set_layouts&&) = default;
+		set_of_descriptor_set_layouts(set_of_descriptor_set_layouts&&) noexcept = default;
 		set_of_descriptor_set_layouts& operator=(const set_of_descriptor_set_layouts&) = delete;
-		set_of_descriptor_set_layouts& operator=(set_of_descriptor_set_layouts&&) = default;
+		set_of_descriptor_set_layouts& operator=(set_of_descriptor_set_layouts&&) noexcept = default;
 		~set_of_descriptor_set_layouts() = default;
 
 		static set_of_descriptor_set_layouts prepare(std::vector<binding_data> pBindings);
@@ -125,11 +125,11 @@ namespace cgb
 	class descriptor_set
 	{
 	public:
-		descriptor_set() = default;
+		descriptor_set() noexcept = default;
+		descriptor_set(descriptor_set&&) noexcept = default;
 		descriptor_set(const descriptor_set&) = delete;
-		descriptor_set(descriptor_set&&) = default;
+		descriptor_set& operator=(descriptor_set&&) noexcept = default;
 		descriptor_set& operator=(const descriptor_set&) = delete;
-		descriptor_set& operator=(descriptor_set&&) = default;
 		~descriptor_set() = default;
 
 		auto& descriptor_sets() const { return mDescriptorSets; }

@@ -6,11 +6,11 @@ namespace cgb
 	class buffer_view_t
 	{
 	public:
-		buffer_view_t() = default;
+		buffer_view_t() noexcept = default;
 		buffer_view_t(const buffer_view_t&) = delete;
-		buffer_view_t(buffer_view_t&&) = default;
+		buffer_view_t(buffer_view_t&&) noexcept = default;
 		buffer_view_t& operator=(const buffer_view_t&) = delete;
-		buffer_view_t& operator=(buffer_view_t&&) = default;
+		buffer_view_t& operator=(buffer_view_t&&) noexcept = default;
 		~buffer_view_t() = default;
 
 		/** Get the config which is used to created this image view with the API. */

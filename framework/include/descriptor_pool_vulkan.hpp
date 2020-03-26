@@ -9,10 +9,10 @@ namespace cgb
 	class descriptor_alloc_request
 	{
 	public:
-		descriptor_alloc_request() = default;
-		descriptor_alloc_request(descriptor_alloc_request&&) = default;
+		descriptor_alloc_request() noexcept = default;
+		descriptor_alloc_request(descriptor_alloc_request&&) noexcept = default;
 		descriptor_alloc_request& operator=(const descriptor_alloc_request&) = delete;
-		descriptor_alloc_request& operator=(descriptor_alloc_request&&) = default;
+		descriptor_alloc_request& operator=(descriptor_alloc_request&&) noexcept = default;
 		~descriptor_alloc_request() = default;
 
 		auto& layouts_to_allocate() const { return mToAlloc; }
@@ -30,10 +30,10 @@ namespace cgb
 	class descriptor_pool
 	{
 	public:
-		descriptor_pool() = default;
-		descriptor_pool(descriptor_pool&&) = default;
+		descriptor_pool() noexcept = default;
+		descriptor_pool(descriptor_pool&&) noexcept = default;
 		descriptor_pool& operator=(const descriptor_pool&) = delete;
-		descriptor_pool& operator=(descriptor_pool&&) = default;
+		descriptor_pool& operator=(descriptor_pool&&) noexcept = default;
 		~descriptor_pool() = default;
 
 		const auto& handle() const { return mDescriptorPool.get(); }
