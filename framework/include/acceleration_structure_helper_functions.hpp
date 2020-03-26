@@ -4,7 +4,7 @@ namespace cgb
 {	
 	// Helper function used in both, bottom_level_acceleration_structure_t::create and top_level_acceleration_structure_t::create
 	template <typename T>
-	void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc)
+	void finish_acceleration_structure_creation(T& result, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc) noexcept
 	{
 		// ------------- Memory ------------
 		// 6. Query memory requirements

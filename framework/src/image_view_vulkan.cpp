@@ -24,7 +24,7 @@ namespace cgb
 		image_view_t result;
 		
 		// Transfer ownership:
-		result.mImage = image_view_t::helper_t{ std::move(aImageToWrap) };
+		result.mImage = image_view_t::helper_t( std::move(aImageToWrap) );
 
 		// What's the format of the image view?
 		if (!aViewFormat) {

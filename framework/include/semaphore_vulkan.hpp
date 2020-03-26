@@ -10,10 +10,10 @@ namespace cgb
 	{
 	public:
 		semaphore_t();
+		semaphore_t(semaphore_t&&) noexcept = default;
 		semaphore_t(const semaphore_t&) = delete;
-		semaphore_t(semaphore_t&&) = default;
+		semaphore_t& operator=(semaphore_t&&) noexcept = default;
 		semaphore_t& operator=(const semaphore_t&) = delete;
-		semaphore_t& operator=(semaphore_t&&) = default;
 		~semaphore_t();
 
 		/**	Stage where to wait for this semaphore, i.e. stage which the following operation has to wait for.
@@ -25,20 +25,20 @@ namespace cgb
 		 *	This is often used for resource cleanup, e.g. a buffer which can be deleted when this semaphore is destroyed.
 		 */
 		template <typename F>
-		semaphore_t& set_custom_deleter(F&& _Deleter) 
+		semaphore_t& set_custom_deleter(F&& aDeleter) noexcept
 		{
 			if (mCustomDeleter.has_value()) {
 				// There is already a custom deleter! Make sure that this stays alive as well.
 				mCustomDeleter = [
 					existingDeleter = std::move(mCustomDeleter.value()),
-					additionalDeleter = std::forward<F>(_Deleter)
+					additionalDeleter = std::forward<F>(aDeleter)
 				]() {
 					additionalDeleter();
 					existingDeleter();
 				};
 			}
 			else {
-				mCustomDeleter = std::forward<F>(_Deleter);
+				mCustomDeleter = std::forward<F>(aDeleter);
 			}
 			return *this;
 		}

@@ -9,9 +9,9 @@ namespace cgb
 	{
 	public:
 		renderpass_t() = default;
-		renderpass_t(renderpass_t&&) = default;
+		renderpass_t(renderpass_t&&) noexcept = default;
 		renderpass_t(const renderpass_t&) = delete;
-		renderpass_t& operator=(renderpass_t&&) = default;
+		renderpass_t& operator=(renderpass_t&&) noexcept = default;
 		renderpass_t& operator=(const renderpass_t&) = delete;
 		~renderpass_t() = default;
 
@@ -77,7 +77,7 @@ namespace cgb
 	using renderpass = owning_resource<renderpass_t>;
 	
 
-	extern bool are_compatible(const renderpass& first, const renderpass& second);
+	extern bool are_compatible(const renderpass& first, const renderpass& second) noexcept;
 
 	//// Helper function:
 	//template <typename V>

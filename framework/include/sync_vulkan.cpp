@@ -76,57 +76,36 @@ namespace cgb
 		sync result;
 		return result;
 	}
-	
-	sync sync::with_semaphores(std::function<void(semaphore)> aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation)
-	{
-		sync result;
-		result.mSemaphoreLifetimeHandler = std::move(aSignalledAfterOperation);
-		result.mWaitBeforeSemaphores = std::move(aWaitBeforeOperation);
-		return result;
-	}
-	
+
 	sync sync::with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation, cgb::window* aWindow)
 	{
-		sync result;
-		result.mSemaphoreLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aSemaphore) {  
-			wnd->set_extra_semaphore_dependency(std::move(aSemaphore));
-		};
-		result.mWaitBeforeSemaphores = std::move(aWaitBeforeOperation);
-		return result;
+		return sync::with_semaphores(
+			[wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (semaphore aSemaphore) {  
+				wnd->set_extra_semaphore_dependency(std::move(aSemaphore));
+			}, 
+			std::move(aWaitBeforeOperation)
+		);
 	}
-	
-	sync sync::with_barriers(
-			std::function<void(command_buffer)> aCommandBufferLifetimeHandler,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
-		)
-	{
-		sync result;
-		result.mCommandBufferRefOrLifetimeHandler = std::move(aCommandBufferLifetimeHandler); // <-- Set the lifetime handler, not the command buffer reference.
-		result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
-		result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
-		return result;
-	}
-	
+		
 	sync sync::with_barriers_on_current_frame(
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
 			cgb::window* aWindow
 		)
 	{
-		sync result;
-		result.mCommandBufferRefOrLifetimeHandler = [wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
-			wnd->handle_single_use_command_buffer_lifetime(std::move(aCmdBfr));
-		};  // <-- Set the lifetime handler, not the command buffer reference.
-		result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
-		result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
-		return result;
+		return sync::with_barriers(
+			[wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
+				wnd->handle_single_use_command_buffer_lifetime(std::move(aCmdBfr));
+			},
+			std::move(aEstablishBarrierBeforeOperation),
+			std::move(aEstablishBarrierAfterOperation)
+		);
 	}
 
 	sync sync::auxiliary_with_barriers(
 			sync& aMasterSync,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		)
 	{
 		// Perform some checks
@@ -287,11 +266,11 @@ namespace cgb
 			break;
 		case sync_type::via_barrier:
 			assert(!std::holds_alternative<std::monostate>(mCommandBufferRefOrLifetimeHandler));
-			if (std::holds_alternative<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)) {
+			if (std::holds_alternative<unique_function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)) {
 				assert(mCommandBuffer.has_value());
 				mCommandBuffer.value()->end_recording();	// What started in get_or_create_command_buffer() ends here.
 				queue.submit(mCommandBuffer.value());
-				std::get<std::function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)(std::move(mCommandBuffer.value())); // Transfer ownership and be done with it.
+				std::get<unique_function<void(command_buffer)>>(mCommandBufferRefOrLifetimeHandler)(std::move(mCommandBuffer.value())); // Transfer ownership and be done with it.
 				mCommandBuffer.reset();						// Command buffer has been moved from. It's gone.
 			}
 			else { // Must mean that we are an auxiliary sync handler

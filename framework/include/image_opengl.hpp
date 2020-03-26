@@ -5,8 +5,8 @@ namespace cgb
 	/** TBD */
 	struct image_format
 	{
-		image_format() noexcept;
-		image_format(GLenum pFormat) noexcept;
+		image_format();
+		image_format(GLenum pFormat);
 
 		GLenum mFormat;
 	};
@@ -17,10 +17,10 @@ namespace cgb
 	{
 	public:
 		image_t() = default;
+		image_t(image_t&&) noexcept = default;
 		image_t(const image_t&) = delete;
-		image_t(image_t&&) = default;
+		image_t& operator=(image_t&&) noexcept = default;
 		image_t& operator=(const image_t&) = delete;
-		image_t& operator=(image_t&&) = default;
 		~image_t() = default;
 
 		static owning_resource<image_t> create(int pWidth, int pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps = false, int pNumLayers = 1, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});

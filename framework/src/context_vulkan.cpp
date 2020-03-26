@@ -887,7 +887,7 @@ namespace cgb
 		for (auto& image : pWindow->mSwapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
 			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image));
-			pWindow->mSwapChainImageViews.back().enable_shared_ownership();
+			pWindow->mSwapChainImageViews.back().enable_shared_ownership(); // TODO: Why again do we need shared ownership here?
 		}
 
 		// Create a renderpass for the back buffers
@@ -913,13 +913,10 @@ namespace cgb
 					// TODO: can setting the config-alteration function for depth attachments be somehow abstracted?! e.g. by moving it into the framebuffer class (or a framebuffer's ::create method)
 					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment,
 						[](image_t& imageToConfig) { imageToConfig.config().setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment); })); 
-					// TODO: Disable shared ownership, once the noexcept-hell has been resolved
-					depthView.enable_shared_ownership();
 					imageViews.push_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, memory_usage::device, cgb::image_usage::versatile_color_attachment)))
-						.enable_shared_ownership(); // TODO: Disable shared ownership, once the noexcept-hell has been resolved
+					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, memory_usage::device, cgb::image_usage::versatile_color_attachment)));
 				}
 			}
 

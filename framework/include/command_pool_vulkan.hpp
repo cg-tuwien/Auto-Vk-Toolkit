@@ -15,7 +15,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 	class command_pool
 	{
 	public:
-		command_pool() noexcept = default;
+		command_pool() = default;
 		command_pool(const command_pool&) = delete;
 		command_pool(command_pool&&) noexcept = default;
 		command_pool& operator=(const command_pool&) = delete;

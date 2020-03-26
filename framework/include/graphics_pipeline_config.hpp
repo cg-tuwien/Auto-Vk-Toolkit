@@ -530,9 +530,9 @@ namespace cgb
 	struct graphics_pipeline_config
 	{
 		graphics_pipeline_config();
-		graphics_pipeline_config(graphics_pipeline_config&&) = default;
+		graphics_pipeline_config(graphics_pipeline_config&&) noexcept = default;
 		graphics_pipeline_config(const graphics_pipeline_config&) = delete;
-		graphics_pipeline_config& operator=(graphics_pipeline_config&&) = default;
+		graphics_pipeline_config& operator=(graphics_pipeline_config&&) noexcept = default;
 		graphics_pipeline_config& operator=(const graphics_pipeline_config&) = delete;
 		~graphics_pipeline_config() = default;
 

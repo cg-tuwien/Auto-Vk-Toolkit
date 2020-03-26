@@ -8,9 +8,9 @@ namespace cgb
 	{
 	public:
 		renderpass_t() = default;
-		renderpass_t(renderpass_t&&) = default;
+		renderpass_t(renderpass_t&&) noexcept = default;
 		renderpass_t(const renderpass_t&) = delete;
-		renderpass_t& operator=(renderpass_t&&) = default;
+		renderpass_t& operator=(renderpass_t&&) noexcept = default;
 		renderpass_t& operator=(const renderpass_t&) = delete;
 		~renderpass_t() = default;
 

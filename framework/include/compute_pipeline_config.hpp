@@ -5,7 +5,7 @@ namespace cgb
 	/** Pipeline configuration data: COMPUTE PIPELINE CONFIG STRUCT */
 	struct compute_pipeline_config
 	{
-		compute_pipeline_config() noexcept;
+		compute_pipeline_config();
 		compute_pipeline_config(compute_pipeline_config&&) noexcept = default;
 		compute_pipeline_config(const compute_pipeline_config&) = delete;
 		compute_pipeline_config& operator=(compute_pipeline_config&&) noexcept = default;

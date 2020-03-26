@@ -143,7 +143,9 @@ namespace cgb
 	
 	owning_resource<bottom_level_acceleration_structure_t> bottom_level_acceleration_structure_t::create(vertex_buffer aVertexBuffer, index_buffer aIndexBuffer, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc)
 	{
-		return create({ std::forward_as_tuple( std::move(aVertexBuffer), std::move(aIndexBuffer) ) }, aAllowUpdates, std::move(aAlterConfigBeforeCreation), std::move(aAlterConfigBeforeMemoryAlloc));
+		std::vector<std::tuple<vertex_buffer, index_buffer>> geometry;
+		geometry.emplace_back(std::move(aVertexBuffer), std::move(aIndexBuffer));
+		return create(std::move(geometry), aAllowUpdates, std::move(aAlterConfigBeforeCreation), std::move(aAlterConfigBeforeMemoryAlloc));
 	}
 
 	const generic_buffer_t& bottom_level_acceleration_structure_t::get_and_possibly_create_scratch_buffer()

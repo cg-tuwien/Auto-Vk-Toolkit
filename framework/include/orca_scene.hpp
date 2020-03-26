@@ -84,10 +84,10 @@ namespace cgb
 	{
 	public:
 		orca_scene_t() = default;
+		orca_scene_t(orca_scene_t&&) noexcept = default;
 		orca_scene_t(const orca_scene_t&) = delete;
-		orca_scene_t(orca_scene_t&&) = default;
+		orca_scene_t& operator=(orca_scene_t&&) noexcept = default;
 		orca_scene_t& operator=(const orca_scene_t&) = delete;
-		orca_scene_t& operator=(orca_scene_t&&) = default;
 		~orca_scene_t() = default;
 
 		const auto& models() const { return mModelData; }

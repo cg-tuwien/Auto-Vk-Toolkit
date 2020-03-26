@@ -9,11 +9,11 @@ namespace cgb
 	public:
 
 		window() = default;
-		~window() = default;
+		window(window&&) noexcept = default;
 		window(const window&) = delete;
-		window(window&&) = default;
+		window& operator =(window&&) noexcept = default;
 		window& operator =(const window&) = delete;
-		window& operator =(window&&) = default;
+		~window() = default;
 
 		/** Request a framebuffer for this window which is capable of sRGB formats */
 		void request_srgb_framebuffer(bool pRequestSrgb);

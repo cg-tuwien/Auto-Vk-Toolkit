@@ -36,8 +36,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Merge them all together:
 
-		mDrawCalls.reserve(1000); // Due to an internal error, all the buffers can't properly be moved right now => use `reserve` as a workaround. Sorry, and thanks for your patience. :-S
-		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<cgb::material_config> allMatConfigs;

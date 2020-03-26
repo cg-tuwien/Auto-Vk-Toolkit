@@ -17,7 +17,7 @@ namespace cgb
 		vulkan(vulkan&&) = delete;
 		vulkan& operator=(const vulkan&) = delete;
 		vulkan& operator=(vulkan&&) = delete;
-		virtual ~vulkan();
+		~vulkan();
 
 		// Checks a VkResult return type and handles it according to the current Vulkan-Hpp config
 		static void check_vk_result(VkResult err);

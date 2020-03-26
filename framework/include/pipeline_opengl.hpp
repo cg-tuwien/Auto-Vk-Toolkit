@@ -8,9 +8,9 @@ namespace cgb
 	{
 	public:
 		graphics_pipeline_t() = default;
-		graphics_pipeline_t(graphics_pipeline_t&&) = default;
+		graphics_pipeline_t(graphics_pipeline_t&&) noexcept = default;
 		graphics_pipeline_t(const graphics_pipeline_t&) = delete;
-		graphics_pipeline_t& operator=(graphics_pipeline_t&&) = default;
+		graphics_pipeline_t& operator=(graphics_pipeline_t&&) noexcept = default;
 		graphics_pipeline_t& operator=(const graphics_pipeline_t&) = delete;
 		~graphics_pipeline_t() = default;
 

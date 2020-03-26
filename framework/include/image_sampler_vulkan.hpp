@@ -6,10 +6,10 @@ namespace cgb
 	{
 	public:
 		image_sampler_t() = default;
+		image_sampler_t(image_sampler_t&&) noexcept = default;
 		image_sampler_t(const image_sampler_t&) = delete;
-		image_sampler_t(image_sampler_t&&) = default;
+		image_sampler_t& operator=(image_sampler_t&&) noexcept = default;
 		image_sampler_t& operator=(const image_sampler_t&) = delete;
-		image_sampler_t& operator=(image_sampler_t&&) = default;
 		~image_sampler_t() = default;
 
 		const auto& get_image_view() const		{ return mImageView; }

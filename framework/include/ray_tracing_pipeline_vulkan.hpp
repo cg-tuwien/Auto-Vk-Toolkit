@@ -7,9 +7,9 @@ namespace cgb
 	{
 	public:
 		ray_tracing_pipeline_t() = default;
-		ray_tracing_pipeline_t(ray_tracing_pipeline_t&&) = default;
+		ray_tracing_pipeline_t(ray_tracing_pipeline_t&&) noexcept = default;
 		ray_tracing_pipeline_t(const ray_tracing_pipeline_t&) = delete;
-		ray_tracing_pipeline_t& operator=(ray_tracing_pipeline_t&&) = default;
+		ray_tracing_pipeline_t& operator=(ray_tracing_pipeline_t&&) noexcept = default;
 		ray_tracing_pipeline_t& operator=(const ray_tracing_pipeline_t&) = delete;
 		~ray_tracing_pipeline_t() = default;
 

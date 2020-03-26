@@ -97,10 +97,10 @@ namespace cgb // ========================== TODO/WIP ===========================
 	struct queue_submit_proxy
 	{
 		queue_submit_proxy() = default;
-		queue_submit_proxy(const queue_submit_proxy&) = delete;
 		queue_submit_proxy(queue_submit_proxy&&) = delete;
-		queue_submit_proxy& operator=(const queue_submit_proxy&) = delete;
+		queue_submit_proxy(const queue_submit_proxy&) = delete;
 		queue_submit_proxy& operator=(queue_submit_proxy&&) = delete;
+		queue_submit_proxy& operator=(const queue_submit_proxy&) = delete;
 
 		device_queue& mQueue;
 		vk::SubmitInfo mSubmitInfo;

@@ -99,8 +99,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. 
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the UBO and the samplers, in particular).
 		// These descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSetPreCompute.reserve(cgb::context().main_window()->number_of_in_flight_frames());
-		mDescriptorSetPostCompute.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			// We'll need different descriptor sets for the left view and for the right view, since we are using different resources
 			// 1. left view, a.k.a. pre compute

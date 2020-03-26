@@ -18,7 +18,7 @@ namespace cgb
 		opengl(opengl&&) = delete;
 		opengl& operator=(const opengl&) = delete;
 		opengl& operator=(opengl&&) = delete;
-		virtual ~opengl() = default;
+		~opengl() = default;
 
 		template <typename T>
 		void track_creation(T*)		{ LOG_WARNING(fmt::format("Encountered unsupported type '{}' in opengl::track_creation", typeid(T).name())); }

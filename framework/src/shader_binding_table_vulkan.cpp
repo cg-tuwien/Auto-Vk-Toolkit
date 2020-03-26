@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	shader_binding_table::shader_binding_table() noexcept
+	shader_binding_table::shader_binding_table()
 	{ }
 
 	shader_binding_table::shader_binding_table(size_t pSize, const vk::BufferUsageFlags& pBufferFlags, const vk::Buffer& pBuffer, const vk::MemoryPropertyFlags& pMemoryProperties, const vk::DeviceMemory& pMemory) noexcept

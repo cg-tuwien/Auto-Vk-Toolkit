@@ -5,14 +5,14 @@ namespace cgb
 	class top_level_acceleration_structure_t
 	{
 		template <typename T>
-		friend void finish_acceleration_structure_creation(T& aResult, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc);
+		friend void finish_acceleration_structure_creation(T& aResult, cgb::context_specific_function<void(T&)> aAlterConfigBeforeMemoryAlloc) noexcept;
 
 	public:
 		top_level_acceleration_structure_t() = default;
+		top_level_acceleration_structure_t(top_level_acceleration_structure_t&&) noexcept = default;
 		top_level_acceleration_structure_t(const top_level_acceleration_structure_t&) = delete;
-		top_level_acceleration_structure_t(top_level_acceleration_structure_t&&) = default;
+		top_level_acceleration_structure_t& operator=(top_level_acceleration_structure_t&&) noexcept = default;
 		top_level_acceleration_structure_t& operator=(const top_level_acceleration_structure_t&) = delete;
-		top_level_acceleration_structure_t& operator=(top_level_acceleration_structure_t&&) = default;
 		~top_level_acceleration_structure_t() = default;
 
 		const auto& config() const { return mAccStructureInfo; }

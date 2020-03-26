@@ -76,9 +76,9 @@ namespace cgb
 	struct ray_tracing_pipeline_config
 	{
 		ray_tracing_pipeline_config();
-		ray_tracing_pipeline_config(ray_tracing_pipeline_config&&) = default;
+		ray_tracing_pipeline_config(ray_tracing_pipeline_config&&) noexcept = default;
 		ray_tracing_pipeline_config(const ray_tracing_pipeline_config&) = delete;
-		ray_tracing_pipeline_config& operator=(ray_tracing_pipeline_config&&) = default;
+		ray_tracing_pipeline_config& operator=(ray_tracing_pipeline_config&&) noexcept = default;
 		ray_tracing_pipeline_config& operator=(const ray_tracing_pipeline_config&) = delete;
 		~ray_tracing_pipeline_config() = default;
 

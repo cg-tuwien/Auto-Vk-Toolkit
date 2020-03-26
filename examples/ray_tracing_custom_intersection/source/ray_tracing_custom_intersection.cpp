@@ -43,20 +43,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
 		
-		mBLASs.reserve(100);				// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		// Add a pyramid:
 		auto pyrVert = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(mVertexData).describe_member(&Vertex::pos, 0, cgb::content_description::position),
 			cgb::memory_usage::host_coherent,
 			mVertexData.data()
 		);
-		pyrVert.enable_shared_ownership();
 		auto pyrIndex = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::host_coherent,
 			mIndices.data()
 		);
-		pyrIndex.enable_shared_ownership();
 		auto pyrBlas = cgb::bottom_level_acceleration_structure_t::create(std::move(pyrVert), std::move(pyrIndex));
 		pyrBlas.enable_shared_ownership();
 		mBLASs.push_back(pyrBlas);
@@ -83,7 +80,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		auto fif = cgb::context().main_window()->number_of_in_flight_frames();
-		mTLAS.reserve(fif);
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
 			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
@@ -93,8 +89,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
-		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
-		mOffscreenImageViews.reserve(n);
 		const auto wdth = cgb::context().main_window()->resolution().x;
 		const auto hght = cgb::context().main_window()->resolution().y;
 		const auto frmt = cgb::image_format::from_window_color_buffer(cgb::context().main_window());
@@ -127,7 +121,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 

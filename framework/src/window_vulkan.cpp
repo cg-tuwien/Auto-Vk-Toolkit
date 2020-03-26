@@ -260,8 +260,6 @@ namespace cgb
 			});
 		// return ownership of all the semaphores to remove to the caller
 		std::vector<semaphore> moved_semaphores;
-		// TODO: Remove the following line, once the noexcept-horror is fixed:
-		moved_semaphores.reserve(mExtraSemaphoreDependencies.size());
 		for (decltype(to_remove) it = to_remove; it != std::end(mExtraSemaphoreDependencies); ++it) {
 			moved_semaphores.push_back(std::move(std::get<semaphore>(*it)));
 		}

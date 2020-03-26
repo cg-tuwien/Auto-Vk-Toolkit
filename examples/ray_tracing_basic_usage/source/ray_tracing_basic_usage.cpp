@@ -14,16 +14,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Load an ORCA scene from file:
 		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
 		// Iterate over all models, all model instances, and all meshes, and create bottom level acceleration structures for each one of them:
-		mBLASs.reserve(100);				// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		for (const auto& modelData : orca->models()) {
 			for (const auto& modelInstance : modelData.mInstances) {
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
 				auto [vtxBfr, idxBfr] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(model, meshIndices) });
-				vtxBfr.enable_shared_ownership(); // TODO: Can't properly move yet because of noexcept problems
-				idxBfr.enable_shared_ownership(); // TODO: Can't properly move yet because of noexcept problems 
 				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(vtxBfr), std::move(idxBfr));
-				blas.enable_shared_ownership();	  // TODO: Can't properly move yet because of noexcept problems 
 				blas->build();
 				mGeometryInstances.push_back(
 					cgb::geometry_instance::create(blas)
@@ -33,8 +29,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 		}
 		
-		auto fif = cgb::context().main_window()->number_of_in_flight_frames();
-		mTLAS.reserve(fif);
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
 			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
 			tlas->build(mGeometryInstances);
@@ -43,7 +37,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
 		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
-		mOffscreenImageViews.reserve(n);
 		const auto wdth = cgb::context().main_window()->resolution().x;
 		const auto hght = cgb::context().main_window()->resolution().y;
 		const auto frmt = cgb::image_format::from_window_color_buffer(cgb::context().main_window());
@@ -74,7 +67,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 

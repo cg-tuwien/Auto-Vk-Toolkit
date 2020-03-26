@@ -259,7 +259,7 @@ namespace cgb
 	public:
 		using value_type = T;
 
-		owning_resource() noexcept : std::variant<std::monostate, T, std::shared_ptr<T>>() {}
+		owning_resource() : std::variant<std::monostate, T, std::shared_ptr<T>>() {}
 		owning_resource(T&& r) noexcept : std::variant<std::monostate, T, std::shared_ptr<T>>(std::move(r)) {}
 		owning_resource(owning_resource<T>&&) noexcept = default;
 		owning_resource(const T&) = delete;
@@ -337,36 +337,36 @@ namespace cgb
 			*this_as_variant() = std::make_shared<T>(std::move(std::get<T>(*this)));
 		}
 
-		operator const T&() const noexcept
+		operator const T&() const
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
 			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 
-		operator T&() noexcept 
+		operator T&() 
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
 			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 		
-		const T& operator*() const noexcept
+		const T& operator*() const
 		{
 			return this->operator const T&();
 		}
 		
-		T& operator*() noexcept
+		T& operator*()
 		{
 			return this->operator T&();
 		}
 		
-		const T* operator->() const noexcept
+		const T* operator->() const
 		{
 			return &this->operator const T&();
 		}
 		
-		T* operator->() noexcept
+		T* operator->()
 		{
 			return &this->operator T&();
 		}
@@ -397,7 +397,7 @@ namespace cgb
 	    {
 	        Fn fn;
 
-	        wrapper(Fn fn) noexcept : fn(std::move(fn)) { }
+	        wrapper(Fn fn) : fn(std::move(fn)) { }
 
 	        wrapper(wrapper&&) noexcept = default;
 	        wrapper& operator=(wrapper&&) noexcept = default;
@@ -415,7 +415,7 @@ namespace cgb
 	    using base = std::function<T>;
 
 	public:
-		unique_function() noexcept = default;
+		unique_function() = default;
 		unique_function(std::nullptr_t) noexcept : base(nullptr) {}
 		unique_function(const unique_function&) noexcept = default;
 		unique_function(unique_function&&) noexcept = default;
@@ -459,7 +459,7 @@ namespace cgb
 
 		
 	template< class R, class... Args >
-	static void swap( unique_function<R(Args...)> &lhs, unique_function<R(Args...)> &rhs ) noexcept
+	static void swap( unique_function<R(Args...)> &lhs, unique_function<R(Args...)> &rhs )
 	{
 		lhs.swap(rhs);
 	}

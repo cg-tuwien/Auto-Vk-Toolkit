@@ -34,8 +34,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Get all the different materials of the model:
 		auto distinctMaterials = sponza->distinct_material_configs();
 
-		mDrawCalls.reserve(distinctMaterials.size()); // Due to an internal error, all the buffers can't properly be moved right now => reserve as a workaround. Sorry, and thanks for your patience. :-S
-		
 		// The following might be a bit tedious still, but maybe it's not. For what it's worth, it is expressive.
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.

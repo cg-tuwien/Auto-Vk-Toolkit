@@ -24,11 +24,11 @@ namespace cgb
 		friend class generic_glfw;
 	public:
 		window_base();
-		~window_base();
-		window_base(const window_base&) = delete;
 		window_base(window_base&&) noexcept;
-		window_base& operator =(const window_base&) = delete;
+		window_base(const window_base&) = delete;
 		window_base& operator =(window_base&&) noexcept;
+		window_base& operator =(const window_base&) = delete;
+		~window_base();
 
 		/** Returns whether or not this window is currently in use and hence, may not be closed. */
 		bool is_in_use() const { return mIsInUse; }

@@ -11,10 +11,10 @@ namespace cgb
 		using aiProcessFlagsType = unsigned int;
 
 		model_t() = default;
+		model_t(model_t&&) noexcept = default;
 		model_t(const model_t&) = delete;
-		model_t(model_t&&) = default;
+		model_t& operator=(model_t&&) noexcept = default;
 		model_t& operator=(const model_t&) = delete;
-		model_t& operator=(model_t&&) = default;
 		~model_t() = default;
 
 		/** Determine the transformation matrix for the mesh at the given index.

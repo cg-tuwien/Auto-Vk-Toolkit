@@ -7,7 +7,7 @@ namespace cgb
 	 */
 	struct material_config
 	{
-		material_config(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false)
+		material_config(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false) noexcept
 			: mName{ "some material" }
 			, mIgnoreCpuOnlyDataForEquality{ !_AlsoConsiderCpuOnlyDataForDistinctMaterials }
 			, mShadingModel{}

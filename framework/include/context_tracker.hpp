@@ -19,7 +19,7 @@ namespace cgb
 		context_tracker() : mTrackee{ nullptr }
 		{ }
 
-		void setTrackee(T* pTrackee)
+		void setTrackee(T* pTrackee) noexcept
 		{
 			if (nullptr == mTrackee) {
 				mTrackee = pTrackee;
@@ -33,33 +33,33 @@ namespace cgb
 			}
 		}
 
-		void setTrackee(T& pTrackee)
+		void setTrackee(T& pTrackee) noexcept
 		{
 			setTrackee(&pTrackee);
 		}
 
-		context_tracker(T* pTrackee) : mTrackee{ pTrackee }
+		context_tracker(T* pTrackee) noexcept : mTrackee{ pTrackee }
 		{
 			context().track_creation(mTrackee);
 		}
 
-		context_tracker(const context_tracker<T>& other)
+		context_tracker(const context_tracker<T>& other) noexcept
 		{
 			context().track_copy(mTrackee, other.mTrackee);
 		}
 
-		context_tracker(context_tracker<T>&& other)
+		context_tracker(context_tracker<T>&& other) noexcept
 		{
 			context().track_move(mTrackee, other.mTrackee);
 		}
 
-		context_tracker<T>& operator=(const context_tracker<T>& other)
+		context_tracker<T>& operator=(const context_tracker<T>& other) noexcept
 		{
 			context().track_copy(mTrackee, other.mTrackee);
 			return *this;
 		}
 
-		context_tracker<T>& operator=(context_tracker<T>&& other)
+		context_tracker<T>& operator=(context_tracker<T>&& other) noexcept
 		{
 			context().track_move(mTrackee, other.mTrackee);
 			return *this;

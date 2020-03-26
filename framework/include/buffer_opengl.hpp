@@ -11,7 +11,7 @@ namespace cgb
 		friend cgb::owning_resource<buffer_t<T>> create(T pConfig);
 
 	public:
-		buffer_t() noexcept = default;
+		buffer_t() = default;
 		buffer_t(const buffer_t&) = delete;
 		buffer_t(buffer_t&&) noexcept = default;
 		buffer_t& operator=(const buffer_t&) = delete;

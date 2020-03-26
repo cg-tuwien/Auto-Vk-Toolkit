@@ -8,9 +8,9 @@ namespace cgb
 	public:
 		fence_t() = default;
 		fence_t(const fence_t&) = delete;
-		fence_t(fence_t&&) = default;
+		fence_t(fence_t&&) noexcept = default;
 		fence_t& operator=(const fence_t&) = delete;
-		fence_t& operator=(fence_t&&) = default;
+		fence_t& operator=(fence_t&&) noexcept = default;
 		~fence_t();
 
 		/**	Set a queue where this fence is designated to be submitted to.
@@ -20,17 +20,17 @@ namespace cgb
 		fence_t& set_designated_queue(device_queue& _Queue);
 
 		template <typename F>
-		fence_t& set_custom_deleter(F&& _Deleter) 
+		fence_t& set_custom_deleter(F&& aDeleter) noexcept
 		{
 			if (mCustomDeleter) {
 				// There is already a custom deleter! Make sure that this stays alive as well.
 				mCustomDeleter = [
 					existingDeleter = std::move(mCustomDeleter),
-					additionalDeleter = std::forward<F>(_Deleter)
+					additionalDeleter = std::forward<F>(aDeleter)
 				]() {};
 			}
 			else {
-				mCustomDeleter = std::forward<F>(_Deleter);
+				mCustomDeleter = std::forward<F>(aDeleter);
 			}
 			return *this;
 		}

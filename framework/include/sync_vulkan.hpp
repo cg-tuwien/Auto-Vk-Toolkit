@@ -19,28 +19,28 @@ namespace cgb
 		static void steal_after_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
 		static void steal_before_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
 		static void steal_after_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
-		static bool is_about_to_steal_before_handler_on_demand(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
-			const auto trgPtr = aToTest.target<steal_before_handler_t>();
+		static bool is_about_to_steal_before_handler_on_demand(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			auto trgPtr = aToTest.target<steal_before_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_on_demand ? true : false;
 		}
-		static bool is_about_to_steal_after_handler_on_demand(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
-			const auto trgPtr = aToTest.target<steal_after_handler_t>();
+		static bool is_about_to_steal_after_handler_on_demand(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			auto trgPtr = aToTest.target<steal_after_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_on_demand ? true : false;
 		}
-		static bool is_about_to_steal_before_handler_immediately(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
-			const auto trgPtr = aToTest.target<steal_before_handler_t>();
+		static bool is_about_to_steal_before_handler_immediately(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			auto trgPtr = aToTest.target<steal_before_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_immediately ? true : false;
 		}
-		static bool is_about_to_steal_after_handler_immediately(const std::function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
-			const auto trgPtr = aToTest.target<steal_after_handler_t>();
+		static bool is_about_to_steal_after_handler_immediately(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			auto trgPtr = aToTest.target<steal_after_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_immediately ? true : false;
 		}
 		
 		sync() = default;
-		sync(const sync&) = delete;
 		sync(sync&&) noexcept;
-		sync& operator=(const sync&) = delete;
+		sync(const sync&) = delete;
 		sync& operator=(sync&&) noexcept;
+		sync& operator=(const sync&) = delete;
 		~sync();
 		
 #pragma region static creation functions
@@ -73,19 +73,27 @@ namespace cgb
 		static sync wait_idle();
 
 		/**	Establish semaphore-based synchronization with a custom semaphore lifetime handler.
+		 *	@tparam F							void(semaphore)
 		 *	@param	aSignalledAfterOperation	A function to handle the lifetime of a created semaphore. 
 		 *	@param	aWaitBeforeOperation		A vector of other semaphores to be waited on before executing the command.
 		 */
-		static sync with_semaphores(std::function<void(semaphore)> aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation = {});
+		template <typename F>
+		static sync with_semaphores(F&& aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation = {})
+		{
+			sync result;
+			result.mSemaphoreLifetimeHandler = std::forward<F>(aSignalledAfterOperation);
+			result.mWaitBeforeSemaphores = std::move(aWaitBeforeOperation);
+			return result;
+		}
 
 		/**	Establish semaphore-based synchronization and have its lifetime handled w.r.t the window's swap chain.
 		 *	@param	aWaitBeforeOperation		A vector of other semaphores to be waited on before executing the command.
-		 *	@param	aWindow				A window, whose swap chain shall be used to handle the lifetime of the possibly emerging semaphore.
+		 *	@param	aWindow						A window, whose swap chain shall be used to handle the lifetime of the possibly emerging semaphore.
 		 */
 		static sync with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation = {}, cgb::window* aWindow = nullptr);
 
 		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
-		 *
+		 *	@tparam F									void(command_buffer)
 		 *	@param	aCommandBufferLifetimeHandler		A function to handle the lifetime of a command buffer.
 		 *	
 		 *	@param	aEstablishBarrierBeforeOperation	Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::read_memory_access>)
@@ -96,18 +104,24 @@ namespace cgb
 		 *												Callback which gets called at the end of the operation, in order to sync with whatever comes after.
 		 *												This handler is generally considered to be neccessary and hence, set to a default handler by default.
 		 */
+		template <typename F>
 		static sync with_barriers(
-			std::function<void(command_buffer)> aCommandBufferLifetimeHandler,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation
-		);
+			F&& aCommandBufferLifetimeHandler,
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation)
+		{
+			sync result;
+			result.mCommandBufferRefOrLifetimeHandler = std::forward<F>(aCommandBufferLifetimeHandler); // <-- Set the lifetime handler, not the command buffer reference.
+			result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
+			result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
+			return result;
+		}
 
 		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
-		 *	@param	aCommandBufferLifetimeHandler	A function to handle the lifetime of a command buffer.
 		 */
 		static sync with_barriers_on_current_frame(
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation,
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation,
 			cgb::window* aWindow = nullptr
 		);
 
@@ -122,8 +136,8 @@ namespace cgb
 		 */
 		static sync auxiliary_with_barriers(
 			sync& aMasterSync,
-			std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			std::function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		);
 #pragma endregion 
 
@@ -164,12 +178,12 @@ namespace cgb
 		
 	private:
 		bool mNoSyncRequired = false;
-		std::function<void(semaphore)> mSemaphoreLifetimeHandler;
+		unique_function<void(semaphore)> mSemaphoreLifetimeHandler;
 		std::vector<semaphore> mWaitBeforeSemaphores;
-		std::variant<std::monostate, std::function<void(command_buffer)>, std::reference_wrapper<command_buffer_t>> mCommandBufferRefOrLifetimeHandler;
+		std::variant<std::monostate, unique_function<void(command_buffer)>, std::reference_wrapper<command_buffer_t>> mCommandBufferRefOrLifetimeHandler;
 		std::optional<command_buffer> mCommandBuffer;
-		std::function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> mEstablishBarrierBeforeOperationCallback;
-		std::function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)>	  mEstablishBarrierAfterOperationCallback;
+		unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> mEstablishBarrierBeforeOperationCallback;
+		unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)>	  mEstablishBarrierAfterOperationCallback;
 		std::optional<std::reference_wrapper<device_queue>> mQueueToUse;
 		std::optional<std::reference_wrapper<device_queue>> mQueueRecommendation;
 	};

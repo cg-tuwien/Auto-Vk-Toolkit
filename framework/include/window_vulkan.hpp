@@ -9,11 +9,11 @@ namespace cgb
 	public:
 
 		window() = default;
-		~window() = default;
+		window(window&&) noexcept = default;
 		window(const window&) = delete;
-		window(window&&) = default;
+		window& operator =(window&&) noexcept = default;
 		window& operator =(const window&) = delete;
-		window& operator =(window&&) = default;
+		~window() = default;
 
 		/** Request a framebuffer for this window which is capable of sRGB formats */
 		void request_srgb_framebuffer(bool aRequestSrgb);
@@ -217,27 +217,27 @@ namespace cgb
 
 #pragma region configuration properties
 		// A function which returns the surface format for this window's surface
-		std::function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
+		unique_function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
 
 		// A function which returns the desired presentation mode for this window's surface
-		std::function<vk::PresentModeKHR(const vk::SurfaceKHR&)> mPresentationModeSelector;
+		unique_function<vk::PresentModeKHR(const vk::SurfaceKHR&)> mPresentationModeSelector;
 
 		// A function which returns the MSAA sample count for this window's surface
-		std::function<vk::SampleCountFlagBits()> mNumberOfSamplesGetter;
+		unique_function<vk::SampleCountFlagBits()> mNumberOfSamplesGetter;
 
 		// A function which returns the MSAA state for this window's surface
-		std::function<vk::PipelineMultisampleStateCreateInfo()> mMultisampleCreateInfoBuilder;
+		unique_function<vk::PipelineMultisampleStateCreateInfo()> mMultisampleCreateInfoBuilder;
 
 		// A function which returns the desired number of presentable images in the swap chain
-		std::function<uint32_t()> mNumberOfPresentableImagesGetter;
+		unique_function<uint32_t()> mNumberOfPresentableImagesGetter;
 
 		// A function which returns the number of images which can be rendered into concurrently
 		// According to this number, the number of semaphores and fences will be determined.
-		std::function<uint32_t()> mNumberOfConcurrentFramesGetter;
+		unique_function<uint32_t()> mNumberOfConcurrentFramesGetter;
 
 		// A function which returns attachments which shall be attached to the back buffer
 		// in addition to the obligatory color attachment.
-		std::function<std::vector<attachment>()> mAdditionalBackBufferAttachmentsGetter;
+		unique_function<std::vector<attachment>()> mAdditionalBackBufferAttachmentsGetter;
 #pragma endregion
 
 #pragma region swap chain data for this window surface
@@ -276,7 +276,7 @@ namespace cgb
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
 		// Extra dependency semaphores will be waited on along with the mImageAvailableSemaphores
-		std::list<std::tuple<int64_t, semaphore>> mExtraSemaphoreDependencies;
+		std::vector<std::tuple<int64_t, semaphore>> mExtraSemaphoreDependencies;
 		 
 		// Number of extra semaphores to generate per frame upon fininshing the rendering of a frame
 		uint32_t mNumExtraRenderFinishedSemaphoresPerFrame;
@@ -284,7 +284,7 @@ namespace cgb
 		// Contains the extra semaphores to be signalled per frame
 		// The length of this vector will be: number_of_concurrent_frames() * mNumExtraSemaphoresPerFrame
 		// These semaphores will be signalled together with the mRenderFinishedSemaphores
-		std::list<semaphore> mExtraRenderFinishedSemaphores;
+		std::vector<semaphore> mExtraRenderFinishedSemaphores;
 #pragma endregion
 
 		// The renderpass used for the back buffers
@@ -298,6 +298,6 @@ namespace cgb
 
 		// Command buffers which are only submitted once and only once - i.e., for a specific frame,
 		// taking their ownership, handling their lifetime (which lasts until current frame + frames in flight)
-		std::list<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
+		std::vector<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
 	};
 }

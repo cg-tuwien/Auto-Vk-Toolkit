@@ -21,9 +21,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		std::vector<cgb::material_config> allMatConfigs;
-		mBLASs.reserve(100);				// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
-		mTexCoordBufferViews.reserve(100);	// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
-		mIndexBufferViews.reserve(100);		// Due to an internal problem, all the buffers can't properly be moved right now => use `reserve` as a workaround.
 		for (const auto& pair : distinctMaterialsOrca) {
 			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
 			allMatConfigs.push_back(pair.first); // pair.first = material config
@@ -46,8 +43,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) },
 					cgb::sync::with_barriers_on_current_frame()
 				);
-				positionsBuffer.enable_shared_ownership();
-				indicesBuffer.enable_shared_ownership();
 				
 				// Get a buffer containing all texture coordinates for all submeshes with this material
 				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
@@ -71,12 +66,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					cgb::sync::with_barriers_on_current_frame()
 				);
 				mIndexBufferViews.push_back( cgb::buffer_view_t::create(std::move(indexTexelBuffer)) );
-
-				//// Get a buffer containing all normals for all submeshes with this material
-				//newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, std::get<1>(tpl)) }, 
-				//	[] (auto _Semaphore) {  
-				//		cgb::context().main_window()->set_extra_semaphore_dependency(std::move(_Semaphore)); 
-				//	});
 
 				// Create one bottom level acceleration structure per model
 				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(positionsBuffer), std::move(indicesBuffer));
@@ -120,7 +109,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mImageSamplers = std::move(imageSamplers);
 
 		auto fif = cgb::context().main_window()->number_of_in_flight_frames();
-		mTLAS.reserve(fif);
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex) {
 			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
 			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
@@ -148,7 +136,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
 		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
-		mOffscreenImageViews.reserve(n);
 		const auto wdth = cgb::context().main_window()->resolution().x;
 		const auto hght = cgb::context().main_window()->resolution().y;
 		const auto frmt = cgb::image_format::from_window_color_buffer(cgb::context().main_window());
@@ -185,7 +172,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
 		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
 		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet.reserve(cgb::context().main_window()->number_of_in_flight_frames());
 		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
 			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
 			*mDescriptorSet.back() = cgb::descriptor_set::create({ 

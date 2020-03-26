@@ -39,7 +39,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		// Create vertex buffers, but don't upload vertices yet; we'll do that in the render() method.
 		// Create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
-		mVertexBuffers.reserve(cgb::context().main_window()->number_of_in_flight_frames()); // TODO: Comment and it will crash!
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [this](int64_t inFlightIndex){
 			mVertexBuffers.push_back(
 				cgb::create(

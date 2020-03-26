@@ -38,10 +38,10 @@ namespace cgb
 	{
 	public:
 		image_t() = default;
+		image_t(image_t&&) noexcept = default;
 		image_t(const image_t& aOther);
-		image_t(image_t&&) = default;
+		image_t& operator=(image_t&&) noexcept = default;
 		image_t& operator=(const image_t&) = delete;
-		image_t& operator=(image_t&&) = default;
 		~image_t() = default;
 
 		/** Get the config which is used to created this image with the API. */

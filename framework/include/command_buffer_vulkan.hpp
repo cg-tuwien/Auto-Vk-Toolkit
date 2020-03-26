@@ -20,7 +20,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		friend class device_queue;
 		
 	public:
-		command_buffer_t() noexcept = default;
+		command_buffer_t() = default;
 		command_buffer_t(command_buffer_t&&) noexcept = default;
 		command_buffer_t(const command_buffer_t&) = delete;
 		command_buffer_t& operator=(command_buffer_t&&) noexcept = default;
@@ -31,20 +31,20 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 *	This is often used for resource cleanup, e.g. a buffer which can be deleted when this command buffer is destroyed.
 		 */
 		template <typename F>
-		command_buffer_t& set_custom_deleter(F&& _Deleter) 
+		command_buffer_t& set_custom_deleter(F&& aDeleter) noexcept
 		{
 			if (mCustomDeleter.has_value()) {
 				// There is already a custom deleter! Make sure that this stays alive as well.
 				mCustomDeleter = [
 					existingDeleter = std::move(mCustomDeleter.value()),
-					additionalDeleter = std::forward<F>(_Deleter)
+					additionalDeleter = std::forward<F>(aDeleter)
 				]() {
 					additionalDeleter();
 					existingDeleter();
 				};
 			}
 			else {
-				mCustomDeleter = std::forward<F>(_Deleter);
+				mCustomDeleter = std::forward<F>(aDeleter);
 			}
 			return *this;
 		}

@@ -7,15 +7,22 @@ namespace cgb
 	{
 		struct helper_t
 		{
+			helper_t(image_t aImage) : mImage{std::move(aImage)} {}
+			helper_t(helper_t&&) noexcept = default;
+			helper_t(const helper_t&) noexcept = default;
+			helper_t& operator=(helper_t&&) noexcept = default;
+			helper_t& operator=(const helper_t&) noexcept = delete;
+			~helper_t() = default;
+			
 			image_t mImage;
 		};
 		
 	public:
 		image_view_t() = default;
+		image_view_t(image_view_t&&) noexcept = default;
 		image_view_t(const image_view_t&) = delete;
-		image_view_t(image_view_t&&) = default;
+		image_view_t& operator=(image_view_t&&) noexcept = default;
 		image_view_t& operator=(const image_view_t&) = delete;
-		image_view_t& operator=(image_view_t&&) = default;
 		~image_view_t() = default;
 
 		/** Get the config which is used to created this image view with the API. */
