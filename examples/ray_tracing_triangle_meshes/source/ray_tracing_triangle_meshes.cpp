@@ -169,20 +169,20 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
-		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
-		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
-		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSet.back() = cgb::descriptor_set::create({ 
-				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(0, 1, mMaterialBuffer),
-				cgb::binding(0, 2, mIndexBufferViews),
-				cgb::binding(0, 3, mTexCoordBufferViews),
-				cgb::binding(1, 0, mOffscreenImageViews[i]),
-				cgb::binding(2, 0, mTLAS[i])
-			});	
-		}
+		//// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
+		//// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
+		//// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
+		//for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
+		//	mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
+		//	*mDescriptorSet.back() = cgb::descriptor_set::create({ 
+		//		cgb::binding(0, 0, mImageSamplers),
+		//		cgb::binding(0, 1, mMaterialBuffer),
+		//		cgb::binding(0, 2, mIndexBufferViews),
+		//		cgb::binding(0, 3, mTexCoordBufferViews),
+		//		cgb::binding(1, 0, mOffscreenImageViews[i]),
+		//		cgb::binding(2, 0, mTLAS[i])
+		//	});	
+		//}
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -289,15 +289,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-
-		// Bind the pipeline
-		cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, mPipeline->handle());
-
-		// Set the descriptors:
-		cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eRayTracingNV, mPipeline->layout_handle(), 0, 
-			mDescriptorSet[inFlightIndex]->number_of_descriptor_sets(),
-			mDescriptorSet[inFlightIndex]->descriptor_sets_addr(), 
-			0, nullptr);
+		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_descriptors(mPipeline->layout(), { 
+				cgb::binding(0, 0, mImageSamplers),
+				cgb::binding(0, 1, mMaterialBuffer),
+				cgb::binding(0, 2, mIndexBufferViews),
+				cgb::binding(0, 3, mTexCoordBufferViews),
+				cgb::binding(1, 0, mOffscreenImageViews[inFlightIndex]),
+				cgb::binding(2, 0, mTLAS[inFlightIndex])
+			}
+		);
 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 

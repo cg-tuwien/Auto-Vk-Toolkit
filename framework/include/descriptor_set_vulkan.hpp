@@ -110,6 +110,7 @@ namespace cgb
 
 		uint32_t number_of_sets() const { return static_cast<uint32_t>(mLayouts.size()); }
 		const auto& set_at(uint32_t pIndex) const { return mLayouts[pIndex]; }
+		auto& set_at(uint32_t pIndex) { return mLayouts[pIndex]; }
 		uint32_t set_index_for_set_id(uint32_t pSetId) const { return pSetId - mFirstSetId; }
 		const auto& set_for_set_id(uint32_t pSetId) const { return set_at(set_index_for_set_id(pSetId)); }
 		const auto& required_pool_sizes() const { return mBindingRequirements; }
@@ -132,15 +133,10 @@ namespace cgb
 		descriptor_set& operator=(const descriptor_set&) = delete;
 		~descriptor_set() = default;
 
-		auto& descriptor_sets() const { return mDescriptorSets; }
-		uint32_t number_of_descriptor_sets() const { return static_cast<uint32_t>(mDescriptorSets.size()); }
-		auto* descriptor_sets_addr() const { return &mDescriptorSets[0]; }
-
-		static descriptor_set create(std::initializer_list<binding_data> pBindings);
+		static std::vector<descriptor_set> create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
 
 	private:
-		set_of_descriptor_set_layouts mSetOfLayouts;
-		std::vector<vk::UniqueDescriptorSet> mDescriptorSetOwners;
-		std::vector<vk::DescriptorSet> mDescriptorSets;
+		descriptor_set_layout mLayouts;
+		vk::UniqueDescriptorSet mDescriptorSet;
 	};
 }

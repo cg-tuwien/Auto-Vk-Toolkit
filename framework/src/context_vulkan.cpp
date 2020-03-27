@@ -937,110 +937,6 @@ namespace cgb
 
 	}
 
-	//pipeline vulkan::create_ray_tracing_pipeline(
-	//	const std::vector<std::tuple<shader_type, shader*>>& pShaderInfos,
-	//	const std::vector<vk::DescriptorSetLayout>& pDescriptorSetLayouts)
-	//{
-	//	// CREATE PIPELINE
-	//	auto pipelineLayoutInfo = vk::PipelineLayoutCreateInfo()
-	//		.setSetLayoutCount(static_cast<uint32_t>(pDescriptorSetLayouts.size()))
-	//		.setPSetLayouts(pDescriptorSetLayouts.data())
-	//		.setPushConstantRangeCount(0u)
-	//		.setPPushConstantRanges(nullptr);
-	//	auto pipelineLayout = mLogicalDevice.createPipelineLayout(pipelineLayoutInfo);
-
-	//	// Gather the shader infos
-	//	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-	//	//std::transform(std::begin(pShaderInfos), std::end(pShaderInfos),
-	//	//			   std::back_inserter(shaderStages),
-	//	//			   [](const auto& tpl) {
-	//	//				   return vk::PipelineShaderStageCreateInfo()
-	//	//					   .setStage(convert(std::get<shader_type>(tpl)))
-	//	//					   .setModule(std::get<shader*>(tpl)->handle())
-	//	//					   .setPName("main"); // TODO: support different entry points?!
-	//	//			   });
-
-	//	// Create shader groups
-	//	std::array shaderGroups = {
-	//		// group0 = [raygen]
-	//		vk::RayTracingShaderGroupCreateInfoNV()
-	//		.setType(vk::RayTracingShaderGroupTypeNV::eGeneral)
-	//		.setGeneralShader(0) // Just the ray generation shader here, nothing special
-	//		.setClosestHitShader(VK_SHADER_UNUSED_NV)
-	//		.setAnyHitShader(VK_SHADER_UNUSED_NV)
-	//		.setIntersectionShader(VK_SHADER_UNUSED_NV)
-	//		,
-	//		// group1 = [chit]
-	//		vk::RayTracingShaderGroupCreateInfoNV()
-	//		.setType(vk::RayTracingShaderGroupTypeNV::eTrianglesHitGroup)
-	//		.setGeneralShader(VK_SHADER_UNUSED_NV) // Unused because we're using the stock triangles intersection functionality
-	//		.setClosestHitShader(1u) // If we get closest hits, we'd like to have our 2nd entry to the shader table executed
-	//		.setAnyHitShader(VK_SHADER_UNUSED_NV)
-	//		.setIntersectionShader(VK_SHADER_UNUSED_NV)
-	//		,
-	//		// group2 = [chit1]
-	//		vk::RayTracingShaderGroupCreateInfoNV()
-	//		.setType(vk::RayTracingShaderGroupTypeNV::eTrianglesHitGroup)
-	//		.setGeneralShader(VK_SHADER_UNUSED_NV) 
-	//		.setClosestHitShader(2u) 
-	//		.setAnyHitShader(VK_SHADER_UNUSED_NV)
-	//		.setIntersectionShader(VK_SHADER_UNUSED_NV)
-	//		,
-	//		// group3 = [miss0]
-	//		vk::RayTracingShaderGroupCreateInfoNV()
-	//		.setType(vk::RayTracingShaderGroupTypeNV::eGeneral)
-	//		.setGeneralShader(3u) // Ein Miss Shader hat mit einem bestimmten Hit nix zu tun, deswegen is der nicht in der Hit Group mit dabei, sondern ein separater Eintrag
-	//		.setClosestHitShader(VK_SHADER_UNUSED_NV)
-	//		.setAnyHitShader(VK_SHADER_UNUSED_NV)
-	//		.setIntersectionShader(VK_SHADER_UNUSED_NV)
-	//		,
-	//		// group4 = [miss1]
-	//		vk::RayTracingShaderGroupCreateInfoNV()
-	//		.setType(vk::RayTracingShaderGroupTypeNV::eGeneral)
-	//		.setGeneralShader(4u) // Ein Miss Shader hat mit einem bestimmten Hit nix zu tun, deswegen is der nicht in der Hit Group mit dabei, sondern ein separater Eintrag
-	//		.setClosestHitShader(VK_SHADER_UNUSED_NV)
-	//		.setAnyHitShader(VK_SHADER_UNUSED_NV)
-	//		.setIntersectionShader(VK_SHADER_UNUSED_NV)
-	//	};
-
-	//	// Do it:
-	//	auto pipelineCreateInfo = vk::RayTracingPipelineCreateInfoNV()
-	//		.setStageCount(static_cast<uint32_t>(shaderStages.size()))
-	//		.setPStages(shaderStages.data())
-	//		.setGroupCount(static_cast<uint32_t>(shaderGroups.size()))
-	//		.setPGroups(shaderGroups.data())
-	//		.setMaxRecursionDepth(2u) // Ho ho ho! Wir recursen!
-	//		.setLayout(pipelineLayout);
-
-	//	throw std::exception("wip");
-	//	//return pipeline(
-	//	//	pipelineLayout,
-	//	//	context().logical_device().createRayTracingPipelineNV(
-	//	//		nullptr,						// no pipeline cache
-	//	//		pipelineCreateInfo,				// pipeline description
-	//	//		nullptr,						// no allocation callbacks
-	//	//		context().dynamic_dispatch()));	// dynamic dispatch for extension
-	//}
-
-	//std::vector<framebuffer> vulkan::create_framebuffers(const vk::RenderPass& renderPass, window* pWindow, const image_view_t& pDepthImageView)
-	//{
-	//	std::vector<framebuffer> framebuffers;
-	//	auto extent = pWindow->swap_chain_extent();
-	//	for (const auto& imageView : pWindow->swap_chain_image_views()) {
-	//		std::array attachments = { imageView.get(), pDepthImageView.view_handle() };
-	//		auto framebufferInfo = vk::FramebufferCreateInfo()
-	//			.setRenderPass(renderPass)
-	//			.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
-	//			.setPAttachments(attachments.data())
-	//			.setWidth(extent.width)
-	//			.setHeight(extent.height)
-	//			.setLayers(1u); // number of layers in image arrays [6]
-
-	//		framebuffers.push_back(framebuffer{ mLogicalDevice.createFramebuffer( framebufferInfo ) });
-	//	}
-	//	return framebuffers;
-	//}
-
 	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
 	{
 		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
@@ -1077,14 +973,12 @@ namespace cgb
 		throw std::runtime_error("failed to find suitable memory type!");
 	}
 
-	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts)
+	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(int aPoolName, const descriptor_alloc_request& aAllocRequest)
 	{
-		// We'll allocate the pools per thread
-		auto threadId = std::this_thread::get_id();
-		auto& pools = mDescriptorPools[threadId];
+		// We'll allocate the pools per (thread and name)
+		auto pId = pool_id{std::this_thread::get_id(), aPoolName};
+		auto& pools = mDescriptorPools[pId];
 
-		// Compute the requirements:
-		auto alloc_requirements = descriptor_alloc_request::create(std::move(pLayouts));
 		// First of all, do some cleanup => remove all pools which no longer exist:
 		pools.erase(std::remove_if(std::begin(pools), std::end(pools), [](const std::weak_ptr<descriptor_pool>& ptr) {
 			return ptr.expired();
@@ -1093,103 +987,104 @@ namespace cgb
 		// Find a pool which is capable of allocating this:
 		for (auto& pool : pools) {
 			if (auto sptr = pool.lock()) {
-				if (sptr->has_capacity_for(alloc_requirements)) {
+				if (sptr->has_capacity_for(aAllocRequest)) {
 					return sptr;
 				}
 			}
 		}
 
 		// We weren't lucky => create a new pool:
+		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name[{}]", pId.mThreadId, pId.mName));
 		auto newPool = descriptor_pool::create(alloc_requirements.accumulated_pool_sizes(), settings::gDescriptorPoolSizeFactor);
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}
 
-	vk::DescriptorPool vulkan::get_descriptor_pool()
-	{
-		if (!mWorkaroundDescriptorPool) {
+	//vk::DescriptorPool vulkan::get_descriptor_pool()
+	//{
+	//	if (!mWorkaroundDescriptorPool) {
 
-			std::array poolSizes = {
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eUniformBuffer)
-					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eCombinedImageSampler)
-					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eStorageImage)
-					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eAccelerationStructureNV)
-					.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-				,
-				// Added because of IMGUI:
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eSampler)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eSampledImage)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eUniformTexelBuffer)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eStorageTexelBuffer)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eStorageBuffer)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eUniformBufferDynamic)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eStorageBufferDynamic)
-					.setDescriptorCount(1024u)
-				,
-				vk::DescriptorPoolSize()
-					.setType(vk::DescriptorType::eInputAttachment)
-					.setDescriptorCount(1024u)
-			};
+	//		std::array poolSizes = {
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eUniformBuffer)
+	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eCombinedImageSampler)
+	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eStorageImage)
+	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eAccelerationStructureNV)
+	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
+	//			,
+	//			// Added because of IMGUI:
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eSampler)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eSampledImage)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eUniformTexelBuffer)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eStorageTexelBuffer)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eStorageBuffer)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eUniformBufferDynamic)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eStorageBufferDynamic)
+	//				.setDescriptorCount(1024u)
+	//			,
+	//			vk::DescriptorPoolSize()
+	//				.setType(vk::DescriptorType::eInputAttachment)
+	//				.setDescriptorCount(1024u)
+	//		};
 
-			auto poolInfo = vk::DescriptorPoolCreateInfo()
-				.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
-				.setPPoolSizes(poolSizes.data())
-				.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
-				.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
-			// TODO: WTF, why do we need the eFreeDescriptorSet flag ^ here? What does it mean?
-			mWorkaroundDescriptorPool = logical_device().createDescriptorPoolUnique(poolInfo);
-		}
-		return mWorkaroundDescriptorPool.get();
+	//		auto poolInfo = vk::DescriptorPoolCreateInfo()
+	//			.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
+	//			.setPPoolSizes(poolSizes.data())
+	//			.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
+	//			.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
+	//		// TODO: WTF, why do we need the eFreeDescriptorSet flag ^ here? What does it mean?
+	//		mWorkaroundDescriptorPool = logical_device().createDescriptorPoolUnique(poolInfo);
+	//	}
+	//	return mWorkaroundDescriptorPool.get();
 
-			//descriptor_pool result;
-			//return result;
-	}
+	//		//descriptor_pool result;
+	//		//return result;
+	//}
 
-	std::vector<vk::UniqueDescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
-	{
+	//std::vector<vk::UniqueDescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
+	//{
 
-		auto allocInfo = vk::DescriptorSetAllocateInfo()
-			.setDescriptorPool(get_descriptor_pool()) // TODO: set a valid descriptor pool
-			.setDescriptorSetCount(static_cast<uint32_t>(pData.size()))
-			.setPSetLayouts(pData.data());
-		auto descriptorSets = logical_device().allocateDescriptorSetsUnique(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]
-		std::vector<vk::UniqueDescriptorSet> result;
-		std::transform(std::begin(descriptorSets), std::end(descriptorSets),
-					   std::back_inserter(result),
-					   [](auto& vkDescSet) {
-						   return std::move(vkDescSet);
-					   });
-		return result;
-	}
+	//	auto allocInfo = vk::DescriptorSetAllocateInfo()
+	//		.setDescriptorPool(get_descriptor_pool()) // TODO: set a valid descriptor pool
+	//		.setDescriptorSetCount(static_cast<uint32_t>(pData.size()))
+	//		.setPSetLayouts(pData.data());
+	//	auto descriptorSets = logical_device().allocateDescriptorSetsUnique(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]
+	//	std::vector<vk::UniqueDescriptorSet> result;
+	//	std::transform(std::begin(descriptorSets), std::end(descriptorSets),
+	//				   std::back_inserter(result),
+	//				   [](auto& vkDescSet) {
+	//					   return std::move(vkDescSet);
+	//				   });
+	//	return result;
+	//}
 
 	bool vulkan::is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures)
 	{

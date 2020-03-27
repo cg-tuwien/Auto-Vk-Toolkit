@@ -2,6 +2,28 @@
 
 namespace cgb
 {
+	struct pool_id
+	{
+		std::thread::id mThreadId;
+		int mName;
+	};
+}
+
+namespace std // Inject hash for `cgb::sampler_t` into std::
+{
+	template<> struct hash<cgb::pool_id>
+	{
+		std::size_t operator()(cgb::pool_id const& o) const noexcept
+		{
+			std::size_t h = 0;
+			cgb::hash_combine(h, o.mThreadId, o.mName);
+			return h;
+		}
+	};
+}
+
+namespace cgb
+{	
 	// ============================== VULKAN CONTEXT ================================
 	/**	@brief Context for Vulkan
 	 *
@@ -202,15 +224,13 @@ namespace cgb
 		 */
 		uint32_t find_memory_type_index(uint32_t pMemoryTypeBits, vk::MemoryPropertyFlags pMemoryProperties);
 
-		std::shared_ptr<descriptor_pool> get_descriptor_pool_for_layouts(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts);
+		std::shared_ptr<descriptor_pool> get_descriptor_pool_for_layouts(int aPoolName, const descriptor_alloc_request& aAllocRequest);
 
-		std::vector<vk::UniqueDescriptorSet> create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData);
+		//std::vector<vk::UniqueDescriptorSet> create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData);
 
 		bool is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures);
 
 		vk::PhysicalDeviceRayTracingPropertiesNV get_ray_tracing_properties();
-
-		vk::DescriptorPool get_descriptor_pool();
 
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;
@@ -241,13 +261,11 @@ namespace cgb
 		// Queue family indices are stored within the command_pool objects, thread indices in the tuple.
 		std::deque<std::tuple<std::thread::id, command_pool>> mCommandPools;
 
-		// Descriptor pools are created/stored per thread. 
+		// Descriptor pools are created/stored per thread and can have a name (an integer-id). 
 		// If possible, it is tried to re-use a pool. Even when re-using a pool, it might happen that
-		// allocating from it might fail (due to out of memory, for instance). In such cases, a new 
+		// allocating from it might fail (because out of memory, for instance). In such cases, a new 
 		// pool will be created.
-		std::unordered_map<std::thread::id, std::vector<std::weak_ptr<descriptor_pool>>> mDescriptorPools;
-
-		vk::UniqueDescriptorPool mWorkaroundDescriptorPool;
+		std::unordered_map<pool_id, std::vector<std::weak_ptr<descriptor_pool>>> mDescriptorPools;
 	};
 
 	template <>

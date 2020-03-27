@@ -18,13 +18,13 @@ namespace cgb
 		auto& layouts_to_allocate() const { return mToAlloc; }
 		auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
 
-		static descriptor_alloc_request create(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts);
+		static descriptor_alloc_request create(std::initializer_list<std::reference_wrapper<const descriptor_set_layout>> pLayouts);
 
 	private:
-		std::vector<std::reference_wrapper<descriptor_set_layout>> mToAlloc;
+		std::vector<std::reference_wrapper<const descriptor_set_layout>> mToAlloc;
 		std::vector<vk::DescriptorPoolSize> mAccumulatedSizes;
 	};
-
+	
 	/** A descriptor pool which can allocate storage for descriptor sets from descriptor layouts.
 	 */
 	class descriptor_pool

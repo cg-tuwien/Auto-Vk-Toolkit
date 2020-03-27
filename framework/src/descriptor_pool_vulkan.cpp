@@ -2,11 +2,11 @@
 
 namespace cgb
 {
-	descriptor_alloc_request descriptor_alloc_request::create(std::initializer_list<std::reference_wrapper<descriptor_set_layout>> pLayouts)
+	descriptor_alloc_request descriptor_alloc_request::create(std::initializer_list<std::reference_wrapper<const descriptor_set_layout>> pLayouts)
 	{
 		descriptor_alloc_request result;
 
-		for (auto& layout : pLayouts) {
+		for (const auto& layout : pLayouts) {
 			// Store the "reference" and hope that it will not get out of scope somewhen
 			result.mToAlloc.push_back(layout);
 

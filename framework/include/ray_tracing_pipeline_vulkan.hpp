@@ -13,6 +13,7 @@ namespace cgb
 		ray_tracing_pipeline_t& operator=(const ray_tracing_pipeline_t&) = delete;
 		~ray_tracing_pipeline_t() = default;
 
+		std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		const auto& handle() const { return mPipeline.get(); }
 		auto table_entry_size() const { return mShaderGroupHandleSize; }
@@ -51,6 +52,12 @@ namespace cgb
 
 		context_tracker<ray_tracing_pipeline_t> mTracker;
 	};
+
+	template <>
+	void command_buffer_t::bind_descriptors<ray_tracing_pipeline_t>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
+	{
+		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
+	}
 
 	using ray_tracing_pipeline = owning_resource<ray_tracing_pipeline_t>;
 

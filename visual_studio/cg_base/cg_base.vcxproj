@@ -231,6 +231,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\standard_descriptor_cache_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\top_level_acceleration_structure_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\transform.cpp" />
     <ClCompile Include="..\..\framework\src\varying_update_timer.cpp" />
@@ -364,6 +365,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\descriptor_cache_interface.hpp" />
+    <ClInclude Include="..\..\framework\include\standard_descriptor_cache_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\descriptor_pool_vulkan.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>

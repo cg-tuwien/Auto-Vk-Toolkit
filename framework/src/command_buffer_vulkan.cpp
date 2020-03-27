@@ -186,4 +186,20 @@ namespace cgb
 	{
 		mCommandBuffer->endRenderPass();
 	}
+
+	void command_buffer_t::bind_pipeline(const ray_tracing_pipeline_t& aPipeline)
+	{
+		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, aPipeline.handle());
+	}
+
+	void command_buffer_t::bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings)
+	{
+		auto dset = cgb::descriptor_set::create(std::move(aBindings));
+		handle().bindDescriptorSets(aBindingPoint, aLayoutHandle, 
+			0, // TODO: First set?!
+			dset.number_of_descriptor_sets(),
+			dset.descriptor_sets_addr(), 
+			0, // TODO: Dynamic offset count
+			nullptr); // TODO: Dynamic offset
+	}
 }

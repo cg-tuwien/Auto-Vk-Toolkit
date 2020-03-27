@@ -13,6 +13,7 @@ namespace cgb
 		compute_pipeline_t& operator=(const compute_pipeline_t&) = delete;
 		~compute_pipeline_t() = default;
 
+		std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		const auto& handle() const { return mPipeline.get(); }
 
@@ -41,5 +42,11 @@ namespace cgb
 		context_tracker<compute_pipeline_t> mTracker;
 	};
 
+	template <>
+	void command_buffer_t::bind_descriptors<compute_pipeline_t>(std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
+	{
+		bind_descriptors(vk::PipelineBindPoint::eCompute, std::get<const compute_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
+	}
+	
 	using compute_pipeline = owning_resource<compute_pipeline_t>;
 }

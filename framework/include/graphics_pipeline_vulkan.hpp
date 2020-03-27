@@ -13,6 +13,7 @@ namespace cgb
 		graphics_pipeline_t& operator=(const graphics_pipeline_t&) = delete;
 		~graphics_pipeline_t() = default;
 
+		std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		const auto& handle() const { return mPipeline.get(); }
 		const auto& renderpass_handle() const { return (*mRenderPass).handle(); }
@@ -61,6 +62,12 @@ namespace cgb
 
 		context_tracker<graphics_pipeline_t> mTracker;
 	};
+
+	template <>
+	void command_buffer_t::bind_descriptors<graphics_pipeline_t>(std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
+	{
+		bind_descriptors(vk::PipelineBindPoint::eGraphics, std::get<const graphics_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
+	}
 
 	using graphics_pipeline = owning_resource<graphics_pipeline_t>;
 }

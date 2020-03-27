@@ -5,6 +5,11 @@ namespace cgb // ========================== TODO/WIP ===========================
 	class command_pool;
 	class window;
 	class image_t;
+	class graphics_pipeline_t;
+	class compute_pipeline_t;
+	class ray_tracing_pipeline_t;
+	class set_of_descriptor_set_layouts;
+	class binding_data;
 
 	enum struct command_buffer_state
 	{
@@ -56,8 +61,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 *	Also clears all the attachments.
 		 *	Pay attention to the parameter `_ConcurrentFrameIndex` as it will refer to one of the (concurrent) back buffers!
 		 *	
-		 *	@param	_Window					The window which to begin the render pass for.
-		 *	@param	_InFlightIndex			The "in flight index" referring to a specific index of the back buffers.
+		 *	@param	aWindow					The window which to begin the render pass for.
+		 *	@param	aInFlightIndex			The "in flight index" referring to a specific index of the back buffers.
 		 *									If left unset, it will be set to the current frame's "in flight index",
 		 *									which is basically `cf % iff`, where `cf` is the current frame's id (or 
 		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
@@ -78,6 +83,17 @@ namespace cgb // ========================== TODO/WIP ===========================
 		auto& handle() const { return mCommandBuffer.get(); }
 		auto* handle_addr() const { return &mCommandBuffer.get(); }
 		auto state() const { return mState; }
+
+		void bind_pipeline(const ray_tracing_pipeline_t& aPipeline);
+
+		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings);
+
+		template <typename T> // Template specializations are implemented in the respective pipeline's header files
+		void bind_descriptors(std::tuple<const T*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
+		{
+			assert(false);
+			throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
+		}
 		
 		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
 		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);

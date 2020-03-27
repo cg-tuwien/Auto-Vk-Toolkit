@@ -94,12 +94,20 @@ namespace cgb
 	}
 
 
-	descriptor_set descriptor_set::create(std::initializer_list<binding_data> pBindings)
+	std::vector<descriptor_set> descriptor_set::create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache)
 	{
-		descriptor_set result;
+		std::vector<descriptor_set> result;
 
-		result.mSetOfLayouts = set_of_descriptor_set_layouts::prepare(pBindings);
-		result.mSetOfLayouts.allocate_all();
+		auto setOfLayouts = set_of_descriptor_set_layouts::prepare(aBindings);
+		auto nSets = setOfLayouts.number_of_sets();
+		for (decltype(nSets) i = 0; i < nSets; ++i) {
+			const auto& layout = aCache->get_or_alloc_layout(setOfLayouts.set_at(i));
+			auto allocRequest = descriptor_alloc_request::create({layout});
+
+			auto& pool = cgb::context().get_descriptor_pool_for_layouts('std', {layout});
+			pool->allocate()
+			
+		}
 
 		result.mDescriptorSetOwners = cgb::context().create_descriptor_set(result.mSetOfLayouts.layout_handles());
 		result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());

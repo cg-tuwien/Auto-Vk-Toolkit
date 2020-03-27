@@ -10,6 +10,7 @@
 #include <exception>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <functional>
 #include <memory>
@@ -113,6 +114,7 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "buffer_member_format_vulkan.hpp"
 #include "semaphore_vulkan.hpp"
 #include "fence_vulkan.hpp"
+#include "descriptor_cache_interface.hpp"
 #include "command_buffer_vulkan.hpp"
 #include "sync_vulkan.hpp"
 #include "image_vulkan.hpp"
@@ -174,6 +176,7 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "ray_tracing_pipeline_config.hpp"
 #include "descriptor_set_vulkan.hpp"
 #include "descriptor_pool_vulkan.hpp"
+#include "standard_descriptor_cache_vulkan.hpp"
 #include "graphics_pipeline_vulkan.hpp"
 #include "compute_pipeline_vulkan.hpp"
 #include "ray_tracing_pipeline_vulkan.hpp"
