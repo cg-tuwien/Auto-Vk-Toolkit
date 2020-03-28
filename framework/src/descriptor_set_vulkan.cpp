@@ -37,7 +37,7 @@ namespace cgb
 			orderedBindings.insert(it, b);
 		}
 
-		// Step 2: build the separate sets
+		// Step 2: assemble the separate sets
 		result.mFirstSetId = minSetId;
 		result.mLayouts.reserve(maxSetId - minSetId + 1);
 		for (uint32_t setId = minSetId; setId <= maxSetId; ++setId) {
@@ -93,59 +93,106 @@ namespace cgb
 		return allHandles;
 	}
 
-
-	std::vector<descriptor_set> descriptor_set::create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache)
+	void descriptor_set::link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool)
 	{
-		std::vector<descriptor_set> result;
-
-		auto setOfLayouts = set_of_descriptor_set_layouts::prepare(aBindings);
-		auto nSets = setOfLayouts.number_of_sets();
-		for (decltype(nSets) i = 0; i < nSets; ++i) {
-			const auto& layout = aCache->get_or_alloc_layout(setOfLayouts.set_at(i));
-			auto allocRequest = descriptor_alloc_request::create({layout});
-
-			auto& pool = cgb::context().get_descriptor_pool_for_layouts('std', {layout});
-			pool->allocate()
-			
+		mDescriptorSet = std::move(aHandle);
+		for (auto& w : mOrderedDescriptorDataWrites) {
+			w.setDstSet(mDescriptorSet.get());
 		}
-
-		result.mDescriptorSetOwners = cgb::context().create_descriptor_set(result.mSetOfLayouts.layout_handles());
-		result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());
-		for (auto& uniqueDesc : result.mDescriptorSetOwners) { // TODO: Is the second array really neccessary?
-			result.mDescriptorSets.push_back(uniqueDesc.get());
-		}
-
+		mPool = std::move(aPool);
+	}
+	
+	void descriptor_set::write_descriptors()
+	{
+		assert(mDescriptorSet);
+		cgb::context().logical_device().updateDescriptorSets(static_cast<uint32_t>(mOrderedDescriptorDataWrites.size()), mOrderedDescriptorDataWrites.data(), 0u, nullptr);
+	}
+	
+	std::vector<const descriptor_set*> descriptor_set::create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache)
+	{
 		std::vector<binding_data> orderedBindings;
 		uint32_t minSetId = std::numeric_limits<uint32_t>::max();
 		uint32_t maxSetId = std::numeric_limits<uint32_t>::min();
 
 		// Step 1: order the bindings
-		for (auto& b : pBindings) {
+		for (auto& b : aBindings) {
 			minSetId = std::min(minSetId, b.mSetId);
 			maxSetId = std::max(maxSetId, b.mSetId);
 			auto it = std::lower_bound(std::begin(orderedBindings), std::end(orderedBindings), b); // use operator<
 			orderedBindings.insert(it, b);
 		}
 
-		std::vector<vk::WriteDescriptorSet> descriptorWrites;
-		for (auto& b : pBindings) {
-			descriptorWrites.push_back(vk::WriteDescriptorSet{}
-				// descriptor sets are perfectly aligned with layouts (I hope so, at least)
-				.setDstSet(result.mDescriptorSets[result.mSetOfLayouts.set_index_for_set_id(b.mSetId)])
-				.setDstBinding(b.mLayoutBinding.binding)
-				.setDstArrayElement(0u) // TODO: support more
-				.setDescriptorType(b.mLayoutBinding.descriptorType) // TODO: Okay or use that one stored in the mResourcePtr??
-				.setDescriptorCount(b.descriptor_count()) // TODO: Okay?
-				.setPBufferInfo(b.descriptor_buffer_info())
-				.setPImageInfo(b.descriptor_image_info())
-				.setPTexelBufferView(b.texel_buffer_view_info())
-				.setPNext(b.next_pointer())
-			);
-			// TODO: Handle array types!
+		std::vector<std::reference_wrapper<const descriptor_set_layout>> layouts;
+		std::vector<descriptor_set> preparedSets;
+		std::vector<const descriptor_set*> cachedSets;
+		int numCached = 0;
+		// Step 2: go through all the sets, get or alloc layouts, and see if the descriptor sets are already in cache, by chance.
+		for (uint32_t setId = minSetId; setId <= maxSetId; ++setId) {
+			auto lb = std::lower_bound(std::begin(orderedBindings), std::end(orderedBindings), binding_data{ setId },
+				[](const binding_data& first, const binding_data& second) -> bool {
+					return first.mSetId < second.mSetId;
+				});
+			auto ub = std::upper_bound(std::begin(orderedBindings), std::end(orderedBindings), binding_data{ setId },
+				[](const binding_data& first, const binding_data& second) -> bool {
+					return first.mSetId < second.mSetId;
+				});
+
+			const auto& layout = aCache->get_or_alloc_layout(descriptor_set_layout::prepare(lb, ub));
+			auto preparedSet = descriptor_set::prepare(lb, ub);
+			const auto* cachedSet = aCache->get_descriptor_set_from_cache(preparedSet);
+			layouts.emplace_back(cachedSet);
+			numCached += nullptr != cachedSet ? 1 : 0;
+			preparedSets.emplace_back(std::move(preparedSet));
 		}
 
-		cgb::context().logical_device().updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0u, nullptr);
-		return result;
-		// Hmm... kann das funktionieren? k.A. Es wäre einmal eine (eigentlich vollständige) Implementierung (denke ich)
+		// Everything is cached; we're done.
+		if (cachedSets.size() == numCached) {
+			return cachedSets;
+		}
+
+		// HOWEVER, if not...
+		return aCache->alloc_descriptor_sets(layouts, std::move(preparedSets));
+
+
+		// Old, deprecated code:
+		//
+		// TODO: Delete when done with DescriptorSets new!
+		//
+		//
+		//
+		//auto setOfLayouts = set_of_descriptor_set_layouts::prepare(aBindings);
+		//auto nSets = setOfLayouts.number_of_sets();
+		//for (decltype(nSets) i = 0; i < nSets; ++i) {
+
+		//	
+		//	
+		//}
+
+		//result.mDescriptorSetOwners = cgb::context().create_descriptor_set(result.mSetOfLayouts.layout_handles());
+		//result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());
+		//for (auto& uniqueDesc : result.mDescriptorSetOwners) { // TODO: Is the second array really neccessary?
+		//	result.mDescriptorSets.push_back(uniqueDesc.get());
+		//}
+
+
+		//std::vector<vk::WriteDescriptorSet> descriptorWrites;
+		//for (auto& b : pBindings) {
+		//	descriptorWrites.push_back(vk::WriteDescriptorSet{}
+		//		// descriptor sets are perfectly aligned with layouts (I hope so, at least)
+		//		.setDstSet(result.mDescriptorSets[result.mSetOfLayouts.set_index_for_set_id(b.mSetId)])
+		//		.setDstBinding(b.mLayoutBinding.binding)
+		//		.setDstArrayElement(0u) // TODO: support more
+		//		.setDescriptorType(b.mLayoutBinding.descriptorType) // TODO: Okay or use that one stored in the mResourcePtr??
+		//		.setDescriptorCount(b.descriptor_count()) // TODO: Okay?
+		//		.setPBufferInfo(b.descriptor_buffer_info())
+		//		.setPImageInfo(b.descriptor_image_info())
+		//		.setPTexelBufferView(b.texel_buffer_view_info())
+		//		.setPNext(b.next_pointer())
+		//	);
+		//	// TODO: Handle array types!
+		//}
+
+		//return result;
+		//// Hmm... kann das funktionieren? k.A. Es wäre einmal eine (eigentlich vollständige) Implementierung (denke ich)
 	}
 }

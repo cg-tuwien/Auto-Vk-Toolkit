@@ -2,14 +2,11 @@
 
 namespace cgb
 {
-	descriptor_alloc_request descriptor_alloc_request::create(std::initializer_list<std::reference_wrapper<const descriptor_set_layout>> pLayouts)
+	descriptor_alloc_request descriptor_alloc_request::create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
 		descriptor_alloc_request result;
 
-		for (const auto& layout : pLayouts) {
-			// Store the "reference" and hope that it will not get out of scope somewhen
-			result.mToAlloc.push_back(layout);
-
+		for (const auto& layout : aLayouts) {
 			// Accumulate all the memory requirements of all the sets
 			for (auto& entry : layout.get().required_pool_sizes()) {
 				auto it = std::lower_bound(std::begin(result.mAccumulatedSizes), std::end(result.mAccumulatedSizes), 
@@ -50,7 +47,7 @@ namespace cgb
 		return std::make_shared<descriptor_pool>(std::move(result));
 	}
 
-	bool descriptor_pool::has_capacity_for(const descriptor_alloc_request& pRequest)
+	bool descriptor_pool::has_capacity_for(const descriptor_alloc_request& pRequest) const
 	{
 		if (mNumRemainingSets == 0) {
 			return false;
@@ -82,9 +79,18 @@ namespace cgb
 		return true;
 	}
 
-	std::vector<descriptor_set> descriptor_pool::allocate(const descriptor_alloc_request& pRequest)
+	std::vector<vk::UniqueDescriptorSet> descriptor_pool::allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
-		std::vector<descriptor_set> result;
-		return result;
+		std::vector<vk::DescriptorSetLayout> setLayouts;
+		setLayouts.reserve(aLayouts.size());
+		for (auto& in : aLayouts) {
+			setLayouts.emplace_back(in.get().handle());
+		}
+		
+		auto allocInfo = vk::DescriptorSetAllocateInfo()
+			.setDescriptorPool(mDescriptorPool.get()) 
+			.setDescriptorSetCount(static_cast<uint32_t>(setLayouts.size()))
+			.setPSetLayouts(setLayouts.data());
+		return cgb::context().logical_device().allocateDescriptorSetsUnique(allocInfo);
 	}
 }

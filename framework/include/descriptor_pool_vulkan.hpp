@@ -3,8 +3,7 @@
 namespace cgb
 {
 	/** Data about an allocation which is to be passed to a descriptor pool 
-	 *	Actually this is only a helper class. The passed descriptor_set_layout references
-	 *	must outlive an instance of this class under all circumstances!!
+	 *	Actually this is only a helper class.
 	 */
 	class descriptor_alloc_request
 	{
@@ -15,13 +14,11 @@ namespace cgb
 		descriptor_alloc_request& operator=(descriptor_alloc_request&&) noexcept = default;
 		~descriptor_alloc_request() = default;
 
-		auto& layouts_to_allocate() const { return mToAlloc; }
 		auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
 
-		static descriptor_alloc_request create(std::initializer_list<std::reference_wrapper<const descriptor_set_layout>> pLayouts);
+		static descriptor_alloc_request create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
 
 	private:
-		std::vector<std::reference_wrapper<const descriptor_set_layout>> mToAlloc;
 		std::vector<vk::DescriptorPoolSize> mAccumulatedSizes;
 	};
 	
@@ -38,8 +35,8 @@ namespace cgb
 
 		const auto& handle() const { return mDescriptorPool.get(); }
 
-		bool has_capacity_for(const descriptor_alloc_request& pRequest);
-		std::vector<descriptor_set> allocate(const descriptor_alloc_request& pRequest);
+		bool has_capacity_for(const descriptor_alloc_request& pRequest) const;
+		std::vector<vk::UniqueDescriptorSet> allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
 		
 		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, uint32_t numSets);
 		

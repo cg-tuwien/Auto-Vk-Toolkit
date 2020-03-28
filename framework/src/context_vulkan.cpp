@@ -176,8 +176,6 @@ namespace cgb
 		context().work_off_event_handlers();
 
 		// Destroy all descriptor pools before the queues and the device is destroyed
-		mWorkaroundDescriptorPool.reset();
-		mWorkaroundDescriptorPool.release();
 		mDescriptorPools.clear();
 
 		// Destroy all command pools before the queues and the device is destroyed
@@ -973,7 +971,7 @@ namespace cgb
 		throw std::runtime_error("failed to find suitable memory type!");
 	}
 
-	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(int aPoolName, const descriptor_alloc_request& aAllocRequest)
+	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName)
 	{
 		// We'll allocate the pools per (thread and name)
 		auto pId = pool_id{std::this_thread::get_id(), aPoolName};
@@ -995,7 +993,7 @@ namespace cgb
 
 		// We weren't lucky => create a new pool:
 		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name[{}]", pId.mThreadId, pId.mName));
-		auto newPool = descriptor_pool::create(alloc_requirements.accumulated_pool_sizes(), settings::gDescriptorPoolSizeFactor);
+		auto newPool = descriptor_pool::create(aAllocRequest.accumulated_pool_sizes(), settings::gDescriptorPoolSizeFactor);
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}

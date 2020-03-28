@@ -9,6 +9,10 @@ namespace cgb
 	 */
 	class descriptor_set_layout
 	{
+		friend static bool operator ==(const descriptor_set_layout& left, const descriptor_set_layout& right);
+		friend static bool operator !=(const descriptor_set_layout& left, const descriptor_set_layout& right);
+		friend struct std::hash<cgb::descriptor_set_layout>;
+		
 	public:
 		descriptor_set_layout() = default;
 		descriptor_set_layout(const descriptor_set_layout&) = delete;
@@ -18,7 +22,8 @@ namespace cgb
 		~descriptor_set_layout() = default;
 
 		const auto& required_pool_sizes() const { return mBindingRequirements; }
-		const auto& bindings() const { return mOrderedBindings; }
+		auto number_of_bindings() const { return mOrderedBindings.size(); }
+		const auto& binding_at(size_t i) const { return mOrderedBindings[i]; }
 		auto handle() const { return mLayout.get(); }
 
 		template <typename It>
@@ -27,24 +32,12 @@ namespace cgb
 			// Put elements from initializer list into vector of ORDERED bindings:
 			descriptor_set_layout result;
 			
-#if defined(_DEBUG)
-			std::optional<uint32_t> setId;
-#endif
-
 			It it = begin;
 			while (it != end) {
 				const binding_data& b = *it;
+				assert(begin->mSetId == b.mSetId);
 
-#if defined(_DEBUG)
-				if (!setId.has_value()) {
-					setId = b.mSetId;
-				} 
-				else {
-					assert(setId == b.mSetId);
-				}
-#endif
-
-				{ // Compile the mBindingRequirements member:
+				{ // Assemble the mBindingRequirements member:
 				  // ordered by descriptor type
 					auto entry = vk::DescriptorPoolSize{}
 						.setType(b.mLayoutBinding.descriptorType)
@@ -65,17 +58,11 @@ namespace cgb
 					}
 				}
 
-				{ // Compile the mOrderedBindings member:
-				  // ordered by binding => find position where to insert in vector
-					auto pos = std::lower_bound(std::begin(result.mOrderedBindings), std::end(result.mOrderedBindings), 
-						b.mLayoutBinding,
-						[](const vk::DescriptorSetLayoutBinding& first, const vk::DescriptorSetLayoutBinding& second) -> bool {
-							assert(first.binding != second.binding);
-							return first.binding < second.binding;
-						});
-					result.mOrderedBindings.insert(pos, b.mLayoutBinding);
-				}
-
+				// Store the ordered binding:
+				assert((it+1) == end || b.mLayoutBinding.binding != (it+1)->mLayoutBinding.binding);
+				assert((it+1) == end || b.mLayoutBinding.binding < (it+1)->mLayoutBinding.binding);
+				result.mOrderedBindings.push_back(b.mLayoutBinding);
+				
 				it++;
 			}
 
@@ -92,6 +79,24 @@ namespace cgb
 		std::vector<vk::DescriptorSetLayoutBinding> mOrderedBindings;
 		vk::UniqueDescriptorSetLayout mLayout;
 	};
+
+	static bool operator ==(const descriptor_set_layout& left, const descriptor_set_layout& right) {
+		const auto n = left.mOrderedBindings.size();
+		if (n != right.mOrderedBindings.size()) {
+			return false;
+		}
+		for (size_t i = 0; i < n; ++i) {
+			if (left.mOrderedBindings[i] != right.mOrderedBindings[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool operator !=(const descriptor_set_layout& left, const descriptor_set_layout& right) {
+		return !(left == right);
+	}
+	
 
 	/** Basically a vector of descriptor_set_layout instances */
 	class set_of_descriptor_set_layouts
@@ -125,6 +130,10 @@ namespace cgb
 	/** Descriptor set */
 	class descriptor_set
 	{
+		friend static bool operator ==(const descriptor_set& left, const descriptor_set& right);
+		friend static bool operator !=(const descriptor_set& left, const descriptor_set& right);
+		friend struct std::hash<cgb::descriptor_set>;
+		
 	public:
 		descriptor_set() = default;
 		descriptor_set(descriptor_set&&) noexcept = default;
@@ -133,10 +142,100 @@ namespace cgb
 		descriptor_set& operator=(const descriptor_set&) = delete;
 		~descriptor_set() = default;
 
-		static std::vector<descriptor_set> create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
+		auto number_of_writes() const { return mOrderedDescriptorDataWrites.size(); }
+		const auto& write_at(size_t i) const { return mOrderedDescriptorDataWrites[i]; }
+		const auto* pool() const { return static_cast<bool>(mPool) ? mPool.get() : nullptr; }
+		const auto handle() const { return mDescriptorSet.get(); }
+
+		template <typename It>
+		static descriptor_set prepare(It begin, It end)
+		{
+			descriptor_set result;
+
+			It it = begin;
+			while (it != end) {
+				const binding_data& b = *it;
+				assert(begin->mSetId == b.mSetId);
+
+				assert((it+1) == end || b.mLayoutBinding.binding != (it+1)->mLayoutBinding.binding);
+				assert((it+1) == end || b.mLayoutBinding.binding < (it+1)->mLayoutBinding.binding);
+
+				result.mOrderedDescriptorDataWrites.emplace_back(
+					vk::DescriptorSet{}, // To be set before actually writing
+					b.mLayoutBinding.binding,
+					0u, // TODO: Maybe support other array offsets
+					b.descriptor_count(),
+					b.mLayoutBinding.descriptorType,
+					b.descriptor_image_info(),
+					b.descriptor_buffer_info(),
+					b.texel_buffer_view_info()
+				);
+				
+				it++;
+			}
+
+			return result;
+		}
+
+		void link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool);
+		void write_descriptors();
+		
+		std::vector<const descriptor_set*> create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
 
 	private:
-		descriptor_set_layout mLayouts;
+		std::vector<vk::WriteDescriptorSet> mOrderedDescriptorDataWrites;
+		std::shared_ptr<descriptor_pool> mPool;
 		vk::UniqueDescriptorSet mDescriptorSet;
 	};
+
+	static bool operator ==(const descriptor_set& left, const descriptor_set& right) {
+		const auto n = left.mOrderedDescriptorDataWrites.size();
+		if (n != right.mOrderedDescriptorDataWrites.size()) {
+			return false;
+		}
+		for (size_t i = 0; i < n; ++i) {
+			if (left.mOrderedDescriptorDataWrites[i].dstBinding	   != right.mOrderedDescriptorDataWrites[i].dstBinding			) { return false; }
+			if (left.mOrderedDescriptorDataWrites[i].dstArrayElement  != right.mOrderedDescriptorDataWrites[i].dstArrayElement	) { return false; }
+			if (left.mOrderedDescriptorDataWrites[i].descriptorCount  != right.mOrderedDescriptorDataWrites[i].descriptorCount	) { return false; }
+			if (left.mOrderedDescriptorDataWrites[i].descriptorType   != right.mOrderedDescriptorDataWrites[i].descriptorType		) { return false; }
+			if (left.mOrderedDescriptorDataWrites[i].pImageInfo 	   != right.mOrderedDescriptorDataWrites[i].pImageInfo 		) { return false; } // TODO: Compare pointers or handles?
+			if (left.mOrderedDescriptorDataWrites[i].pBufferInfo	   != right.mOrderedDescriptorDataWrites[i].pBufferInfo		) { return false; } // TODO: Compare pointers or handles?
+			if (left.mOrderedDescriptorDataWrites[i].pTexelBufferView != right.mOrderedDescriptorDataWrites[i].pTexelBufferView	) { return false; } // TODO: Compare pointers or handles?
+		}
+		return true;
+	}
+
+	static bool operator !=(const descriptor_set& left, const descriptor_set& right) {
+		return !(left == right);
+	}
+}
+
+namespace std
+{
+	template<> struct hash<cgb::descriptor_set_layout>
+	{
+		std::size_t operator()(cgb::descriptor_set_layout const& o) const noexcept
+		{
+			std::size_t h = 0;
+			for(auto& binding : o.mOrderedBindings)
+			{
+				cgb::hash_combine(h, binding.binding, binding.descriptorType, binding.descriptorCount, binding.stageFlags, binding.pImmutableSamplers);
+			}
+			return h;
+		}
+	};
+
+	template<> struct hash<cgb::descriptor_set>
+	{
+		std::size_t operator()(cgb::descriptor_set const& o) const noexcept
+		{
+			std::size_t h = 0;
+			for(auto& w : o.mOrderedDescriptorDataWrites)
+			{
+				cgb::hash_combine(h, w.dstBinding, w.dstArrayElement, w.descriptorCount, w.descriptorType, w.pImageInfo, w.pBufferInfo, w.pTexelBufferView);
+			}
+			return h;
+		}
+	};
+
 }
