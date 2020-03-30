@@ -5,6 +5,7 @@ namespace cgb
 	descriptor_alloc_request descriptor_alloc_request::create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
 		descriptor_alloc_request result;
+		result.mNumSets = static_cast<uint32_t>(aLayouts.size());
 
 		for (const auto& layout : aLayouts) {
 			// Accumulate all the memory requirements of all the sets
@@ -29,7 +30,7 @@ namespace cgb
 
 
 
-	std::shared_ptr<descriptor_pool> descriptor_pool::create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, uint32_t numSets)
+	std::shared_ptr<descriptor_pool> descriptor_pool::create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, int numSets)
 	{
 		descriptor_pool result;
 		result.mCapacities = pSizeRequirements;
@@ -49,7 +50,7 @@ namespace cgb
 
 	bool descriptor_pool::has_capacity_for(const descriptor_alloc_request& pRequest) const
 	{
-		if (mNumRemainingSets == 0) {
+		if (mNumRemainingSets < static_cast<int>(pRequest.num_sets())) {
 			return false;
 		}
 
@@ -91,6 +92,10 @@ namespace cgb
 			.setDescriptorPool(mDescriptorPool.get()) 
 			.setDescriptorSetCount(static_cast<uint32_t>(setLayouts.size()))
 			.setPSetLayouts(setLayouts.data());
+
+		// Update the pool's stats:
+		mNumRemainingSets -= static_cast<int>(aLayouts.size());
+
 		return cgb::context().logical_device().allocateDescriptorSetsUnique(allocInfo);
 	}
 }

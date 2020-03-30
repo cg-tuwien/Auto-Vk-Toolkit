@@ -351,7 +351,7 @@ namespace cgb
 		return buf;
 	}
 
-	std::string fourccToString(unsigned int fourcc)
+	std::string fourcc_to_string(unsigned int fourcc)
 	{
 		char fourccBuf[8];
 		fourccBuf[3] = static_cast<char>(0x000000FF & fourcc);
