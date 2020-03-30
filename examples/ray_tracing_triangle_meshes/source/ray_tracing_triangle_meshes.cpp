@@ -290,14 +290,15 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(mPipeline->layout(), { 
+		cmdbfr->bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, mPipeline->layout_handle(), { 
 				cgb::binding(0, 0, mImageSamplers),
 				cgb::binding(0, 1, mMaterialBuffer),
 				cgb::binding(0, 2, mIndexBufferViews),
 				cgb::binding(0, 3, mTexCoordBufferViews),
 				cgb::binding(1, 0, mOffscreenImageViews[inFlightIndex]),
 				cgb::binding(2, 0, mTLAS[inFlightIndex])
-			}
+			},
+			nullptr
 		);
 
 		// Set the push constants:

@@ -54,11 +54,21 @@ namespace cgb
 			setToBeCompleted.write_descriptors();
 			// Your soul... is mine:
 			const auto cachedSet = mSets.insert(std::move(setToBeCompleted));
-			assert(cachedSet.second);
+			//assert(cachedSet.second);
 			// Done. Store for result:
 			result.push_back(&(*cachedSet.first));
 		}
 
 		return result;
+	}
+
+	void standard_descriptor_cache::clear_all_descriptor_sets()
+	{
+		mSets.clear();
+	}
+
+	void standard_descriptor_cache::clear_all_layouts()
+	{
+		mLayouts.clear();
 	}
 }

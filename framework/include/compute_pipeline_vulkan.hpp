@@ -42,11 +42,11 @@ namespace cgb
 		context_tracker<compute_pipeline_t> mTracker;
 	};
 
-	template <>
-	void command_buffer_t::bind_descriptors<compute_pipeline_t>(std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
-	{
-		bind_descriptors(vk::PipelineBindPoint::eCompute, std::get<const compute_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
-	}
+	//template <>
+	//void command_buffer_t::bind_descriptors<compute_pipeline_t>(std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	//{
+	//	bind_descriptors(vk::PipelineBindPoint::eCompute, std::get<const compute_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+	//}
 	
 	using compute_pipeline = owning_resource<compute_pipeline_t>;
 }

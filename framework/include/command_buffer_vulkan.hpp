@@ -9,7 +9,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 	class compute_pipeline_t;
 	class ray_tracing_pipeline_t;
 	class set_of_descriptor_set_layouts;
-	class binding_data;
+	struct binding_data;
 
 	enum struct command_buffer_state
 	{
@@ -86,14 +86,14 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		void bind_pipeline(const ray_tracing_pipeline_t& aPipeline);
 
-		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings);
+		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr);
 
-		template <typename T> // Template specializations are implemented in the respective pipeline's header files
-		void bind_descriptors(std::tuple<const T*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
-		{
-			assert(false);
-			throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
-		}
+		//template <typename T> // Template specializations are implemented in the respective pipeline's header files
+		//void bind_descriptors(std::tuple<const T*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr)
+		//{
+		//	assert(false);
+		//	throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
+		//}
 		
 		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
 		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);

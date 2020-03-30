@@ -63,11 +63,11 @@ namespace cgb
 		context_tracker<graphics_pipeline_t> mTracker;
 	};
 
-	template <>
-	void command_buffer_t::bind_descriptors<graphics_pipeline_t>(std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
-	{
-		bind_descriptors(vk::PipelineBindPoint::eGraphics, std::get<const graphics_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
-	}
+	//template <>
+	//void command_buffer_t::bind_descriptors<graphics_pipeline_t>(std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	//{
+	//	bind_descriptors(vk::PipelineBindPoint::eGraphics, std::get<const graphics_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+	//}
 
 	using graphics_pipeline = owning_resource<graphics_pipeline_t>;
 }

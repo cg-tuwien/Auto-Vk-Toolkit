@@ -53,11 +53,11 @@ namespace cgb
 		context_tracker<ray_tracing_pipeline_t> mTracker;
 	};
 
-	template <>
-	void command_buffer_t::bind_descriptors<ray_tracing_pipeline_t>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings)
-	{
-		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings));
-	}
+	//template <>
+	//void command_buffer_t::bind_descriptors<ray_tracing_pipeline_t>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	//{
+	//	command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+	//}
 
 	using ray_tracing_pipeline = owning_resource<ray_tracing_pipeline_t>;
 

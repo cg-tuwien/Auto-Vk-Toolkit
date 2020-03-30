@@ -93,6 +93,51 @@ namespace cgb
 		return allHandles;
 	}
 
+	void descriptor_set::update_data_pointers()
+	{
+		for (auto& w : mOrderedDescriptorDataWrites) {
+			assert(w.dstSet == mOrderedDescriptorDataWrites[0].dstSet);
+			if (w.descriptorCount > 1) {
+				{
+					auto it = std::find_if(std::begin(mStoredImageInfos), std::end(mStoredImageInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+					if (it != std::end(mStoredImageInfos)) {
+						w.pImageInfo = std::get<std::vector<vk::DescriptorImageInfo>>(*it).data();
+					}
+					else {
+						w.pImageInfo = nullptr;
+					}
+				}
+				{
+					auto it = std::find_if(std::begin(mStoredBufferInfos), std::end(mStoredBufferInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+					if (it != std::end(mStoredBufferInfos)) {
+						w.pBufferInfo = std::get<std::vector<vk::DescriptorBufferInfo>>(*it).data();
+					}
+					else {
+						w.pBufferInfo = nullptr;
+					}
+				}
+				{
+					auto it = std::find_if(std::begin(mStoredNextPointers), std::end(mStoredNextPointers), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+					if (it != std::end(mStoredNextPointers)) {
+						w.pNext = std::get<std::vector<void*>>(*it).data();
+					}
+					else {
+						w.pNext = nullptr;
+					}
+				}
+				{
+					auto it = std::find_if(std::begin(mStoredBufferViews), std::end(mStoredBufferViews), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+					if (it != std::end(mStoredBufferViews)) {
+						w.pTexelBufferView = std::get<std::vector<vk::BufferView>>(*it).data();
+					}
+					else {
+						w.pTexelBufferView = nullptr;
+					}
+				}
+			}
+		}
+	}
+	
 	void descriptor_set::link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool)
 	{
 		mDescriptorSet = std::move(aHandle);
@@ -105,10 +150,11 @@ namespace cgb
 	void descriptor_set::write_descriptors()
 	{
 		assert(mDescriptorSet);
+		update_data_pointers();
 		cgb::context().logical_device().updateDescriptorSets(static_cast<uint32_t>(mOrderedDescriptorDataWrites.size()), mOrderedDescriptorDataWrites.data(), 0u, nullptr);
 	}
 	
-	std::vector<const descriptor_set*> descriptor_set::create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache)
+	std::vector<const descriptor_set*> descriptor_set::get_or_create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache)
 	{
 		std::vector<binding_data> orderedBindings;
 		uint32_t minSetId = std::numeric_limits<uint32_t>::max();
@@ -138,9 +184,10 @@ namespace cgb
 				});
 
 			const auto& layout = aCache->get_or_alloc_layout(descriptor_set_layout::prepare(lb, ub));
+			layouts.emplace_back(layout);
 			auto preparedSet = descriptor_set::prepare(lb, ub);
 			const auto* cachedSet = aCache->get_descriptor_set_from_cache(preparedSet);
-			layouts.emplace_back(cachedSet);
+			cachedSets.emplace_back(cachedSet);
 			numCached += nullptr != cachedSet ? 1 : 0;
 			preparedSets.emplace_back(std::move(preparedSet));
 		}

@@ -7,6 +7,16 @@ namespace cgb
 		std::thread::id mThreadId;
 		int mName;
 	};
+
+	static bool operator==(const pool_id& left, const pool_id& right)
+	{
+		return left.mThreadId == right.mThreadId && left.mName == right.mName;
+	}
+
+	static bool operator!=(const pool_id& left, const pool_id& right)
+	{
+		return !(left==right);
+	}
 }
 
 namespace std // Inject hash for `cgb::sampler_t` into std::
@@ -232,6 +242,8 @@ namespace cgb
 
 		vk::PhysicalDeviceRayTracingPropertiesNV get_ray_tracing_properties();
 
+		descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
+		
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;
 
@@ -266,6 +278,8 @@ namespace cgb
 		// allocating from it might fail (because out of memory, for instance). In such cases, a new 
 		// pool will be created.
 		std::unordered_map<pool_id, std::vector<std::weak_ptr<descriptor_pool>>> mDescriptorPools;
+
+		standard_descriptor_cache mStandardDescriptorCache;
 	};
 
 	template <>
@@ -397,6 +411,13 @@ namespace cgb
 	inline void vulkan::track_move<buffer_view_t>(buffer_view_t* thing, buffer_view_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_move."); }
 	template <>
 	inline void vulkan::track_destruction<buffer_view_t>(buffer_view_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_destruction."); }
+
+	template <>
+	inline void vulkan::track_creation<descriptor_set>(descriptor_set* thing) { }
+	template <>
+	inline void vulkan::track_move<descriptor_set>(descriptor_set* thing, descriptor_set* other) { thing->update_data_pointers(); }
+	template <>
+	inline void vulkan::track_destruction<descriptor_set>(descriptor_set* thing) { }
 
 
 	// [1] Vulkan Tutorial, Depth buffering, https://vulkan-tutorial.com/Depth_buffering

@@ -192,13 +192,32 @@ namespace cgb
 		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, aPipeline.handle());
 	}
 
-	void command_buffer_t::bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings)
+	void command_buffer_t::bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
 	{
-		auto dset = cgb::descriptor_set::create(std::move(aBindings));
-		handle().bindDescriptorSets(aBindingPoint, aLayoutHandle, 
-			0, // TODO: First set?!
-			dset.number_of_descriptor_sets(),
-			dset.descriptor_sets_addr(), 
+		if (nullptr == aDescriptorCache) {
+			aDescriptorCache = cgb::context().get_standard_descriptor_cache();
+		}
+
+		auto dsets = cgb::descriptor_set::get_or_create(std::move(aBindings), aDescriptorCache);
+
+		if (dsets.size() == 0) {
+			LOG_WARNING("command_buffer_t::bind_descriptors has been called, but there are no descriptor sets to be bound.");
+			return;
+		}
+
+		std::vector<vk::DescriptorSet> handles;
+		handles.reserve(dsets.size());
+		for (const auto& dset : dsets)
+		{
+			handles.push_back(dset->handle());
+		}
+		
+		handle().bindDescriptorSets(
+			aBindingPoint, 
+			aLayoutHandle, 
+			dsets.front()->set_id(),
+			static_cast<uint32_t>(handles.size()),
+			handles.data(), 
 			0, // TODO: Dynamic offset count
 			nullptr); // TODO: Dynamic offset
 	}

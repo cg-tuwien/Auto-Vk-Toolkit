@@ -146,12 +146,40 @@ namespace cgb
 		const auto& write_at(size_t i) const { return mOrderedDescriptorDataWrites[i]; }
 		const auto* pool() const { return static_cast<bool>(mPool) ? mPool.get() : nullptr; }
 		const auto handle() const { return mDescriptorSet.get(); }
+		const auto set_id() const { return mSetId; }
 
+		const auto* store_image_infos(uint32_t aBindingId, std::vector<vk::DescriptorImageInfo> aStoredImageInfos)
+		{
+			auto back = mStoredImageInfos.emplace_back(aBindingId, std::move(aStoredImageInfos));
+			return std::get<std::vector<vk::DescriptorImageInfo>>(back).data();
+		}
+		
+		const auto* store_buffer_infos(uint32_t aBindingId, std::vector<vk::DescriptorBufferInfo> aStoredBufferInfos)
+		{
+			auto back = mStoredBufferInfos.emplace_back(aBindingId, std::move(aStoredBufferInfos));
+			return std::get<std::vector<vk::DescriptorBufferInfo>>(back).data();
+		}
+		
+		const auto* store_next_pointers(uint32_t aBindingId, std::vector<void*> aStoredNextPointers)
+		{
+			auto back = mStoredNextPointers.emplace_back(aBindingId, std::move(aStoredNextPointers));
+			return std::get<std::vector<void*>>(back).data();
+		}
+
+		const auto* store_buffer_views(uint32_t aBindingId, std::vector<vk::BufferView> aStoredBufferViews)
+		{
+			auto back = mStoredBufferViews.emplace_back(aBindingId, std::move(aStoredBufferViews));
+			return std::get<std::vector<vk::BufferView>>(back).data();
+		}
+
+		void update_data_pointers();
+		
 		template <typename It>
 		static descriptor_set prepare(It begin, It end)
 		{
 			descriptor_set result;
-
+			result.mSetId = begin->mSetId;
+			
 			It it = begin;
 			while (it != end) {
 				const binding_data& b = *it;
@@ -166,26 +194,35 @@ namespace cgb
 					0u, // TODO: Maybe support other array offsets
 					b.descriptor_count(),
 					b.mLayoutBinding.descriptorType,
-					b.descriptor_image_info(),
-					b.descriptor_buffer_info(),
-					b.texel_buffer_view_info()
+					b.descriptor_image_info(result),
+					b.descriptor_buffer_info(result),
+					b.texel_buffer_view_info(result)
 				);
+				result.mOrderedDescriptorDataWrites.back().setPNext(b.next_pointer(result));
 				
-				it++;
+				++it;
 			}
 
+			result.update_data_pointers();
+			//result.mTracker.setTrackee(result);
 			return result;
 		}
 
 		void link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool);
 		void write_descriptors();
 		
-		std::vector<const descriptor_set*> create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
+		static std::vector<const descriptor_set*> get_or_create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
 
 	private:
 		std::vector<vk::WriteDescriptorSet> mOrderedDescriptorDataWrites;
 		std::shared_ptr<descriptor_pool> mPool;
 		vk::UniqueDescriptorSet mDescriptorSet;
+		uint32_t mSetId;
+		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorImageInfo>>> mStoredImageInfos;
+		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorBufferInfo>>> mStoredBufferInfos;
+		std::vector<std::tuple<uint32_t, std::vector<void*>>> mStoredNextPointers;
+		std::vector<std::tuple<uint32_t, std::vector<vk::BufferView>>> mStoredBufferViews;
+		//cgb::context_tracker<descriptor_set> mTracker;
 	};
 
 	static bool operator ==(const descriptor_set& left, const descriptor_set& right) {
@@ -194,13 +231,39 @@ namespace cgb
 			return false;
 		}
 		for (size_t i = 0; i < n; ++i) {
-			if (left.mOrderedDescriptorDataWrites[i].dstBinding	   != right.mOrderedDescriptorDataWrites[i].dstBinding			) { return false; }
-			if (left.mOrderedDescriptorDataWrites[i].dstArrayElement  != right.mOrderedDescriptorDataWrites[i].dstArrayElement	) { return false; }
-			if (left.mOrderedDescriptorDataWrites[i].descriptorCount  != right.mOrderedDescriptorDataWrites[i].descriptorCount	) { return false; }
-			if (left.mOrderedDescriptorDataWrites[i].descriptorType   != right.mOrderedDescriptorDataWrites[i].descriptorType		) { return false; }
-			if (left.mOrderedDescriptorDataWrites[i].pImageInfo 	   != right.mOrderedDescriptorDataWrites[i].pImageInfo 		) { return false; } // TODO: Compare pointers or handles?
-			if (left.mOrderedDescriptorDataWrites[i].pBufferInfo	   != right.mOrderedDescriptorDataWrites[i].pBufferInfo		) { return false; } // TODO: Compare pointers or handles?
-			if (left.mOrderedDescriptorDataWrites[i].pTexelBufferView != right.mOrderedDescriptorDataWrites[i].pTexelBufferView	) { return false; } // TODO: Compare pointers or handles?
+			if (left.mOrderedDescriptorDataWrites[i].dstBinding			!= right.mOrderedDescriptorDataWrites[i].dstBinding			)			{ return false; }
+			if (left.mOrderedDescriptorDataWrites[i].dstArrayElement	!= right.mOrderedDescriptorDataWrites[i].dstArrayElement	)			{ return false; }
+			if (left.mOrderedDescriptorDataWrites[i].descriptorCount	!= right.mOrderedDescriptorDataWrites[i].descriptorCount	)			{ return false; }
+			if (left.mOrderedDescriptorDataWrites[i].descriptorType		!= right.mOrderedDescriptorDataWrites[i].descriptorType		)			{ return false; }
+			if (nullptr != left.mOrderedDescriptorDataWrites[i].pImageInfo) {
+				if (nullptr == right.mOrderedDescriptorDataWrites[i].pImageInfo)																{ return false; }
+				for (size_t j = 0; j < left.mOrderedDescriptorDataWrites[i].descriptorCount; ++j) {
+					if (left.mOrderedDescriptorDataWrites[i].pImageInfo[j] != right.mOrderedDescriptorDataWrites[i].pImageInfo[j])				{ return false; }
+				}
+			}
+			if (nullptr != left.mOrderedDescriptorDataWrites[i].pBufferInfo) {
+				if (nullptr == right.mOrderedDescriptorDataWrites[i].pBufferInfo)																{ return false; }
+				for (size_t j = 0; j < left.mOrderedDescriptorDataWrites[i].descriptorCount; ++j) {
+					if (left.mOrderedDescriptorDataWrites[i].pBufferInfo[j] != right.mOrderedDescriptorDataWrites[i].pBufferInfo[j])			{ return false; }
+				}
+			}
+			if (nullptr != left.mOrderedDescriptorDataWrites[i].pTexelBufferView) {
+				if (nullptr == right.mOrderedDescriptorDataWrites[i].pTexelBufferView)															{ return false; }
+				for (size_t j = 0; j < left.mOrderedDescriptorDataWrites[i].descriptorCount; ++j) {
+					if (left.mOrderedDescriptorDataWrites[i].pTexelBufferView[j] != right.mOrderedDescriptorDataWrites[i].pTexelBufferView[j])	{ return false; }
+				}
+			}
+			if (nullptr != left.mOrderedDescriptorDataWrites[i].pNext) {
+				if (nullptr == right.mOrderedDescriptorDataWrites[i].pNext)																		{ return false; }
+				if (left.mOrderedDescriptorDataWrites[i].descriptorType == vk::DescriptorType::eAccelerationStructureNV) {
+					const auto* asInfoLeft = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(left.mOrderedDescriptorDataWrites[i].pNext);
+					const auto* asInfoRight = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(right.mOrderedDescriptorDataWrites[i].pNext);
+					if (asInfoLeft->accelerationStructureCount != asInfoRight->accelerationStructureCount)										{ return false; }
+					for (size_t j = 0; j < asInfoLeft->accelerationStructureCount; ++j) {
+						if (asInfoLeft->pAccelerationStructures[j] != asInfoRight->pAccelerationStructures[j])									{ return false; }
+					}
+				}
+			}
 		}
 		return true;
 	}
@@ -219,7 +282,7 @@ namespace std
 			std::size_t h = 0;
 			for(auto& binding : o.mOrderedBindings)
 			{
-				cgb::hash_combine(h, binding.binding, binding.descriptorType, binding.descriptorCount, binding.stageFlags, binding.pImmutableSamplers);
+				cgb::hash_combine(h, binding.binding, binding.descriptorType, binding.descriptorCount, static_cast<VkShaderStageFlags>(binding.stageFlags), binding.pImmutableSamplers);
 			}
 			return h;
 		}
@@ -232,7 +295,30 @@ namespace std
 			std::size_t h = 0;
 			for(auto& w : o.mOrderedDescriptorDataWrites)
 			{
-				cgb::hash_combine(h, w.dstBinding, w.dstArrayElement, w.descriptorCount, w.descriptorType, w.pImageInfo, w.pBufferInfo, w.pTexelBufferView);
+				cgb::hash_combine(h, w.dstBinding, w.dstArrayElement, w.descriptorCount, w.descriptorType);
+				// Dont compute a too expensive hash => only take the first elements, each:
+				if (nullptr != w.pImageInfo && w.descriptorCount > 0) {
+					cgb::hash_combine(h, static_cast<VkSampler>(w.pImageInfo[0].sampler), static_cast<VkImageView>(w.pImageInfo[0].imageView), static_cast<VkImageLayout>(w.pImageInfo[0].imageLayout));
+				}
+				if (nullptr != w.pBufferInfo && w.descriptorCount > 0) {
+					cgb::hash_combine(h, static_cast<VkBuffer>(w.pBufferInfo[0].buffer), w.pBufferInfo[0].offset, w.pBufferInfo[0].range);
+				}
+				if (nullptr != w.pTexelBufferView && w.descriptorCount > 0) {
+					cgb::hash_combine(h, static_cast<VkBufferView>(w.pTexelBufferView[0]));
+				}
+				if (nullptr != w.pNext) {
+					if (w.descriptorType == vk::DescriptorType::eAccelerationStructureNV) {
+						const auto* asInfo = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(w.pNext);
+						cgb::hash_combine(h, asInfo->accelerationStructureCount);
+						if (asInfo->accelerationStructureCount > 0) {
+							cgb::hash_combine(h, static_cast<VkAccelerationStructureNV>(asInfo->pAccelerationStructures[0]));
+						}
+					}
+					else {
+						cgb::hash_combine(h, nullptr != w.pNext);
+					}
+				}
+				// operator== will test for exact equality.
 			}
 			return h;
 		}

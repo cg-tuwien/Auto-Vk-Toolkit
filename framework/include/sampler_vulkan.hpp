@@ -62,7 +62,7 @@ namespace std // Inject hash for `cgb::sampler_t` into std::
 		std::size_t operator()(cgb::sampler_t const& o) const noexcept
 		{
 			std::size_t h = 0;
-			cgb::hash_combine(h, o.handle());
+			cgb::hash_combine(h, static_cast<VkSampler>(o.handle()));
 			return h;
 		}
 	};
