@@ -165,25 +165,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(0, 1, mMaterialBuffer),
 			cgb::binding(0, 2, mIndexBufferViews),
 			cgb::binding(0, 3, mTexCoordBufferViews),
-			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
-			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout
+			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout; could also state it like follows: cgb::binding<cgb::image_view>(1, 0)
+			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout; could also state it like follows: cgb::binding<cgb::top_level_acceleration_structure>(2, 0)
 		);
 
-		//// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
-		//// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
-		//// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		//for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-		//	mDescriptorSet.emplace_back(std::make_shared<cgb::descriptor_set>());
-		//	*mDescriptorSet.back() = cgb::descriptor_set::create({ 
-		//		cgb::binding(0, 0, mImageSamplers),
-		//		cgb::binding(0, 1, mMaterialBuffer),
-		//		cgb::binding(0, 2, mIndexBufferViews),
-		//		cgb::binding(0, 3, mTexCoordBufferViews),
-		//		cgb::binding(1, 0, mOffscreenImageViews[i]),
-		//		cgb::binding(2, 0, mTLAS[i])
-		//	});	
-		//}
-		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
@@ -290,15 +275,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, mPipeline->layout_handle(), { 
+		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),
 				cgb::binding(0, 1, mMaterialBuffer),
 				cgb::binding(0, 2, mIndexBufferViews),
 				cgb::binding(0, 3, mTexCoordBufferViews),
 				cgb::binding(1, 0, mOffscreenImageViews[inFlightIndex]),
 				cgb::binding(2, 0, mTLAS[inFlightIndex])
-			},
-			nullptr
+			}
 		);
 
 		// Set the push constants:

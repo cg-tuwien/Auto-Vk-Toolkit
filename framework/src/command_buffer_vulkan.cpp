@@ -187,11 +187,6 @@ namespace cgb
 		mCommandBuffer->endRenderPass();
 	}
 
-	void command_buffer_t::bind_pipeline(const ray_tracing_pipeline_t& aPipeline)
-	{
-		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, aPipeline.handle());
-	}
-
 	void command_buffer_t::bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
 	{
 		if (nullptr == aDescriptorCache) {

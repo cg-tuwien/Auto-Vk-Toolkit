@@ -62,12 +62,25 @@ namespace cgb
 
 		context_tracker<graphics_pipeline_t> mTracker;
 	};
-
-	//template <>
-	//void command_buffer_t::bind_descriptors<graphics_pipeline_t>(std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
-	//{
-	//	bind_descriptors(vk::PipelineBindPoint::eGraphics, std::get<const graphics_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
-	//}
-
+	
 	using graphics_pipeline = owning_resource<graphics_pipeline_t>;
+	
+	template <>
+	inline void command_buffer_t::bind_pipeline<graphics_pipeline_t>(const graphics_pipeline_t& aPipeline)
+	{
+		handle().bindPipeline(vk::PipelineBindPoint::eGraphics, aPipeline.handle());
+	}
+
+	template <>
+	inline void command_buffer_t::bind_pipeline<graphics_pipeline>(const graphics_pipeline& aPipeline)
+	{
+		bind_pipeline<graphics_pipeline_t>(aPipeline);
+	}
+
+	template <>
+	inline void command_buffer_t::bind_descriptors<std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*>>(std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	{
+		bind_descriptors(vk::PipelineBindPoint::eGraphics, std::get<const graphics_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+	}
+
 }

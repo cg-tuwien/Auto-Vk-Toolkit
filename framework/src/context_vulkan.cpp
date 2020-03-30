@@ -175,6 +175,10 @@ namespace cgb
 		mContextState = cgb::context_state::about_to_finalize;
 		context().work_off_event_handlers();
 
+		// Destroy all descriptors and layouts before destroying the pools
+		mStandardDescriptorCache.clear_all_descriptor_sets();
+		mStandardDescriptorCache.clear_all_layouts();
+		
 		// Destroy all descriptor pools before the queues and the device is destroyed
 		mDescriptorPools.clear();
 

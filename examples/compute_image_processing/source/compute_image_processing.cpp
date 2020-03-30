@@ -96,25 +96,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
 
-		// The following is a bit ugly and needs to be abstracted sometime in the future. 
-		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the UBO and the samplers, in particular).
-		// These descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		for (int i = 0; i < cgb::context().main_window()->number_of_in_flight_frames(); ++i) {
-			// We'll need different descriptor sets for the left view and for the right view, since we are using different resources
-			// 1. left view, a.k.a. pre compute
-			mDescriptorSetPreCompute.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSetPreCompute.back() = cgb::descriptor_set::create({ 
-				cgb::binding(0, mUbo),
-				cgb::binding(1, mInputImageAndSampler)
-			});	
-			// 2. right view, a.k.a. post compute
-			mDescriptorSetPostCompute.emplace_back(std::make_shared<cgb::descriptor_set>());
-			*mDescriptorSetPostCompute.back() = cgb::descriptor_set::create({ 
-				cgb::binding(0, mUbo),
-				cgb::binding(1, mTargetImageAndSampler)
-			});		
-		}
-
 		// Create 3 compute pipelines:
 		mComputePipelines.resize(3);
 		mComputePipelines[0] = cgb::compute_pipeline_for(
@@ -132,13 +113,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(0, mInputImageAndSampler->get_image_view()),
 			cgb::binding(1, mTargetImageAndSampler->get_image_view())
 		);
-
-		// Create one descriptor set which will be used for all the compute pipelines:
-		mComputeDescriptorSet = std::make_shared<cgb::descriptor_set>();
-		*mComputeDescriptorSet = cgb::descriptor_set::create({ 
-			cgb::binding(0, mInputImageAndSampler->get_image_view()),
-			cgb::binding(1, mTargetImageAndSampler->get_image_view())
-		});	
 
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
 		mComputeFence = cgb::fence_t::create(true); // Create in signaled state, because the first operation we'll call 
@@ -165,23 +139,22 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Begin drawing:
 			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.bind_pipeline(mGraphicsPipeline);
 
-			// Draw left viewport (pre compute)
-			commandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
-				mDescriptorSetPreCompute[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
-				mDescriptorSetPreCompute[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
-				0, nullptr);
-			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
+			// Draw left viewport:
 			commandBuffer.handle().setViewport(0, 1, &vpLeft);
+			commandBuffer.bind_descriptors(mGraphicsPipeline->layout(), {
+				cgb::binding(0, mUbo),
+				cgb::binding(1, mInputImageAndSampler)
+			});
 			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
 
 			// Draw right viewport (post compute)
-			commandBuffer.handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->layout_handle(), 0, 
-				mDescriptorSetPostCompute[cgb::context().main_window()->in_flight_index_for_frame()]->number_of_descriptor_sets(),
-				mDescriptorSetPostCompute[cgb::context().main_window()->in_flight_index_for_frame()]->descriptor_sets_addr(), 
-				0, nullptr);
-			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mGraphicsPipeline->handle());
 			commandBuffer.handle().setViewport(0, 1, &vpRight);
+			commandBuffer.bind_descriptors(mGraphicsPipeline->layout(), {
+				cgb::binding(0, mUbo),
+				cgb::binding(1, mTargetImageAndSampler)
+			});
 			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
 
 			commandBuffer.end_render_pass();
@@ -235,11 +208,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Bind the pipeline
 
 			// Set the descriptors of the uniform buffer
-			cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->layout_handle(), 0, 
-				mComputeDescriptorSet->number_of_descriptor_sets(),
-				mComputeDescriptorSet->descriptor_sets_addr(), 
-				0, nullptr);
-			cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eCompute, mComputePipelines[computeIndex]->handle());
+			cmdbfr->bind_pipeline(mComputePipelines[computeIndex]);
+			cmdbfr->bind_descriptors(mComputePipelines[computeIndex]->layout(), {
+				cgb::binding(0, mInputImageAndSampler->get_image_view()),
+				cgb::binding(1, mTargetImageAndSampler->get_image_view())
+			});
 			cmdbfr->handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
 
 			cmdbfr->end_recording();
@@ -272,11 +245,8 @@ private: // v== Member variables ==v
 	std::vector<cgb::command_buffer> mCmdBfrs;
 
 	cgb::graphics_pipeline mGraphicsPipeline;
-	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSetPreCompute;
-	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSetPostCompute;
 
 	std::vector<cgb::compute_pipeline> mComputePipelines;
-	std::shared_ptr<cgb::descriptor_set> mComputeDescriptorSet;
 	cgb::fence mComputeFence;
 
 }; // compute_image_processing_app

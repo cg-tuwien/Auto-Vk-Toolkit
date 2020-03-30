@@ -84,16 +84,24 @@ namespace cgb // ========================== TODO/WIP ===========================
 		auto* handle_addr() const { return &mCommandBuffer.get(); }
 		auto state() const { return mState; }
 
-		void bind_pipeline(const ray_tracing_pipeline_t& aPipeline);
+		// Template specializations are implemented in the respective pipeline's header files
+		template <typename T> // Expected to be just the pipeline's type
+		void bind_pipeline(const T& aPipeline)
+		{
+			assert(false);
+			throw std::logic_error("No suitable bind_pipeline overload found for the given argument.");
+		}
 
 		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr);
 
-		//template <typename T> // Template specializations are implemented in the respective pipeline's header files
-		//void bind_descriptors(std::tuple<const T*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr)
-		//{
-		//	assert(false);
-		//	throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
-		//}
+		// Template specializations are implemented in the respective pipeline's header files
+		template <typename T> // Expected to be a tuple of type: std::tuple<const PIPE*, const set_of_descriptor_set_layouts*>
+		void bind_descriptors(T aPipelineLayoutTuple, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr)
+		{
+			// TODO: In the current state, we're relying on COMPATIBLE layouts. Think about reusing the pipeline's allocated and internally stored layouts!
+			assert(false);
+			throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
+		}
 		
 		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
 		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);

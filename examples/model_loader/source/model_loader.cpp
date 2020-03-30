@@ -132,15 +132,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(1, 0, mMaterialBuffer)
 		);
 
-		// The following is a bit ugly and needs to be abstracted sometime in the future. Sorry for that.
-		// Right now it is neccessary to upload the resource descriptors to the GPU (the information about the uniform buffer, in particular).
-		// This descriptor set will be used in render(). It is only created once to save memory/to make lifetime management easier.
-		mDescriptorSet = std::make_shared<cgb::descriptor_set>();
-		*mDescriptorSet = cgb::descriptor_set::create({ // We only need ONE descriptor set, despite having multiple frames in flight.
-			cgb::binding(0, 0, mImageSamplers),			// All the data in the descriptor set is constant and the same for every frame in flight.
-			cgb::binding(1, 0, mMaterialBuffer)
-		});	
-		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
@@ -152,18 +143,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-
 		cmdbfr->begin_render_pass_for_window(cgb::context().main_window());
-
-		// Bind the pipeline
-		cmdbfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			
-
-		// Set the descriptors of the uniform buffer
-		cmdbfr->handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipeline->layout_handle(), 0, 
-			mDescriptorSet->number_of_descriptor_sets(),
-			mDescriptorSet->descriptor_sets_addr(), 
-			0, nullptr);
+		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_descriptors(mPipeline->layout(), { 
+				cgb::binding(0, 0, mImageSamplers),
+				cgb::binding(1, 0, mMaterialBuffer)
+			}
+		);
 
 		for (auto& drawCall : mDrawCalls) {
 			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
@@ -240,7 +226,6 @@ private: // v== Member variables ==v
 	std::vector<cgb::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::shared_ptr<cgb::descriptor_set> mDescriptorSet;
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
 

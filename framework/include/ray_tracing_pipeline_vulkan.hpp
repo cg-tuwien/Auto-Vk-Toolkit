@@ -53,12 +53,24 @@ namespace cgb
 		context_tracker<ray_tracing_pipeline_t> mTracker;
 	};
 
-	//template <>
-	//void command_buffer_t::bind_descriptors<ray_tracing_pipeline_t>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
-	//{
-	//	command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
-	//}
-
 	using ray_tracing_pipeline = owning_resource<ray_tracing_pipeline_t>;
+	
+	template <>
+	inline void command_buffer_t::bind_pipeline<ray_tracing_pipeline_t>(const ray_tracing_pipeline_t& aPipeline)
+	{
+		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, aPipeline.handle());
+	}
+
+	template <>
+	inline void command_buffer_t::bind_pipeline<ray_tracing_pipeline>(const ray_tracing_pipeline& aPipeline)
+	{
+		bind_pipeline<ray_tracing_pipeline_t>(aPipeline);
+	}
+
+	template <>
+	inline void command_buffer_t::bind_descriptors<std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*>>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	{
+		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+	}
 
 }

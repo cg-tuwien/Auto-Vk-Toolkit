@@ -54,7 +54,7 @@ namespace cgb
 			setToBeCompleted.write_descriptors();
 			// Your soul... is mine:
 			const auto cachedSet = mSets.insert(std::move(setToBeCompleted));
-			//assert(cachedSet.second);
+			assert(cachedSet.second); // TODO: Maybe remove this because the application should not really fail in that case.
 			// Done. Store for result:
 			result.push_back(&(*cachedSet.first));
 		}

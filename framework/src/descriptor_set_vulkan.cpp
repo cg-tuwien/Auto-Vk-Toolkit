@@ -198,8 +198,21 @@ namespace cgb
 		}
 
 		// HOWEVER, if not...
-		return aCache->alloc_descriptor_sets(layouts, std::move(preparedSets));
-
+		std::vector<std::reference_wrapper<const descriptor_set_layout>> layoutsForAlloc;
+		std::vector<descriptor_set> toBeAlloced;
+		std::vector<size_t> indexMapping;
+		for (size_t i = 0; i < cachedSets.size(); ++i) {
+			if (nullptr == cachedSets[i]) {
+				layoutsForAlloc.push_back(layouts[i]);
+				toBeAlloced.push_back(std::move(preparedSets[i]));
+				indexMapping.push_back(i);
+			}
+		}
+		auto nowAlsoInCache = aCache->alloc_descriptor_sets(layoutsForAlloc, std::move(toBeAlloced));
+		for (size_t i = 0; i < indexMapping.size(); ++i) {
+			cachedSets[indexMapping[i]] = nowAlsoInCache[i];
+		}
+		return cachedSets;
 
 		// Old, deprecated code:
 		//

@@ -26,7 +26,7 @@ namespace cgb
 			vk::DescriptorSetLayoutBinding{}
 				.setBinding(pBinding)
 				.setDescriptorCount(num_elements(pResource))
-				.setDescriptorType(descriptor_type_of<decltype(first_or_only_element(pResource))>())
+				.setDescriptorType(descriptor_type_of<decltype(&first_or_only_element(pResource))>())
 				.setPImmutableSamplers(nullptr), // The pImmutableSamplers field is only relevant for image sampling related descriptors [3]
 			pShaderStages,
 			gather_one_or_multiple_element_pointers(pResource)
@@ -42,7 +42,7 @@ namespace cgb
 			vk::DescriptorSetLayoutBinding{}
 				.setBinding(pBinding)
 				.setDescriptorCount(1u)
-				.setDescriptorType(descriptor_type_of<T>())
+				.setDescriptorType(descriptor_type_of<T>(nullptr))
 				.setPImmutableSamplers(nullptr), // The pImmutableSamplers field is only relevant for image sampling related descriptors [3]
 			pShaderStages
 		};
