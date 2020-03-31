@@ -85,7 +85,7 @@ That means, *ownership* of an image is represented by the type name `cgb::image`
 
 The description below is no longer true. Synchronization has undergone major refactoring, now also offering full support for barriers, while keeping semaphores as an option. See `cgb::sync` for more details for now. The description here will be updated.
 
-~Often, you'll encounter scenarios where an operation on the GPU needs to wait until a previous operation has finished on the GPU. Whenever synchronization can not be handled internally, cg_base handles such synchronization dependencies via semaphores. ~
+~Often, you'll encounter scenarios where an operation on the GPU needs to wait until a previous operation has finished on the GPU. Whenever synchronization can not be handled internally, cg_base handles such synchronization dependencies via semaphores.~
 
 ~Whenever a semaphore CAN occur inside some method, the method will offer a **semaphore handler** which has a signature like follows: `std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler`. It means that the semaphore handler must take care of the semaphore's ownership and handle it somehow. Such semaphore handlers are generally *optional*. If you do not pass a semaphore handler, the semaphore will be handled internally. However, that could result in bad performance, because internally, cg_base will issue a "wait idle" call, meaning that it will wait until a device queue or the device has completed all pending work before resuming. You will see warnings on the console in such cases.~
 
