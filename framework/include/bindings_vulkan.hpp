@@ -46,6 +46,16 @@ namespace cgb
 	template<>
 	inline vk::DescriptorType descriptor_type_of<buffer_view>(const buffer_view* _BufferView) { return (*_BufferView)->descriptor_type(); }
 
+	template<>
+	inline vk::DescriptorType descriptor_type_of<sampler_t>(const sampler_t*) { return vk::DescriptorType::eSampler; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<sampler>(const sampler*) { return vk::DescriptorType::eSampler; }
+
+	template<>
+	inline vk::DescriptorType descriptor_type_of<image_t>(const image_t*) { return vk::DescriptorType::eSampledImage; }
+	template<>
+	inline vk::DescriptorType descriptor_type_of<image>(const image*) { return vk::DescriptorType::eSampledImage; }
+
 
 
 	template<typename T> 
@@ -64,31 +74,32 @@ namespace cgb
 
 
 	template <typename T>
-	binding_data binding(uint32_t pSet, uint32_t pBinding, const T& pResource, shader_type pShaderStages = shader_type::all)
+	binding_data binding(uint32_t aSet, uint32_t aBinding, const T& aResource, shader_type aShaderStages = shader_type::all)
 	{
 		binding_data data{
-			pSet,
+			aSet,
 			vk::DescriptorSetLayoutBinding{}
-				.setBinding(pBinding)
-				.setDescriptorCount(how_many_elements(pResource))
-				.setDescriptorType(descriptor_type_of(&first_or_only_element(pResource)))
-				.setStageFlags(to_vk_shader_stages(pShaderStages))
+				.setBinding(aBinding)
+				.setDescriptorCount(how_many_elements(aResource))
+				.setDescriptorType(descriptor_type_of(&first_or_only_element(aResource)))
+				.setStageFlags(to_vk_shader_stages(aShaderStages))
 				.setPImmutableSamplers(nullptr), // The pImmutableSamplers field is only relevant for image sampling related descriptors [3]
-			gather_one_or_multiple_element_pointers(const_cast<T&>(pResource))
+			gather_one_or_multiple_element_pointers(const_cast<T&>(aResource))
 		};
 		return data;
 	}
 
 	template <typename T>
-	binding_data binding(uint32_t pSet, uint32_t pBinding, shader_type pShaderStages = shader_type::all)
+	binding_data binding(uint32_t aSet, uint32_t aBinding, uint32_t aCount, shader_type aShaderStages = shader_type::all)
 	{
+		assert(aCount > 0u);
 		binding_data data{
-			pSet,
+			aSet,
 			vk::DescriptorSetLayoutBinding{}
-				.setBinding(pBinding)
+				.setBinding(aBinding)
 				.setDescriptorCount(1u)
 				.setDescriptorType(descriptor_type_of<T>(nullptr))
-				.setStageFlags(to_vk_shader_stages(pShaderStages))
+				.setStageFlags(to_vk_shader_stages(aShaderStages))
 				.setPImmutableSamplers(nullptr), // The pImmutableSamplers field is only relevant for image sampling related descriptors [3]
 		};
 		return data;
@@ -96,16 +107,17 @@ namespace cgb
 
 
 	template <typename T>
-	binding_data binding(uint32_t pBinding, const T& pResource, shader_type pShaderStages = shader_type::all)
+	binding_data binding(uint32_t aBinding, const T& aResource, shader_type aShaderStages = shader_type::all)
 	{
-		return binding(0u, pBinding, pResource, pShaderStages);
+		return binding(0u, aBinding, aResource, aShaderStages);
 	}
 
-	template <typename T>
-	binding_data binding(uint32_t pBinding, shader_type pShaderStages = shader_type::all)
-	{
-		return binding<T>(0u, pBinding, pShaderStages);
-	}
+	//template <typename T>
+	//binding_data binding(uint32_t aBinding, uint32_t aCount, shader_type aShaderStages = shader_type::all)
+	//{
+	//	assert(aCount > 0u);
+	//	return binding<T>(0u, aBinding, aCount, aShaderStages);
+	//}
 
 	//template <typename T, typename TU, typename TS>
 	//binding_data binding(uint32_t pSet, uint32_t pBinding, const std::variant<T, TU, TS>& pResource, shader_type pShaderStages = shader_type::all)

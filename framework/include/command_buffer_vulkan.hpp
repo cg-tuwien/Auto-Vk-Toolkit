@@ -2,6 +2,7 @@
 
 namespace cgb // ========================== TODO/WIP =================================
 {
+	class renderpass_t;
 	class command_pool;
 	class window;
 	class image_t;
@@ -68,9 +69,9 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
 		 *									in flight (or `_Window->number_of_in_flight_frames()`).
 		 */
-		void begin_render_pass_for_window(window* aWindow, std::optional<int64_t> aInFlightIndex = {});
-		
-		void begin_render_pass(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
+		void begin_render_pass_for_framebuffer(window* aWindow, std::optional<int64_t> aInFlightIndex = {});
+		void begin_render_pass_for_framebuffer(const cgb::renderpass_t& aRenderPass, window* aWindow, std::optional<int64_t> aInFlightIndex = {});
+		void begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);

@@ -14,11 +14,15 @@ namespace cgb
 		descriptor_alloc_request& operator=(descriptor_alloc_request&&) noexcept = default;
 		~descriptor_alloc_request() = default;
 
-		auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
+		void add_size_requirements(vk::DescriptorPoolSize aToAdd);
+		const auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
+		void set_num_sets(uint32_t aNumSets) { mNumSets = aNumSets; }
 		auto num_sets() const { return mNumSets; }
 
+		/**	Gather information about the required alloc size of given layouts
+		 */
 		static descriptor_alloc_request create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
-
+		
 	private:
 		std::vector<vk::DescriptorPoolSize> mAccumulatedSizes;
 		uint32_t mNumSets;

@@ -98,76 +98,6 @@ namespace cgb
 
 			return true;
 		}, cgb::context_state::halfway_initialized);
-
-		// We're still not done yet with our initial setup efforts if we need ImGui,
-		// but we're going to set that up at an even later point -> when we have the 
-		// context fully initiylized:
-		if (!settings::gDisableImGui) {
-			// Init and wire-in IMGUI
-			//
-			// Attention: May not use the `add_event_handler`-method here, because it would internally
-			//   make use of `cgb::context()` which would refer to this static instance, which has not 
-			//   yet finished initialization => would deadlock; Instead, modify data structure directly. 
-			//   This constructor is the only exception, in all other cases, it's safe to use `add_event_handler`
-			//   
-			mEventHandlers.emplace_back([]() -> bool {
-				LOG_DEBUG_VERBOSE("Running IMGUI setup event handler");
-
-				// Just get any window:
-				auto* window = context().find_window([](cgb::window* w) { 
-					return w->handle().has_value();
-				});
-
-				// Do we have a window with a handle?
-				if (nullptr == window) { 
-					return false; // Nope => not done
-				}
-
-				IMGUI_CHECKVERSION();
-				ImGui::CreateContext();
-				ImGuiIO& io = ImGui::GetIO(); (void)io;
-				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-				// Setup Dear ImGui style
-				ImGui::StyleColorsDark();
-				//ImGui::StyleColorsClassic();
-
-				// Setup Platform/Renderer bindings
-				ImGui_ImplGlfw_InitForVulkan(window->handle()->mHandle, true); // TODO: Don't install callbacks
-
-				//struct ImGui_ImplVulkan_InitInfo
-				//{
-				//	VkInstance          Instance;
-				//	VkPhysicalDevice    PhysicalDevice;
-				//	VkDevice            Device;
-				//	uint32_t            QueueFamily;
-				//	VkQueue             Queue;
-				//	VkPipelineCache     PipelineCache;
-				//	VkDescriptorPool    DescriptorPool;
-				//	uint32_t            MinImageCount;          // >= 2
-				//	uint32_t            ImageCount;             // >= MinImageCount
-				//	const VkAllocationCallbacks* Allocator;
-				//	void                (*CheckVkResultFn)(VkResult err);
-				//};
-
-				ImGui_ImplVulkan_InitInfo init_info = {};
-				init_info.Instance = context().vulkan_instance();
-				init_info.PhysicalDevice = context().physical_device();
-				init_info.Device = context().logical_device();;
-				init_info.QueueFamily = context().graphics_queue_index();
-				init_info.Queue = context().graphics_queue().handle();
-				init_info.PipelineCache = VK_NULL_HANDLE;
-				//init_info.DescriptorPool = context().get_descriptor_pool().mDescriptorPool; // TODO: give ImGui a suitable descriptor pool!
-				init_info.Allocator = VK_NULL_HANDLE;
-				//init_info.MinImageCount = sActualMaxFramesInFlight; // <---- TODO
-				//init_info.ImageCount = sActualMaxFramesInFlight; // <---- TODO
-				init_info.CheckVkResultFn = check_vk_result;
-
-				// TODO: Hmm, or do we have to do this per swap chain? 
-				return true;
-			}, cgb::context_state::fully_initialized);
-		}
 	}
 
 	vulkan::~vulkan()
@@ -812,7 +742,7 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
-		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination;
+		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination		| image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)

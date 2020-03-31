@@ -138,7 +138,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
 
 			// Begin drawing:
-			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass_for_framebuffer(cgb::context().main_window(), inFlightIndex);
 			commandBuffer.bind_pipeline(mGraphicsPipeline);
 
 			// Draw left viewport:

@@ -231,9 +231,6 @@ namespace cgb
 					// 6. render_gizmos
 					thiz->mExecutor.execute_render_gizmos(thiz->mElements);
 					
-					// 7. render_gui
-					thiz->mExecutor.execute_render_guis(thiz->mElements);
-
 					// Gather all the command buffers per window
 					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer_t>>> toRender;
 					for (auto& e : thiz->mElements)	{

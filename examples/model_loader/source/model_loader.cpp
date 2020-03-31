@@ -143,7 +143,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_window(cgb::context().main_window());
+		cmdbfr->begin_render_pass_for_framebuffer(cgb::context().main_window());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),

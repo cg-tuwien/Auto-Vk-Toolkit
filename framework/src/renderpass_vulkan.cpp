@@ -80,25 +80,23 @@ namespace cgb
 				.setLoadOp(to_vk_load_op(a.mLoadOperation))
 				.setStoreOp(to_vk_store_op(a.mStoreOperation))
 				// Just set the same load/store ops for the stencil?!
-				.setStencilLoadOp(to_vk_load_op(a.mLoadOperation))
-				.setStencilStoreOp(to_vk_store_op(a.mStoreOperation))
-				.setInitialLayout(vk::ImageLayout::eUndefined)
+				.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare) // TODO: support stencil load op, something like to_vk_load_op(a.mLoadOperation)
+				.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare) // TODO: support stencil store op, something like to_vk_store_op(a.mStoreOperation)
+				.setInitialLayout(vk::ImageLayout::eUndefined) // TODO: <------------ COLOR ATTACHMENT OPTIMAL if something came before!!
 				.setFinalLayout( // The layout is a bit of an (educated) guess:
-					a.is_depth_attachment()
+					a.is_depth_stencil_attachment()
 					? vk::ImageLayout::eDepthStencilAttachmentOptimal
-					: (a.is_to_be_presented() // => not depth => assume color, but what about presenting?
+					: (a.is_presentable() // => not depth => assume color, but what about presenting?
 						? vk::ImageLayout::ePresentSrcKHR
 						: vk::ImageLayout::eColorAttachmentOptimal))
 			);
 
 			auto attachmentIndex = static_cast<uint32_t>(result.mAttachmentDescriptions.size() - 1);
-			auto [_unused1_, attachmentLayout, _unused2_, _unused3_] = determine_usage_layout_tiling_flags_based_on_image_usage(a.mImageUsage);
 
 			// 2. Depending on the type, fill one or multiple of the references
 			if (a.is_color_attachment()) { //< 2.1. COLOR ATTACHMENT
 				// Build the Reference
-				assert(vk::ImageLayout::eColorAttachmentOptimal == attachmentLayout);
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificColorLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -109,10 +107,9 @@ namespace cgb
 					mArbitraryColorLocations.push(attachmentRef);
 				}
 			}
-			if (a.is_depth_attachment()) { //< 2.2. DEPTH ATTACHMENT
+			if (a.is_depth_stencil_attachment()) { //< 2.2. DEPTH ATTACHMENT
 				// Build the Reference
-				assert(vk::ImageLayout::eDepthStencilAttachmentOptimal == attachmentLayout);
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificDepthLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -125,8 +122,7 @@ namespace cgb
 			}
 			if (a.is_to_be_resolved()) { //< 2.3. RESOLVE ATTACHMENT
 				// Build the Reference
-				assert(vk::ImageLayout::eColorAttachmentOptimal == attachmentLayout);
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificResolveLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -139,7 +135,7 @@ namespace cgb
 			}
 			if (a.is_shader_input_attachment()) { //< 2.4. INPUT ATTACHMENT
 				// Build the Reference
-				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(attachmentLayout);
+				auto attachmentRef = vk::AttachmentReference().setAttachment(attachmentIndex).setLayout(vk::ImageLayout::eShaderReadOnlyOptimal); // TODO: <---- what about this layout? is it okay?
 				// But where to insert it?
 				if (a.has_specific_location()) {
 					assert(mSpecificInputLocations.count(a.location()) == 0); // assert that it is not already contained
@@ -246,7 +242,7 @@ namespace cgb
 		// At this point, we can not know how a subpass shall 
 		// be synchronized exactly with whatever comes before
 		// and whatever comes after. 
-		//  => Let's establish very (overly) cautious dependencies to ensure correctness:
+		//  => Let's establish very (overly) cautious dependencies to ensure correctness: // TODO: Let user do some sync here! This should be similar to cgb::sync
 
 		result.mSubpassDependencies.push_back(vk::SubpassDependency()
 			// Between which two subpasses is this dependency:
@@ -273,7 +269,7 @@ namespace cgb
 			.setSrcSubpass(0u)
 			.setDstSubpass(VK_SUBPASS_EXTERNAL)
 			// Which stage and which operations of our subpass ZERO shall be waited on by whatever comes after:
-			.setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics) // Super cautious, actually eColorAttachmentOutput (which is included in eAllGraphics [3]) should sufficee
+			.setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics) // Super cautious, actually eColorAttachmentOutput (which is included in eAllGraphics [3]) should suffice
 			.setSrcAccessMask(vk::AccessFlagBits::eInputAttachmentRead 
 							| vk::AccessFlagBits::eColorAttachmentRead
 							| vk::AccessFlagBits::eColorAttachmentWrite

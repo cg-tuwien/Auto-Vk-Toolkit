@@ -116,6 +116,7 @@ namespace cgb
 		uint32_t number_of_sets() const { return static_cast<uint32_t>(mLayouts.size()); }
 		const auto& set_at(uint32_t pIndex) const { return mLayouts[pIndex]; }
 		auto& set_at(uint32_t pIndex) { return mLayouts[pIndex]; }
+		const auto& all_sets() { return mLayouts; }
 		uint32_t set_index_for_set_id(uint32_t pSetId) const { return pSetId - mFirstSetId; }
 		const auto& set_for_set_id(uint32_t pSetId) const { return set_at(set_index_for_set_id(pSetId)); }
 		const auto& required_pool_sizes() const { return mBindingRequirements; }

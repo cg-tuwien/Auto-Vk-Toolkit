@@ -31,7 +31,7 @@ namespace cgb
 		 *	@param	pFormat			The color format of the new attachment
 		 *	@param	pLocation		(Optional) At which layout location shall this color attachment appear.
 		 */
-		static attachment create_color(image_format pFormat, image_usage pImageUsage = image_usage::color_attachment, std::optional<uint32_t> pLocation = {});
+		static attachment create_color(image_format pFormat, image_usage pImageUsage = image_usage::color_attachment | image_usage::presentable, std::optional<uint32_t> pLocation = {});
 
 		/** Create a new depth/stencil attachment, with the following default settings:
 		 *	 - clear on load
@@ -90,6 +90,9 @@ namespace cgb
 
 		static attachment create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation = {});
 
+		attachment& set_load_operation(cfg::attachment_load_operation aLoadOp);
+		attachment& set_store_operation(cfg::attachment_store_operation aStoreOp);
+		
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
 		/** True if a specific location has been configured */
@@ -97,11 +100,11 @@ namespace cgb
 		/** The location or 0 if no specific location has been configured */
 		uint32_t location() const { return mLocation.value_or(0u); }
 		/** True if this attachment shall be, finally, presented on screen. */
-		auto is_to_be_presented() const { return mIsToBePresented; }
-		/** True if this attachment represents not a depth/stencil attachment, but instead, a color attachment */
-		auto is_color_attachment() const { return !mIsDepthAttachment; }
+		auto is_presentable() const { return has_flag(mImageUsage, cgb::image_usage::presentable) || has_flag(mImageUsage, cgb::image_usage::shared_presentable); }
 		/** True if this attachment represents a depth/stencil attachment. */
-		auto is_depth_attachment() const { return mIsDepthAttachment; }
+		auto is_depth_stencil_attachment() const { return has_flag(mImageUsage, cgb::image_usage::depth_stencil_attachment); }
+		/** True if this attachment represents not a depth/stencil attachment, but instead, a color attachment */
+		auto is_color_attachment() const { return !is_depth_stencil_attachment(); }
 		/** True fi the sample count is greater than 1 */
 		bool is_multisampled() const { return mSampleCount > 1; }
 		/** The sample count for this attachment. */
@@ -109,7 +112,7 @@ namespace cgb
 		/** True if a multisample resolve pass shall be set up. */
 		auto is_to_be_resolved() const { return mDoResolve; }
 		/** True if this attachment is intended to be used as input attachment to a shader. */
-		auto is_shader_input_attachment() const { return mIsShaderInputAttachment; }
+		auto is_shader_input_attachment() const { return has_flag(mImageUsage, cgb::image_usage::input_attachment); }
 
 		std::optional<uint32_t> mLocation;
 		image_format mFormat;
@@ -117,9 +120,6 @@ namespace cgb
 		cfg::attachment_load_operation mLoadOperation;
 		cfg::attachment_store_operation mStoreOperation;
 		int mSampleCount;
-		bool mIsToBePresented;
-		bool mIsDepthAttachment;
 		bool mDoResolve;
-		bool mIsShaderInputAttachment;
 	};
 }

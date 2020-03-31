@@ -48,8 +48,6 @@
 #include <assimp/postprocess.h> // Post processing flags
 #include <assimp/anim.h>
 
-#include <imgui.h>
-
 #include <cpplinq.hpp>
 
 #include <nlohmann/json.hpp>
@@ -148,8 +146,6 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "pipeline_opengl.hpp"
 #include "bindings_opengl.hpp"
 
-#include "imgui_impl_opengl3.h"
-
 #include "context_opengl.hpp"
 #include "context.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
@@ -183,8 +179,6 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "shader_binding_table_vulkan.hpp"
 #include "vulkan_helper_functions.hpp"
 #include "bindings_vulkan.hpp"
-
-#include "imgui_impl_vulkan.h"
 
 #include "context_vulkan.hpp"
 #include "context.hpp"
@@ -260,5 +254,7 @@ namespace cgb
 #include "orca_scene.hpp"
 
 #include "material_image_helpers.hpp"
+
+#include "imgui_manager.hpp"
 
 // ReSharper restore CppUnusedIncludeDirective

@@ -58,41 +58,45 @@ namespace cgb
 		mState = command_buffer_state::finished_recording;
 	}
 
-	void command_buffer_t::begin_render_pass_for_window(window* aWindow, std::optional<int64_t> aInFlightIndex)
+	void command_buffer_t::begin_render_pass_for_framebuffer(window* aWindow, std::optional<int64_t> aInFlightIndex)
 	{
-		auto renderPassHandle = cgb::context().main_window()->renderpass_handle();
+		auto& rpass = cgb::context().main_window()->get_renderpass();		
+		begin_render_pass_for_framebuffer(rpass, aWindow, aInFlightIndex);
+	}
+
+	void command_buffer_t::begin_render_pass_for_framebuffer(const cgb::renderpass_t& aRenderPass, window* aWindow, std::optional<int64_t> aInFlightIndex)
+	{
 		auto extent = cgb::context().main_window()->swap_chain_extent();
-		auto inFlightIndex = aInFlightIndex.value_or(cgb::context().main_window()->in_flight_index_for_frame());
+		const auto inFlightIndex = aInFlightIndex.value_or(aWindow->in_flight_index_for_frame());
 		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(inFlightIndex)->handle();
 
 		std::vector<vk::ClearValue> clearValues;
-		auto& rp = cgb::context().main_window()->getrenderpass();
-		auto& rpAttachments = rp->attachment_descriptions();
+		auto& rpAttachments = aRenderPass.attachment_descriptions();
 		clearValues.reserve(rpAttachments.size());
 		for (size_t i = 0; i < rpAttachments.size(); ++i) {
-			if (rp->is_color_attachment(i)) {
+			if (aRenderPass.is_color_attachment(i)) {
 				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
 				continue;
 			}
-			if (rp->is_depth_attachment(i)) {
+			if (aRenderPass.is_depth_attachment(i)) {
 				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
 				continue;
 			}
-			if (rp->is_input_attachment(i)) {
+			if (aRenderPass.is_input_attachment(i)) {
 				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
 				continue;
 			}
-			if (rp->is_resolve_attachment(i)) {
+			if (aRenderPass.is_resolve_attachment(i)) {
 				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
 				continue;
 			}
 		}
 
 		// Begin render aass and clear the attachments (color and depth)
-		begin_render_pass(renderPassHandle, backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
+		begin_render_pass_for_framebuffer(aRenderPass.handle(), backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
 	}
-
-	void command_buffer_t::begin_render_pass(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues)
+	
+	void command_buffer_t::begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues)
 	{
 		auto renderPassBeginInfo = vk::RenderPassBeginInfo()
 			.setRenderPass(aRenderPass)

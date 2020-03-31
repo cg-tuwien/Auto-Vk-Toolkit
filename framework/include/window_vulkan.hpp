@@ -208,7 +208,7 @@ namespace cgb
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
-		auto& getrenderpass() const { return mBackBufferRenderpass; }
+		const cgb::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
 
 

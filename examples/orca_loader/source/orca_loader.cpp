@@ -189,7 +189,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_window(cgb::context().main_window());
+		cmdbfr->begin_render_pass_for_framebuffer(cgb::context().main_window());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),
@@ -284,14 +284,15 @@ int main() // <== Starting point ==
 
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
-		mainWnd->set_resolution({ 640, 480 });
+		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::triple_buffering);
 		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 
 
 		// Create an instance of vertex_buffers_app which, in this case,
-		// contains the entire functionality of our application. 
+		// contains the entire functionality of our application.
+		auto ui = cgb::imgui_manager();
 		auto element = orca_loader_app();
 
 		// Create a composition of:
@@ -300,7 +301,7 @@ int main() // <== Starting point ==
 		//  - a behavior
 		// ...
 		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
+				&ui, &element
 			});
 
 		// ... and start that composition!

@@ -66,7 +66,7 @@ namespace cgb
 
 		/**	@brief	Removes an element from the composition at the end of the current frame
 		 *	Removes the given element from the composition at the end of the current frame.
-		 *	This means that all current frame's repeading method calls up until @ref cg_element::render_gui()
+		 *	This means that all current frame's repeading method calls up until @ref cg_element::render_gizmos()
 		 *  will be called on the element. After that, @ref cg_element::finalize() will be called and the
 		 *  element will be removed from the collection.
 		 *  @param	pElement	Reference to the element to be removed from the composition
