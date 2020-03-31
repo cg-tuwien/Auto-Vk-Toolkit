@@ -49,7 +49,7 @@ auto pipeline = cgb::graphics_pipeline_for(
 
 ### Dependent Assets
 
-Some assets have dependent assets. This mostly applies to 3D models which reference textures. All the dependent assets are deployed to the target directory as well. You don't need to add them manually to the filters file, but you have to make sure that the resource paths in the "root asset" **point to valid paths to the dependent resources**. Also, make sure that dependent resources are **in the same folder or in a subfolder** w.r.t. to the root resource. If they aren't, it might be impossible to deploy them properly, because they have to remain in the same relative directory to the root resource (this might create a mess on your file system if the dependent resources weren't be in the same or in a sub-directory of the root resource).
+Some assets have dependent assets. This mostly applies to 3D models which reference textures. All the dependent assets are deployed to the target directory as well. You don't need to add them manually to the filters file, but you have to make sure that the asset paths in the "root asset" **point to valid paths to the dependent assets**. Also, make sure that dependent assets are **in the same folder or in a subfolder** w.r.t. to the root asset. If they aren't, it might be impossible to deploy them properly, because they have to remain in the same relative directory to the root assets (this might create a mess on your file system if the dependent assets weren't be in the same or in a sub-directory of the root asset).
 
 **Example:**     
 
@@ -60,9 +60,9 @@ You add a `model.obj` file directly to your `assets` filter in your Visual Studi
 * `assets/texture01.jpg`
 * `assets/normal_maps/texture02.png`
 
-**Dependent resources not present/not at the right path:**
+**Dependent assets not present/not at the right path:**
 
-If the cgb_post_build_helper notices that a dependent resource is not present or located at a path which is not a the same path or a sub-path w.r.t. the root resource, it will issue a warning. You might still be able to compile a working project configuration by assigning all your dependent resources to the right filters in Visual Studio and just ignore cgb_post_build_helper's warnings. 
+If the cgb_post_build_helper notices that a dependent asset is not present or located at a path which is not a the same path or a sub-path w.r.t. the root asset, it will issue a warning. You might still be able to compile a working project configuration by assigning all your dependent asset to the right filters in Visual Studio and just ignore cgb_post_build_helper's warnings. 
 
 For the example above, you'd have to create the following filters structure in your Visual Studio project:
 
@@ -73,17 +73,17 @@ For the example above, you'd have to create the following filters structure in y
   * `normal_maps/`
     * `texture02.png`
 
-### Known Issues and Troubleshooting w.r.t. Resource Handling
+### Known Issues and Troubleshooting w.r.t. Asset Handling
 
 #### Build errors when adding assets
 
-In many cases, resources can just be dragged into the appropriate filters in Visual Studio, but for some file types, Visual Studio assumes that it should build them. This happens, for instance, for 3D models in the OBJ-format. To prevent that, please set the resource's **Item Type** to `"Does not participate in build"` which can be done from the file's properties in Visual Studio (select file, and press `Alt + Enter`, navigate to the tab `"General"`, and set the `"Item Type"` to that value). Here is a screenshot of the property pages with the appropriate setting:
+In many cases, assets can just be dragged into the appropriate filters in Visual Studio, but for some file types, Visual Studio assumes that it should build them. This happens, for instance, for 3D models in the OBJ-format. To prevent that, please set the assets' **Item Type** to `"Does not participate in build"` which can be done from the file's properties in Visual Studio (select file, and press `Alt + Enter`, navigate to the tab `"General"`, and set the `"Item Type"` to that value). Here is a screenshot of the property pages with the appropriate setting:
 
 <img src="./docs/images/vs_does_not_participate_in_build.png" width="825"/>
 
 #### Asset is not deployed because it is not saved in the Visual Studio's filters-file
 
-Sometimes, Visual Studio won't store the exact filter path immediately in the `*.vcxproj.filters` file, which results in the affected file not being deployed to the target directory. In order to ensure that a resource has been stored in the `*.vcxproj.filters` file, please try the following steps:
+Sometimes, Visual Studio won't store the exact filter path immediately in the `*.vcxproj.filters` file, which results in the affected file not being deployed to the target directory. In order to ensure that a asset has been stored in the `*.vcxproj.filters` file, please try the following steps:
 
 1. Execute `Save All` from Visual Studio's `File` menu.
 2. Close and re-open Visual Studio 
@@ -99,7 +99,7 @@ Make sure that the `<Filter>` element is present and set to the correct value. I
 
 ## CGB Post Build Helper 
 
-`cgb_post_build_helper.exe` is a helper tool which is executed upon successful building of a project. It deploys all the referenced resources (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory. It also deploys all the dependent resources. These could be all the textures which are referenced by a 3D model file.
+`cgb_post_build_helper.exe` is a helper tool which is executed upon successful building of a project. It deploys all the referenced assets (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory. It also deploys all the dependent assets. These could be all the textures which are referenced by a 3D model file.
 
 cgb_post_build_helper will provide a tray icon, informing about the deployment process and providing lists of deployed files. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it.
 
