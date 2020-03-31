@@ -12,9 +12,9 @@ In order to create a new project that uses the **cg_base** framework, you have t
 
 A more convenient way to create a new project could be to use the `create_new_project.exe` tool, located under [`tools/executables`](./tools/executables). It allows to copy the settings from an existing project (like one of the examples) and effectively duplicates and renames a selected project.
 
-## Resource Management
+## Asset Management
 
-Dependent resources are managed directly via Visual Studio project settings, more specifically, via Visual Studio's filters. The data is stored in `*.vcxproj.filters` files. There are two special filters which are deployed by the cgb_post_build_helper to the target directory. These two are: 
+Assets required for an application are managed directly via Visual Studio project settings, more specifically, via Visual Studio's filters. The data is stored in `*.vcxproj.filters` files. There are two special filters which are deployed by the cgb_post_build_helper to the target directory. These two are: 
 
 * `assets`, and
 * `shaders`.
@@ -23,7 +23,7 @@ The following figure shows an example of a project configuration where shaders, 
 
 <img src="./docs/images/orca_loader_filters.png" width="292"/>
 
-When building the project, all these resources get deployed according to their filter path to the target directory. Sub-folders in filter paths are preserved. The filter-path is the path where to load resources from, like shown in the following examples:
+When building the project, all these resources get deployed _according to their **filter path**_ to the target directory. Sub-folders in filter paths are preserved. The filter-path is the path where to load resources from, like shown in the following examples:
 
 Load a 3D model:
 ```
@@ -47,9 +47,9 @@ auto pipeline = cgb::graphics_pipeline_for(
 );
 ```
 
-### Dependent Resources
+### Dependent Assets
 
-Some resources have dependent resources. This mostly applies to 3D models which reference textures. All the dependent resources are deployed to the target directory as well. You don't need to add them manually to the filters file, but you have to make sure that the resource paths in the "root resource" **point to valid paths to the dependent resources**. Also, make sure that dependent resources are **in the same folder or in a subfolder** w.r.t. to the root resource. If they aren't, it might be impossible to deploy them properly, because they have to remain in the same relative directory to the root resource - this might create a mess on your file system if the dependent resources wouldn't be in the same or in a sub-directory of the root resource.
+Some assets have dependent assets. This mostly applies to 3D models which reference textures. All the dependent assets are deployed to the target directory as well. You don't need to add them manually to the filters file, but you have to make sure that the resource paths in the "root asset" **point to valid paths to the dependent resources**. Also, make sure that dependent resources are **in the same folder or in a subfolder** w.r.t. to the root resource. If they aren't, it might be impossible to deploy them properly, because they have to remain in the same relative directory to the root resource (this might create a mess on your file system if the dependent resources weren't be in the same or in a sub-directory of the root resource).
 
 **Example:**     
 
@@ -73,11 +73,15 @@ For the example above, you'd have to create the following filters structure in y
   * `normal_maps/`
     * `texture02.png`
 
-### Troubleshooting
+### Known Issues and Troubleshooting w.r.t. Resource Handling
+
+#### Build errors when adding assets
 
 In many cases, resources can just be dragged into the appropriate filters in Visual Studio, but for some file types, Visual Studio assumes that it should build them. This happens, for instance, for 3D models in the OBJ-format. To prevent that, please set the resource's **Item Type** to `"Does not participate in build"` which can be done from the file's properties in Visual Studio (select file, and press `Alt + Enter`, navigate to the tab `"General"`, and set the `"Item Type"` to that value). Here is a screenshot of the property pages with the appropriate setting:
 
 <img src="./docs/images/vs_does_not_participate_in_build.png" width="825"/>
+
+#### Asset is not deployed because it is not saved in the Visual Studio's filters-file
 
 Sometimes, Visual Studio won't store the exact filter path immediately in the `*.vcxproj.filters` file, which results in the affected file not being deployed to the target directory. In order to ensure that a resource has been stored in the `*.vcxproj.filters` file, please try the following steps:
 
@@ -105,21 +109,21 @@ As an example: The [`orca_loader` example](./examples/orca_loader), should deplo
 
 If the `orca_loader` example does not deploy 72 assets, please check the hints in section about troubleshooting below.
 
-### Troubleshooting
+### Known Issues and Troubleshooting w.r.t. CGB Post Build Helper
 
-**Some resources can't be loaded on the first start**
+#### Application could not start at first try (maybe due to missing DLLs)
 
 cgb_post_build_helper runs asynchronously to not block Visual Studio. This has the side effect that deployment can still be in progress when the application is already starting. Please build your project and wait until cgb_post_build_helper's tray icon shows no more animated dots, before starting your application!
 
-**DLL files are not deployed**
+#### Error message about denied access to DLL files (DLLs are not re-deployed)
 
-This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents cgb_post_build_helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them).
+This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents cgb_post_build_helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/cg_base/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the CGB Post Build Helper).
 
-**Too few resources are being deployed** 
+#### Too few resources are being deployed
 
-Sometimes, cgb_post_build_helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing something. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
+Sometimes, cgb_post_build_helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing some type of access. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
 
-You might be subject to this problem if you build the `orca_loader` example and only 6 (or fewer) files are deployed to the target directory instead of 72 files.
+For example, you might be subject to this problem if you build the `orca_loader` example and only 6 (or fewer) files are deployed to the target directory instead of 72 files.
 
 Please try one or all of the following approaches to solve that problem:
 
@@ -136,11 +140,11 @@ Please try one or all of the following approaches to solve that problem:
 	3. Select the `Release` build and build the project.
 	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
 	
-At least the third approach should solve the problem. (If not, please create an issue and describe your situation in detail.)
+At least the third approach should solve the problem. (If not, please create an [Issue](https://github.com/cg-tuwien/cg_base/issues) and describe your situation in detail.)
 
-**Slow performance when showing lists** 
+#### Slow performance when showing lists within CGB Post Build Helper
 
-Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`.
+Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`. A new instance of CGB Post Build Helper will start at the next build. Please note, however, that all the existing lists will be gone after exiting CGB Post Build Helper. They are not persisted.
 
 ### Settings
 
