@@ -83,13 +83,15 @@ That means, *ownership* of an image is represented by the type name `cgb::image`
 
 ## Synchronization by Semaphores
 
-Often, you'll encounter scenarios where an operation on the GPU needs to wait until a previous operation has finished on the GPU. Whenever synchronization can not be handled internally, cg_base handles such synchronization dependencies via semaphores. 
+The description below is no longer true. Synchronization has undergone major refactoring, now also offering full support for barriers, while keeping semaphores as an option. See `cgb::sync` for more details for now. The description here will be updated.
 
-Whenever a semaphore CAN occur inside some method, the method will offer a **semaphore handler** which has a signature like follows: `std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler`. It means that the semaphore handler must take care of the semaphore's ownership and handle it somehow. Such semaphore handlers are generally *optional*. If you do not pass a semaphore handler, the semaphore will be handled internally. However, that could result in bad performance, because internally, cg_base will issue a "wait idle" call, meaning that it will wait until a device queue or the device has completed all pending work before resuming. You will see warnings on the console in such cases.
+~Often, you'll encounter scenarios where an operation on the GPU needs to wait until a previous operation has finished on the GPU. Whenever synchronization can not be handled internally, cg_base handles such synchronization dependencies via semaphores. ~
 
-In order to handle a semaphore, you will want to pass it on as a "wait semaphore" to a command which requires the work represented by the original semaphore to be completed. Such semaphore dependencies can be provided to methods via `std::vector<semaphore> _WaitSemaphores` parameters.
+~Whenever a semaphore CAN occur inside some method, the method will offer a **semaphore handler** which has a signature like follows: `std::function<void(owning_resource<semaphore_t>)> _SemaphoreHandler`. It means that the semaphore handler must take care of the semaphore's ownership and handle it somehow. Such semaphore handlers are generally *optional*. If you do not pass a semaphore handler, the semaphore will be handled internally. However, that could result in bad performance, because internally, cg_base will issue a "wait idle" call, meaning that it will wait until a device queue or the device has completed all pending work before resuming. You will see warnings on the console in such cases.~
 
-In many cases, you'll just require the rendering of the current frame to wait on the completion of an operation. For such cases, you can forward the semaphore to a window. In the following example, a semaphore is created for the creating and filling of a vertex buffer, and is set as an extra semaphore dependency to the rendering of the current frame via `cgb::window`'s `set_extra_semaphore_dependency` method:
+~In order to handle a semaphore, you will want to pass it on as a "wait semaphore" to a command which requires the work represented by the original semaphore to be completed. Such semaphore dependencies can be provided to methods via `std::vector<semaphore> _WaitSemaphores` parameters.~
+
+~In many cases, you'll just require the rendering of the current frame to wait on the completion of an operation. For such cases, you can forward the semaphore to a window. In the following example, a semaphore is created for the creating and filling of a vertex buffer, and is set as an extra semaphore dependency to the rendering of the current frame via `cgb::window`'s `set_extra_semaphore_dependency` method:~
 
 ```
 auto vertexPositionsBuffer = cgb::create_and_fill(
@@ -103,3 +105,17 @@ auto vertexPositionsBuffer = cgb::create_and_fill(
   }
 );
 ```
+## FAQs, Known Issues, Troubleshooting
+
+**Q: I have troubles with asset management in Visual Studio**
+A: Check out [Known Issues and Troubleshooting w.r.t. Resource Handling](https://github.com/cg-tuwien/cg_base/blob/master/visual_studio/README.md#known-issues-and-troubleshooting-wrt-asset-handling), which offers guidelines for the following cases:      
+[Build errors when adding assets](https://github.com/cg-tuwien/cg_base/blob/master/visual_studio/README.md#build-errors-when-adding-assets)         
+[Asset is not deployed because it is not saved in the Visual Studio's filters-file](https://github.com/cg-tuwien/cg_base/blob/master/visual_studio/README.md#asset-is-not-deployed-because-it-is-not-saved-in-the-visual-studios-filters-file)      
+
+**Q: I have troubles with the CGB Post Build Helper**
+A: Check out [Known Issues and Troubleshooting w.r.t. CGB Post Build Helper](https://github.com/cg-tuwien/cg_base/tree/master/visual_studio#known-issues-and-troubleshooting-wrt-cgb-post-build-helper), which offers guidelines for the following cases:        
+[Application could not start at first try (maybe due to missing DLLs)](https://github.com/cg-tuwien/cg_base/tree/master/visual_studio#application-could-not-start-at-first-try-maybe-due-to-missing-dlls)        
+[Error message about denied access to DLL files (DLLs are not re-deployed)](https://github.com/cg-tuwien/cg_base/tree/master/visual_studio#error-message-about-denied-access-to-dll-files-dlls-are-not-re-deployed)      
+[Too few resources are being deployed](https://github.com/cg-tuwien/cg_base/tree/master/visual_studio#too-few-resources-are-being-deployed)      
+[Slow performance when showing lists within CGB Post Build Helper](https://github.com/cg-tuwien/cg_base/tree/master/visual_studio#slow-performance-when-showing-lists-within-cgb-post-build-helper)      
+
