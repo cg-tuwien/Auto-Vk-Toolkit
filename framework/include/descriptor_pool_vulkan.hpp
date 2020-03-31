@@ -15,11 +15,13 @@ namespace cgb
 		~descriptor_alloc_request() = default;
 
 		auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
+		auto num_sets() const { return mNumSets; }
 
 		static descriptor_alloc_request create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
 
 	private:
 		std::vector<vk::DescriptorPoolSize> mAccumulatedSizes;
+		uint32_t mNumSets;
 	};
 	
 	/** A descriptor pool which can allocate storage for descriptor sets from descriptor layouts.
@@ -38,12 +40,12 @@ namespace cgb
 		bool has_capacity_for(const descriptor_alloc_request& pRequest) const;
 		std::vector<vk::UniqueDescriptorSet> allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
 		
-		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, uint32_t numSets);
+		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, int numSets);
 		
 	private:
 		vk::UniqueDescriptorPool mDescriptorPool;
 		std::vector<vk::DescriptorPoolSize> mCapacities;
-		uint32_t mNumInitialSets;
-		uint32_t mNumRemainingSets;
+		int mNumInitialSets;
+		int mNumRemainingSets;
 	};
 }

@@ -996,8 +996,8 @@ namespace cgb
 		}
 
 		// We weren't lucky => create a new pool:
-		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name[{}]", pId.mThreadId, pId.mName));
-		auto newPool = descriptor_pool::create(aAllocRequest.accumulated_pool_sizes(), settings::gDescriptorPoolSizeFactor);
+		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name['{}'/{}]", pId.mThreadId, fourcc_to_string(pId.mName), pId.mName));
+		auto newPool = descriptor_pool::create(aAllocRequest.accumulated_pool_sizes(), aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor);
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}
