@@ -244,14 +244,17 @@ namespace cgb
 		    //else
 		    //    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;	    	
 	    }
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
 	}
 
 	void imgui_manager::render()
 	{
-		ImGui_ImplVulkan_NewFrame();
-		//ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		ImGui::ShowDemoWindow();
+		for (auto& a : mCallback) {
+			a(); // TODO: Invoke here or in update()?
+		}
+		
 		ImGui::Render();
 		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdBfr->begin_recording();

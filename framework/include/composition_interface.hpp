@@ -47,6 +47,12 @@ namespace cgb
 		 */
 		virtual cg_element* element_by_type(const std::type_info& pType, uint32_t pIndex = 0) = 0;
 
+		template <typename T>
+		T* element_by_type(uint32_t aIndex = 0)
+		{
+			return static_cast<T*>(element_by_type(typeid(T), aIndex));
+		}
+
 		/** @brief	Add an element to this composition which becomes active in the next frame
 		 *	This element will be added to the collection of elements at the end of the current frame.
 		 *  I.e. the first repeating method call on the element will be a call to @ref cg_element::fixed_update()

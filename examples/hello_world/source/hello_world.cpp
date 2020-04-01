@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class draw_a_triangle_app : public cgb::cg_element
 {
@@ -22,13 +23,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			commandBuffer.handle().draw(3u, 1u, 0u, 0u);
 			commandBuffer.end_render_pass();
 		});
-	}
 
-	void render() override
-	{
-		// Draw using the command buffer which is associated to the current frame in flight-index:
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		assert(nullptr != imguiManager);
+		imguiManager->add_callback([](){
+			
+	        ImGui::Begin("Hello, world!");
+			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+			static std::vector<float> values;
+			values.push_back(1000.0f / ImGui::GetIO().Framerate);
+	        if (values.size() > 90) {
+		        values.erase(values.begin());
+	        }
+            ImGui::PlotLines("Framerate", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+			
+	        ImGui::End();
+		});
 	}
 
 	void update() override
@@ -53,6 +66,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 	}
 
+	void render() override
+	{
+		// Draw using the command buffer which is associated to the current frame in flight-index:
+		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+	}
+
 private: // v== Member variables ==v
 
 	cgb::graphics_pipeline mPipeline;
@@ -69,14 +89,16 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base main window");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::immediate);
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:
-		auto element = draw_a_triangle_app();
+		auto app = draw_a_triangle_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
-		// Setup an application by providing (an) element(s) which will be invoked:
-		auto helloWorld = cgb::setup(element);
+		// Setup an application by providing elements which will be invoked:
+		auto helloWorld = cgb::setup(ui, app);
 		helloWorld.start();
 	}
 	catch (std::runtime_error& re)

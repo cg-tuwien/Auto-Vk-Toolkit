@@ -109,7 +109,7 @@ namespace cgb
 			uint32_t nth = 0;
 			for (auto* element : mElements)
 			{
-				if (typeid(element) == pType)
+				if (typeid(*element) == pType)
 				{
 					if (pIndex == nth++)
 					{

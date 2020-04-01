@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class ray_tracing_triangle_meshes_app : public cgb::cg_element
 {
@@ -174,6 +175,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		cgb::current_composition().add_element(mQuakeCam);
+
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		assert(nullptr != imguiManager);
+		imguiManager->add_callback([](){
+			
+	        ImGui::Begin("Hello, world!");
+			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+			static std::vector<float> values;
+			values.push_back(1000.0f / ImGui::GetIO().Framerate);
+	        if (values.size() > 90) {
+		        values.erase(values.begin());
+	        }
+            ImGui::PlotLines("Framerate", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+			
+	        ImGui::End();
+		});
 	}
 
 	void update() override
@@ -347,12 +367,12 @@ int main() // <== Starting point ==
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Triangle Meshes Example");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
-		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->open(); 
 
-		// Create an instance of ray_tracing_triangle_meshes_app which, in this case,
-		// contains the entire functionality of our application. 
-		auto element = ray_tracing_triangle_meshes_app();
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = ray_tracing_triangle_meshes_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
 		// Create a composition of:
 		//  - a timer
@@ -360,7 +380,7 @@ int main() // <== Starting point ==
 		//  - a behavior
 		// ...
 		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
+				&ui, &app
 			});
 
 		// ... and start that composition!

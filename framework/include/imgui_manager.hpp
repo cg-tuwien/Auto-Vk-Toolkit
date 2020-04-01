@@ -15,7 +15,7 @@ namespace cgb
 			, mExecutionOrder(aExecutionOrder)
 		{ }
 
-		/** ImGui should run veeeery late --- hence, the default value of 100000 in the constructor. */
+		/** ImGui should run very late -> hence, the default value of 100000 in the constructor. */
 		int execution_order() const override { return mExecutionOrder; }
 
 		void initialize() override;
@@ -26,10 +26,17 @@ namespace cgb
 
 		void finalize() override;
 
+		template <typename F>
+		void add_callback(F&& aCallback)
+		{
+			mCallback.emplace_back(std::forward<F>(aCallback));
+		}
+		
 	private:
 		int mExecutionOrder;
 		std::shared_ptr<cgb::descriptor_pool> mDescriptorPool;
 		renderpass mRenderpass;
-		int mMouseCursorPreviousValue; 
+		int mMouseCursorPreviousValue;
+		std::vector<unique_function<void()>> mCallback;
 	};
 }

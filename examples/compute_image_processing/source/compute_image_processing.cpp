@@ -1,4 +1,13 @@
+// Copyright notice:
+// 
+// This example has been ported from Sasha Willems' "01 Image Processing" example,
+// released under MIT license, and provided on GitHub:
+// https://github.com/SaschaWillems/Vulkan#ComputeShader Copyright (c) 2016 Sascha Willems
+//
+
 #include <cg_base.hpp>
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
 
 class compute_image_processing_app : public cgb::cg_element
 {
@@ -31,7 +40,8 @@ private: // v== Struct definitions and data ==v
 	};
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-
+	compute_image_processing_app() : mRotationSpeed{ 1.0f } {}
+	
 	void initialize() override
 	{
 		// Create and upload vertex data for a quad
@@ -159,12 +169,34 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			commandBuffer.end_render_pass();
 		});
-	}
 
-	void render() override
-	{
-		auto curIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		submit_command_buffer_ref(mCmdBfrs[curIndex]);
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		assert(nullptr != imguiManager);
+		imguiManager->add_callback([this](){
+			
+	        ImGui::Begin("Compute Image Processing");
+			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+			ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+			
+			ImGui::Separator();
+
+			static ImTextureID inputTexId = ImGui_ImplVulkan_AddTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+			// This ImTextureID-stuff is tough stuff -> see https://github.com/ocornut/imgui/pull/914
+	        float inputTexWidth  = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.width;
+	        float inputTexHeight = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.height;
+			ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
+			ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+
+			static ImTextureID targetTexId = ImGui_ImplVulkan_AddTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+	        float targetTexWidth  = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.width;
+	        float targetTexHeight = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.height;
+			ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);
+			ImGui::Image(targetTexId, ImVec2(targetTexWidth/6.0f, targetTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+
+			ImGui::End();
+		});
 	}
 
 	void update() override
@@ -175,7 +207,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto uboVS = MatricesForUbo{};
 		uboVS.projection = glm::perspective(glm::radians(60.0f), w * 0.5f / h, 0.1f, 256.0f);
 		uboVS.model = glm::translate(glm::mat4{1.0f}, glm::vec3(0.0f, 0.0f, -3.0));
-		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(cgb::time().time_since_start() * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(cgb::time().time_since_start() * mRotationSpeed * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// Update the buffer:
 		cgb::fill(mUbo, &uboVS);
@@ -235,6 +267,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 	}
 
+	void render() override
+	{
+		auto curIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		submit_command_buffer_ref(mCmdBfrs[curIndex]);
+	}
+
 private: // v== Member variables ==v
 
 	cgb::vertex_buffer mVertexBuffer;
@@ -249,6 +287,8 @@ private: // v== Member variables ==v
 	std::vector<cgb::compute_pipeline> mComputePipelines;
 	cgb::fence mComputeFence;
 
+	float mRotationSpeed;
+	
 }; // compute_image_processing_app
 
 int main() // <== Starting point ==
@@ -265,21 +305,14 @@ int main() // <== Starting point ==
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
 		mainWnd->open(); 
 
-		// Create an instance of compute_image_processing_app which, in this case,
-		// contains the entire functionality of our application. 
-		auto element = compute_image_processing_app();
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = compute_image_processing_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
-		// Create a composition of:
-		//  - a timer
-		//  - an executor
-		//  - a behavior
-		// ...
-		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
-			});
-
-		// ... and start that composition!
-		hello.start();
+		// Compose our elements and engage:
+		auto imageProcessing = cgb::setup(app, ui);
+		imageProcessing.start();
 	}
 	catch (std::runtime_error& re)
 	{
