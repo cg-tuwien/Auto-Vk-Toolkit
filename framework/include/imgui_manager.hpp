@@ -30,5 +30,6 @@ namespace cgb
 		int mExecutionOrder;
 		std::shared_ptr<cgb::descriptor_pool> mDescriptorPool;
 		renderpass mRenderpass;
+		int mMouseCursorPreviousValue; 
 	};
 }

@@ -12,8 +12,8 @@ namespace cgb
 		, mIsInputEnabled(true)
 		, mRequestedSize{ 512, 512 }
 		, mCursorPosition{ 0.0, 0.0 }
-		, mResultion{ 0, 0 }
-		, mIsCursorDisabled{ false }
+		, mResoltion{ 0, 0 }
+		, mCursorMode{ cursor::arrow_cursor }
 	{
 	}
 
@@ -34,8 +34,8 @@ namespace cgb
 		, mIsInputEnabled(std::move(other.mIsInputEnabled))
 		, mRequestedSize(std::move(other.mRequestedSize))
 		, mCursorPosition(std::move(other.mCursorPosition))
-		, mResultion(std::move(other.mResultion))
-		, mIsCursorDisabled(std::move(other.mIsCursorDisabled))
+		, mResoltion(std::move(other.mResoltion))
+		, mCursorMode(std::move(other.mCursorMode))
 	{
 		other.mIsInUse = false;
 		other.mWindowId = 0u;
@@ -44,8 +44,7 @@ namespace cgb
 		other.mMonitor = std::nullopt;
 		other.mIsInputEnabled = false;
 		other.mCursorPosition = { 0.0, 0.0 };
-		other.mResultion = { 0, 0 };
-		other.mIsCursorDisabled = false;
+		other.mResoltion = { 0, 0 };
 	}
 
 	window_base& window_base::operator= (window_base&& other) noexcept
@@ -58,8 +57,8 @@ namespace cgb
 		mIsInputEnabled = std::move(other.mIsInputEnabled);
 		mRequestedSize = std::move(other.mRequestedSize);
 		mCursorPosition = std::move(other.mCursorPosition);
-		mResultion = std::move(other.mResultion);
-		mIsCursorDisabled = std::move(other.mIsCursorDisabled);
+		mResoltion = std::move(other.mResoltion);
+		mCursorMode = std::move(other.mCursorMode);
 
 		other.mIsInUse = false;
 		other.mWindowId = 0u;
@@ -68,8 +67,7 @@ namespace cgb
 		other.mMonitor = std::nullopt;
 		other.mIsInputEnabled = false;
 		other.mCursorPosition = { 0.0, 0.0 };
-		other.mResultion = { 0, 0 };
-		other.mIsCursorDisabled = false;
+		other.mResoltion = { 0, 0 };
 
 		return *this;
 	}
@@ -77,7 +75,17 @@ namespace cgb
 	void window_base::initialize_after_open()
 	{
 		assert(context().are_we_on_the_main_thread());
-		mIsCursorDisabled = glfwGetInputMode(handle()->mHandle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+		switch (glfwGetInputMode(handle()->mHandle, GLFW_CURSOR)) {
+		case GLFW_CURSOR_DISABLED:
+			mCursorMode = cursor::cursor_disabled_raw_input;
+			break;
+		case GLFW_CURSOR_HIDDEN:
+			mCursorMode = cursor::cursor_hidden;
+			break;
+		case GLFW_CURSOR_NORMAL:
+			mCursorMode = cursor::arrow_cursor;
+			break;
+		}
 	}
 
 	void window_base::set_is_in_use(bool value)
@@ -157,27 +165,15 @@ namespace cgb
 
 	glm::uvec2 window_base::resolution() const
 	{
-		return mResultion;
+		return mResoltion;
 	}
 
-	void window_base::disable_cursor(bool pDisable)
+	void window_base::set_cursor_mode(cursor aCursorMode)
 	{
 		assert(handle());
-		context().dispatch_to_main_thread([this, pDisable]() {
-			if (pDisable) {
-
-				// RAAAAW!
-				if (glfwRawMouseMotionSupported()) {
-					glfwSetInputMode(handle()->mHandle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-				}
-
-				glfwSetInputMode(handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			} 
-			else {
-				glfwSetInputMode(handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			}
-
-			mIsCursorDisabled = pDisable;
+		context().dispatch_to_main_thread([this, aCursorMode]() {
+			cgb::context().activate_cursor(this, aCursorMode);
+			mCursorMode = aCursorMode;
 			// Also update the cursor position, because window-coordinates and raw-coordinates can be different
 			glfwGetCursorPos(handle()->mHandle, &mCursorPosition.x, &mCursorPosition.y);
 		});
@@ -185,7 +181,7 @@ namespace cgb
 
 	bool window_base::is_cursor_disabled() const
 	{
-		return mIsCursorDisabled;	
+		return mCursorMode == cursor::cursor_disabled_raw_input;	
 	}
 
 	void window_base::set_cursor_pos(glm::dvec2 pCursorPos)

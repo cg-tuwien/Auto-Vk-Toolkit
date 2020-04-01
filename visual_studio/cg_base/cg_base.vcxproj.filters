@@ -573,6 +573,9 @@
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp">
       <Filter>Header Files\user_interface</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\cursor.hpp">
+      <Filter>Header Files\user_interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

@@ -16,12 +16,12 @@ namespace cgb
 
 	void quake_camera::on_enable()
 	{
-		input().set_cursor_disabled(true);
+		input().set_cursor_mode(cursor::cursor_disabled_raw_input);
 	}
 
 	void quake_camera::on_disable()
 	{
-		input().set_cursor_disabled(false);
+		input().set_cursor_mode(cursor::arrow_cursor);
 	}
 
 	void quake_camera::update()

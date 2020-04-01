@@ -153,4 +153,10 @@ namespace cgb
 		return a = a & b;
 	}
 
+	inline auto index_of(key_code c)
+	{
+		typedef std::underlying_type<key_code>::type EnumType;
+		return static_cast<EnumType>(c);
+	}
+
 }

@@ -11,7 +11,8 @@ namespace cgb
 		mCursorDisabled = false;
 		mCenterCursorPosition = std::nullopt;
 		mSetCursorPosition = std::nullopt;
-		mSetCursorDisabled = std::nullopt;
+		mSetCursorMode = std::nullopt;
+		mCharacters.clear();
 	}
 
 	void input_buffer::prepare_for_next_frame(input_buffer& pFrontBufferToBe, input_buffer& pBackBufferToBe, window* pWindow)
@@ -59,17 +60,17 @@ namespace cgb
 			pBackBufferToBe.mSetCursorPosition = std::nullopt;
 		}
 
-		if (pBackBufferToBe.mSetCursorDisabled.has_value()) {
+		if (pBackBufferToBe.mSetCursorMode.has_value()) {
 			assert(context().are_we_on_the_main_thread());
-			bool hidden = pBackBufferToBe.mSetCursorDisabled.value();
-			pWindow->disable_cursor(hidden);
+			pWindow->set_cursor_mode(pBackBufferToBe.mSetCursorMode.value());
 			// Mark action as done:
-			pBackBufferToBe.mSetCursorDisabled = std::nullopt;
+			pBackBufferToBe.mSetCursorMode = std::nullopt;
 		}
 
 		// Scroll delta is always a relative amount and filled into the back-buffer by the GLFW context,
 		//  i.e. no need to alter it here, just reset it for the back-buffer.
 		pBackBufferToBe.mScrollDelta = { 0.0, 0.0 };
+		pBackBufferToBe.mCharacters.clear();
 	}
 
 	bool input_buffer::key_pressed(key_code pKey)
@@ -117,9 +118,9 @@ namespace cgb
 		return mScrollDelta;
 	}
 
-	void input_buffer::set_cursor_disabled(bool pDisabled)
+	void input_buffer::set_cursor_mode(cursor aCursorModeToBeSet)
 	{
-		mSetCursorDisabled = pDisabled;
+		mSetCursorMode = aCursorModeToBeSet;
 	}
 
 	bool input_buffer::is_cursor_disabled() const
@@ -135,5 +136,10 @@ namespace cgb
 	void input_buffer::set_cursor_position(glm::dvec2 pNewPosition)
 	{
 		mSetCursorPosition = pNewPosition;
+	}
+
+	const std::vector<unsigned int>& input_buffer::entered_characters() const
+	{
+		return mCharacters;
 	}
 }
