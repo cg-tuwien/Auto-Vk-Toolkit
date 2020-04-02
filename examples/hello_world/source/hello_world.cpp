@@ -25,23 +25,23 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		});
 
 		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
-		assert(nullptr != imguiManager);
-		imguiManager->add_callback([](){
-			
-	        ImGui::Begin("Hello, world!");
-			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+		if(nullptr != imguiManager) {
+			imguiManager->add_callback([](){
+				
+		        ImGui::Begin("Hello, world!");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 
-			static std::vector<float> values;
-			values.push_back(1000.0f / ImGui::GetIO().Framerate);
-	        if (values.size() > 90) {
-		        values.erase(values.begin());
-	        }
-            ImGui::PlotLines("Framerate", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
-			
-	        ImGui::End();
-		});
+				static std::vector<float> values;
+				values.push_back(1000.0f / ImGui::GetIO().Framerate);
+		        if (values.size() > 90) {
+			        values.erase(values.begin());
+		        }
+	            ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+		        ImGui::End();
+			});
+		}
 	}
 
 	void update() override

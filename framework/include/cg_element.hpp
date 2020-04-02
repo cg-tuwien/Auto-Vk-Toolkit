@@ -158,8 +158,8 @@ namespace cgb
 		 *
 		 *	@param pAlsoEnableRendering Set to true to also enable
 		 *  rending of this element. If set to false, the flags which 
-		 *  indicate whether or not to render, render gizmos, and render 
-		 *  gui of this element, will remain unchanged.
+		 *  indicate whether or not to render, and render gizmos
+		 *  will remain unchanged.
 		 *
 		 *	Call this method to enable this cg_element by the end of 
 		 *	the current frame! I.e. this method expresses your intent

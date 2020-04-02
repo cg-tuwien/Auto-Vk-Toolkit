@@ -1,4 +1,6 @@
 #include <cg_base.hpp>
+#include <imgui.h>
+#include <glm/gtx/euler_angles.hpp>
 
 class orca_loader_app : public cgb::cg_element
 {
@@ -183,6 +185,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		cgb::current_composition().add_element(mQuakeCam);
+
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if(nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				ImGui::DragFloat3("Rotate Objects", glm::value_ptr(mRotateObjects), 0.005f, -glm::pi<float>(), glm::pi<float>());
+				ImGui::DragFloat3("Rotate Scene", glm::value_ptr(mRotateScene), 0.005f, -glm::pi<float>(), glm::pi<float>());
+				ImGui::End();
+			});
+		}
 	}
 
 	void render() override
@@ -207,8 +224,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Set the push constants:
 			auto pushConstantsForThisDrawCall = transformation_matrices { 
-				drawCall.mModelMatrix,									// <-- mModelMatrix
-				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
+				glm::mat4{glm::orientate3(mRotateScene)} * drawCall.mModelMatrix * glm::mat4{glm::orientate3(mRotateObjects)},	// <-- mModelMatrix
+				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),														// <-- mProjViewMatrix
 				drawCall.mMaterialIndex
 			};
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
@@ -245,12 +262,15 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Stop the current composition:
 			cgb::current_composition().stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::tab)) {
+		if (cgb::input().key_pressed(cgb::key_code::f1)) {
+			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
 			}
 			else {
 				mQuakeCam.enable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
 		}
 	}
@@ -272,6 +292,9 @@ private: // v== Member variables ==v
 	cgb::graphics_pipeline mPipeline;
 	cgb::quake_camera mQuakeCam;
 
+	glm::vec3 mRotateObjects;
+	glm::vec3 mRotateScene;
+	
 }; // model_loader_app
 
 int main() // <== Starting point ==
@@ -285,27 +308,18 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
 		mainWnd->set_resolution({ 1920, 1080 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::triple_buffering);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
 		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 
 
-		// Create an instance of vertex_buffers_app which, in this case,
-		// contains the entire functionality of our application.
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = orca_loader_app();
+		// Create another element for drawing the UI with ImGui
 		auto ui = cgb::imgui_manager();
-		auto element = orca_loader_app();
 
-		// Create a composition of:
-		//  - a timer
-		//  - an executor
-		//  - a behavior
-		// ...
-		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&ui, &element
-			});
-
-		// ... and start that composition!
-		hello.start();
+		auto orcaLoader = cgb::setup(app, ui);
+		orcaLoader.start();
 	}
 	catch (std::runtime_error& re)
 	{

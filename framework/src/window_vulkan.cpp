@@ -54,13 +54,13 @@ namespace cgb
 			case cgb::presentation_mode::immediate:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eImmediate);
 				break;
-			case cgb::presentation_mode::double_buffering:
+			case cgb::presentation_mode::relaxed_fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifoRelaxed);
 				break;
-			case cgb::presentation_mode::vsync:
+			case cgb::presentation_mode::fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifo);
 				break;
-			case cgb::presentation_mode::triple_buffering:
+			case cgb::presentation_mode::mailbox:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eMailbox);
 				break;
 			default:
@@ -177,7 +177,7 @@ namespace cgb
 	{
 		if (!mPresentationModeSelector) {
 			// Set the default:
-			set_presentaton_mode(cgb::presentation_mode::triple_buffering);
+			set_presentaton_mode(cgb::presentation_mode::mailbox);
 		}
 		// Determine the presentation mode:
 		return mPresentationModeSelector(aSurface);

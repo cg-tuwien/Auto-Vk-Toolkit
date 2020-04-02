@@ -13,7 +13,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
-		mLightDir = { 0.8f, 1.0f, 0.0f, 0.0f };
+		mLightDir = { 0.8f, 1.0f, 0.0f };
 
 		// Load an ORCA scene from file:
 		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
@@ -177,23 +177,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::current_composition().add_element(mQuakeCam);
 
 		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
-		assert(nullptr != imguiManager);
-		imguiManager->add_callback([](){
-			
-	        ImGui::Begin("Hello, world!");
-			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-
-			static std::vector<float> values;
-			values.push_back(1000.0f / ImGui::GetIO().Framerate);
-	        if (values.size() > 90) {
-		        values.erase(values.begin());
-	        }
-            ImGui::PlotLines("Framerate", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
-			
-	        ImGui::End();
-		});
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				ImGui::DragFloat3("Light Direction", glm::value_ptr(mLightDir), 0.005f, -1.0f, 1.0f);
+				mLightDir = glm::normalize(mLightDir);
+				ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -259,32 +255,16 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Stop the current composition:
 			cgb::current_composition().stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::tab)) {
+		if (cgb::input().key_pressed(cgb::key_code::f1)) {
+			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
 			}
 			else {
 				mQuakeCam.enable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
-		}
-
-		if (cgb::input().key_down(cgb::key_code::j)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::l)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::i)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::k)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::u)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::o)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
 		}
 	}
 
@@ -308,7 +288,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 
 			mQuakeCam.view_matrix(),
-			mLightDir
+			glm::vec4{mLightDir, 0.0f}
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV | vk::ShaderStageFlagBits::eClosestHitNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
@@ -345,7 +325,7 @@ private: // v== Member variables ==v
 
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 
-	glm::vec4 mLightDir;
+	glm::vec3 mLightDir = {0.0f, -1.0f, 0.0f};
 	
 	cgb::ray_tracing_pipeline mPipeline;
 	cgb::graphics_pipeline mGraphicsPipeline;
@@ -366,7 +346,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Triangle Meshes Example");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::fifo);
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:
@@ -377,8 +357,7 @@ int main() // <== Starting point ==
 		// Create a composition of:
 		//  - a timer
 		//  - an executor
-		//  - a behavior
-		// ...
+		//  - elements
 		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
 				&ui, &app
 			});

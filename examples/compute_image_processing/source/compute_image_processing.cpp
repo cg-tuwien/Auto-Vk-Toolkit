@@ -171,32 +171,32 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		});
 
 		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
-		assert(nullptr != imguiManager);
-		imguiManager->add_callback([this](){
-			
-	        ImGui::Begin("Compute Image Processing");
-			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-			ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
-			
-			ImGui::Separator();
+		if(nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+				
+				ImGui::Separator();
 
-			static ImTextureID inputTexId = ImGui_ImplVulkan_AddTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
-			// This ImTextureID-stuff is tough stuff -> see https://github.com/ocornut/imgui/pull/914
-	        float inputTexWidth  = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.width;
-	        float inputTexHeight = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.height;
-			ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
-			ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+				static ImTextureID inputTexId = ImGui_ImplVulkan_AddTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+				// This ImTextureID-stuff is tough stuff -> see https://github.com/ocornut/imgui/pull/914
+		        float inputTexWidth  = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.width;
+		        float inputTexHeight = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.height;
+				ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
+				ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
-			static ImTextureID targetTexId = ImGui_ImplVulkan_AddTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
-	        float targetTexWidth  = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.width;
-	        float targetTexHeight = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.height;
-			ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);
-			ImGui::Image(targetTexId, ImVec2(targetTexWidth/6.0f, targetTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+				static ImTextureID targetTexId = ImGui_ImplVulkan_AddTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+		        float targetTexWidth  = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.width;
+		        float targetTexHeight = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.height;
+				ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);
+				ImGui::Image(targetTexId, ImVec2(targetTexWidth/6.0f, targetTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
-			ImGui::End();
-		});
+				ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -302,7 +302,7 @@ int main() // <== Starting point ==
 		auto mainWnd = cgb::context().create_window("Compute Image Effects");
 		mainWnd->set_resolution({ 1280, 800 });
 		mainWnd->set_number_of_concurrent_frames(3);
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::fifo);
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:

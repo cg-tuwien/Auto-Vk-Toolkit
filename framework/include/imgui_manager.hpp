@@ -13,6 +13,7 @@ namespace cgb
 		imgui_manager(std::string aName = "imgui", int aExecutionOrder = 100000)
 			: cg_element(std::move(aName))
 			, mExecutionOrder(aExecutionOrder)
+			, mUserInteractionEnabled{ true }
 		{ }
 
 		/** ImGui should run very late -> hence, the default value of 100000 in the constructor. */
@@ -31,6 +32,9 @@ namespace cgb
 		{
 			mCallback.emplace_back(std::forward<F>(aCallback));
 		}
+
+		void enable_user_interaction(bool aEnableOrNot);
+		bool is_user_interaction_enabled() { return mUserInteractionEnabled; }
 		
 	private:
 		int mExecutionOrder;
@@ -38,5 +42,6 @@ namespace cgb
 		renderpass mRenderpass;
 		int mMouseCursorPreviousValue;
 		std::vector<unique_function<void()>> mCallback;
+		bool mUserInteractionEnabled;
 	};
 }

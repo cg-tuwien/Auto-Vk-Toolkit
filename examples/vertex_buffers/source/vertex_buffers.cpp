@@ -82,17 +82,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		});
 
 		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
-		assert(nullptr != imguiManager);
-		imguiManager->add_callback([this](){
-			
-	        ImGui::Begin("Vertex Buffers - Config");
-			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-			ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
-			ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
-	        ImGui::End();
-		});
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
+				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+		        ImGui::End();
+			});
+		}
 	}
 
 	void update() override

@@ -4,6 +4,7 @@
 #include <imgui_impl_vulkan.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
+#include <imgui_internal.h>
 
 namespace cgb
 {
@@ -121,6 +122,10 @@ namespace cgb
 	
 	void imgui_manager::update()
 	{
+		if (!mUserInteractionEnabled) {
+			return;
+		}
+		
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 		auto wndSize = cgb::context().main_window()->resolution(); // TODO: What about multiple windows?
@@ -244,13 +249,13 @@ namespace cgb
 		    //else
 		    //    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;	    	
 	    }
-
-		ImGui_ImplVulkan_NewFrame();
-		ImGui::NewFrame();
 	}
 
 	void imgui_manager::render()
 	{
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
+		
 		for (auto& a : mCallback) {
 			a(); // TODO: Invoke here or in update()?
 		}
@@ -272,4 +277,8 @@ namespace cgb
 	    ImGui::DestroyContext();
 	}
 
+	void imgui_manager::enable_user_interaction(bool aEnableOrNot)
+	{
+		mUserInteractionEnabled = aEnableOrNot;
+	}
 }
