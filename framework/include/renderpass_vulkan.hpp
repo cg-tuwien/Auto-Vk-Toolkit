@@ -19,8 +19,7 @@ namespace cgb
 		 *	Also, create default subpass dependencies 
 		 *	(which are overly cautious and potentially sync more as required.)
 		 */
-		static owning_resource<renderpass_t> create(std::vector<attachment> pAttachments, cgb::context_specific_function<void(renderpass_t&)> pAlterConfigBeforeCreation = {});
-		//static owning_resource<renderpass_t> create_good_renderpass(VkFormat format);
+		static owning_resource<renderpass_t> create(std::vector<attachment> pAttachments, std::function<void(renderpass_sync&)> aSync, cgb::context_specific_function<void(renderpass_t&)> pAlterConfigBeforeCreation = {});
 
 		const auto& attachment_descriptions() const { return mAttachmentDescriptions; }
 		const auto& color_attachments() const { return mOrderedColorAttachmentRefs; }

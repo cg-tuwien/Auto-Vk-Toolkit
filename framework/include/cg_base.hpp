@@ -161,6 +161,7 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be 130 (SDK 1.
 #include "buffer_vulkan.hpp"
 #include "buffer_view_vulkan.hpp"
 #include "queue_vulkan.hpp"
+#include "renderpass_sync.hpp"
 #include "renderpass_vulkan.hpp"
 #include "framebuffer_vulkan.hpp"
 #include "window_vulkan.hpp"

@@ -576,6 +576,9 @@
     <ClInclude Include="..\..\framework\include\cursor.hpp">
       <Filter>Header Files\user_interface</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\renderpass_sync.hpp">
+      <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

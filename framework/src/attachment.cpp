@@ -13,8 +13,9 @@ namespace cgb
 			pLocation,
 			pFormat,
 			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			1,				// num samples
 			false			// => no need to resolve
 		};
@@ -35,8 +36,9 @@ namespace cgb
 			pLocation,
 			pFormat.value(),
 			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			1,				// num samples
 			false			// => no need to resolve
 		};
@@ -56,8 +58,9 @@ namespace cgb
 			pLocation,
 			pFormat,
 			pImageUsage,
-			cfg::attachment_load_operation::load,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			1,				// num samples
 			false			// => no need to resolve
 		};
@@ -74,8 +77,9 @@ namespace cgb
 			pLocation,
 			pFormat,
 			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			pSampleCount,				// num samples
 			pResolveMultisamples		// do it or don't?
 		};
@@ -92,8 +96,9 @@ namespace cgb
 			pLocation,
 			pFormat,
 			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			pSampleCount,				// num samples
 			pResolveMultisamples		// do it or don't?
 		};
@@ -105,8 +110,9 @@ namespace cgb
 			pLocation,
 			pFormat,
 			pImageUsage,
-			cfg::attachment_load_operation::load,
-			cfg::attachment_store_operation::store,
+			cfg::attachment_load_operation::dont_care,
+			cfg::attachment_store_operation::dont_care,
+			{}, {},
 			pSampleCount,				// num samples
 			pResolveMultisamples		// do it or don't?
 		};
@@ -122,5 +128,47 @@ namespace cgb
 	{
 		mStoreOperation = aStoreOp;
 		return *this;
+	}
+
+	attachment& attachment::load_contents()
+	{
+		return set_load_operation(cfg::attachment_load_operation::load);
+	}
+	
+	attachment& attachment::clear_contents()
+	{
+		return set_load_operation(cfg::attachment_load_operation::clear);
+	}
+	
+	attachment& attachment::store_contents()
+	{
+		return set_store_operation(cfg::attachment_store_operation::store);
+	}
+
+	attachment& attachment::set_stencil_load_operation(cfg::attachment_load_operation aLoadOp)
+	{
+		mStencilLoadOperation = aLoadOp;
+		return *this;
+	}
+	
+	attachment& attachment::set_stencil_store_operation(cfg::attachment_store_operation aStoreOp)
+	{
+		mStencilStoreOperation = aStoreOp;
+		return *this;
+	}
+	
+	attachment& attachment::load_stencil_contents()
+	{
+		return set_stencil_load_operation(cfg::attachment_load_operation::load);
+	}
+	
+	attachment& attachment::clear_stencil_contents()
+	{
+		return set_stencil_load_operation(cfg::attachment_load_operation::clear);
+	}
+	
+	attachment& attachment::store_stencil_contents()
+	{
+		return set_stencil_store_operation(cfg::attachment_store_operation::store);
 	}
 }

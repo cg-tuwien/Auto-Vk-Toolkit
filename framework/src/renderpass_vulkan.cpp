@@ -4,56 +4,7 @@ namespace cgb
 {
 	using namespace cpplinq;
 
-
-	//owning_resource<renderpass_t> renderpass_t::create_good_renderpass(VkFormat format)
-	//{
-
-	//		VkAttachmentDescription colorAttachment = {};
- //       colorAttachment.format = format;
- //       colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
- //       colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
- //       colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
- //       colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
- //       colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
- //       colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
- //       colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
- //       VkAttachmentReference colorAttachmentRef = {};
- //       colorAttachmentRef.attachment = 0;
- //       colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
- //       VkSubpassDescription subpass = {};
- //       subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
- //       subpass.colorAttachmentCount = 1;
- //       subpass.pColorAttachments = &colorAttachmentRef;
-
- //       VkSubpassDependency dependency = {};
- //       dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
- //       dependency.dstSubpass = 0;
- //       dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
- //       dependency.srcAccessMask = 0;
- //       dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
- //       dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
- //       VkRenderPassCreateInfo renderPassInfo = {};
- //       renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
- //       renderPassInfo.attachmentCount = 1;
- //       renderPassInfo.pAttachments = &colorAttachment;
- //       renderPassInfo.subpassCount = 1;
- //       renderPassInfo.pSubpasses = &subpass;
- //       renderPassInfo.dependencyCount = 1;
- //       renderPassInfo.pDependencies = &dependency;
-
-	//	renderpass_t asdf;
-	//	asdf.mAttachmentDescriptions.push_back(colorAttachment);
-	//	asdf.mOrderedColorAttachmentRefs.push_back(colorAttachmentRef);
-	//	asdf.subpasses().push_back(subpass);
-	//	asdf.subpass_dependencies().push_back(dependency);
-	//	asdf.mRenderPass = cgb::context().logical_device().createRenderPassUnique(renderPassInfo);
-	//	return asdf;
-	//}
-
-	owning_resource<renderpass_t> renderpass_t::create(std::vector<attachment> pAttachments, cgb::context_specific_function<void(renderpass_t&)> pAlterConfigBeforeCreation)
+	owning_resource<renderpass_t> renderpass_t::create(std::vector<attachment> pAttachments, std::function<void(renderpass_sync&)> aSync, cgb::context_specific_function<void(renderpass_t&)> pAlterConfigBeforeCreation)
 	{
 		renderpass_t result;
 
@@ -72,23 +23,61 @@ namespace cgb
 		uint32_t maxInputLoc = 0u;
 
 		for (const auto& a : pAttachments) {
+			// Try to infer initial and final image layouts (If this isn't cool => user must use pAlterConfigBeforeCreation)
+			vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
+			vk::ImageLayout finalLayout = vk::ImageLayout::eUndefined;
+			if (a.is_depth_stencil_attachment()) {
+				if (cfg::attachment_load_operation::load == a.mLoadOperation) {
+					if (a.mStencilLoadOperation.has_value() || cfg::attachment_load_operation::load == a.mStencilLoadOperation.value() || has_stencil_component(a.format())) {
+						initialLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+					}
+					else {
+						initialLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
+					}
+				}
+				else {
+					if (a.mStencilLoadOperation.has_value() || cfg::attachment_load_operation::load == a.mStencilLoadOperation.value() || has_stencil_component(a.format())) {
+						initialLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
+					}
+				}
+				if (cfg::attachment_store_operation::store == a.mStoreOperation) {
+					if (a.mStencilStoreOperation.has_value() || cfg::attachment_store_operation::store == a.mStencilStoreOperation.value() || has_stencil_component(a.format())) {
+						finalLayout = initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+					}
+					else {
+						finalLayout = initialLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+					}
+				}
+				else {
+					if (a.mStencilStoreOperation.has_value() || cfg::attachment_store_operation::store == a.mStencilStoreOperation.value() || has_stencil_component(a.format())) {
+						finalLayout = initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+					}
+				}
+			}
+			else {
+				if (cfg::attachment_load_operation::load == a.mLoadOperation) {
+					initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+					// TODO: right layout for both, color and input attachments?
+				}				
+				if (cfg::attachment_store_operation::store == a.mStoreOperation) {
+					finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+					// TODO: right layout for both, color and input attachments?
+					if (a.is_color_attachment() && a.is_presentable()) {
+						finalLayout = vk::ImageLayout::ePresentSrcKHR;
+					}
+				}				
+			}
+
 			// 1. Create the attachment descriptions
 			result.mAttachmentDescriptions.push_back(vk::AttachmentDescription()
 				.setFormat(a.format().mFormat)
 				.setSamples(to_vk_sample_count(a.sample_count()))
-				// At this point, we can not really make a guess about load/store ops, so.. don't care:
 				.setLoadOp(to_vk_load_op(a.mLoadOperation))
 				.setStoreOp(to_vk_store_op(a.mStoreOperation))
-				// Just set the same load/store ops for the stencil?!
-				.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare) // TODO: support stencil load op, something like to_vk_load_op(a.mLoadOperation)
-				.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare) // TODO: support stencil store op, something like to_vk_store_op(a.mStoreOperation)
-				.setInitialLayout(vk::ImageLayout::eUndefined) // TODO: <------------ COLOR ATTACHMENT OPTIMAL if something came before!!
-				.setFinalLayout( // The layout is a bit of an (educated) guess:
-					a.is_depth_stencil_attachment()
-					? vk::ImageLayout::eDepthStencilAttachmentOptimal
-					: (a.is_presentable() // => not depth => assume color, but what about presenting?
-						? vk::ImageLayout::ePresentSrcKHR
-						: vk::ImageLayout::eColorAttachmentOptimal))
+				.setStencilLoadOp(to_vk_load_op(a.get_stencil_load_op()))
+				.setStencilStoreOp(to_vk_store_op(a.get_stencil_store_op()))
+				.setInitialLayout(initialLayout)
+				.setFinalLayout(finalLayout)
 			);
 
 			auto attachmentIndex = static_cast<uint32_t>(result.mAttachmentDescriptions.size() - 1);
@@ -244,45 +233,51 @@ namespace cgb
 		// and whatever comes after. 
 		//  => Let's establish very (overly) cautious dependencies to ensure correctness: // TODO: Let user do some sync here! This should be similar to cgb::sync
 
-		result.mSubpassDependencies.push_back(vk::SubpassDependency()
-			// Between which two subpasses is this dependency:
-			.setSrcSubpass(VK_SUBPASS_EXTERNAL)
-			.setDstSubpass(0u)
-			// Which stage from whatever comes before are we waiting on, and which operations from whatever comes before are we waiting on:
-			.setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics) // eAllGraphics contains (among others) eColorAttachmentOutput [3] (this one in particular to wait for the swap chain)
-			.setSrcAccessMask(vk::AccessFlagBits::eInputAttachmentRead 
-							| vk::AccessFlagBits::eColorAttachmentRead
-							| vk::AccessFlagBits::eColorAttachmentWrite
-							| vk::AccessFlagBits::eDepthStencilAttachmentRead
-							| vk::AccessFlagBits::eDepthStencilAttachmentWrite)
-			// Which stage and which operations of our subpass ZERO shall wait:
-			.setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics)
-			.setDstAccessMask(vk::AccessFlagBits::eInputAttachmentRead 
-							| vk::AccessFlagBits::eColorAttachmentRead
-							| vk::AccessFlagBits::eColorAttachmentWrite
-							| vk::AccessFlagBits::eDepthStencilAttachmentRead
-							| vk::AccessFlagBits::eDepthStencilAttachmentWrite)
-		);
+		{
+			renderpass_sync syncBefore {renderpass_sync::sExternal, 0,
+				pipeline_stage::all_commands,			memory_access::any_write_access,
+				pipeline_stage::all_graphics_stages,	memory_access::any_graphics_read_access | memory_access::any_graphics_fundamental_write_access
+			};
+			// Let the user modify this sync
+			if (aSync) {
+				aSync(syncBefore);
+			}
+			
+			result.mSubpassDependencies.push_back(vk::SubpassDependency()
+				// Between which two subpasses is this dependency:
+				.setSrcSubpass(VK_SUBPASS_EXTERNAL)
+				.setDstSubpass(0u)
+				// Which stage from whatever comes before are we waiting on, and which operations from whatever comes before are we waiting on:
+				.setSrcStageMask(to_vk_pipeline_stage_flags(syncBefore.mSourceStage))
+				.setSrcAccessMask(to_vk_access_flags(to_memory_access(syncBefore.mSourceMemoryDependency)))
+				// Which stage and which operations of our subpass ZERO shall wait:
+				.setDstStageMask(to_vk_pipeline_stage_flags(syncBefore.mDestinationStage))
+				.setDstAccessMask(to_vk_access_flags(syncBefore.mDestinationMemoryDependency))
+			);
+		}
 
-		result.mSubpassDependencies.push_back(vk::SubpassDependency()
-			// Between which two subpasses is this dependency:
-			.setSrcSubpass(0u)
-			.setDstSubpass(VK_SUBPASS_EXTERNAL)
-			// Which stage and which operations of our subpass ZERO shall be waited on by whatever comes after:
-			.setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics) // Super cautious, actually eColorAttachmentOutput (which is included in eAllGraphics [3]) should suffice
-			.setSrcAccessMask(vk::AccessFlagBits::eInputAttachmentRead 
-							| vk::AccessFlagBits::eColorAttachmentRead
-							| vk::AccessFlagBits::eColorAttachmentWrite
-							| vk::AccessFlagBits::eDepthStencilAttachmentRead
-							| vk::AccessFlagBits::eDepthStencilAttachmentWrite)
-			// Which stage of whatever comes after shall wait, and which operations from whatever comes after shall wait:
-			.setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics) 
-			.setDstAccessMask(vk::AccessFlagBits::eInputAttachmentRead 
-							| vk::AccessFlagBits::eColorAttachmentRead
-							| vk::AccessFlagBits::eColorAttachmentWrite
-							| vk::AccessFlagBits::eDepthStencilAttachmentRead
-							| vk::AccessFlagBits::eDepthStencilAttachmentWrite)
-		);
+		{
+			renderpass_sync syncAfter {0, renderpass_sync::sExternal, // TODO: Not 0!
+				pipeline_stage::all_graphics_stages,	memory_access::any_graphics_fundamental_write_access,
+				pipeline_stage::all_commands,			memory_access::any_read_access
+			};
+			// Let the user modify this sync
+			if (aSync) {
+				aSync(syncAfter);
+			}
+			
+			result.mSubpassDependencies.push_back(vk::SubpassDependency()
+				// Between which two subpasses is this dependency:
+				.setSrcSubpass(0u)
+				.setDstSubpass(VK_SUBPASS_EXTERNAL)
+				// Which stage and which operations of our subpass ZERO shall be waited on by whatever comes after:
+				.setSrcStageMask(to_vk_pipeline_stage_flags(syncAfter.mSourceStage))
+				.setSrcAccessMask(to_vk_access_flags(to_memory_access(syncAfter.mSourceMemoryDependency)))
+				// Which stage of whatever comes after shall wait, and which operations from whatever comes after shall wait:
+				.setDstStageMask(to_vk_pipeline_stage_flags(syncAfter.mDestinationStage))
+				.setDstAccessMask(to_vk_access_flags(syncAfter.mDestinationMemoryDependency))
+			);
+		}
 
 		// Maybe alter the config?!
 		if (pAlterConfigBeforeCreation.mFunction) {

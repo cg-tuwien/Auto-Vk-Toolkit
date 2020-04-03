@@ -369,6 +369,7 @@
     <ClInclude Include="..\..\framework\include\cursor.hpp" />
     <ClInclude Include="..\..\framework\include\descriptor_cache_interface.hpp" />
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp" />
+    <ClInclude Include="..\..\framework\include\renderpass_sync.hpp" />
     <ClInclude Include="..\..\framework\include\standard_descriptor_cache_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\descriptor_pool_vulkan.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
