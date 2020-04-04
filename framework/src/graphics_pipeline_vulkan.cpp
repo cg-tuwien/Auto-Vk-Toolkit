@@ -153,7 +153,7 @@ namespace cgb
 			}
 
 			// Iterate over all color target attachments and set a color blending config
-			const auto n = (*result.mRenderPass).color_attachments().size();
+			const auto n = (*result.mRenderPass).color_attachments_for_subpass(result.subpass_id()).size(); /////////////////// TODO: (doublecheck or) FIX this section (after renderpass refactoring)
 			result.mBlendingConfigsForColorAttachments.reserve(n); // Important! Otherwise the vector might realloc and .data() will become invalid!
 			for (size_t i = 0; i < n; ++i) {
 				// Do we have a specific blending config for color attachment i?
@@ -195,11 +195,11 @@ namespace cgb
 
 		// 10. Multisample state
 		// TODO: Can the settings be inferred from the renderpass' color attachments (as they are right now)? If they can't, how to handle this situation? 
-		{
+		{ /////////////////// TODO: FIX this section (after renderpass refactoring)
 			vk::SampleCountFlagBits numSamples = vk::SampleCountFlagBits::e1;
 
 			// See what is configured in the render pass
-			auto colorAttConfigs = from ((*result.mRenderPass).color_attachments())
+			auto colorAttConfigs = from ((*result.mRenderPass).color_attachments_for_subpass(result.subpass_id()))
 				>> where ([](const vk::AttachmentReference& colorAttachment) { return colorAttachment.attachment != VK_ATTACHMENT_UNUSED; })
 				// The color_attachments() contain indices of the actual attachment_descriptions() => select the latter!
 				>> select ([&rp = (*result.mRenderPass)](const vk::AttachmentReference& colorAttachment) { return rp.attachment_descriptions()[colorAttachment.attachment]; })

@@ -416,7 +416,8 @@ namespace cgb
 		switch (aValue) {
 		case attachment_store_operation::dont_care:
 			return vk::AttachmentStoreOp::eDontCare;
-		case attachment_store_operation::store: 
+		case attachment_store_operation::store:
+		case attachment_store_operation::store_in_presentable_format:
 			return vk::AttachmentStoreOp::eStore;
 		default:
 			throw std::invalid_argument("Invalid attachment store operation.");

@@ -64,7 +64,7 @@ namespace cgb
 	    init_info.CheckVkResultFn = cgb::context().check_vk_result;
 
 		mRenderpass = renderpass_t::create({
-			cgb::attachment::create_color(image_format::from_window_color_buffer(wnd)).set_load_operation(cfg::attachment_load_operation::load)
+			cgb::attachment::define(image_format::from_window_color_buffer(wnd), cfg::attachment_load_operation::load, used_as::color(0), cfg::attachment_store_operation::store_in_presentable_format)
 		});
 
 		// Init it:
@@ -263,7 +263,7 @@ namespace cgb
 		ImGui::Render();
 		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdBfr->begin_recording();
-		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass, cgb::context().main_window());
+		cmdBfr->begin_render_pass(mRenderpass, 0u /* only one subpass */, cgb::context().main_window());
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();

@@ -38,7 +38,7 @@ namespace cgb
 		 *	Also, create default subpass dependencies 
 		 *	(which are overly cautious and potentially sync more as required.)
 		 */
-		static owning_resource<renderpass_t> create(std::vector<attachment> aAttachments, std::function<void(renderpass_sync&)> aSync, cgb::context_specific_function<void(renderpass_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<renderpass_t> create(std::vector<attachment> aAttachments, std::function<void(renderpass_sync&)> aSync = {}, cgb::context_specific_function<void(renderpass_t&)> aAlterConfigBeforeCreation = {});
 
 		const auto& attachment_descriptions() const { return mAttachmentDescriptions; }
 
@@ -49,11 +49,17 @@ namespace cgb
 		auto& subpasses() { return mSubpasses; }
 		auto& subpass_dependencies() { return mSubpassDependencies; }
 
-		bool is_input_attachment(size_t aSubpassId, size_t aAttachmentIndex) const;
-		bool is_color_attachment(size_t aSubpassId, size_t aAttachmentIndex) const;
-		bool is_depth_stencil_attachment(size_t aSubpassId, size_t aAttachmentIndex) const;
-		bool is_resolve_attachment(size_t aSubpassId, size_t aAttachmentIndex) const;
-		bool is_preserve_attachment(size_t aSubpassId, size_t aAttachmentIndex) const;
+		bool is_input_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const;
+		bool is_color_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const;
+		bool is_depth_stencil_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const;
+		bool is_resolve_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const;
+		bool is_preserve_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const;
+
+		const std::vector<vk::AttachmentReference>& input_attachments_for_subpass(uint32_t aSubpassId);
+		const std::vector<vk::AttachmentReference>& color_attachments_for_subpass(uint32_t aSubpassId);
+		const std::vector<vk::AttachmentReference>& depth_stencil_attachments_for_subpass(uint32_t aSubpassId);
+		const std::vector<vk::AttachmentReference>& resolve_attachments_for_subpass(uint32_t aSubpassId);
+		const std::vector<uint32_t>& preserve_attachments_for_subpass(uint32_t aSubpassId);
 
 		const auto& handle() const { return mRenderPass.get(); }
 

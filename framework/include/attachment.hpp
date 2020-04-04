@@ -30,7 +30,9 @@ namespace cgb
 		};
 	}
 
-	namespace att
+	struct attachment;
+	
+	namespace used_as
 	{
 		enum struct usage_type
 		{
@@ -40,15 +42,17 @@ namespace cgb
 			depth_stencil,
 			preserve
 		};
-		
+
 		class usage_desc
 		{
+			friend struct ::cgb::attachment;
+			friend class ::cgb::renderpass_t;
 		public:
 			usage_desc(usage_desc&&) noexcept = default;
-			usage_desc(const usage_desc&) noexcept = default;
+			usage_desc(const usage_desc&) = default;
 			//usage_desc(const usage_desc* ud) noexcept : mDescriptions{ud->mDescriptions} {};
 			usage_desc& operator=(usage_desc&&) noexcept = default;
-			usage_desc& operator=(const usage_desc&) noexcept = default;
+			usage_desc& operator=(const usage_desc&) = default;
 			//usage_desc& operator=(const usage_desc* ud) noexcept { mDescriptions = ud->mDescriptions; return *this; };
 			virtual ~usage_desc() {}
 			
@@ -61,6 +65,7 @@ namespace cgb
 			usage_desc* operator->()						{ return this; }
 			usage_desc& operator+(usage_desc& resolveAndMore);
 
+		protected:
 			bool contains_unused() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::unused;			}) != mDescriptions.end(); }
 			bool contains_input() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::input;			}) != mDescriptions.end(); }
 			bool contains_color() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::color;			}) != mDescriptions.end(); }
@@ -73,6 +78,7 @@ namespace cgb
 			auto is_to_be_resolved_after_subpass(size_t subpassId) const { return std::get<bool>(mDescriptions[subpassId]); }
 			auto has_layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]) != -1; }
 			auto layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]); }
+
 		protected:
 			usage_desc() = default;
 			std::vector<std::tuple<usage_type, bool, int>> mDescriptions;
@@ -83,9 +89,9 @@ namespace cgb
 		public:
 			unused(int location = -1)						{ mDescriptions.emplace_back(usage_type::unused,		false, location); }
 			unused(unused&&) noexcept = default;
-			unused(const unused&) noexcept = default;
+			unused(const unused&) = default;
 			unused& operator=(unused&&) noexcept = default;
-			unused& operator=(const unused&) noexcept = default;
+			unused& operator=(const unused&) = default;
 		};
 		
 		class input : public usage_desc
@@ -93,9 +99,9 @@ namespace cgb
 		public:
 			input(int location = -1)						{ mDescriptions.emplace_back(usage_type::input,			false, location); }
 			input(input&&) noexcept = default;
-			input(const input&) noexcept = default;
+			input(const input&) = default;
 			input& operator=(input&&) noexcept = default;
-			input& operator=(const input&) noexcept = default;
+			input& operator=(const input&) = default;
 		};
 		
 		class color : public usage_desc
@@ -103,9 +109,9 @@ namespace cgb
 		public:
 			color(int location = -1)						{ mDescriptions.emplace_back(usage_type::color,			false, location); }
 			color(color&&) noexcept = default;
-			color(const color&) noexcept = default;
+			color(const color&) = default;
 			color& operator=(color&&) noexcept = default;
-			color& operator=(const color&) noexcept = default;
+			color& operator=(const color&) = default;
 		};
 		
 		class resolve : public usage_desc
@@ -113,9 +119,9 @@ namespace cgb
 		public:
 			resolve(bool doResolve = true)					{ mDescriptions.emplace_back(usage_type::unused,		doResolve, -1); }
 			resolve(resolve&&) noexcept = default;										// ^ usage_type not applicable here
-			resolve(const resolve&) noexcept = default;
+			resolve(const resolve&) = default;
 			resolve& operator=(resolve&&) noexcept = default;
-			resolve& operator=(const resolve&) noexcept = default;
+			resolve& operator=(const resolve&) = default;
 		};
 		
 		class depth_stencil : public usage_desc
@@ -123,9 +129,9 @@ namespace cgb
 		public:
 			depth_stencil(int location = -1)				{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
 			depth_stencil(depth_stencil&&) noexcept = default;
-			depth_stencil(const depth_stencil&) noexcept = default;
+			depth_stencil(const depth_stencil&) = default;
 			depth_stencil& operator=(depth_stencil&&) noexcept = default;
-			depth_stencil& operator=(const depth_stencil&) noexcept = default;
+			depth_stencil& operator=(const depth_stencil&) = default;
 		};
 		
 		class preserve : public usage_desc
@@ -133,9 +139,9 @@ namespace cgb
 		public:
 			preserve(int location = -1)						{ mDescriptions.emplace_back(usage_type::preserve,		false, location); }
 			preserve(preserve&&) noexcept = default;
-			preserve(const preserve&) noexcept = default;
+			preserve(const preserve&) = default;
 			preserve& operator=(preserve&&) noexcept = default;
-			preserve& operator=(const preserve&) noexcept = default;
+			preserve& operator=(const preserve&) = default;
 		};
 		
 	}
@@ -146,9 +152,9 @@ namespace cgb
 	 */
 	struct attachment
 	{
-		static attachment define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
-		static attachment define(image_format aFormat, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
-		static attachment define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
+		static attachment define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
+		static attachment define(image_format aFormat, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
+		static attachment define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
 
 		attachment& set_load_operation(cfg::attachment_load_operation aLoadOp);
 		attachment& set_store_operation(cfg::attachment_store_operation aStoreOp);
@@ -189,6 +195,6 @@ namespace cgb
 		cfg::attachment_store_operation mStoreOperation;
 		std::optional<cfg::attachment_load_operation> mStencilLoadOperation;
 		std::optional<cfg::attachment_store_operation> mStencilStoreOperation;
-		att::usage_desc mSubpassUsages;
+		used_as::usage_desc mSubpassUsages;
 	};
 }

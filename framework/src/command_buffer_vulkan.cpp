@@ -58,42 +58,43 @@ namespace cgb
 		mState = command_buffer_state::finished_recording;
 	}
 
-	void command_buffer_t::begin_render_pass_for_framebuffer(window* aWindow, std::optional<int64_t> aInFlightIndex)
+	void command_buffer_t::begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aInFlightIndex)
 	{
-		auto& rpass = cgb::context().main_window()->get_renderpass();		
-		begin_render_pass_for_framebuffer(rpass, aWindow, aInFlightIndex);
+		const auto& rp = aPipeline.get_renderpass();
+		const auto subpassId = aPipeline.subpass_id();
+		begin_render_pass(rp, subpassId, aWindow, aInFlightIndex);
 	}
 
-	void command_buffer_t::begin_render_pass_for_framebuffer(const cgb::renderpass_t& aRenderPass, window* aWindow, std::optional<int64_t> aInFlightIndex)
+	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aInFlightIndex)
 	{
 		auto extent = cgb::context().main_window()->swap_chain_extent();
 		const auto inFlightIndex = aInFlightIndex.value_or(aWindow->in_flight_index_for_frame());
 		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(inFlightIndex)->handle();
 
 		std::vector<vk::ClearValue> clearValues;
-		auto& rpAttachments = aRenderPass.attachment_descriptions();
+		auto& rpAttachments = aRenderpass.attachment_descriptions();
 		clearValues.reserve(rpAttachments.size());
 		for (size_t i = 0; i < rpAttachments.size(); ++i) {
-			if (aRenderPass.is_color_attachment(i)) {
+			if (aRenderpass.is_color_attachment(aSubpassId, i)) {
 				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
 				continue;
 			}
-			if (aRenderPass.is_depth_attachment(i)) {
+			if (aRenderpass.is_depth_stencil_attachment(aSubpassId, i)) {
 				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
 				continue;
 			}
-			if (aRenderPass.is_input_attachment(i)) {
+			if (aRenderpass.is_input_attachment(aSubpassId, i)) {
 				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
 				continue;
 			}
-			if (aRenderPass.is_resolve_attachment(i)) {
+			if (aRenderpass.is_resolve_attachment(aSubpassId, i)) {
 				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
 				continue;
 			}
 		}
 
 		// Begin render aass and clear the attachments (color and depth)
-		begin_render_pass_for_framebuffer(aRenderPass.handle(), backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
+		begin_render_pass_for_framebuffer(aRenderpass.handle(), backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
 	}
 	
 	void command_buffer_t::begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues)

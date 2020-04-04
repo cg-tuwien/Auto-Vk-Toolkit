@@ -17,7 +17,6 @@ namespace cgb
 
 		static owning_resource<framebuffer_t> create(renderpass _Renderpass, std::vector<image_view> _ImageViews, uint32_t _Width, uint32_t _Height, cgb::context_specific_function<void(framebuffer_t&)> pAlterConfigBeforeCreation = {});
 		static owning_resource<framebuffer_t> create(std::vector<attachment> pAttachments, std::vector<image_view> _ImageViews, uint32_t _Width, uint32_t _Height, cgb::context_specific_function<void(framebuffer_t&)> _AlterConfigBeforeCreation = {});
-		static owning_resource<framebuffer_t> create(std::vector<image_view> _ImageViews, uint32_t _Width, uint32_t _Height, cgb::context_specific_function<void(framebuffer_t&)> _AlterConfigBeforeCreation = {});
 
 		const auto& get_renderpass() const { return mRenderpass; }
 		const auto& image_views() const { return mImageViews; }

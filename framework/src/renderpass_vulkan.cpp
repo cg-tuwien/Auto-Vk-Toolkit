@@ -151,10 +151,10 @@ namespace cgb
 				const auto loc = static_cast<uint32_t>(a.mSubpassUsages.layout_at_subpass(i));
 				const auto resolve = a.mSubpassUsages.is_to_be_resolved_after_subpass(i);
 				switch (a.mSubpassUsages.get_subpass_usage(i)) {
-				case att::usage_type::unused:
+				case used_as::usage_type::unused:
 					// nothing to do here
 					break;
-				case att::usage_type::input:
+				case used_as::usage_type::input:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve input attachments
 					if (hasLoc) {
 						if (sp.mSpecificInputLocations.count(loc) != 0) {
@@ -168,7 +168,7 @@ namespace cgb
 						sp.mUnspecifiedInputLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eShaderReadOnlyOptimal});
 					}
 					break;
-				case att::usage_type::color:
+				case used_as::usage_type::color:
 					if (hasLoc) {
 						if (sp.mSpecificColorLocations.count(loc) != 0) {
 							throw std::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
@@ -183,7 +183,7 @@ namespace cgb
 						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? attachmentIndex : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
 					}
 					break;
-				case att::usage_type::depth_stencil:
+				case used_as::usage_type::depth_stencil:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // TODO: Support depth/stencil resolve by using VkSubpassDescription2
 					if (hasLoc) {
 						if (sp.mSpecificDepthStencilLocations.count(loc) != 0) {
@@ -197,7 +197,7 @@ namespace cgb
 						sp.mUnspecifiedDepthStencilLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal});
 					}
 					break;
-				case att::usage_type::preserve:
+				case used_as::usage_type::preserve:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve preserve attachments
 					sp.mPreserveAttachments.push_back(attachmentIndex);
 				default:
@@ -281,7 +281,7 @@ namespace cgb
 		
 		// 4. Now we can fill the subpass description
 		for (size_t i = 0; i < numSubpassesFirst; ++i) {
-			auto& b = result.mSubpassData.emplace_back();
+			auto& b = result.mSubpassData[i];
 			
 			result.mSubpasses.push_back(vk::SubpassDescription()
 				// pipelineBindPoint must be VK_PIPELINE_BIND_POINT_GRAPHICS [1] because subpasses are only relevant for graphics at the moment
@@ -395,7 +395,7 @@ namespace cgb
 		// [3] https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkPipelineStageFlagBits.html
 	}
 
-	bool renderpass_t::is_input_attachment(size_t aSubpassId, size_t aAttachmentIndex) const
+	bool renderpass_t::is_input_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const
 	{
 		assert(aSubpassId < mSubpassData.size());
 		auto& b = mSubpassData[aSubpassId];
@@ -404,7 +404,7 @@ namespace cgb
 			[aAttachmentIndex](const vk::AttachmentReference& ref) { return ref.attachment == aAttachmentIndex; });
 	}
 
-	bool renderpass_t::is_color_attachment(size_t aSubpassId, size_t aAttachmentIndex) const
+	bool renderpass_t::is_color_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const
 	{
 		assert(aSubpassId < mSubpassData.size());
 		auto& b = mSubpassData[aSubpassId];
@@ -413,7 +413,7 @@ namespace cgb
 			[aAttachmentIndex](const vk::AttachmentReference& ref) { return ref.attachment == aAttachmentIndex; });
 	}
 
-	bool renderpass_t::is_depth_stencil_attachment(size_t aSubpassId, size_t aAttachmentIndex) const
+	bool renderpass_t::is_depth_stencil_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const
 	{
 		assert(aSubpassId < mSubpassData.size());
 		auto& b = mSubpassData[aSubpassId];
@@ -422,7 +422,7 @@ namespace cgb
 			[aAttachmentIndex](const vk::AttachmentReference& ref) { return ref.attachment == aAttachmentIndex; });
 	}
 
-	bool renderpass_t::is_resolve_attachment(size_t aSubpassId, size_t aAttachmentIndex) const
+	bool renderpass_t::is_resolve_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const
 	{
 		assert(aSubpassId < mSubpassData.size());
 		auto& b = mSubpassData[aSubpassId];
@@ -431,7 +431,7 @@ namespace cgb
 			[aAttachmentIndex](const vk::AttachmentReference& ref) { return ref.attachment == aAttachmentIndex; });
 	}
 
-	bool renderpass_t::is_preserve_attachment(size_t aSubpassId, size_t aAttachmentIndex) const
+	bool renderpass_t::is_preserve_attachment(uint32_t aSubpassId, size_t aAttachmentIndex) const
 	{
 		assert(aSubpassId < mSubpassData.size());
 		auto& b = mSubpassData[aSubpassId];
@@ -439,5 +439,41 @@ namespace cgb
 		return b.mPreserveAttachments.end() != std::find_if(std::begin(b.mPreserveAttachments), std::end(b.mPreserveAttachments), 
 			[aAttachmentIndex](uint32_t idx) { return idx == aAttachmentIndex; });
 	}
+
+	const std::vector<vk::AttachmentReference>& renderpass_t::input_attachments_for_subpass(uint32_t aSubpassId)
+	{
+		assert(aSubpassId < mSubpassData.size());
+		auto& b = mSubpassData[aSubpassId];
+		return b.mOrderedInputAttachmentRefs;
+	}
+	
+	const std::vector<vk::AttachmentReference>& renderpass_t::color_attachments_for_subpass(uint32_t aSubpassId)
+	{
+		assert(aSubpassId < mSubpassData.size());
+		auto& b = mSubpassData[aSubpassId];
+		return b.mOrderedColorAttachmentRefs;
+	}
+	
+	const std::vector<vk::AttachmentReference>& renderpass_t::depth_stencil_attachments_for_subpass(uint32_t aSubpassId)
+	{
+		assert(aSubpassId < mSubpassData.size());
+		auto& b = mSubpassData[aSubpassId];
+		return b.mOrderedDepthStencilAttachmentRefs;
+	}
+	
+	const std::vector<vk::AttachmentReference>& renderpass_t::resolve_attachments_for_subpass(uint32_t aSubpassId)
+	{
+		assert(aSubpassId < mSubpassData.size());
+		auto& b = mSubpassData[aSubpassId];
+		return b.mOrderedResolveAttachmentRefs;
+	}
+	
+	const std::vector<uint32_t>& renderpass_t::preserve_attachments_for_subpass(uint32_t aSubpassId)
+	{
+		assert(aSubpassId < mSubpassData.size());
+		auto& b = mSubpassData[aSubpassId];
+		return b.mPreserveAttachments;
+	}
+	
 	
 }

@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	namespace att
+	namespace used_as
 	{
 		usage_desc& usage_desc::operator+(usage_desc& resolveAndMore)
 		{
@@ -24,7 +24,7 @@ namespace cgb
 		
 	}
 	
-	attachment attachment::define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
 	{
 		return attachment{
 			std::get<image_format>(aFormatAndSamples),
@@ -35,12 +35,12 @@ namespace cgb
 		};
 	}
 	
-	attachment attachment::define(image_format aFormat, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define(image_format aFormat, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
 	{
 		return define({aFormat, cfg::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 	
-	attachment attachment::define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, att::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
 	{
 		auto& imageInfo = aImageView.get_image().config();
 		auto format = image_format{ imageInfo.format };
