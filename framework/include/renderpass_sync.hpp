@@ -22,6 +22,8 @@ namespace cgb
 		bool is_intra_subpass_sync() const { return !is_external_pre_sync() && !is_external_post_sync(); }
 		int source_subpass_id() const { return mSrcPass; }
 		int destination_subpass_id() const { return mDstPass; }
+		uint32_t source_vk_subpass_id() const { return mSrcPass == -1 ? VK_SUBPASS_EXTERNAL : static_cast<uint32_t>(mSrcPass); }
+		uint32_t destination_vk_subpass_id() const { return mDstPass == -1 ? VK_SUBPASS_EXTERNAL : static_cast<uint32_t>(mDstPass); }
 
 		/** The (previous) stages that must have completed execution. */
 		cgb::pipeline_stage mSourceStage;
