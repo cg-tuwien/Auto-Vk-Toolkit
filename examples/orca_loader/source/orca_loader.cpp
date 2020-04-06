@@ -154,6 +154,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
+
+		using namespace cgb::att;
 		
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -171,8 +173,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			cgb::attachment::create_color(swapChainFormat),
-			cgb::attachment::create_depth(),
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store_in_presentable_format),
+			cgb::attachment::define(cgb::image_format::default_depth_format(),		on_load::clear, depth_stencil(), on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
@@ -206,7 +208,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(cgb::context().main_window());
+		cmdbfr->begin_render_pass(mPipeline, cgb::context().main_window(), cgb::context().main_window()->in_flight_index_for_frame());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),
@@ -309,7 +311,9 @@ int main() // <== Starting point ==
 		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
-		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
+		mainWnd->set_additional_back_buffer_attachments({ 
+			cgb::attachment::define(cgb::image_format::default_depth_format(), cgb::att::on_load::clear, cgb::att::depth_stencil(), cgb::att::on_store::dont_care)
+		});
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 
 

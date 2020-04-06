@@ -62,6 +62,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
 		);
 
+		using namespace cgb::att;
+		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
@@ -70,12 +72,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer())// Create a color output attachment
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass_for_framebuffer(cgb::context().main_window(), 0u, inFlightIndex);
+			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			cgb::context().draw_indexed(mPipeline, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
 			commandBuffer.end_render_pass();

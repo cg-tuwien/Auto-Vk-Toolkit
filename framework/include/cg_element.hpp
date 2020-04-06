@@ -115,19 +115,6 @@ namespace cgb
 		}
 
 		void clear_command_buffer_refs() { mSubmittedCommandBufferReferences.clear(); }
-		
-		/** @brief The given image should be copied into the swap chain image before presenting.
-		 */
-		void present_image(cgb::image_t& _ImageToPresent, cgb::window* _Window = nullptr)
-		{
-			mPresentImages.emplace_back(std::ref(_ImageToPresent), _Window);
-		}
-
-		void clear_present_image() 
-		{ 
-			mPresentImages.clear();
-		}
-
 
 		/**	@brief Render this cg_element 
 		 *
@@ -287,10 +274,6 @@ namespace cgb
 		 *	AND ownership/lifetime management of which is to be handled internally (which means, by the window).
 		 */
 		std::vector<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
-
-		/** Tuple of images to present and associated windows (or, more specifically, the window's swap chain)
-		 */
-		std::vector<std::tuple<std::reference_wrapper<cgb::image_t>, cgb::window*>> mPresentImages;
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;

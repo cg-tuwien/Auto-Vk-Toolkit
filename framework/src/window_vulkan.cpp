@@ -310,7 +310,7 @@ namespace cgb
 
 	}*/
 
-	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<cgb::image_t>> aCopyToPresent)
+	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs)
 	{
 		vk::Result result;
 
@@ -364,47 +364,6 @@ namespace cgb
 		for (auto cb : aCommandBufferRefs) {
 			cmdBuffers.push_back(cb.get().handle());
 		}
-		if (aCopyToPresent.has_value()) {
-			copy_image_to_another(aCopyToPresent.value().get(), mSwapChainImageViews[imageIndex]->get_image(), 
-				cgb::sync::with_barriers_on_current_frame(
-					// These are rather coarse barriers:
-					[&](command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess) {
-						// Must transfer the swap chain image's layout:
-						mSwapChainImages[imageIndex].set_current_layout(vk::ImageLayout::eUndefined);
-						mSwapChainImages[imageIndex].set_target_layout(vk::ImageLayout::eTransferDstOptimal);
-						aCommandBuffer.establish_image_memory_barrier(
-							mSwapChainImages[imageIndex],
-							pipeline_stage::top_of_pipe,					// Wait for nothing
-							pipeline_stage::transfer,						// Unblock TRANSFER after the layout transition is done
-							std::optional<memory_access>{},					// No pending writes to flush out
-							memory_access::transfer_write_access			// Transfer write access must have all required memory visible
-						);
-
-						// But, IMPORTANT: must also wait for writing to the image to complete!
-						aCommandBuffer.establish_image_memory_barrier(
-							aCopyToPresent.value().get(),
-							pipeline_stage::all_commands, /* -> */ aDestinationStage,	// Wait for all previous command before continuing with the operation's command
-							write_memory_access{memory_access::any_write_access},		// Make any write access available, ...
-							aDestinationAccess											// ... before making the operation's read access type visible
-						);
-					},
-					[&](command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess){
-						assert(vk::ImageLayout::eTransferDstOptimal == mSwapChainImages[imageIndex].current_layout());
-						mSwapChainImages[imageIndex].set_target_layout(vk::ImageLayout::ePresentSrcKHR); // From transfer-dst into present-src layout
-						aCommandBuffer.establish_image_memory_barrier(
-							mSwapChainImages[imageIndex],
-							pipeline_stage::transfer,						// When the TRANSFER has completed
-							pipeline_stage::bottom_of_pipe,					// Afterwards comes the semaphore -> present
-							memory_access::transfer_write_access,			// Copied memory must be available
-							std::optional<memory_access>{}					// Present does not need any memory access specified, it's synced with a semaphore anyways.
-						);
-						// No further sync required
-					}
-				),
-				true, // Restore layout of source image
-				false // Don't restore layout of destination image
-			);
-		}
 
 		// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
 		// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit
@@ -447,4 +406,51 @@ namespace cgb
 		++mCurrentFrame;
 	}
 
+	cgb::sync window::wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage)
+	{
+		return cgb::sync::with_barriers_on_current_frame(
+				// These are rather coarse barriers:
+				[&](command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess) {
+					// Must transfer the swap chain image's layout:
+					aDestinationSwapchainImage.set_target_layout(vk::ImageLayout::eTransferDstOptimal);
+					aCommandBuffer.establish_image_memory_barrier(
+						aDestinationSwapchainImage,
+						pipeline_stage::top_of_pipe,					// Wait for nothing
+						pipeline_stage::transfer,						// Unblock TRANSFER after the layout transition is done
+						std::optional<memory_access>{},					// No pending writes to flush out
+						memory_access::transfer_write_access			// Transfer write access must have all required memory visible
+					);
+
+					// But, IMPORTANT: must also wait for writing to the image to complete!
+					aCommandBuffer.establish_image_memory_barrier(
+						aSourceImage,
+						pipeline_stage::all_commands, /* -> */ aDestinationStage,	// Wait for all previous command before continuing with the operation's command
+						write_memory_access{memory_access::any_write_access},		// Make any write access available, ...
+						aDestinationAccess											// ... before making the operation's read access type visible
+					);
+				},
+				[&](command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess){
+					assert(vk::ImageLayout::eTransferDstOptimal == aDestinationSwapchainImage.current_layout());
+					aDestinationSwapchainImage.set_target_layout(vk::ImageLayout::ePresentSrcKHR); // From transfer-dst into present-src layout
+					aCommandBuffer.establish_image_memory_barrier(
+						aDestinationSwapchainImage,
+						pipeline_stage::transfer,						// When the TRANSFER has completed
+						pipeline_stage::bottom_of_pipe,					// Afterwards comes the semaphore -> present
+						memory_access::transfer_write_access,			// Copied memory must be available
+						std::optional<memory_access>{}					// Present does not need any memory access specified, it's synced with a semaphore anyways.
+					);
+					// No further sync required
+				}
+			);
+	}
+	
+	void window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
+	{
+		auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
+		copy_image_to_another(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), std::move(aSync),
+			true, // Restore layout of source image
+			false // Don't restore layout of destination image
+		);
+	}
+	
 }

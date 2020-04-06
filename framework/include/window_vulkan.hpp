@@ -204,13 +204,22 @@ namespace cgb
 
 		//template<typename CBT, typename... CBTS>
 		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs, std::optional<std::reference_wrapper<cgb::image_t>> aCopyToPresent = {});
+		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs);
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
 		const cgb::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
+		static cgb::sync wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage);
+		
+		void copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
 
+		template <typename F>
+		void copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
+		{
+			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
+			copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
+		}
 
 	protected:
 		

@@ -45,17 +45,17 @@ namespace cgb
 			// Try to infer initial and final image layouts (If this isn't cool => user must use aAlterConfigBeforeCreation)
 			vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
 			vk::ImageLayout finalLayout = vk::ImageLayout::eUndefined;
-			const auto isLoad = cfg::attachment_load_operation::load == a.mLoadOperation;
-			const auto isClear = cfg::attachment_load_operation::clear == a.mLoadOperation;
-			const auto isStore  = cfg::attachment_store_operation::store == a.mStoreOperation || cfg::attachment_store_operation::store_in_presentable_format == a.mStoreOperation;
-			const auto makePresentable = cfg::attachment_store_operation::store_in_presentable_format == a.mStoreOperation;
+			const auto isLoad = att::on_load::load == a.mLoadOperation;
+			const auto isClear = att::on_load::clear == a.mLoadOperation;
+			const auto isStore  = att::on_store::store == a.mStoreOperation || att::on_store::store_in_presentable_format == a.mStoreOperation;
+			const auto makePresentable = att::on_store::store_in_presentable_format == a.mStoreOperation;
 			if (a.is_depth_stencil_attachment()) {
 				const auto hasSeparateStencilLoad = a.mStencilLoadOperation.has_value();
 				const auto hasSeparateStencilStore = a.mStencilStoreOperation.has_value();
-				const auto isStencilLoad = cfg::attachment_load_operation::load == a.get_stencil_load_op();
-				const auto isStencilClear = cfg::attachment_load_operation::clear == a.get_stencil_load_op();
-				const auto isStencilStore  = cfg::attachment_store_operation::store == a.get_stencil_store_op() || cfg::attachment_store_operation::store_in_presentable_format == a.get_stencil_store_op();
-				const auto makeStencilPresentable = cfg::attachment_store_operation::store_in_presentable_format == a.get_stencil_store_op();
+				const auto isStencilLoad = att::on_load::load == a.get_stencil_load_op();
+				const auto isStencilClear = att::on_load::clear == a.get_stencil_load_op();
+				const auto isStencilStore  = att::on_store::store == a.get_stencil_store_op() || att::on_store::store_in_presentable_format == a.get_stencil_store_op();
+				const auto makeStencilPresentable = att::on_store::store_in_presentable_format == a.get_stencil_store_op();
 				const auto hasStencilComponent = has_stencil_component(a.format());
 				if (isLoad) {
 					if (hasSeparateStencilLoad || hasSeparateStencilStore || hasStencilComponent) {
@@ -151,10 +151,10 @@ namespace cgb
 				const auto loc = static_cast<uint32_t>(a.mSubpassUsages.layout_at_subpass(i));
 				const auto resolve = a.mSubpassUsages.is_to_be_resolved_after_subpass(i);
 				switch (a.mSubpassUsages.get_subpass_usage(i)) {
-				case used_as::usage_type::unused:
+				case att::usage_type::unused:
 					// nothing to do here
 					break;
-				case used_as::usage_type::input:
+				case att::usage_type::input:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve input attachments
 					if (hasLoc) {
 						if (sp.mSpecificInputLocations.count(loc) != 0) {
@@ -168,7 +168,7 @@ namespace cgb
 						sp.mUnspecifiedInputLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eShaderReadOnlyOptimal});
 					}
 					break;
-				case used_as::usage_type::color:
+				case att::usage_type::color:
 					if (hasLoc) {
 						if (sp.mSpecificColorLocations.count(loc) != 0) {
 							throw std::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
@@ -183,7 +183,7 @@ namespace cgb
 						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? attachmentIndex : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
 					}
 					break;
-				case used_as::usage_type::depth_stencil:
+				case att::usage_type::depth_stencil:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // TODO: Support depth/stencil resolve by using VkSubpassDescription2
 					if (hasLoc) {
 						if (sp.mSpecificDepthStencilLocations.count(loc) != 0) {
@@ -197,7 +197,7 @@ namespace cgb
 						sp.mUnspecifiedDepthStencilLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal});
 					}
 					break;
-				case used_as::usage_type::preserve:
+				case att::usage_type::preserve:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve preserve attachments
 					sp.mPreserveAttachments.push_back(attachmentIndex);
 				default:

@@ -303,7 +303,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
+		cgb::context().main_window()->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present);
 	}
 
 private: // v== Member variables ==v

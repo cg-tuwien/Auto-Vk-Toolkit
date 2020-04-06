@@ -2,16 +2,18 @@
 
 namespace cgb
 {
-	namespace cfg
+	struct attachment;
+	
+	namespace att
 	{
-		enum struct attachment_load_operation
+		enum struct on_load
 		{
 			dont_care,
 			clear,
 			load
 		};
 
-		enum struct attachment_store_operation
+		enum struct on_store
 		{
 			dont_care,
 			store,
@@ -28,12 +30,7 @@ namespace cgb
 			
 			int mNumSamples;
 		};
-	}
 
-	struct attachment;
-	
-	namespace used_as
-	{
 		enum struct usage_type
 		{
 			unused,
@@ -57,10 +54,10 @@ namespace cgb
 			virtual ~usage_desc() {}
 			
 			usage_desc& unused(int location = -1)			{ mDescriptions.emplace_back(usage_type::unused,		false, location); return *this; }
-			usage_desc& input(int location = -1)			{ mDescriptions.emplace_back(usage_type::input,			false, location); return *this; }
-			usage_desc& color(int location = -1)			{ mDescriptions.emplace_back(usage_type::color,			false, location); return *this; }
-			usage_desc& depth_stencil(int location = -1)	{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); return *this; }
-			usage_desc& preserve(int location = -1)			{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
+			usage_desc& input(int location)					{ mDescriptions.emplace_back(usage_type::input,			false, location); return *this; }
+			usage_desc& color(int location)					{ mDescriptions.emplace_back(usage_type::color,			false, location); return *this; }
+			usage_desc& depth_stencil(int location = 0)		{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); return *this; }
+			usage_desc& preserve(int location)				{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
 
 			usage_desc* operator->()						{ return this; }
 			usage_desc& operator+(usage_desc& resolveAndMore);
@@ -97,7 +94,7 @@ namespace cgb
 		class input : public usage_desc
 		{
 		public:
-			input(int location = -1)						{ mDescriptions.emplace_back(usage_type::input,			false, location); }
+			input(int location)								{ mDescriptions.emplace_back(usage_type::input,			false, location); }
 			input(input&&) noexcept = default;
 			input(const input&) = default;
 			input& operator=(input&&) noexcept = default;
@@ -107,7 +104,7 @@ namespace cgb
 		class color : public usage_desc
 		{
 		public:
-			color(int location = -1)						{ mDescriptions.emplace_back(usage_type::color,			false, location); }
+			color(int location)								{ mDescriptions.emplace_back(usage_type::color,			false, location); }
 			color(color&&) noexcept = default;
 			color(const color&) = default;
 			color& operator=(color&&) noexcept = default;
@@ -127,7 +124,7 @@ namespace cgb
 		class depth_stencil : public usage_desc
 		{
 		public:
-			depth_stencil(int location = -1)				{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
+			depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
 			depth_stencil(depth_stencil&&) noexcept = default;
 			depth_stencil(const depth_stencil&) = default;
 			depth_stencil& operator=(depth_stencil&&) noexcept = default;
@@ -152,17 +149,17 @@ namespace cgb
 	 */
 	struct attachment
 	{
-		static attachment define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
-		static attachment define(image_format aFormat, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
-		static attachment define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp);
+		static attachment define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 
-		attachment& set_load_operation(cfg::attachment_load_operation aLoadOp);
-		attachment& set_store_operation(cfg::attachment_store_operation aStoreOp);
+		attachment& set_load_operation(att::on_load aLoadOp);
+		attachment& set_store_operation(att::on_store aStoreOp);
 		attachment& load_contents();
 		attachment& clear_contents();
 		attachment& store_contents();
-		attachment& set_stencil_load_operation(cfg::attachment_load_operation aLoadOp);
-		attachment& set_stencil_store_operation(cfg::attachment_store_operation aStoreOp);
+		attachment& set_stencil_load_operation(att::on_load aLoadOp);
+		attachment& set_stencil_store_operation(att::on_store aStoreOp);
 		attachment& load_stencil_contents();
 		attachment& clear_stencil_contents();
 		attachment& store_stencil_contents();
@@ -170,7 +167,7 @@ namespace cgb
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
 		/** True if this attachment shall be, finally, presented on screen. */
-		auto is_presentable() const { return cfg::attachment_store_operation::store_in_presentable_format == mStoreOperation; }
+		auto is_presentable() const { return att::on_store::store_in_presentable_format == mStoreOperation; }
 		/** True if this attachment is used as depth/stencil attachment in the subpasses. */
 		auto is_depth_stencil_attachment() const { return mSubpassUsages.contains_depth_stencil(); }
 		/** True if this attachment is used as color attachment in the subpasses. */
@@ -191,10 +188,10 @@ namespace cgb
 
 		image_format mFormat;
 		int mSampleCount;
-		cfg::attachment_load_operation mLoadOperation;
-		cfg::attachment_store_operation mStoreOperation;
-		std::optional<cfg::attachment_load_operation> mStencilLoadOperation;
-		std::optional<cfg::attachment_store_operation> mStencilStoreOperation;
-		used_as::usage_desc mSubpassUsages;
+		att::on_load mLoadOperation;
+		att::on_store mStoreOperation;
+		std::optional<att::on_load> mStencilLoadOperation;
+		std::optional<att::on_store> mStencilStoreOperation;
+		att::usage_desc mSubpassUsages;
 	};
 }

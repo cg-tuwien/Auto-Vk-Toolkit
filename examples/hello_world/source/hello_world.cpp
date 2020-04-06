@@ -7,13 +7,15 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void initialize() override
 	{
+		using namespace cgb::att;
+		
 		// Create a graphics pipeline:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_shader("shaders/a_triangle.vert"),
 			cgb::fragment_shader("shaders/a_triangle.frag"),
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::viewport_depth_scissors_config::from_window(),
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), cgb::cfg::attachment_load_operation::clear, cgb::used_as::color(0), cgb::cfg::attachment_store_operation::store_in_presentable_format)
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:

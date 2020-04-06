@@ -824,7 +824,7 @@ namespace cgb
 
 		// Create a renderpass for the back buffers
 		std::vector<attachment> renderpassAttachments = {
-			attachment::define_for(pWindow->mSwapChainImageViews[0], cfg::attachment_load_operation::clear, used_as::color(0), cfg::attachment_store_operation::store_in_presentable_format)
+			attachment::define_for(pWindow->mSwapChainImageViews[0], att::on_load::clear, att::color(0), att::on_store::dont_care)
 		};
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),

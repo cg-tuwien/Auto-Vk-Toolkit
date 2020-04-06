@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	namespace used_as
+	namespace att
 	{
 		usage_desc& usage_desc::operator+(usage_desc& resolveAndMore)
 		{
@@ -24,37 +24,37 @@ namespace cgb
 		
 	}
 	
-	attachment attachment::define(std::tuple<image_format, cfg::sample_count> aFormatAndSamples, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		return attachment{
 			std::get<image_format>(aFormatAndSamples),
-			std::get<cfg::sample_count>(aFormatAndSamples).mNumSamples,
+			std::get<att::sample_count>(aFormatAndSamples).mNumSamples,
 			aLoadOp, aStoreOp,
 			{},      {},
 			std::move(aUsageInSubpasses)
 		};
 	}
 	
-	attachment attachment::define(image_format aFormat, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
-		return define({aFormat, cfg::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		return define({aFormat, att::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 	
-	attachment attachment::define_for(const image_view_t& aImageView, cfg::attachment_load_operation aLoadOp, used_as::usage_desc aUsageInSubpasses, cfg::attachment_store_operation aStoreOp)
+	attachment attachment::define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		auto& imageInfo = aImageView.get_image().config();
 		auto format = image_format{ imageInfo.format };
 		std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
-		return define({format, cfg::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		return define({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 
-	attachment& attachment::set_load_operation(cfg::attachment_load_operation aLoadOp)
+	attachment& attachment::set_load_operation(att::on_load aLoadOp)
 	{
 		mLoadOperation = aLoadOp;
 		return *this;
 	}
 	
-	attachment& attachment::set_store_operation(cfg::attachment_store_operation aStoreOp)
+	attachment& attachment::set_store_operation(att::on_store aStoreOp)
 	{
 		mStoreOperation = aStoreOp;
 		return *this;
@@ -62,26 +62,26 @@ namespace cgb
 
 	attachment& attachment::load_contents()
 	{
-		return set_load_operation(cfg::attachment_load_operation::load);
+		return set_load_operation(att::on_load::load);
 	}
 	
 	attachment& attachment::clear_contents()
 	{
-		return set_load_operation(cfg::attachment_load_operation::clear);
+		return set_load_operation(att::on_load::clear);
 	}
 	
 	attachment& attachment::store_contents()
 	{
-		return set_store_operation(cfg::attachment_store_operation::store);
+		return set_store_operation(att::on_store::store);
 	}
 
-	attachment& attachment::set_stencil_load_operation(cfg::attachment_load_operation aLoadOp)
+	attachment& attachment::set_stencil_load_operation(att::on_load aLoadOp)
 	{
 		mStencilLoadOperation = aLoadOp;
 		return *this;
 	}
 	
-	attachment& attachment::set_stencil_store_operation(cfg::attachment_store_operation aStoreOp)
+	attachment& attachment::set_stencil_store_operation(att::on_store aStoreOp)
 	{
 		mStencilStoreOperation = aStoreOp;
 		return *this;
@@ -89,16 +89,16 @@ namespace cgb
 	
 	attachment& attachment::load_stencil_contents()
 	{
-		return set_stencil_load_operation(cfg::attachment_load_operation::load);
+		return set_stencil_load_operation(att::on_load::load);
 	}
 	
 	attachment& attachment::clear_stencil_contents()
 	{
-		return set_stencil_load_operation(cfg::attachment_load_operation::clear);
+		return set_stencil_load_operation(att::on_load::clear);
 	}
 	
 	attachment& attachment::store_stencil_contents()
 	{
-		return set_stencil_store_operation(cfg::attachment_store_operation::store);
+		return set_stencil_store_operation(att::on_store::store);
 	}
 }

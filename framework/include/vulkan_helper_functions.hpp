@@ -37,9 +37,9 @@ namespace cgb
 
 	extern vk::LogicOp to_vk_logic_operation(cfg::blending_logic_operation aValue);
 
-	extern vk::AttachmentLoadOp to_vk_load_op(cfg::attachment_load_operation aValue);
+	extern vk::AttachmentLoadOp to_vk_load_op(att::on_load aValue);
 
-	extern vk::AttachmentStoreOp to_vk_store_op(cfg::attachment_store_operation aValue);
+	extern vk::AttachmentStoreOp to_vk_store_op(att::on_store aValue);
 
 	extern vk::PipelineStageFlags to_vk_pipeline_stage_flags(cgb::pipeline_stage aValue);
 	extern vk::PipelineStageFlags to_vk_pipeline_stage_flags(std::optional<cgb::pipeline_stage> aValue);

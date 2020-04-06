@@ -258,7 +258,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
+		cgb::context().main_window()->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present);
 	}
 
 	void finalize() override
@@ -297,7 +297,6 @@ int main() // <== Starting point ==
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Custom Intersection Example");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
-		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:

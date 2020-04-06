@@ -92,6 +92,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::sync::with_barriers_on_current_frame()
 		);
 
+		using namespace cgb::att;
+		
 		// Create our rasterization graphics pipeline with the required configuration:
 		mGraphicsPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),
@@ -101,7 +103,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::culling_mode::disabled,
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()).enable_dynamic_viewport(),
-			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer()),
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format),
 			cgb::binding(0, mUbo),
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
@@ -148,7 +150,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
 
 			// Begin drawing:
-			commandBuffer.begin_render_pass_for_framebuffer(cgb::context().main_window(), 0u, inFlightIndex);
+			commandBuffer.begin_render_pass(mGraphicsPipeline, cgb::context().main_window(), inFlightIndex);
 			commandBuffer.bind_pipeline(mGraphicsPipeline);
 
 			// Draw left viewport:
