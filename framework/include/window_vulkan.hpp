@@ -212,13 +212,22 @@ namespace cgb
 
 		static cgb::sync wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage);
 		
-		void copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
+		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
 
 		template <typename F>
-		void copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
+		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
 		{
 			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-			copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
+			return copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
+		}
+
+		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
+
+		template <typename F>
+		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
+		{
+			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
+			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
 		}
 
 	protected:

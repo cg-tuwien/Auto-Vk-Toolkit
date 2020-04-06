@@ -2,10 +2,11 @@
 
 namespace cgb
 {	
-	extern void copy_image_to_another(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
+	extern std::optional<command_buffer> copy_image_to_another(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
+	extern std::optional<command_buffer> blit_image(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
 
 	template <typename Bfr>
-	void copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
+	std::optional<command_buffer> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
@@ -37,7 +38,7 @@ namespace cgb
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 		// Finish him:
-		aSyncHandler.submit_and_sync();
+		return aSyncHandler.submit_and_sync();
 	}
 
 	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
@@ -70,7 +71,8 @@ namespace cgb
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
-		aSyncHandler.submit_and_sync();
+		auto result = aSyncHandler.submit_and_sync();
+		assert (!result.has_value());
 		
 		return img;
 	}
@@ -104,7 +106,7 @@ namespace cgb
 			size_t imageSize = width * height * desiredColorChannels;
 
 			if (!pixels) {
-				throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
+				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
 			}
 
 			stagingBuffer = cgb::create_and_fill(
@@ -139,7 +141,7 @@ namespace cgb
 			size_t imageSize = width * height * desiredColorChannels;
 
 			if (!pixels) {
-				throw std::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", _Path));
+				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", _Path));
 			}
 
 			stagingBuffer = cgb::create_and_fill(
@@ -153,7 +155,7 @@ namespace cgb
 		}
 		// ========= TODO: Support DDS loader, maybe also further loaders
 		else {
-			throw std::runtime_error("No loader for the given image format implemented.");
+			throw cgb::runtime_error("No loader for the given image format implemented.");
 		}
 
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
@@ -176,7 +178,8 @@ namespace cgb
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
-		aSyncHandler.submit_and_sync();
+		auto result = aSyncHandler.submit_and_sync();
+		assert(!result.has_value());
 		return img;
 	}
 	

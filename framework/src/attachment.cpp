@@ -9,11 +9,11 @@ namespace cgb
 			assert(resolveAndMore.mDescriptions.size() >= 1);
 			auto& mustBeResolve = resolveAndMore.mDescriptions.front();
 			if (dynamic_cast<resolve*>(&resolveAndMore) != nullptr || std::get<bool>(mustBeResolve) != true) {
-				throw std::runtime_error("A 'resolve' element must follow after a '+'");
+				throw cgb::runtime_error("A 'resolve' element must follow after a '+'");
 			}
 			auto& mustBeColor = mDescriptions.back();
 			if (std::get<usage_type>(mustBeColor) != usage_type::color) {
-				throw std::runtime_error("A 'resolve' operation can only be applied to 'color' attachments.");
+				throw cgb::runtime_error("A 'resolve' operation can only be applied to 'color' attachments.");
 			}
 			std::get<bool>(mustBeColor) = std::get<bool>(mustBeResolve);
 

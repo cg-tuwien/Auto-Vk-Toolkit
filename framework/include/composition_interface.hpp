@@ -116,7 +116,7 @@ namespace cgb
 		{
 			if (nullptr != sCurrentComposition && sCurrentComposition->is_running())
 			{
-				throw std::runtime_error("There is already an active composition_interface which is still running.");
+				throw cgb::runtime_error("There is already an active composition_interface which is still running.");
 			}
 			// It's okay.
 			sCurrentComposition = pNewComposition;

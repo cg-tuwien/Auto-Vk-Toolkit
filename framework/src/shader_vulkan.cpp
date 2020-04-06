@@ -13,16 +13,22 @@ namespace cgb
 	shader shader::create(shader_info pInfo)
 	{
 		auto shdr = shader::prepare(std::move(pInfo));
-		try {
-			shdr.mShaderModule = shader::build_from_file(shdr.info().mPath);
-			shdr.mActualShaderLoadPath = shdr.info().mPath;
+
+		if (std::filesystem::exists(shdr.info().mPath)) {
+			try {
+				shdr.mShaderModule = shader::build_from_file(shdr.info().mPath);
+				shdr.mActualShaderLoadPath = shdr.info().mPath;
+				return shdr;
+			}
+			catch (cgb::runtime_error&) {
+			}			
 		}
-		catch (std::runtime_error&) {
-			const std::string secondTry = shdr.info().mPath + ".spv";
-			shdr.mShaderModule = shader::build_from_file(secondTry);
-			LOG_INFO(fmt::format("Couldn't load '{}' but loading '{}' was successful => going to use the latter, fyi!", shdr.info().mPath, secondTry));
-			shdr.mActualShaderLoadPath = secondTry;
-		}
+
+		const std::string secondTry = shdr.info().mPath + ".spv";
+		shdr.mShaderModule = shader::build_from_file(secondTry);
+		LOG_INFO(fmt::format("Couldn't load '{}' but loading '{}' was successful => going to use the latter, fyi!", shdr.info().mPath, secondTry));
+		shdr.mActualShaderLoadPath = secondTry;
+
 		return shdr;
 	}
 

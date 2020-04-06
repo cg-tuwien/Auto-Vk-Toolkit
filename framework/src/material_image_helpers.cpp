@@ -2,7 +2,7 @@
 
 namespace cgb
 {
-	void copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
+	std::optional<command_buffer> copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
@@ -74,7 +74,87 @@ namespace cgb
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 
 		// Finish him:
-		aSyncHandler.submit_and_sync();
+		return aSyncHandler.submit_and_sync();
+	}
+
+	std::optional<command_buffer> blit_image(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
+	{
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		// Sync before:
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
+
+		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto initialSrcLayout = aSrcImage.target_layout();
+		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
+									//|| initialSrcLayout == vk::ImageLayout::eGeneral
+									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableSrcLayout) {
+			// Just make sure that is really is in target layout:
+			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+		}
+		else {
+			// Not a suitable src layout => must transform
+			aSrcImage.transition_to_layout(vk::ImageLayout::eTransferSrcOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+
+		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
+		auto initialDstLayout = aDstImage.target_layout();
+		const bool suitableDstLayout = initialDstLayout == vk::ImageLayout::eTransferDstOptimal
+									|| initialDstLayout == vk::ImageLayout::eGeneral
+									|| initialDstLayout == vk::ImageLayout::eSharedPresentKHR;
+		if (suitableDstLayout) {
+			// Just make sure that is really is in target layout:
+			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+		}
+		else {
+			// Not a suitable dst layout => must transform
+			aDstImage.transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+
+
+		std::array<vk::Offset3D, 2> srcOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aSrcImage.width()), static_cast<int32_t>(aSrcImage.height()), static_cast<int32_t>(aSrcImage.depth()) } };
+		std::array<vk::Offset3D, 2> dstOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aDstImage.width()), static_cast<int32_t>(aDstImage.height()), static_cast<int32_t>(aDstImage.depth()) } };
+		
+		// Operation:
+		auto blitRegion = vk::ImageBlit{}
+			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
+				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setBaseArrayLayer(0u)
+				.setLayerCount(1u)
+				.setMipLevel(0u)
+			)
+			.setSrcOffsets(srcOffsets)
+			.setDstSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
+				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setBaseArrayLayer(0u)
+				.setLayerCount(1u)
+				.setMipLevel(0u)
+			)
+			.setDstOffsets(dstOffsets);
+
+		commandBuffer.handle().blitImage(
+			aSrcImage.handle(),
+			aSrcImage.current_layout(),
+			aDstImage.handle(),
+			aDstImage.current_layout(),
+			1u, &blitRegion, 
+			vk::Filter::eNearest); // TODO: Support other filters and everything
+
+		if (!suitableSrcLayout && aRestoreSrcLayout) { // => restore original layout of the src image
+			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+
+		if (!suitableDstLayout && aRestoreDstLayout) { // => restore original layout of the dst image
+			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+		
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
+
+		// Finish him:
+		return aSyncHandler.submit_and_sync();
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(

@@ -80,7 +80,7 @@ namespace cgb
 
 		// If memory allocation was successful, then we can now associate this memory with the buffer
 		cgb::context().logical_device().bindBufferMemory(vkBuffer.get(), vkMemory.get(), 0);
-		// TODO: if(!succeeded) { throw std::runtime_error("Binding memory to buffer failed."); }
+		// TODO: if(!succeeded) { throw cgb::runtime_error("Binding memory to buffer failed."); }
 
 		cgb::buffer_t<Meta> b;
 		b.mMetaData = pConfig;
@@ -109,7 +109,7 @@ namespace cgb
 
 	// SET DATA
 	template <typename Meta>
-	void fill(
+	std::optional<command_buffer> fill(
 		const cgb::buffer_t<Meta>& target,
 		const void* pData, 
 		sync aSyncHandler = sync::wait_idle())
@@ -136,7 +136,7 @@ namespace cgb
 			// TODO: Handle has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCached) case
 
 			// No need to sync, so.. don't sync!
-			return; // TODO: This should be okay, is it?
+			return {}; // TODO: This should be okay, is it?
 		}
 
 		// #2: Otherwise, it must be on the GPU-SIDE!
@@ -175,7 +175,7 @@ namespace cgb
 			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
 			
 			// Finish him:
-			aSyncHandler.submit_and_sync();			
+			return aSyncHandler.submit_and_sync();			
 		}
 	}
 
@@ -293,7 +293,7 @@ namespace cgb
 
 	
 	template <typename Meta>
-	void read(
+	std::optional<command_buffer> read(
 		const cgb::buffer_t<Meta>& _Source,
 		void* _Data,
 		sync aSyncHandler
@@ -318,6 +318,7 @@ namespace cgb
 			memcpy(_Data, mapped, bufferSize);
 			cgb::context().logical_device().unmapMemory(_Source.memory_handle());
 			// TODO: Handle has_flag(memProps, vk::MemoryPropertyFlagBits::eHostCached) case
+			return {};
 		}
 
 		// #2: Otherwise, it must be on the GPU-SIDE!
@@ -358,7 +359,7 @@ namespace cgb
 			});
 
 			// Finish him:
-			aSyncHandler.submit_and_sync();
+			return aSyncHandler.submit_and_sync();
 		}
 	}
 
@@ -381,7 +382,7 @@ namespace cgb
 	{
 		auto memProps = _Source.memory_properties();
 		if (!cgb::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
-			throw std::runtime_error("This cgb::read overload can only be used with host-visible buffers. Use cgb::void read(const cgb::buffer_t<Meta>& _Source, void* _Data, sync aSyncHandler) instead!");
+			throw cgb::runtime_error("This cgb::read overload can only be used with host-visible buffers. Use cgb::void read(const cgb::buffer_t<Meta>& _Source, void* _Data, sync aSyncHandler) instead!");
 		}
 		Ret result;
 		read(_Source, static_cast<void*>(&result), std::move(aSyncHandler));

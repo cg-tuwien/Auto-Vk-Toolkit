@@ -28,7 +28,7 @@ namespace cgb
 		std::vector<subpass_desc_helper> subpasses;
 		
 		if (aAttachments.empty()) {
-			throw std::runtime_error("No attachments have been passed to the creation of a renderpass.");
+			throw cgb::runtime_error("No attachments have been passed to the creation of a renderpass.");
 		}
 		const auto numSubpassesFirst = aAttachments.front().mSubpassUsages.num_subpasses();
 		// All further attachments must have the same number of subpasses! It will be checked.
@@ -142,7 +142,7 @@ namespace cgb
 			// 2. Go throught the subpasses and gather data for subpass config
 			const auto nSubpasses = a.mSubpassUsages.num_subpasses();
 			if (nSubpasses != numSubpassesFirst) {
-				throw std::runtime_error("All attachments must have the exact same number of subpasses!");
+				throw cgb::runtime_error("All attachments must have the exact same number of subpasses!");
 			}
 			
 			for (size_t i = 0; i < nSubpasses; ++i) {
@@ -158,7 +158,7 @@ namespace cgb
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve input attachments
 					if (hasLoc) {
 						if (sp.mSpecificInputLocations.count(loc) != 0) {
-							throw std::runtime_error(fmt::format("Layout location {} is used multiple times for an input attachments in subpass {}. This is not allowed.", loc, i));
+							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for an input attachments in subpass {}. This is not allowed.", loc, i));
 						}
 						sp.mSpecificInputLocations[loc] = vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eShaderReadOnlyOptimal};
 						sp.mInputMaxLoc = std::max(sp.mInputMaxLoc, loc);
@@ -171,7 +171,7 @@ namespace cgb
 				case att::usage_type::color:
 					if (hasLoc) {
 						if (sp.mSpecificColorLocations.count(loc) != 0) {
-							throw std::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
+							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
 						}
 						sp.mSpecificColorLocations[loc] =	 vk::AttachmentReference{attachmentIndex,									vk::ImageLayout::eColorAttachmentOptimal};
 						sp.mSpecificResolveLocations[loc] =	 vk::AttachmentReference{resolve ? attachmentIndex : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal};
@@ -187,7 +187,7 @@ namespace cgb
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // TODO: Support depth/stencil resolve by using VkSubpassDescription2
 					if (hasLoc) {
 						if (sp.mSpecificDepthStencilLocations.count(loc) != 0) {
-							throw std::runtime_error(fmt::format("Layout location {} is used multiple times for a depth/stencil attachments in subpass {}. This is not allowed.", loc, i));
+							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a depth/stencil attachments in subpass {}. This is not allowed.", loc, i));
 						}
 						sp.mSpecificDepthStencilLocations[loc] = vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal};
 						sp.mDepthStencilMaxLoc = std::max(sp.mDepthStencilMaxLoc, loc);
@@ -202,7 +202,7 @@ namespace cgb
 					sp.mPreserveAttachments.push_back(attachmentIndex);
 				default:
 					assert(false);
-					throw std::logic_error("How did we end up here?");
+					throw cgb::logic_error("How did we end up here?");
 				}
 			}
 		}

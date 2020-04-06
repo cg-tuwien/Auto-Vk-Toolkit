@@ -1,7 +1,7 @@
 #include <cg_base.hpp>
 #include <imgui.h>
 
-class vertex_buffers_app : public cgb::cg_element
+class framebuffer_app : public cgb::cg_element
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -35,8 +35,9 @@ class vertex_buffers_app : public cgb::cg_element
 	};
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-	vertex_buffers_app()
-		: mAdditionalTranslationY{ 0.0f }
+	framebuffer_app()
+		: mSelectedAttachmentToCopy{ 0 }
+		, mAdditionalTranslationY{ 0.0f }
 		, mRotationSpeed{ 1.0f }
 	{ }
 
@@ -64,25 +65,35 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		using namespace cgb::att;
 		
+		const auto r = cgb::context().main_window()->resolution();
+		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format()));
+		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format()));
+		auto colorAttachmentDescription = cgb::attachment::define_for(colorAttachment, on_load::clear, color(0),			on_store::store);
+		auto depthAttachmentDescription = cgb::attachment::define_for(depthAttachment, on_load::clear, depth_stencil(),		on_store::store);
+		mOneFramebuffer = cgb::framebuffer_t::create(
+			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
+			cgb::move_into_vector(colorAttachment, depthAttachment)			// For owning resources, we have to use move_into_vector in order to properly move ownership.
+		);
+
 		// Create graphics pipeline for rasterization with the required configuration:
-		mPipeline = cgb::graphics_pipeline_for(
+		mPipelineIntoFramebuffer = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
 			cgb::vertex_input_location(1, &Vertex::color),								// Describe the color vertex attribute
 			cgb::vertex_shader("shaders/passthrough.vert"),								// Add a vertex shader
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
+			colorAttachmentDescription,
+			depthAttachmentDescription
 		);
 
-		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
-			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			cgb::context().draw_indexed(mPipeline, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
+		mCmdBfrIntoFramebuffer = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+			commandBuffer.begin_render_pass(mOneFramebuffer);
+			commandBuffer.bind_pipeline(mPipelineIntoFramebuffer);
+			cgb::context().draw_indexed(mPipelineIntoFramebuffer, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
 			commandBuffer.end_render_pass();
 		});
-
+		
 		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
@@ -92,6 +103,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
 				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+
+				ImGui::Separator();
+				ImGui::Text("Which attachment to copy/blit:");
+				static const char* optionsAttachment[] = {"Color attachment at index 0", "Depth attachment at index 1"};
+				ImGui::Combo("##att", &mSelectedAttachmentToCopy, optionsAttachment, 2);
+				ImGui::Text("Which transfer operation to use:");
+				static const char* optionsOperation[] = {"Copy", "Blit"};
+				ImGui::Combo("##op", &mUseCopyOrBlit, optionsOperation, 2);
 		        ImGui::End();
 			});
 		}
@@ -139,8 +158,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
 		//		 will ensure correct and smooth rendering regardless of the timer used.
 
+		auto mainWnd = cgb::context().main_window();
+		
 		// For the right vertex buffer, ...
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// ... update its vertex data:
 		cgb::fill(
@@ -155,16 +176,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		// Finally, submit the right command buffer in order to issue the draw call:
-		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+		submit_command_buffer_ref(mCmdBfrIntoFramebuffer[inFlightIndex]);
+		if (0 == mUseCopyOrBlit) {
+			submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		}
+		else {
+			submit_command_buffer_ownership(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		}
 	}
 
 
 private: // v== Member variables ==v
-	
+
+	int mSelectedAttachmentToCopy;
+	int mUseCopyOrBlit;
+	cgb::framebuffer mOneFramebuffer;
+	std::vector<cgb::command_buffer> mCmdBfrIntoFramebuffer;
 	std::vector<cgb::vertex_buffer> mVertexBuffers;
 	cgb::index_buffer mIndexBuffer;
-	cgb::graphics_pipeline mPipeline;
-	std::vector<cgb::command_buffer> mCmdBfrs;
+	cgb::graphics_pipeline mPipelineIntoFramebuffer;
 	float mAdditionalTranslationY;
 	float mRotationSpeed;
 
@@ -173,17 +203,17 @@ private: // v== Member variables ==v
 int main() // <== Starting point ==
 {
 	try {
-		cgb::settings::gApplicationName = "cg_base Example: Vertex Buffers";
+		cgb::settings::gApplicationName = "cg_base Example: Framebuffer";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Vertex Buffers main window");
+		auto mainWnd = cgb::context().create_window("Framebuffer main window");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::immediate);
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = vertex_buffers_app();
+		auto app = framebuffer_app();
 		// Create another element for drawing the UI with ImGui
 		auto ui = cgb::imgui_manager();
 

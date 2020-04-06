@@ -9,14 +9,14 @@ namespace cgb
 	const uniform_texel_buffer_t& buffer_view_t::get_uniform_texel_buffer() const
 	{
 		if (!has_cgb_uniform_texel_buffer()) {
-			throw std::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::uniform_texel_buffer`");
+			throw cgb::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::uniform_texel_buffer`");
 		}
 		return std::get<cgb::uniform_texel_buffer>(mBuffer);
 	}
 	uniform_texel_buffer_t& buffer_view_t::get_uniform_texel_buffer()
 	{
 		if (!has_cgb_uniform_texel_buffer()) {
-			throw std::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::uniform_texel_buffer`");
+			throw cgb::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::uniform_texel_buffer`");
 		}
 		return std::get<cgb::uniform_texel_buffer>(mBuffer);
 	}
@@ -28,14 +28,14 @@ namespace cgb
 	const storage_texel_buffer_t& buffer_view_t::get_storage_texel_buffer() const
 	{
 		if (!has_cgb_storage_texel_buffer()) {
-			throw std::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::storage_texel_buffer`");
+			throw cgb::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::storage_texel_buffer`");
 		}
 		return std::get<cgb::storage_texel_buffer>(mBuffer);
 	}
 	storage_texel_buffer_t& buffer_view_t::get_storage_texel_buffer()
 	{
 		if (!has_cgb_storage_texel_buffer()) {
-			throw std::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::storage_texel_buffer`");
+			throw cgb::logic_error("This `cgb::buffer_view_t` is not associated to a `cgb::storage_texel_buffer`");
 		}
 		return std::get<cgb::storage_texel_buffer>(mBuffer);
 	}
@@ -70,7 +70,7 @@ namespace cgb
 		if (std::holds_alternative<cgb::storage_texel_buffer>(mBuffer)) {
 			return std::get<cgb::storage_texel_buffer>(mBuffer)->descriptor_type();
 		}
-		throw std::runtime_error("Which descriptor type?");
+		throw cgb::runtime_error("Which descriptor type?");
 	}
 	
 	owning_resource<buffer_view_t> buffer_view_t::create(cgb::uniform_texel_buffer _BufferToOwn, std::optional<buffer_member_format> _ViewFormat, context_specific_function<void(buffer_view_t&)> _AlterConfigBeforeCreation)
@@ -82,7 +82,7 @@ namespace cgb
 		}
 		else {
 			if (_BufferToOwn->meta_data().member_descriptions().size() == 0) {
-				throw std::runtime_error("No _ViewFormat passed and cgb::uniform_texel_buffer contains no member descriptions");
+				throw cgb::runtime_error("No _ViewFormat passed and cgb::uniform_texel_buffer contains no member descriptions");
 			}
 			if (_BufferToOwn->meta_data().member_descriptions().size() > 1) {
 				LOG_WARNING("No _ViewFormat passed and there is more than one member description in cgb::uniform_texel_buffer. The view will likely be corrupted.");
@@ -104,7 +104,7 @@ namespace cgb
 		}
 		else {
 			if (_BufferToOwn->meta_data().member_descriptions().size() == 0) {
-				throw std::runtime_error("No _ViewFormat passed and cgb::storage_texel_buffer contains no member descriptions");
+				throw cgb::runtime_error("No _ViewFormat passed and cgb::storage_texel_buffer contains no member descriptions");
 			}
 			if (_BufferToOwn->meta_data().member_descriptions().size() > 1) {
 				LOG_WARNING("No _ViewFormat passed and there is more than one member description in cgb::storage_texel_buffer. The view will likely be corrupted.");

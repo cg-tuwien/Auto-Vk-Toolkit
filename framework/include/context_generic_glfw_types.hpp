@@ -34,7 +34,7 @@ namespace cgb
 					return monitor_handle{ monitors[i] };
 				}
 			}
-			throw std::runtime_error("No secondary monitor found");
+			throw cgb::runtime_error("No secondary monitor found");
 		}
 
 		GLFWmonitor* mHandle;

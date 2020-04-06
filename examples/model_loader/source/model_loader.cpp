@@ -280,10 +280,8 @@ int main() // <== Starting point ==
 		auto modelLoader = cgb::setup(app, ui);
 		modelLoader.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

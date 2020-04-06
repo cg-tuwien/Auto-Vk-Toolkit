@@ -114,6 +114,41 @@ namespace cgb
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
 	}
 
+	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, framebuffer_t& aFramebuffer)
+	{
+		assert(!aFramebuffer.image_views().empty());
+
+		std::vector<vk::ClearValue> clearValues;
+		auto& rpAttachments = aRenderpass.attachment_descriptions();
+		clearValues.reserve(rpAttachments.size());
+		for (size_t i = 0; i < rpAttachments.size(); ++i) {
+			if (aRenderpass.is_color_attachment(aSubpassId, i)) {
+				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
+				continue;
+			}
+			if (aRenderpass.is_depth_stencil_attachment(aSubpassId, i)) {
+				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
+				continue;
+			}
+			if (aRenderpass.is_input_attachment(aSubpassId, i)) {
+				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
+				continue;
+			}
+			if (aRenderpass.is_resolve_attachment(aSubpassId, i)) {
+				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
+				continue;
+			}
+		}
+		
+		auto extent = aFramebuffer.image_view_at(0)->get_image().config().extent;
+		begin_render_pass_for_framebuffer(aRenderpass.handle(), aFramebuffer.handle(), { 0, 0 }, vk::Extent2D{ extent.width, extent.height }, std::move(clearValues));
+	}
+	
+	void command_buffer_t::begin_render_pass(framebuffer_t& aFramebuffer)
+	{
+		begin_render_pass(aFramebuffer.get_renderpass(), 0u, aFramebuffer);
+	}
+
 	void command_buffer_t::establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage)
 	{
 		mCommandBuffer->pipelineBarrier(

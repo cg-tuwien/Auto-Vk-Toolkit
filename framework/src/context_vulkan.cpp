@@ -226,7 +226,7 @@ namespace cgb
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw std::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw cgb::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 			//window->mSurface = surface;
 			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
@@ -395,11 +395,11 @@ namespace cgb
 				nullptr, 
 				&mDebugCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw std::runtime_error("Failed to set up debug callback via vkCreateDebugUtilsMessengerEXT");
+				throw cgb::runtime_error("Failed to set up debug callback via vkCreateDebugUtilsMessengerEXT");
 			}
 		}
 		else {
-			throw std::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
+			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
 		}
 #endif
 	}
@@ -458,7 +458,7 @@ namespace cgb
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
 		if (devices.size() == 0) {
-			throw std::runtime_error("Failed to find GPUs with Vulkan support.");
+			throw cgb::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 		const vk::PhysicalDevice* currentSelection = nullptr;
 		uint32_t currentScore = 0; // device score
@@ -517,9 +517,9 @@ namespace cgb
 		// Handle failure:
 		if (nullptr == currentSelection) {
 			if (settings::gRequiredDeviceExtensions.size() > 0) {
-				throw std::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
+				throw cgb::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
 			}
-			throw std::runtime_error("Could not find a suitable physical device.");
+			throw cgb::runtime_error("Could not find a suitable physical device.");
 		}
 
 		// Handle success:
@@ -902,7 +902,7 @@ namespace cgb
 				return i;
 			}
 		}
-		throw std::runtime_error("failed to find suitable memory type!");
+		throw cgb::runtime_error("failed to find suitable memory type!");
 	}
 
 	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName)

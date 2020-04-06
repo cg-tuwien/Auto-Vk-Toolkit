@@ -10,6 +10,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 	class compute_pipeline_t;
 	class ray_tracing_pipeline_t;
 	class set_of_descriptor_set_layouts;
+	class framebuffer_t;
 	struct binding_data;
 
 	enum struct command_buffer_state
@@ -71,6 +72,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 */
 		void begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aInFlightIndex = {});
 		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aInFlightIndex = {});
+		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, framebuffer_t& aFramebuffer);
+		void begin_render_pass(framebuffer_t& aFramebuffer);
 		void begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
@@ -90,7 +93,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		void bind_pipeline(const T& aPipeline)
 		{
 			assert(false);
-			throw std::logic_error("No suitable bind_pipeline overload found for the given argument.");
+			throw cgb::logic_error("No suitable bind_pipeline overload found for the given argument.");
 		}
 
 		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr);
@@ -101,7 +104,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		{
 			// TODO: In the current state, we're relying on COMPATIBLE layouts. Think about reusing the pipeline's allocated and internally stored layouts!
 			assert(false);
-			throw std::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
+			throw cgb::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
 		}
 		
 		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);

@@ -64,7 +64,7 @@ namespace cgb
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eMailbox);
 				break;
 			default:
-				throw std::runtime_error("should not get here");
+				throw cgb::runtime_error("should not get here");
 			}
 			if (selPresModeItr == presModes.end()) {
 				LOG_WARNING_EM("No presentation mode specified or desired presentation mode not available => will select any presentation mode");
@@ -151,7 +151,7 @@ namespace cgb
 				sharedContex);
 			if (nullptr == handle) {
 				// No point in continuing
-				throw new std::runtime_error("Failed to create window with the title '" + mTitle + "'");
+				throw new cgb::runtime_error("Failed to create window with the title '" + mTitle + "'");
 			}
 			mHandle = window_handle{ handle };
 			initialize_after_open();
@@ -408,7 +408,7 @@ namespace cgb
 
 	cgb::sync window::wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage)
 	{
-		return cgb::sync::with_barriers_on_current_frame(
+		return cgb::sync::with_barriers_by_return(
 				// These are rather coarse barriers:
 				[&](command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess) {
 					// Must transfer the swap chain image's layout:
@@ -444,13 +444,26 @@ namespace cgb
 			);
 	}
 	
-	void window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
+	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
 	{
+		aSync.set_queue_hint(cgb::context().graphics_queue());
 		auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-		copy_image_to_another(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), std::move(aSync),
+		copy_image_to_another(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
 			true, // Restore layout of source image
 			false // Don't restore layout of destination image
 		);
+		return aSync.submit_and_sync();
+	}
+	
+	std::optional<command_buffer> window::blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
+	{
+		aSync.set_queue_hint(cgb::context().graphics_queue());
+		auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
+		blit_image(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
+			true, // Restore layout of source image
+			false // Don't restore layout of destination image
+		);
+		return aSync.submit_and_sync();
 	}
 	
 }

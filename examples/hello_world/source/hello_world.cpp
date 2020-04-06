@@ -103,10 +103,8 @@ int main() // <== Starting point ==
 		auto helloWorld = cgb::setup(app, ui);
 		helloWorld.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

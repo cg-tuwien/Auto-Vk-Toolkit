@@ -39,7 +39,7 @@ namespace cgb
 	void read_memory_access::validate_or_throw() const
 	{
 		if (!is_read_access(mMemoryAccess)) {
-			throw std::runtime_error("The access flag represented by this instance of read_memory_access is not a read-type access flag.");
+			throw cgb::runtime_error("The access flag represented by this instance of read_memory_access is not a read-type access flag.");
 		}
 	}
 
@@ -57,7 +57,7 @@ namespace cgb
 	void write_memory_access::validate_or_throw() const
 	{
 		if (is_read_access(mMemoryAccess)) {
-			throw std::runtime_error("The access flag represented by this instance of write_memory_access is not a write-type access flag.");
+			throw cgb::runtime_error("The access flag represented by this instance of write_memory_access is not a write-type access flag.");
 		}
 	}
 

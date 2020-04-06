@@ -21,12 +21,12 @@ namespace cgb
 		std::ifstream stream(_Path, std::ifstream::in);
 		if (!stream.good() || !stream || stream.fail())
 		{
-			throw std::runtime_error(fmt::format("Unable to load scene from path[{}]", _Path));
+			throw cgb::runtime_error(fmt::format("Unable to load scene from path[{}]", _Path));
 		}
 		std::string filecontents = std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 		if (filecontents.empty())
 		{
-			throw std::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", _Path));
+			throw cgb::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", _Path));
 		}
 
 		nlohmann::json j = nlohmann::json::parse(filecontents);

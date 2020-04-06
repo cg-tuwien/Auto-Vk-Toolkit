@@ -325,11 +325,8 @@ int main() // <== Starting point ==
 		auto orcaLoader = cgb::setup(app, ui);
 		orcaLoader.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-		//throw re;
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

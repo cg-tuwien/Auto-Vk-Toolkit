@@ -257,7 +257,7 @@ namespace cgb
 		}
 
 		if (wnd.is_in_use()) {
-			throw new std::logic_error("This window is in use and can not be closed at the moment.");
+			throw new cgb::logic_error("This window is in use and can not be closed at the moment.");
 		}
 
 		context().dispatch_to_main_thread([&wnd]() {
@@ -327,7 +327,7 @@ namespace cgb
 				});
 
 			if (position == mWindows.end()) {
-				throw std::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(pMainWindowToBe)));
+				throw cgb::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(pMainWindowToBe)));
 			}
 
 			std::rotate(std::begin(mWindows), position, position + 1); // Move ONE element to the beginning, not the rest of the vector => hence, not std::end(mWindows)

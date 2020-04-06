@@ -215,12 +215,12 @@ namespace cgb
 
 	bool has_stencil_component(const image_format& pImageFormat)
 	{
-		throw std::runtime_error("not implemented");
+		throw cgb::runtime_error("not implemented");
 	}
 
 	bool is_depth_format(const image_format& pImageFormat)
 	{
-		throw std::runtime_error("not implemented");
+		throw cgb::runtime_error("not implemented");
 	}
 
 	owning_resource<image_t> image_t::create(int pWidth, int pHeight, image_format pFormat, memory_usage pMemoryUsage, bool pUseMipMaps, int pNumLayers, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)

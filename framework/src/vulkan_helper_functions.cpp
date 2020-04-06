@@ -37,7 +37,7 @@ namespace cgb
 		case vk::ImageType::e3D:
 			return vk::ImageViewType::e3D;
 		}
-		throw new std::runtime_error("It might be that the implementation of to_image_view_type(const vk::ImageCreateInfo& info) is incomplete. Please complete it!");
+		throw new cgb::runtime_error("It might be that the implementation of to_image_view_type(const vk::ImageCreateInfo& info) is incomplete. Please complete it!");
 	}
 
 	vk::Bool32 to_vk_bool(bool value)
@@ -77,7 +77,7 @@ namespace cgb
 		case cgb::shader_type::mesh:
 			return vk::ShaderStageFlagBits::eMeshNV;
 		default:
-			throw std::runtime_error("Invalid shader_type");
+			throw cgb::runtime_error("Invalid shader_type");
 		}
 	}
 

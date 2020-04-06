@@ -718,7 +718,7 @@ namespace cgb
 			mAspectFlags = aOther.mAspectFlags;
 		}
 		else {
-			throw std::runtime_error("Can not copy this image instance!");
+			throw cgb::runtime_error("Can not copy this image instance!");
 		}
 	}
 	
@@ -808,7 +808,7 @@ namespace cgb
 			}
 		}
 		if (!pFormat) {
-			throw std::runtime_error("No suitable depth format could be found.");
+			throw cgb::runtime_error("No suitable depth format could be found.");
 		}
 
 		pImageUsage |= image_usage::depth_stencil_attachment;
@@ -832,7 +832,7 @@ namespace cgb
 			}
 		}
 		if (!pFormat) {
-			throw std::runtime_error("No suitable depth+stencil format could be found.");
+			throw cgb::runtime_error("No suitable depth+stencil format could be found.");
 		}
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
@@ -865,14 +865,14 @@ namespace cgb
 	}
 
 
-	void image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
+	std::optional<command_buffer> image_t::transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout, sync aSyncHandler)
 	{
 		const auto curLayout = current_layout();
 		const auto trgLayout = aTargetLayout.value_or(target_layout());
 		mTargetLayout = trgLayout;
 
 		if (curLayout == trgLayout) {
-			return; // done (:
+			return {}; // done (:
 		}
 		
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
@@ -897,7 +897,7 @@ namespace cgb
 			pipeline_stage::transfer,	// The end of the execution dependency chain
 			write_memory_access{memory_access::transfer_write_access}
 		);
-		aSyncHandler.submit_and_sync();
+		return aSyncHandler.submit_and_sync();
 	}
 
 

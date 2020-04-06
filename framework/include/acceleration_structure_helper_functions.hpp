@@ -54,7 +54,7 @@ namespace cgb
 		// 11. Get an "opaque" handle which can be used on the device
 		auto ret = cgb::context().logical_device().getAccelerationStructureHandleNV(result.acceleration_structure_handle(), sizeof(result.mDeviceHandle), &result.mDeviceHandle, context().dynamic_dispatch());
 		if (ret != vk::Result::eSuccess) {
-			throw std::runtime_error("Getting the acceleration structure's opaque device handle failed.");
+			throw cgb::runtime_error("Getting the acceleration structure's opaque device handle failed.");
 		}
 	}
 }

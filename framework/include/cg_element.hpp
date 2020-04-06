@@ -273,7 +273,7 @@ namespace cgb
 		/** Command buffers to be submitted to a window at the end of the current frame,
 		 *	AND ownership/lifetime management of which is to be handled internally (which means, by the window).
 		 */
-		std::vector<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
+		std::deque<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;

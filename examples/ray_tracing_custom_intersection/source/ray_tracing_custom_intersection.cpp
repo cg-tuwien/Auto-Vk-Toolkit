@@ -230,7 +230,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		auto mainWnd = cgb::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
@@ -253,12 +254,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			nullptr, 0, 0,
-			cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
+			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
 			cgb::context().dynamic_dispatch());
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		cgb::context().main_window()->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present);
+		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
 	}
 
 	void finalize() override
@@ -307,11 +308,8 @@ int main() // <== Starting point ==
 		auto rtCustomIntersection = cgb::setup(app, ui);
 		rtCustomIntersection.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-		//throw re;
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

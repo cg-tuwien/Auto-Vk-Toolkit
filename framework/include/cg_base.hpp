@@ -32,6 +32,7 @@
 #include <utility>
 #include <cstdint>
 #include <chrono>
+#include <filesystem>
 
 #include <cstdio>
 #include <cassert>
@@ -88,6 +89,7 @@
 #endif
 
 // -------------------- CG-Base includes --------------------
+#include "cgb_exceptions.hpp"
 #include "string_utils.hpp"
 #include "log.hpp"
 #include "essential_utils.hpp"

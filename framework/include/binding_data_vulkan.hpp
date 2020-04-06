@@ -139,8 +139,8 @@ namespace cgb
 			}
 			
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
-			
-			throw std::runtime_error("Some holds_alternative calls are not implemented.");
+
+			throw cgb::runtime_error("Some holds_alternative calls are not implemented.");
 		}
 
 		const vk::DescriptorBufferInfo* descriptor_buffer_info(descriptor_set& aDescriptorSet) const
@@ -190,7 +190,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
 			
-			throw std::runtime_error("Some holds_alternative calls are not implemented.");
+			throw cgb::runtime_error("Some holds_alternative calls are not implemented.");
 		}
 
 		const void* next_pointer(descriptor_set& aDescriptorSet) const
@@ -227,7 +227,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
 			
-			throw std::runtime_error("Some holds_alternative calls are not implemented.");
+			throw cgb::runtime_error("Some holds_alternative calls are not implemented.");
 		}
 
 		const vk::BufferView* texel_buffer_view_info(descriptor_set& aDescriptorSet) const
@@ -263,7 +263,7 @@ namespace cgb
 				return aDescriptorSet.store_buffer_views(mLayoutBinding.binding, gather_buffer_views(std::get<std::vector<buffer_view_t*>>(mResourcePtr)));
 			}
 			
-			throw std::runtime_error("Some holds_alternative calls are not implemented.");
+			throw cgb::runtime_error("Some holds_alternative calls are not implemented.");
 		}
 	};
 

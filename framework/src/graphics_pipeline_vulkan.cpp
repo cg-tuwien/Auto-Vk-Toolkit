@@ -34,7 +34,7 @@ namespace cgb
 						return _GeneralData.mBinding == bindingId;
 					});
 				if (1 != numRecordsWithSameBinding) {
-					throw std::runtime_error(fmt::format("The input binding {} is defined in different ways. Make sure to define it uniformly across different bindings/attribute descriptions!", bindingData.mBinding));
+					throw cgb::runtime_error(fmt::format("The input binding {} is defined in different ways. Make sure to define it uniformly across different bindings/attribute descriptions!", bindingData.mBinding));
 				}
 
 				result.mVertexInputBindingDescriptions.push_back(vk::VertexInputBindingDescription()
@@ -148,7 +148,7 @@ namespace cgb
 				>> to_vector();
 
 			if (universalConfig.size() > 1) {
-				throw std::runtime_error("Ambiguous 'universal' color blending configurations. Either provide only one 'universal' "
+				throw cgb::runtime_error("Ambiguous 'universal' color blending configurations. Either provide only one 'universal' "
 					"config (which is not attached to a specific color target) or assign them to specific color target attachment ids.");
 			}
 
@@ -161,7 +161,7 @@ namespace cgb
 					>> where([i](const color_blending_config& config) { return config.mTargetAttachment.has_value() && config.mTargetAttachment.value() == i; })
 					>> to_vector();
 				if (configForI.size() > 1) {
-					throw std::runtime_error(fmt::format("Ambiguous color blending configuration for color attachment at index {}. Provide only one config per color attachment!", i));
+					throw cgb::runtime_error(fmt::format("Ambiguous color blending configuration for color attachment at index {}. Provide only one config per color attachment!", i));
 				}
 				// Determine which color blending to use for this attachment:
 				color_blending_config toUse = configForI.size() == 1 ? configForI[0] : color_blending_config::disable();

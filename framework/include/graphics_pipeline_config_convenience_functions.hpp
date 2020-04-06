@@ -192,9 +192,9 @@ namespace cgb
 		// Check if render pass attachments are in renderPassAttachments XOR config => only in that case, it is clear how to proceed, fail in other cases
 		if (renderPassAttachments.size() > 0 == (config.mRenderPassSubpass.has_value() && nullptr != std::get<renderpass>(*config.mRenderPassSubpass)->handle())) {
 			if (renderPassAttachments.size() == 0) {
-				throw std::runtime_error("No renderpass config provided! Please provide a renderpass or attachments!");
+				throw cgb::runtime_error("No renderpass config provided! Please provide a renderpass or attachments!");
 			}
-			throw std::runtime_error("Ambiguous renderpass config! Either set a renderpass XOR provide attachments!");
+			throw cgb::runtime_error("Ambiguous renderpass config! Either set a renderpass XOR provide attachments!");
 		}
 		// ^ that was the sanity check. See if we have to build the renderpass from the attachments:
 		if (renderPassAttachments.size() > 0) {

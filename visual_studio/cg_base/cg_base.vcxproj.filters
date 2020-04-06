@@ -241,6 +241,9 @@
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp">
       <Filter>Source Files\user_interface</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
+      <Filter>Source Files\application_structure_and_general_stuff</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -578,6 +581,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\renderpass_sync.hpp">
       <Filter>Header Files\pipeline_and_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
+      <Filter>Header Files\application_structure_and_general_stuff</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

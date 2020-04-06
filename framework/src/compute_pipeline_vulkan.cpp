@@ -8,7 +8,7 @@ namespace cgb
 
 		// 1. Compile and store the one and only shader:
 		if (!_Config.mShaderInfo.has_value()) {
-			throw std::logic_error("Shader missing in compute_pipeline_config! A compute pipeline can not be constructed without a shader.");
+			throw cgb::logic_error("Shader missing in compute_pipeline_config! A compute pipeline can not be constructed without a shader.");
 		}
 		//    Compile the shader
 		result.mShader = std::move(shader::create(_Config.mShaderInfo.value()));
