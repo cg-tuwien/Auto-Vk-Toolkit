@@ -74,7 +74,7 @@
             ]
         },
         {
-            "file": "3rd_party/models/sponza/sponza_debris.obj",
+            "file": "1st_party/models/sponza_debris.obj",
             "name": "sponza_debris",
             "instances": [
                 {

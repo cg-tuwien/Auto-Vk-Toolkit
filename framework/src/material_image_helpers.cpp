@@ -392,12 +392,12 @@ namespace cgb
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
 
-	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_combined_vertices_and_indices_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
+	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> positionsData;
 		std::vector<uint32_t> indicesData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				cgb::append_indices_and_vertex_data(
@@ -410,10 +410,10 @@ namespace cgb
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
+	std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto [positionsData, indicesData] = get_combined_vertices_and_indices_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		auto [positionsData, indicesData] = get_vertices_and_indices(std::move(aModelsAndSelectedMeshes));
 		
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positionsData)
@@ -437,11 +437,11 @@ namespace cgb
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
 
-	std::vector<glm::vec3> get_combined_normals_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_normals(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> normalsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(normalsData, modelRef.normals_for_mesh(meshIndex));
@@ -451,10 +451,10 @@ namespace cgb
 		return normalsData;
 	}
 	
-	vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
+	vertex_buffer create_normals_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto normalsData = get_combined_normals_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		auto normalsData = get_normals(std::move(aModelsAndSelectedMeshes));
 		
 		vertex_buffer normalsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(normalsData),
@@ -468,11 +468,11 @@ namespace cgb
 		return normalsBuffer;
 	}
 
-	std::vector<glm::vec3> get_combined_tangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_tangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> tangentsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(tangentsData, modelRef.tangents_for_mesh(meshIndex));
@@ -482,10 +482,10 @@ namespace cgb
 		return tangentsData;
 	}
 	
-	vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
+	vertex_buffer create_tangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto tangentsData = get_combined_tangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		auto tangentsData = get_tangents(std::move(aModelsAndSelectedMeshes));
 		
 		vertex_buffer tangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(tangentsData),
@@ -499,11 +499,11 @@ namespace cgb
 		return tangentsBuffer;
 	}
 
-	std::vector<glm::vec3> get_combined_bitangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_bitangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> bitangentsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(bitangentsData, modelRef.bitangents_for_mesh(meshIndex));
@@ -513,10 +513,10 @@ namespace cgb
 		return bitangentsData;
 	}
 	
-	vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler)
+	vertex_buffer create_bitangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto bitangentsData = get_combined_bitangents_for_selected_meshes(std::move(_ModelsAndSelectedMeshes));
+		auto bitangentsData = get_bitangents(std::move(aModelsAndSelectedMeshes));
 		
 		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
@@ -530,11 +530,11 @@ namespace cgb
 		return bitangentsBuffer;
 	}
 
-	std::vector<glm::vec4> get_combined_colors_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet)
+	std::vector<glm::vec4> get_colors(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(colorsData, modelRef.colors_for_mesh(meshIndex, _ColorsSet));
@@ -544,10 +544,10 @@ namespace cgb
 		return colorsData;
 	}
 	
-	vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet, sync aSyncHandler)
+	vertex_buffer create_colors_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto colorsData = get_combined_colors_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _ColorsSet);
+		auto colorsData = get_colors(std::move(aModelsAndSelectedMeshes), _ColorsSet);
 		
 		vertex_buffer colorsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(colorsData),
@@ -561,11 +561,11 @@ namespace cgb
 		return colorsBuffer;
 	}
 
-	std::vector<glm::vec2> get_combined_2d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>(meshIndex, _TexCoordSet));
@@ -575,10 +575,10 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
+	vertex_buffer create_2d_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto texCoordsData = get_combined_2d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
+		auto texCoordsData = get_2d_texture_coordinates(std::move(aModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
@@ -592,11 +592,11 @@ namespace cgb
 		return texCoordsBuffer;
 	}
 
-	std::vector<glm::vec3> get_combined_3d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet)
+	std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 
-		for (auto& pair : _ModelsAndSelectedMeshes) {
+		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec3>(meshIndex, _TexCoordSet));
@@ -606,10 +606,10 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
+	vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto texCoordsData = get_combined_3d_texture_coordinates_for_selected_meshes(std::move(_ModelsAndSelectedMeshes), _TexCoordSet);
+		auto texCoordsData = get_3d_texture_coordinates(std::move(aModelsAndSelectedMeshes), _TexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),

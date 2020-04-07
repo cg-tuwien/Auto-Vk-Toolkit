@@ -64,16 +64,16 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 *	Pay attention to the parameter `_ConcurrentFrameIndex` as it will refer to one of the (concurrent) back buffers!
 		 *	
 		 *	@param	aWindow					The window which to begin the render pass for.
-		 *	@param	aInFlightIndex			The "in flight index" referring to a specific index of the back buffers.
+		 *	@param	aSwapchainImageIndex			The "in flight index" referring to a specific index of the back buffers.
 		 *									If left unset, it will be set to the current frame's "in flight index",
 		 *									which is basically `cf % iff`, where `cf` is the current frame's id (or 
 		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
 		 *									in flight (or `_Window->number_of_in_flight_frames()`).
 		 */
-		void begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aInFlightIndex = {});
-		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aInFlightIndex = {});
-		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, framebuffer_t& aFramebuffer);
-		void begin_render_pass(framebuffer_t& aFramebuffer);
+		void begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aSwapchainImageIndex = {});
+		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aSwapchainImageIndex = {});
+		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, const framebuffer_t& aFramebuffer);
+		void begin_render_pass(const framebuffer_t& aFramebuffer);
 		void begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);

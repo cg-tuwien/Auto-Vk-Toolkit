@@ -258,20 +258,46 @@ namespace cgb
 		cgb::border_handling_mode aBorderHandlingMode = cgb::border_handling_mode::repeat,
 		sync aSyncHandler = sync::wait_idle());
 
-	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_combined_vertices_and_indices_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern std::tuple<vertex_buffer, index_buffer> get_combined_vertex_and_index_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_combined_normals_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_normal_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_combined_tangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_tangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_combined_bitangents_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes);
-	extern vertex_buffer get_combined_bitangent_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec4> get_combined_colors_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet);
-	extern vertex_buffer get_combined_color_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec2> get_combined_2d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet);
-	extern vertex_buffer get_combined_2d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_combined_3d_texture_coordinates_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet);
-	extern vertex_buffer get_combined_3d_texture_coordinate_buffers_for_selected_meshes(std::vector<std::tuple<const model_t&, std::vector<size_t>>> _ModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult)
+	{ }
+	
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult, const model_t& aModel, const Rest&... rest)
+	{
+		aResult.emplace_back(std::forward_as_tuple(aModel, std::vector<size_t>{}));
+		add_tuple_or_indices(aResult, rest...);
+	}
+
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult, size_t aMeshIndex, const Rest&... rest)
+	{
+		std::get<std::vector<size_t>>(aResult.back()).emplace_back(aMeshIndex);
+		add_tuple_or_indices(aResult, rest...);
+	}
+	
+	template <typename... Args>
+	std::vector<std::tuple<const model_t&, std::vector<size_t>>> make_models_and_meshes_selection(const Args&... args)
+	{
+		std::vector<std::tuple<const model_t&, std::vector<size_t>>> result;
+		add_tuple_or_indices(result, args...);
+		return result;
+	}
+	
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
+	extern std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_normals(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
+	extern vertex_buffer create_normals_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_tangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
+	extern vertex_buffer create_tangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_bitangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
+	extern vertex_buffer create_bitangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec4> get_colors(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet);
+	extern vertex_buffer create_colors_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet);
+	extern vertex_buffer create_2d_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet);
+	extern vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 
 	// TODO: Not sure if the following leads somewhere:
 	//

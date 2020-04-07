@@ -58,17 +58,17 @@ namespace cgb
 		mState = command_buffer_state::finished_recording;
 	}
 
-	void command_buffer_t::begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aInFlightIndex)
+	void command_buffer_t::begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aSwapchainImageIndex)
 	{
 		const auto& rp = aPipeline.get_renderpass();
 		const auto subpassId = aPipeline.subpass_id();
-		begin_render_pass(rp, subpassId, aWindow, aInFlightIndex);
+		begin_render_pass(rp, subpassId, aWindow, aSwapchainImageIndex);
 	}
 
-	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aInFlightIndex)
+	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aSwapchainImageIndex)
 	{
 		auto extent = cgb::context().main_window()->swap_chain_extent();
-		const auto inFlightIndex = aInFlightIndex.value_or(aWindow->in_flight_index_for_frame());
+		const auto inFlightIndex = aSwapchainImageIndex.value_or(aWindow->swapchain_image_index_for_frame());
 		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(inFlightIndex)->handle();
 
 		std::vector<vk::ClearValue> clearValues;
@@ -114,7 +114,7 @@ namespace cgb
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
 	}
 
-	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, framebuffer_t& aFramebuffer)
+	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, const framebuffer_t& aFramebuffer)
 	{
 		assert(!aFramebuffer.image_views().empty());
 
@@ -144,7 +144,7 @@ namespace cgb
 		begin_render_pass_for_framebuffer(aRenderpass.handle(), aFramebuffer.handle(), { 0, 0 }, vk::Extent2D{ extent.width, extent.height }, std::move(clearValues));
 	}
 	
-	void command_buffer_t::begin_render_pass(framebuffer_t& aFramebuffer)
+	void command_buffer_t::begin_render_pass(const framebuffer_t& aFramebuffer)
 	{
 		begin_render_pass(aFramebuffer.get_renderpass(), 0u, aFramebuffer);
 	}

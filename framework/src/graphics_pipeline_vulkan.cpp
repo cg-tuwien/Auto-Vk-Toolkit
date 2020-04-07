@@ -75,6 +75,10 @@ namespace cgb
 		result.mShaders.reserve(_Config.mShaderInfos.size()); // Important! Otherwise the vector might realloc and .data() will become invalid!
 		result.mShaderStageCreateInfos.reserve(_Config.mShaderInfos.size()); // Important! Otherwise the vector might realloc and .data() will become invalid!
 		for (auto& shaderInfo : _Config.mShaderInfos) {
+			// 5.0 Sanity check
+			if (result.mShaders.end() != std::find_if(std::begin(result.mShaders), std::end(result.mShaders), [&shaderInfo](const shader& existing) { return existing.info().mShaderType == shaderInfo.mShaderType; })) {
+				throw cgb::runtime_error(fmt::format("There's already a {}-type shader contained in this graphics pipeline. Can not add another one of the same type.", to_string(to_vk_shader_stages(shaderInfo.mShaderType))));
+			}
 			// 5.1 Compile the shader
 			result.mShaders.push_back(shader::create(shaderInfo));
 			assert(result.mShaders.back().has_been_built());
