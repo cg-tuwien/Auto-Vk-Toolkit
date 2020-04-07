@@ -11,6 +11,6 @@ namespace cgb
 
 	attachment attachment::create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation)
 	{
-		throw std::runtime_error("not implemented");
+		throw cgb::runtime_error("not implemented");
 	}
 }

@@ -35,7 +35,7 @@ namespace cgb
 		
 	private:
 		enum struct blas_action { build, update };
-		void build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
+		std::optional<command_buffer> build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;

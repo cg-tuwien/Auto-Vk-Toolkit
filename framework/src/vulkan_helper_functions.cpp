@@ -37,7 +37,7 @@ namespace cgb
 		case vk::ImageType::e3D:
 			return vk::ImageViewType::e3D;
 		}
-		throw new std::runtime_error("It might be that the implementation of to_image_view_type(const vk::ImageCreateInfo& info) is incomplete. Please complete it!");
+		throw new cgb::runtime_error("It might be that the implementation of to_image_view_type(const vk::ImageCreateInfo& info) is incomplete. Please complete it!");
 	}
 
 	vk::Bool32 to_vk_bool(bool value)
@@ -77,7 +77,7 @@ namespace cgb
 		case cgb::shader_type::mesh:
 			return vk::ShaderStageFlagBits::eMeshNV;
 		default:
-			throw std::runtime_error("Invalid shader_type");
+			throw cgb::runtime_error("Invalid shader_type");
 		}
 	}
 
@@ -397,26 +397,27 @@ namespace cgb
 		}
 	}
 
-	vk::AttachmentLoadOp to_vk_load_op(cfg::attachment_load_operation aValue)
+	vk::AttachmentLoadOp to_vk_load_op(att::on_load aValue)
 	{
 		switch (aValue) {
-		case attachment_load_operation::dont_care:
+		case att::on_load::dont_care:
 			return vk::AttachmentLoadOp::eDontCare;
-		case attachment_load_operation::clear: 
+		case att::on_load::clear: 
 			return vk::AttachmentLoadOp::eClear;
-		case attachment_load_operation::load: 
+		case att::on_load::load: 
 			return vk::AttachmentLoadOp::eLoad;
 		default:
 			throw std::invalid_argument("Invalid attachment load operation.");
 		}
 	}
 
-	vk::AttachmentStoreOp to_vk_store_op(cfg::attachment_store_operation aValue)
+	vk::AttachmentStoreOp to_vk_store_op(att::on_store aValue)
 	{
 		switch (aValue) {
-		case attachment_store_operation::dont_care:
+		case att::on_store::dont_care:
 			return vk::AttachmentStoreOp::eDontCare;
-		case attachment_store_operation::store: 
+		case att::on_store::store:
+		case att::on_store::store_in_presentable_format:
 			return vk::AttachmentStoreOp::eStore;
 		default:
 			throw std::invalid_argument("Invalid attachment store operation.");

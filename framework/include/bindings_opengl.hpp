@@ -57,9 +57,9 @@ namespace cgb
 	}
 
 	template <typename T>
-	binding_data binding(uint32_t pBinding, shader_type pShaderStages = shader_type::all)
+	binding_data binding(uint32_t aBinding, shader_type aShaderStages = shader_type::all)
 	{
-		return binding<T>(0u, pBinding, pShaderStages);
+		return binding<T>(0u, aBinding, aShaderStages);
 	}
 
 }

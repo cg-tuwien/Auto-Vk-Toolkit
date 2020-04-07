@@ -11,7 +11,7 @@ namespace cgb
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFile(_Path, _AssimpFlags);
 		if (nullptr == result.mScene) {
-			throw std::runtime_error("Loading model from file failed.");
+			throw cgb::runtime_error("Loading model from file failed.");
 		}
 		return result;
 	}
@@ -23,7 +23,7 @@ namespace cgb
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFileFromMemory(_Memory.c_str(), _Memory.size(), _AssimpFlags);
 		if (nullptr == result.mScene) {
-			throw std::runtime_error("Loading model from memory failed.");
+			throw cgb::runtime_error("Loading model from memory failed.");
 		}
 		return result;
 	}

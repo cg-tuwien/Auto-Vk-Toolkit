@@ -109,7 +109,7 @@ namespace cgb
 			uint32_t nth = 0;
 			for (auto* element : mElements)
 			{
-				if (typeid(element) == pType)
+				if (typeid(*element) == pType)
 				{
 					if (pIndex == nth++)
 					{
@@ -231,9 +231,6 @@ namespace cgb
 					// 6. render_gizmos
 					thiz->mExecutor.execute_render_gizmos(thiz->mElements);
 					
-					// 7. render_gui
-					thiz->mExecutor.execute_render_guis(thiz->mElements);
-
 					// Gather all the command buffers per window
 					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer_t>>> toRender;
 					for (auto& e : thiz->mElements)	{
@@ -244,29 +241,9 @@ namespace cgb
 							toRender[wnd].push_back(cb);
 						}
 					}
-					// Gather all the present images per window - there can only be max. one.
-					std::unordered_map<window*, cgb::image_t*> toPresent;
-					for (auto& e : thiz->mElements)	{
-						for (auto [img, wnd] : e->mPresentImages) {
-							if (nullptr == wnd) {
-								wnd = cgb::context().main_window();
-							}
-							if (toPresent.contains(wnd)) {
-								LOG_WARNING(fmt::format("There is already an image designated to be presented for window [{}]. This call will have no effect.", fmt::ptr(wnd)));
-							}
-							else {
-								toPresent[wnd] = &img.get();
-							}
-						}
-					}
 					// Render per window
 					for (auto& [wnd, cbs] : toRender) {
-						if (toPresent.contains(wnd)) {
-							wnd->render_frame(std::move(cbs), std::ref(*toPresent[wnd]));
-						}
-						else {
-							wnd->render_frame(std::move(cbs));
-						}
+						wnd->render_frame(std::move(cbs));
 					}
 					// Transfer ownership of the command buffers in the elements' mSubmittedCommandBufferInstances to the respective window
 					for (auto& e : thiz->mElements)	{
@@ -279,8 +256,6 @@ namespace cgb
 						// Also, cleanup the elements:
 						e->mSubmittedCommandBufferReferences.clear();
 						e->mSubmittedCommandBufferInstances.clear();
-						// ...also the images to present:
-						e->mPresentImages.clear();
 					}
 				}
 				else

@@ -14,7 +14,7 @@ namespace cgb
 			// Perform two sanity checks, because we really need the member descriptions to know where to find the positions.
 			// 1st check:
 			if (std::get<vertex_buffer>(tpl)->meta_data().member_descriptions().size() == 0) {
-				throw std::runtime_error("cgb::vertex_buffers passed to bottom_level_acceleration_structure_t::create must have a member_description for their positions element in their meta data.");
+				throw cgb::runtime_error("cgb::vertex_buffers passed to bottom_level_acceleration_structure_t::create must have a member_description for their positions element in their meta data.");
 			}
 
 			// Store the data and assemble vk::GeometryNV info:
@@ -28,7 +28,7 @@ namespace cgb
 				});
 			// ... perform 2nd check:
 			if (posMember == std::end(result.mVertexBuffers.back()->meta_data().member_descriptions())) {
-				throw std::runtime_error("cgb::vertex_buffers passed to bottom_level_acceleration_structure_t::create has no member which represents positions.");
+				throw cgb::runtime_error("cgb::vertex_buffers passed to bottom_level_acceleration_structure_t::create has no member which represents positions.");
 			}
 			result.mIndexBuffers.push_back(std::move(std::get<index_buffer>(tpl)));
 
@@ -160,7 +160,7 @@ namespace cgb
 		return mScratchBuffer.value();
 	}
 	
-	void bottom_level_acceleration_structure_t::build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction)
+	std::optional<command_buffer> bottom_level_acceleration_structure_t::build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue()); // TODO: Transfer queue okay? Or graphics queue better?
 		
@@ -195,7 +195,7 @@ namespace cgb
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, write_memory_access{memory_access::acceleration_structure_write_access});
 		
 		// Finish him:
-		aSyncHandler.submit_and_sync();
+		return aSyncHandler.submit_and_sync();
 	}
 
 	void bottom_level_acceleration_structure_t::build(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer)

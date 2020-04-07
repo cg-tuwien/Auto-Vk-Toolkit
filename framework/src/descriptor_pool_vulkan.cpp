@@ -2,6 +2,22 @@
 
 namespace cgb
 {
+	void descriptor_alloc_request::add_size_requirements(vk::DescriptorPoolSize aToAdd)
+	{
+		auto it = std::lower_bound(std::begin(mAccumulatedSizes), std::end(mAccumulatedSizes), 
+			aToAdd,
+			[](const vk::DescriptorPoolSize& first, const vk::DescriptorPoolSize& second) -> bool {
+				using EnumType = std::underlying_type<vk::DescriptorType>::type;
+				return static_cast<EnumType>(first.type) < static_cast<EnumType>(second.type);
+			});
+		if (it != std::end(mAccumulatedSizes) && it->type == aToAdd.type) {
+			it->descriptorCount += aToAdd.descriptorCount;
+		}
+		else {
+			mAccumulatedSizes.insert(it, aToAdd);
+		}
+	}
+
 	descriptor_alloc_request descriptor_alloc_request::create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
 		descriptor_alloc_request result;
@@ -9,7 +25,7 @@ namespace cgb
 
 		for (const auto& layout : aLayouts) {
 			// Accumulate all the memory requirements of all the sets
-			for (auto& entry : layout.get().required_pool_sizes()) {
+			for (const auto& entry : layout.get().required_pool_sizes()) {
 				auto it = std::lower_bound(std::begin(result.mAccumulatedSizes), std::end(result.mAccumulatedSizes), 
 					entry,
 					[](const vk::DescriptorPoolSize& first, const vk::DescriptorPoolSize& second) -> bool {
@@ -27,9 +43,7 @@ namespace cgb
 
 		return result;
 	}
-
-
-
+	
 	std::shared_ptr<descriptor_pool> descriptor_pool::create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, int numSets)
 	{
 		descriptor_pool result;

@@ -1,6 +1,5 @@
 #pragma once
 #include "context_generic_glfw_types.hpp"
-#include "imgui_impl_glfw.h"
 
 namespace cgb
 {
@@ -168,12 +167,16 @@ namespace cgb
 		// Posts an event so that the waiting on the other thread is ended and the other thread continues
 		inline void signal_waiting_main_thread() const { glfwPostEmptyEvent(); }
 
+		// Activates a specific type of cursor
+		void activate_cursor(window_base* aWindow, cursor aCursorType);
+
 	protected:
 		static void glfw_error_callback(int error, const char* description);
 		static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 		static void glfw_cursor_pos_callback(GLFWwindow* window, double xpos, double ypos);
 		static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 		static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+		static void glfw_char_callback(GLFWwindow* window, unsigned int character);
 		static void glfw_window_focus_callback(GLFWwindow* window, int focused);
 		static void glfw_window_size_callback(GLFWwindow* window, int width, int height);
 
@@ -200,5 +203,12 @@ namespace cgb
 
 		// Which state the context is currently in
 		cgb::context_state mContextState;
+
+		GLFWcursor* mArrowCursor;
+		GLFWcursor* mIbeamCursor;
+		GLFWcursor* mCrosshairCursor;
+		GLFWcursor* mHandCursor;
+		GLFWcursor* mHorizResizeCursor;
+		GLFWcursor* mVertResizeCursor;
 	};
 }

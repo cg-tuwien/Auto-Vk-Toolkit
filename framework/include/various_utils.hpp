@@ -31,6 +31,15 @@ namespace cgb
 		return ret;
 	}
 
+	template<class D = void, class... Ts>
+	std::vector<ret_t<D, Ts...>> move_into_vector(Ts&&... args) {
+		std::vector<ret_t<D, Ts...>>  ret;
+		ret.reserve(sizeof...(args));
+		using expander = int[];
+		(void) expander{ ((void)ret.emplace_back(std::move(std::forward<Ts>(args))), 0)..., 0 };
+		return ret;
+	}
+
 	/** Makes a Vulkan-compatible version integer based on the three given numbers */
 	static constexpr uint32_t make_version(uint32_t major, uint32_t minor, uint32_t patch)
 	{
@@ -58,7 +67,7 @@ namespace cgb
 		std::vector<char> buffer;
 		std::ifstream is(path.c_str(), std::ifstream::binary);
 		if (!is) {
-			throw std::runtime_error(fmt::format("Couldn't load file '{}'", path));
+			throw cgb::runtime_error(fmt::format("Couldn't load file '{}'", path));
 		}
 
 		// get length of file:
@@ -74,7 +83,7 @@ namespace cgb
 		if (!is) {
 			is.close();
 			LOG_ERROR(fmt::format("cgb::load_binary_file could only read {} bytes instead of {}", is.gcount(), length));
-			throw std::runtime_error(fmt::format("Couldn't read file '{}' into buffer.", path));
+			throw cgb::runtime_error(fmt::format("Couldn't read file '{}' into buffer.", path));
 		}
 
 		is.close();

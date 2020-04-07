@@ -16,7 +16,9 @@ namespace cgb
 		std::tuple<const graphics_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		const auto& handle() const { return mPipeline.get(); }
-		const auto& renderpass_handle() const { return (*mRenderPass).handle(); }
+		const renderpass_t& get_renderpass() const { return mRenderPass; }
+		const auto& renderpass_handle() const { return mRenderPass->handle(); }
+		auto subpass_id() const { return mSubpassIndex; }
 
 		static owning_resource<graphics_pipeline_t> create(graphics_pipeline_config _Config, cgb::context_specific_function<void(graphics_pipeline_t&)> _AlterConfigBeforeCreation = {});
 

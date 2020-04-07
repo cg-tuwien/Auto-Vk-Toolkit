@@ -152,12 +152,32 @@ namespace cgb
 		sGlfwToKeyMapping[GLFW_KEY_RIGHT_ALT] = key_code::right_alt;
 		sGlfwToKeyMapping[GLFW_KEY_RIGHT_SUPER] = key_code::right_super;
 		sGlfwToKeyMapping[GLFW_KEY_MENU] = key_code::menu;
+
+		mArrowCursor		= glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+		mIbeamCursor		= glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+		mCrosshairCursor	= glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+		mHandCursor			= glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+		mHorizResizeCursor	= glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+		mVertResizeCursor	= glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
 	}
 
 	generic_glfw::~generic_glfw()
 	{
 		if (mInitialized)
 		{
+			glfwDestroyCursor(mVertResizeCursor);
+			glfwDestroyCursor(mHorizResizeCursor);
+			glfwDestroyCursor(mHandCursor);
+			glfwDestroyCursor(mCrosshairCursor);
+			glfwDestroyCursor(mIbeamCursor);
+			glfwDestroyCursor(mArrowCursor);
+			mArrowCursor		= nullptr;
+			mIbeamCursor		= nullptr;
+			mCrosshairCursor	= nullptr;
+			mHandCursor			= nullptr;
+			mHorizResizeCursor	= nullptr;
+			mVertResizeCursor	= nullptr;
+			
 			sWindowInFocus = nullptr;
 			mWindows.clear();
 			glfwTerminate();
@@ -199,10 +219,8 @@ namespace cgb
 
 					int width, height;
 					glfwGetWindowSize(handle, &width, &height);
-					wnd->mResultion = glm::uvec2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+					wnd->mResoltion = glm::uvec2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 					glfwSetWindowSizeCallback(handle, glfw_window_size_callback);
-
-					wnd->mIsCursorDisabled = glfwGetInputMode(handle, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
 
 					return true; // done
 				}
@@ -239,7 +257,7 @@ namespace cgb
 		}
 
 		if (wnd.is_in_use()) {
-			throw new std::logic_error("This window is in use and can not be closed at the moment.");
+			throw new cgb::logic_error("This window is in use and can not be closed at the moment.");
 		}
 
 		context().dispatch_to_main_thread([&wnd]() {
@@ -281,6 +299,7 @@ namespace cgb
 		//glfwSetCursorPosCallback(_Window.handle()->mHandle, glfw_cursor_pos_callback);
 		glfwSetScrollCallback(_Window.handle()->mHandle, glfw_scroll_callback);
 		glfwSetKeyCallback(_Window.handle()->mHandle, glfw_key_callback);
+		glfwSetCharCallback(_Window.handle()->mHandle, glfw_char_callback);
 	}
 
 	void generic_glfw::stop_receiving_input_from_window(const window& _Window)
@@ -308,7 +327,7 @@ namespace cgb
 				});
 
 			if (position == mWindows.end()) {
-				throw std::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(pMainWindowToBe)));
+				throw cgb::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(pMainWindowToBe)));
 			}
 
 			std::rotate(std::begin(mWindows), position, position + 1); // Move ONE element to the beginning, not the rest of the vector => hence, not std::end(mWindows)
@@ -366,9 +385,9 @@ namespace cgb
 
 	void generic_glfw::glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	{
-		//assert(sTargetInputBuffer);
-		//std::scoped_lock<std::mutex> guard(sInputMutex);
-		//sTargetInputBuffer->mScrollPosition += glm::dvec2(xoffset, yoffset);
+		std::scoped_lock<std::mutex> guard(sInputMutex);
+		auto& inputBackBuffer = composition_interface::current()->background_input_buffer();
+		inputBackBuffer.mScrollDelta += glm::dvec2(xoffset, yoffset);
 	}
 
 	void generic_glfw::glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -396,6 +415,13 @@ namespace cgb
 		}
 	}
 
+	void generic_glfw::glfw_char_callback(GLFWwindow* window, unsigned int character)
+	{
+		std::scoped_lock<std::mutex> guard(sInputMutex);
+		auto& inputBackBuffer = composition_interface::current()->background_input_buffer();
+		inputBackBuffer.mCharacters.push_back(character);
+	}
+
 	void generic_glfw::glfw_window_focus_callback(GLFWwindow* window, int focused)
 	{
 		if (focused) {
@@ -407,7 +433,7 @@ namespace cgb
 	{
 		auto* wnd = context().window_for_handle(window);
 		assert(wnd);
-		wnd->mResultion = glm::uvec2(width, height);
+		wnd->mResoltion = glm::uvec2(width, height);
 	}
 
 	GLFWwindow* generic_glfw::get_window_for_shared_context()
@@ -480,5 +506,55 @@ namespace cgb
 			auto numAfter = mEventHandlers.size();
 			numHandled = numAfter - numBefore;
 		} while (numHandled > 0);
+	}
+
+	void generic_glfw::activate_cursor(window_base* aWindow, cursor aCursorType)
+	{
+		assert(are_we_on_the_main_thread());
+		switch (aCursorType) {
+		case cursor::cursor_disabled_raw_input:
+			// RAAAAW!
+			if (glfwRawMouseMotionSupported()) {
+				glfwSetInputMode(aWindow->handle()->mHandle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+			}
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			break;
+		case cursor::cursor_hidden:
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			break;
+		case cursor::arrow_cursor:
+			glfwSetCursor(aWindow->handle()->mHandle, mArrowCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::ibeam_cursor:
+			glfwSetCursor(aWindow->handle()->mHandle, mIbeamCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::crosshair_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mCrosshairCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::hand_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mHandCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::horizontal_resize_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mHorizResizeCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::vertical_resize_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mVertResizeCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::ne_or_sw_resize_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mArrowCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		case cursor::nw_or_se_resize_cursor: 
+			glfwSetCursor(aWindow->handle()->mHandle, mArrowCursor);
+			glfwSetInputMode(aWindow->handle()->mHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		default: ;
+		}
 	}
 }

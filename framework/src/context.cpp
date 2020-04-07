@@ -18,8 +18,6 @@ namespace cgb
 
 		std::vector<const char*> gRequiredDeviceExtensions;
 
-		bool gDisableImGui = false;
-
 		device_queue_selection_strategy gQueueSelectionPreference = device_queue_selection_strategy::prefer_separate_queues;
 
 		bool gPreferSameQueueForGraphicsAndPresent = true;

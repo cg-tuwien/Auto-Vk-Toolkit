@@ -21,12 +21,6 @@ namespace cgb
 		/** Fill this vector with required device extensions, if required */
 		extern std::vector<const char*> gRequiredDeviceExtensions;
 
-		/** Set this flag to true to opt out of using IMGUI, 
-		 *	i.e. if true => not initialize it, not display it, nothing. 
-		 *	The default for this flag is false, i.e. IMGUI is enabled.
-		 */
-		extern bool gDisableImGui;
-
 		/** Configure how the queues should be selected.
 		 *	Shall there be one queue for everything or rather
 		 *	separate queues for everything? 

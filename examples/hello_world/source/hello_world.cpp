@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class draw_a_triangle_app : public cgb::cg_element
 {
@@ -6,29 +7,43 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void initialize() override
 	{
+		using namespace cgb::att;
+		
 		// Create a graphics pipeline:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_shader("shaders/a_triangle.vert"),
 			cgb::fragment_shader("shaders/a_triangle.frag"),
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::viewport_depth_scissors_config::from_window(),
-			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer())
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			commandBuffer.handle().draw(3u, 1u, 0u, 0u);
 			commandBuffer.end_render_pass();
 		});
-	}
 
-	void render() override
-	{
-		// Draw using the command buffer which is associated to the current frame in flight-index:
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if(nullptr != imguiManager) {
+			imguiManager->add_callback([](){
+				
+		        ImGui::Begin("Hello, world!");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+				static std::vector<float> values;
+				values.push_back(1000.0f / ImGui::GetIO().Framerate);
+		        if (values.size() > 90) {
+			        values.erase(values.begin());
+		        }
+	            ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+		        ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -53,6 +68,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 	}
 
+	void render() override
+	{
+		// Draw using the command buffer which is associated to the current frame in flight-index:
+		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+	}
+
 private: // v== Member variables ==v
 
 	cgb::graphics_pipeline mPipeline;
@@ -69,20 +91,20 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base main window");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::immediate);
 		mainWnd->open(); 
 
 		// Create an instance of our main cgb::element which contains all the functionality:
-		auto element = draw_a_triangle_app();
+		auto app = draw_a_triangle_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
-		// Setup an application by providing (an) element(s) which will be invoked:
-		auto helloWorld = cgb::setup(element);
+		// Setup an application by providing elements which will be invoked:
+		auto helloWorld = cgb::setup(app, ui);
 		helloWorld.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

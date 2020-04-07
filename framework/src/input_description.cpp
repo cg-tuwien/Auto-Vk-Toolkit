@@ -19,7 +19,7 @@ namespace cgb
 					bfr = instance_buffer_meta::create_from_element_size(bindingLoc.mGeneralData.mStride);
 					break;
 				default:
-					throw std::runtime_error("Invalid input_binding_location_data::kind value");
+					throw cgb::runtime_error("Invalid input_binding_location_data::kind value");
 				}
 			}
 
@@ -29,7 +29,7 @@ namespace cgb
 				|| (input_binding_general_data::kind::vertex == bindingLoc.mGeneralData.mKind && std::holds_alternative<instance_buffer_meta>(bfr))
 				|| (input_binding_general_data::kind::instance == bindingLoc.mGeneralData.mKind && std::holds_alternative<vertex_buffer_meta>(bfr))
 				) {
-				throw std::logic_error("All locations of the same binding must come from the same buffer type (vertex buffer or instance buffer).");
+				throw cgb::logic_error("All locations of the same binding must come from the same buffer type (vertex buffer or instance buffer).");
 			}
 #endif
 

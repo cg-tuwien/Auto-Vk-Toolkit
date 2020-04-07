@@ -64,16 +64,6 @@ namespace cgb
 			}
 		}
 
-		void execute_render_guis(const std::vector<cg_element*>& elements)
-		{
-			for (auto& e : elements)
-			{
-				if (e->is_render_gui_enabled()) {
-					e->render_gui();
-				}
-			}
-		}
-
 		void execute_handle_disablings(const std::vector<cg_element*>& elements)
 		{
 			for (auto& e : elements)

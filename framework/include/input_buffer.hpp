@@ -10,7 +10,7 @@ namespace cgb
 	class input_buffer
 	{
 #if defined(USE_OPENGL_CONTEXT)
-		friend class generic_glfw;
+		friend class generic_glfw;	
 		friend class opengl;
 #elif defined(USE_VULKAN_CONTEXT)
 		friend class generic_glfw;
@@ -85,8 +85,8 @@ namespace cgb
 		 */
 		const glm::dvec2& scroll_delta() const;
 
-		/** Sets whether or not the cursor should be disabled */
-		void set_cursor_disabled(bool pDisabled);
+		/** Sets the cursor mode */
+		void set_cursor_mode(cursor aCursorModeToBeSet);
 
 		/** Returns if the cursor is hidden or not */
 		bool is_cursor_disabled() const;
@@ -101,6 +101,10 @@ namespace cgb
 		 *	the previous frame. This means that key-down states are preserved.
 		 */
 		static void prepare_for_next_frame(input_buffer& pFrontBufferToBe, input_buffer& pBackBufferToBe, window* pWindow = nullptr);
+
+		/** Vector of characters that have been entered during the last frame
+		 */
+		const std::vector<unsigned int>& entered_characters() const;
 
 	private:
 		/** Keyboard button states */
@@ -124,13 +128,16 @@ namespace cgb
 		/** True if the cursor is disabled, false otherwise */
 		bool mCursorDisabled;
 
-		/** Has value if the cursor's position should be cetered */
+		/** Has value if the cursor's position should be centered */
 		std::optional<bool> mCenterCursorPosition;
 
 		/** Has value if the cursor's position should be changed */
 		std::optional<glm::dvec2> mSetCursorPosition;
 
 		/** Has value if the cursor's mode should be changed */
-		std::optional<bool> mSetCursorDisabled;
+		std::optional<cursor> mSetCursorMode;
+
+		/** Contains characters that have been entered during the last frame */
+		std::vector<unsigned int> mCharacters;
 	};
 }

@@ -27,7 +27,7 @@ namespace cgb
 		}
 
 		if (!pShaderType.has_value()) {
-			throw std::runtime_error("No shader type set and could not infer it from the file ending.");
+			throw cgb::runtime_error("No shader type set and could not infer it from the file ending.");
 		}
 
 		return shader_info

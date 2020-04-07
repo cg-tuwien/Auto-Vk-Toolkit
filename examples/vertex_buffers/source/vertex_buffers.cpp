@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class vertex_buffers_app : public cgb::cg_element
 {
@@ -34,6 +35,10 @@ class vertex_buffers_app : public cgb::cg_element
 	};
 
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
+	vertex_buffers_app()
+		: mAdditionalTranslationY{ 0.0f }
+		, mRotationSpeed{ 1.0f }
+	{ }
 
 	void initialize() override
 	{
@@ -57,6 +62,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
 		);
 
+		using namespace cgb::att;
+		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
@@ -65,16 +72,29 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::create_color(cgb::image_format::from_window_color_buffer())// Create a color output attachment
+			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass_for_window(cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			cgb::context().draw_indexed(mPipeline, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
 			commandBuffer.end_render_pass();
 		});
+
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
+				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+		        ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -96,17 +116,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void render() override
 	{
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
-		auto rotAngle = glm::radians(90.0f) * cgb::time().time_since_start();
+		auto rotAngle = glm::radians(90.0f) * cgb::time().time_since_start() * mRotationSpeed;
 		auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
 		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
 		auto invTranslZ = glm::inverse(translateZ);
+		auto translateY = glm::translate(glm::vec3{ 0.0f, -mAdditionalTranslationY, 0.0f });
 
 		// Store modified vertices in vertexDataCurrentFrame:
 		std::vector<Vertex> vertexDataCurrentFrame;
 		for (const Vertex& vtx : mVertexData) {
 			glm::vec4 origPos{ vtx.pos, 1.0f };
 			vertexDataCurrentFrame.push_back({
-				glm::vec3(invTranslZ * rotMatrix * translateZ * origPos),
+				glm::vec3(translateY * invTranslZ * rotMatrix * translateZ * origPos),
 				vtx.color
 			});
 		}
@@ -144,6 +165,8 @@ private: // v== Member variables ==v
 	cgb::index_buffer mIndexBuffer;
 	cgb::graphics_pipeline mPipeline;
 	std::vector<cgb::command_buffer> mCmdBfrs;
+	float mAdditionalTranslationY;
+	float mRotationSpeed;
 
 }; // vertex_buffers_app
 
@@ -156,18 +179,18 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("Vertex Buffers main window");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::immediate);
 		mainWnd->open(); 
 
-		// Create an instance of vertex_buffers_app which, in this case,
-		// contains the entire functionality of our application. 
-		auto element = vertex_buffers_app();
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = vertex_buffers_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
-		auto vertexBuffers = cgb::setup(element);
+		// Tie everything together and let's roll:
+		auto vertexBuffers = cgb::setup(app, ui);
 		vertexBuffers.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }

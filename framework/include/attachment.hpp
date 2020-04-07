@@ -2,20 +2,145 @@
 
 namespace cgb
 {
-	namespace cfg
+	struct attachment;
+	
+	namespace att
 	{
-		enum struct attachment_load_operation
+		enum struct on_load
 		{
 			dont_care,
 			clear,
 			load
 		};
 
-		enum struct attachment_store_operation
+		enum struct on_store
 		{
 			dont_care,
-			store
+			store,
+			store_in_presentable_format
 		};
+
+		struct sample_count
+		{
+			sample_count(int numSamples) : mNumSamples{ numSamples } {}
+			sample_count(sample_count&&) noexcept = default;
+			sample_count(const sample_count&) noexcept = default;
+			sample_count& operator=(sample_count&&) noexcept = default;
+			sample_count& operator=(const sample_count&) noexcept = default;
+			
+			int mNumSamples;
+		};
+
+		enum struct usage_type
+		{
+			unused,
+			input,
+			color,
+			depth_stencil,
+			preserve
+		};
+
+		class usage_desc
+		{
+			friend struct ::cgb::attachment;
+			friend class ::cgb::renderpass_t;
+		public:
+			usage_desc(usage_desc&&) noexcept = default;
+			usage_desc(const usage_desc&) = default;
+			//usage_desc(const usage_desc* ud) noexcept : mDescriptions{ud->mDescriptions} {};
+			usage_desc& operator=(usage_desc&&) noexcept = default;
+			usage_desc& operator=(const usage_desc&) = default;
+			//usage_desc& operator=(const usage_desc* ud) noexcept { mDescriptions = ud->mDescriptions; return *this; };
+			virtual ~usage_desc() {}
+			
+			usage_desc& unused(int location = -1)			{ mDescriptions.emplace_back(usage_type::unused,		false, location); return *this; }
+			usage_desc& input(int location)					{ mDescriptions.emplace_back(usage_type::input,			false, location); return *this; }
+			usage_desc& color(int location)					{ mDescriptions.emplace_back(usage_type::color,			false, location); return *this; }
+			usage_desc& depth_stencil(int location = 0)		{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); return *this; }
+			usage_desc& preserve(int location)				{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
+
+			usage_desc* operator->()						{ return this; }
+			usage_desc& operator+(usage_desc& resolveAndMore);
+
+		protected:
+			bool contains_unused() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::unused;			}) != mDescriptions.end(); }
+			bool contains_input() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::input;			}) != mDescriptions.end(); }
+			bool contains_color() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::color;			}) != mDescriptions.end(); }
+			bool contains_resolve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<bool>(tpl) == true;								}) != mDescriptions.end(); }
+			bool contains_depth_stencil() const	{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::depth_stencil;	}) != mDescriptions.end(); }
+			bool contains_preserve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::preserve;		}) != mDescriptions.end(); }
+
+			auto num_subpasses() const { return mDescriptions.size(); }
+			auto get_subpass_usage(size_t subpassId) const { return std::get<usage_type>(mDescriptions[subpassId]); }
+			auto is_to_be_resolved_after_subpass(size_t subpassId) const { return std::get<bool>(mDescriptions[subpassId]); }
+			auto has_layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]) != -1; }
+			auto layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]); }
+
+		protected:
+			usage_desc() = default;
+			std::vector<std::tuple<usage_type, bool, int>> mDescriptions;
+		};
+
+		class unused : public usage_desc
+		{
+		public:
+			unused(int location = -1)						{ mDescriptions.emplace_back(usage_type::unused,		false, location); }
+			unused(unused&&) noexcept = default;
+			unused(const unused&) = default;
+			unused& operator=(unused&&) noexcept = default;
+			unused& operator=(const unused&) = default;
+		};
+		
+		class input : public usage_desc
+		{
+		public:
+			input(int location)								{ mDescriptions.emplace_back(usage_type::input,			false, location); }
+			input(input&&) noexcept = default;
+			input(const input&) = default;
+			input& operator=(input&&) noexcept = default;
+			input& operator=(const input&) = default;
+		};
+		
+		class color : public usage_desc
+		{
+		public:
+			color(int location)								{ mDescriptions.emplace_back(usage_type::color,			false, location); }
+			color(color&&) noexcept = default;
+			color(const color&) = default;
+			color& operator=(color&&) noexcept = default;
+			color& operator=(const color&) = default;
+		};
+		
+		class resolve : public usage_desc
+		{
+		public:
+			resolve(bool doResolve = true)					{ mDescriptions.emplace_back(usage_type::unused,		doResolve, -1); }
+			resolve(resolve&&) noexcept = default;										// ^ usage_type not applicable here
+			resolve(const resolve&) = default;
+			resolve& operator=(resolve&&) noexcept = default;
+			resolve& operator=(const resolve&) = default;
+		};
+		
+		class depth_stencil : public usage_desc
+		{
+		public:
+			depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
+			depth_stencil(depth_stencil&&) noexcept = default;
+			depth_stencil(const depth_stencil&) = default;
+			depth_stencil& operator=(depth_stencil&&) noexcept = default;
+			depth_stencil& operator=(const depth_stencil&) = default;
+		};
+		
+		class preserve : public usage_desc
+		{
+		public:
+			preserve(int location = -1)						{ mDescriptions.emplace_back(usage_type::preserve,		false, location); }
+			preserve(preserve&&) noexcept = default;
+			preserve(const preserve&) = default;
+			preserve& operator=(preserve&&) noexcept = default;
+			preserve& operator=(const preserve&) = default;
+		};
+		
 	}
 
 	/** Describes an attachment to a framebuffer or a renderpass.
@@ -24,102 +149,49 @@ namespace cgb
 	 */
 	struct attachment
 	{
-		/** Create a new color attachment, with the following default settings:
-		 *	 - is presentable
-		 *	 - clear on load
-		 *	 - store on store
-		 *	@param	pFormat			The color format of the new attachment
-		 *	@param	pLocation		(Optional) At which layout location shall this color attachment appear.
-		 */
-		static attachment create_color(image_format pFormat, image_usage pImageUsage = image_usage::color_attachment, std::optional<uint32_t> pLocation = {});
+		static attachment define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 
-		/** Create a new depth/stencil attachment, with the following default settings:
-		 *	 - clear on load
-		 *	 - store on store
-		 *	@param	pFormat		(Optional) The depth format of the new attachment
-		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
-		 */
-		static attachment create_depth(std::optional<image_format> pFormat = {}, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
-
-		/** Create a new depth/stencil attachment, with the following default settings:
-		 *	 - clear on load
-		 *	 - store on store
-		 *	@param	pFormat		(Optional) The depth/stencil format of the new attachment
-		 *	@param	pLocation	(Optional) At which layout location shall this depth/stencil attachment appear.
-		 */
-		static attachment create_depth_stencil(std::optional<image_format> pFormat = {}, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
-
-		/** Create a new color attachment for use as shader input, with the following default settings:
-		 *	 - load on load
-		 *	 - store on store
-		 *	@param	pFormat		The color format of the new attachment
-		 *	@param	pLocation	(Optional) At which layout location shall this color attachment appear.
-		 */
-		static attachment create_shader_input(image_format pFormat, image_usage pImageUsage = image_usage::read_only_sampled_image, std::optional<uint32_t> pLocation = {});
-
-		/** Create a new multisampled color attachment, with the following default settings:
-		 *	 - is presentable
-		 *	 - clear on load
-		 *	 - store on store
-		 *	@param	pFormat					The color format of the new attachment
-		 *	@param	pSampleCount			The number of samples per fragment. A value of 1 means that multisampling is disabled.
-		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
-		 *	@param	pLocation				(Optional) At which layout location shall this color attachment appear.
-		 */
-		static attachment create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::color_attachment, std::optional<uint32_t> pLocation = {});
-
-		/** Create a new multisampled depth/stencil attachment
-		 *	 - clear on load
-		 *	 - store on store
-		 *	@param	pFormat					The depth/stencil format of the new attachment
-		 *	@param	pSampleCount			The number of samples per fragment. A value of 1 means that multisampling is disabled.
-		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
-		 *	@param	pLocation				(Optional) At which layout location shall this depth/stencil attachment appear.
-		 */
-		static attachment create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
-
-		/** Create a new multisampled color attachment for use as shader input
-		 *	 - load on load
-		 *	 - store on store
-		 *	@param	pFormat					The color format of the new attachment
-		 *	@param	pSampleCount			The number of samples per fragment. A value of 1 means that multisampling is disabled.
-		 *	@param	pResolveMultisamples	If set to true, a multisample resolve pass will be set up.
-		 *	@param	pLocation				(Optional) At which layout location shall this color attachment appear.
-		 */
-		static attachment create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage = image_usage::depth_stencil_attachment, std::optional<uint32_t> pLocation = {});
-
-		static attachment create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation = {});
-
+		attachment& set_load_operation(att::on_load aLoadOp);
+		attachment& set_store_operation(att::on_store aStoreOp);
+		attachment& load_contents();
+		attachment& clear_contents();
+		attachment& store_contents();
+		attachment& set_stencil_load_operation(att::on_load aLoadOp);
+		attachment& set_stencil_store_operation(att::on_store aStoreOp);
+		attachment& load_stencil_contents();
+		attachment& clear_stencil_contents();
+		attachment& store_stencil_contents();
+		
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
-		/** True if a specific location has been configured */
-		bool has_specific_location() const { return mLocation.has_value(); }
-		/** The location or 0 if no specific location has been configured */
-		uint32_t location() const { return mLocation.value_or(0u); }
 		/** True if this attachment shall be, finally, presented on screen. */
-		auto is_to_be_presented() const { return mIsToBePresented; }
-		/** True if this attachment represents not a depth/stencil attachment, but instead, a color attachment */
-		auto is_color_attachment() const { return !mIsDepthAttachment; }
-		/** True if this attachment represents a depth/stencil attachment. */
-		auto is_depth_attachment() const { return mIsDepthAttachment; }
+		auto is_presentable() const { return att::on_store::store_in_presentable_format == mStoreOperation; }
+		/** True if this attachment is used as depth/stencil attachment in the subpasses. */
+		auto is_depth_stencil_attachment() const { return mSubpassUsages.contains_depth_stencil(); }
+		/** True if this attachment is used as color attachment in the subpasses. */
+		auto is_color_attachment() const { return mSubpassUsages.contains_color(); }
+		/** True if this attachment is only used as input attachment in the subpasses, but not as color or depth attachment */
+		auto is_pure_input_attachment() const { return mSubpassUsages.contains_input() && !is_depth_stencil_attachment() && !is_color_attachment(); }
 		/** True fi the sample count is greater than 1 */
 		bool is_multisampled() const { return mSampleCount > 1; }
 		/** The sample count for this attachment. */
 		auto sample_count() const { return mSampleCount; }
 		/** True if a multisample resolve pass shall be set up. */
-		auto is_to_be_resolved() const { return mDoResolve; }
-		/** True if this attachment is intended to be used as input attachment to a shader. */
-		auto is_shader_input_attachment() const { return mIsShaderInputAttachment; }
+		auto is_to_be_resolved() const { return mSubpassUsages.contains_resolve(); }
 
-		std::optional<uint32_t> mLocation;
+		/** Returns the stencil load operation */
+		auto get_stencil_load_op() const { return mStencilLoadOperation.value_or(mLoadOperation); }
+		/** Returns the stencil store operation */
+		auto get_stencil_store_op() const { return mStencilStoreOperation.value_or(mStoreOperation); }
+
 		image_format mFormat;
-		image_usage mImageUsage;
-		cfg::attachment_load_operation mLoadOperation;
-		cfg::attachment_store_operation mStoreOperation;
 		int mSampleCount;
-		bool mIsToBePresented;
-		bool mIsDepthAttachment;
-		bool mDoResolve;
-		bool mIsShaderInputAttachment;
+		att::on_load mLoadOperation;
+		att::on_store mStoreOperation;
+		std::optional<att::on_load> mStencilLoadOperation;
+		std::optional<att::on_store> mStencilStoreOperation;
+		att::usage_desc mSubpassUsages;
 	};
 }

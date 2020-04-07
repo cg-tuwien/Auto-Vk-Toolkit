@@ -3,7 +3,7 @@
 namespace cgb
 {
 	sync::sync(sync&& aOther) noexcept
-		: mNoSyncRequired{ std::move(aOther.mNoSyncRequired) }
+		: mSpecialSync{ std::move(aOther.mSpecialSync) }
 		, mSemaphoreLifetimeHandler{ std::move(aOther.mSemaphoreLifetimeHandler) }
 		, mWaitBeforeSemaphores{ std::move(aOther.mWaitBeforeSemaphores) }
 		, mCommandBufferRefOrLifetimeHandler{ std::move(aOther.mCommandBufferRefOrLifetimeHandler) }
@@ -13,7 +13,7 @@ namespace cgb
 		, mQueueToUse{ std::move(aOther.mQueueToUse) }
 		, mQueueRecommendation{ std::move(aOther.mQueueRecommendation) }
 	{
-		aOther.mNoSyncRequired = true;
+		aOther.mSpecialSync = sync_type::not_required;
 		aOther.mSemaphoreLifetimeHandler = {};
 		aOther.mWaitBeforeSemaphores.clear();
 		aOther.mCommandBufferRefOrLifetimeHandler = {};
@@ -26,7 +26,7 @@ namespace cgb
 
 	sync& sync::operator=(sync&& aOther) noexcept
 	{
-		mNoSyncRequired = std::move(aOther.mNoSyncRequired);
+		mSpecialSync = std::move(aOther.mSpecialSync);
 		mSemaphoreLifetimeHandler = std::move(aOther.mSemaphoreLifetimeHandler);
 		mWaitBeforeSemaphores = std::move(aOther.mWaitBeforeSemaphores);
 		mCommandBufferRefOrLifetimeHandler = std::move(aOther.mCommandBufferRefOrLifetimeHandler);
@@ -36,7 +36,7 @@ namespace cgb
 		mQueueToUse = std::move(aOther.mQueueToUse);
 		mQueueRecommendation = std::move(aOther.mQueueRecommendation);
 		
-		aOther.mNoSyncRequired = true;
+		aOther.mSpecialSync = sync_type::not_required;
 		aOther.mSemaphoreLifetimeHandler = {};
 		aOther.mWaitBeforeSemaphores.clear();
 		aOther.mCommandBufferRefOrLifetimeHandler = {};
@@ -52,7 +52,12 @@ namespace cgb
 	sync::~sync()
 	{
 		if (mCommandBuffer.has_value()) {
-			LOG_ERROR("Command buffer has not been submitted but cgb::sync instance is destructed. This must be a bug.");
+			if (get_sync_type() == sync_type::by_return) {
+				LOG_ERROR("Sync is requested 'by_return', but command buffer has not been fetched.");
+			}
+			else {
+				LOG_ERROR("Command buffer has not been submitted but cgb::sync instance is destructed. This must be a bug.");
+			}
 		}
 #ifdef _DEBUG
 		if (mEstablishBarrierBeforeOperationCallback) {
@@ -67,7 +72,7 @@ namespace cgb
 	sync sync::not_required()
 	{
 		sync result;
-		result.mNoSyncRequired = true; // User explicitely stated that there's no sync required.
+		result.mSpecialSync = sync_type::not_required; // User explicitely stated that there's no sync required.
 		return result;
 	}
 	
@@ -86,7 +91,7 @@ namespace cgb
 			std::move(aWaitBeforeOperation)
 		);
 	}
-		
+
 	sync sync::with_barriers_on_current_frame(
 			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
 			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
@@ -173,7 +178,7 @@ namespace cgb
 		if (!std::holds_alternative<std::monostate>(mCommandBufferRefOrLifetimeHandler)) {
 			return sync_type::via_barrier;
 		}
-		return mNoSyncRequired ? sync_type::not_required : sync_type::via_wait_idle;
+		return mSpecialSync.has_value() ? mSpecialSync.value() : sync_type::via_wait_idle;
 	}
 	
 	std::reference_wrapper<device_queue> sync::queue_to_use() const
@@ -243,7 +248,7 @@ namespace cgb
 		mEstablishBarrierAfterOperationCallback = {};
 	}
 
-	void sync::submit_and_sync()
+	std::optional<command_buffer> sync::submit_and_sync()
 	{
 		device_queue& queue = queue_to_use();
 		auto syncType = get_sync_type();
@@ -285,15 +290,27 @@ namespace cgb
 			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
 			queue_to_use().get().handle().waitIdle();
 			mCommandBuffer.reset();							// Command buffer is fully handled after waitIdle() and can be destroyed.
-			mNoSyncRequired = true; // No further sync required
 			break;
 		case sync_type::not_required:
 			assert(false);
-			throw std::runtime_error("You were wrong with your assumption that there was no sync required! => Provide a concrete sync strategy!");
+			throw cgb::runtime_error("You were wrong with your assumption that there was no sync required! => Provide a concrete sync strategy!");
+		case sync_type::by_return:
+		{
+			if (!mCommandBuffer.has_value()) {
+				throw cgb::runtime_error("Something went wrong. There is no command buffer.");
+			}
+			mCommandBuffer.value()->end_recording();		// What started in get_or_create_command_buffer() ends here.
+			auto tmp = std::move(mCommandBuffer.value());
+			mCommandBuffer.reset();
+			return std::move(tmp);
+		}
 		default:
 			assert(false);
-			throw std::logic_error("unknown syncType");
+			throw cgb::logic_error("unknown syncType");
 		}
+
+		assert(!mCommandBuffer.has_value());
+		return {};
 	}
 
 }

@@ -45,6 +45,8 @@
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
     <ClCompile Include="..\..\framework\include\sync_vulkan.cpp" />
+    <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
+    <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp" />
     <ClCompile Include="..\..\framework\src\attachment.cpp" />
     <ClCompile Include="..\..\framework\src\binding_data_vulkan.cpp">
@@ -313,6 +315,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\camera.hpp" />
+    <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
     <ClInclude Include="..\..\framework\include\cg_base.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
@@ -365,7 +368,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\cursor.hpp" />
     <ClInclude Include="..\..\framework\include\descriptor_cache_interface.hpp" />
+    <ClInclude Include="..\..\framework\include\imgui_manager.hpp" />
+    <ClInclude Include="..\..\framework\include\renderpass_sync.hpp" />
     <ClInclude Include="..\..\framework\include\standard_descriptor_cache_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\descriptor_pool_vulkan.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>

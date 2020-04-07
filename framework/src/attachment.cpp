@@ -2,131 +2,103 @@
 
 namespace cgb
 {
-	attachment attachment::create_color(image_format pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
+	namespace att
 	{
-#if defined(_DEBUG)
-		if (is_depth_format(pFormat)) {
-			LOG_WARNING("The specified image_format is a depth format, but is used for a color attachment.");
+		usage_desc& usage_desc::operator+(usage_desc& resolveAndMore)
+		{
+			assert(resolveAndMore.mDescriptions.size() >= 1);
+			auto& mustBeResolve = resolveAndMore.mDescriptions.front();
+			if (dynamic_cast<resolve*>(&resolveAndMore) != nullptr || std::get<bool>(mustBeResolve) != true) {
+				throw cgb::runtime_error("A 'resolve' element must follow after a '+'");
+			}
+			auto& mustBeColor = mDescriptions.back();
+			if (std::get<usage_type>(mustBeColor) != usage_type::color) {
+				throw cgb::runtime_error("A 'resolve' operation can only be applied to 'color' attachments.");
+			}
+			std::get<bool>(mustBeColor) = std::get<bool>(mustBeResolve);
+
+			// Add the rest:
+			mDescriptions.insert(mDescriptions.end(), resolveAndMore.mDescriptions.begin() + 1, resolveAndMore.mDescriptions.end());
+			return *this;
 		}
-#endif
-		return attachment{
-			pLocation,
-			pFormat,
-			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
-			1,				// num samples
-			true,		// => present enabled
-			false,		// => not depth
-			false,			// => no need to resolve
-			false	// => not a shader input attachment
-		};
+		
 	}
-
-	attachment attachment::create_depth(std::optional<image_format> pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
-	{
-		if (!pFormat.has_value()) {
-			pFormat = image_format::default_depth_format();
-		}
-
-#if defined(_DEBUG)
-		if (!is_depth_format(pFormat.value())) {
-			LOG_WARNING("The specified image_format is probably not a depth format, but is used for a depth attachment.");
-		}
-#endif
-		return attachment{
-			pLocation,
-			pFormat.value(),
-			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
-			1,				// num samples
-			false,		// => present disabled
-			true,		// => is depth
-			false,			// => no need to resolve
-			false	// => not a shader input attachment
-		};
-	}
-
-	attachment attachment::create_depth_stencil(std::optional<image_format> pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
-	{
-		if (!pFormat.has_value()) {
-			pFormat = image_format::default_depth_stencil_format();
-		}
-		return create_depth(std::move(pFormat), std::move(pImageUsage), std::move(pLocation));
-	}
-
-	attachment attachment::create_shader_input(image_format pFormat, image_usage pImageUsage, std::optional<uint32_t> pLocation)
+	
+	attachment attachment::define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		return attachment{
-			pLocation,
-			pFormat,
-			pImageUsage,
-			cfg::attachment_load_operation::load,
-			cfg::attachment_store_operation::store,
-			1,				// num samples
-			false,		// => present disabled
-			false,		// => not depth
-			false,			// => no need to resolve
-			true	// => is a shader input attachment
+			std::get<image_format>(aFormatAndSamples),
+			std::get<att::sample_count>(aFormatAndSamples).mNumSamples,
+			aLoadOp, aStoreOp,
+			{},      {},
+			std::move(aUsageInSubpasses)
 		};
 	}
-
-	attachment attachment::create_color_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
+	
+	attachment attachment::define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
-#if defined(_DEBUG)
-		if (!is_depth_format(pFormat)) {
-			LOG_WARNING("The specified image_format is a depth format, but is used for a color attachment.");
-		}
-#endif
-		return attachment{
-			pLocation,
-			pFormat,
-			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
-			pSampleCount,				// num samples
-			true,		// => present enabled
-			false,		// => not depth
-			pResolveMultisamples,		// do it or don't?
-			false	// => not a shader input attachment
-		};
+		return define({aFormat, att::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+	}
+	
+	attachment attachment::define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
+	{
+		auto& imageInfo = aImageView.get_image().config();
+		auto format = image_format{ imageInfo.format };
+		std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
+		return define({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 
-	attachment attachment::create_depth_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
+	attachment& attachment::set_load_operation(att::on_load aLoadOp)
 	{
-#if defined(_DEBUG)
-		if (!is_depth_format(pFormat)) {
-			LOG_WARNING("The specified image_format is probably not a depth format, but is used for a depth attachment.");
-		}
-#endif
-		return attachment{
-			pLocation,
-			pFormat,
-			pImageUsage,
-			cfg::attachment_load_operation::clear,
-			cfg::attachment_store_operation::store,
-			pSampleCount,				// num samples
-			false,		// => present disabled
-			true,		// => is depth
-			pResolveMultisamples,		// do it or don't?
-			false	// => not a shader input attachment
-		};
+		mLoadOperation = aLoadOp;
+		return *this;
+	}
+	
+	attachment& attachment::set_store_operation(att::on_store aStoreOp)
+	{
+		mStoreOperation = aStoreOp;
+		return *this;
 	}
 
-	attachment attachment::create_shader_input_multisampled(image_format pFormat, int pSampleCount, bool pResolveMultisamples, image_usage pImageUsage, std::optional<uint32_t> pLocation)
+	attachment& attachment::load_contents()
 	{
-		return attachment{
-			pLocation,
-			pFormat,
-			pImageUsage,
-			cfg::attachment_load_operation::load,
-			cfg::attachment_store_operation::store,
-			pSampleCount,				// num samples
-			false,		// => present disabled
-			false,		// => not depth
-			pResolveMultisamples,		// do it or don't?
-			true	// => is a shader input attachment
-		};
+		return set_load_operation(att::on_load::load);
+	}
+	
+	attachment& attachment::clear_contents()
+	{
+		return set_load_operation(att::on_load::clear);
+	}
+	
+	attachment& attachment::store_contents()
+	{
+		return set_store_operation(att::on_store::store);
+	}
+
+	attachment& attachment::set_stencil_load_operation(att::on_load aLoadOp)
+	{
+		mStencilLoadOperation = aLoadOp;
+		return *this;
+	}
+	
+	attachment& attachment::set_stencil_store_operation(att::on_store aStoreOp)
+	{
+		mStencilStoreOperation = aStoreOp;
+		return *this;
+	}
+	
+	attachment& attachment::load_stencil_contents()
+	{
+		return set_stencil_load_operation(att::on_load::load);
+	}
+	
+	attachment& attachment::clear_stencil_contents()
+	{
+		return set_stencil_load_operation(att::on_load::clear);
+	}
+	
+	attachment& attachment::store_stencil_contents()
+	{
+		return set_stencil_store_operation(att::on_store::store);
 	}
 }

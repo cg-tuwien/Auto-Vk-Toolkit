@@ -34,7 +34,7 @@ namespace cgb
 					return monitor_handle{ monitors[i] };
 				}
 			}
-			throw std::runtime_error("No secondary monitor found");
+			throw cgb::runtime_error("No secondary monitor found");
 		}
 
 		GLFWmonitor* mHandle;
@@ -47,12 +47,12 @@ namespace cgb
 	{
 		/** Submit images immediately to the screen */
 		immediate,
-		/** Use two buffers: front-buffer and back-buffer */
-		double_buffering,
+		/** TBD */
+		relaxed_fifo,
 		/** Double buffering and wait for "vertical blank" */
-		vsync,
-		/** Triple buffering mode, also called "mailbox" mode */
-		triple_buffering
+		fifo,
+		/** Mailbox mode */
+		mailbox
 	};
 
 }

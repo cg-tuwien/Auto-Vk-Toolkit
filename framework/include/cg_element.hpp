@@ -19,10 +19,9 @@ namespace cgb
 	 *	    4. update
 	 *	    5. render
 	 *	    6. render_gizmos
-	 *	    7. render_gui
-	 *	    8. check and possibly issue on_disable event handlers
+	 *	    7. check and possibly issue on_disable event handlers
 	 *	  loop-end
-	 *	  9. finalize
+	 *	  8. finalize
 	 */
 	class cg_element
 	{
@@ -36,7 +35,6 @@ namespace cgb
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mRenderGuiEnabled{ true }
 		{ }
 
 		/**	@brief Constructor
@@ -49,7 +47,6 @@ namespace cgb
 			, mEnabled{ pIsEnabled }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mRenderGuiEnabled{ true }
 		{ }
 
 		virtual ~cg_element()
@@ -66,7 +63,7 @@ namespace cgb
 		 *	render-, etc. methods invoked earlier; cg_elements with positive execution orders
 		 *	will be invoked later.
 		 */
-		virtual int32_t execution_order() const { return 0; }
+		virtual int execution_order() const { return 0; }
 
 		/**	@brief Initialize this cg_element
 		 *
@@ -118,19 +115,6 @@ namespace cgb
 		}
 
 		void clear_command_buffer_refs() { mSubmittedCommandBufferReferences.clear(); }
-		
-		/** @brief The given image should be copied into the swap chain image before presenting.
-		 */
-		void present_image(cgb::image_t& _ImageToPresent, cgb::window* _Window = nullptr)
-		{
-			mPresentImages.emplace_back(std::ref(_ImageToPresent), _Window);
-		}
-
-		void clear_present_image() 
-		{ 
-			mPresentImages.clear();
-		}
-
 
 		/**	@brief Render this cg_element 
 		 *
@@ -149,14 +133,6 @@ namespace cgb
 		 */
 		virtual void render_gizmos() {}
 
-		/**	@brief Render the GUI for this cg_element
-		 *
-		 *	Use this method to render the graphical user interface.
-		 *	This method will always be called after all @ref render_gizmos
-		 *	methods of the current @ref run have been invoked.
-		 */
-		virtual void render_gui() {}
-
 		/**	@brief Cleanup this cg_element
 		 *
 		 *	This is the last method in the lifecycle of a cg_element,
@@ -169,8 +145,8 @@ namespace cgb
 		 *
 		 *	@param pAlsoEnableRendering Set to true to also enable
 		 *  rending of this element. If set to false, the flags which 
-		 *  indicate whether or not to render, render gizmos, and render 
-		 *  gui of this element, will remain unchanged.
+		 *  indicate whether or not to render, and render gizmos
+		 *  will remain unchanged.
 		 *
 		 *	Call this method to enable this cg_element by the end of 
 		 *	the current frame! I.e. this method expresses your intent
@@ -187,7 +163,6 @@ namespace cgb
 			if (pAlsoEnableRendering) {
 				mRenderEnabled = true;
 				mRenderGizmosEnabled = true;
-				mRenderGuiEnabled = true;
 			}
 		}
 
@@ -220,7 +195,6 @@ namespace cgb
 			if (pAlsoDisableRendering) {
 				mRenderEnabled = false;
 				mRenderGizmosEnabled = false;
-				mRenderGuiEnabled = false;
 			}
 		}
 
@@ -287,19 +261,11 @@ namespace cgb
 		 */
 		void set_render_gizmos_enabled(bool pValue) { mRenderGizmosEnabled = pValue; }
 
-		/** @brief Enable or disable rendering of this element's GUI
-		 *	@param pValue true to enable, false to disable
-		 */
-		void set_render_gui_enabled(bool pValue) { mRenderGuiEnabled = pValue; }
-
 		/** @brief Returns whether rendering of this element is enabled or not. */
 		bool is_render_enabled() const { return mRenderEnabled; }
 
 		/** @brief Returns whether rendering this element's gizmos is enabled or not. */
 		bool is_render_gizmos_enabled() const { return mRenderGizmosEnabled; }
-
-		/** @brief Returns whether rendering this element's gui is enabled or not. */
-		bool is_render_gui_enabled() const { return mRenderGuiEnabled; }
 
 		/** Command buffers to be submitted to a window at the end of the current frame. */
 		std::vector<std::tuple<std::reference_wrapper<const cgb::command_buffer_t>, cgb::window*>> mSubmittedCommandBufferReferences;
@@ -307,11 +273,7 @@ namespace cgb
 		/** Command buffers to be submitted to a window at the end of the current frame,
 		 *	AND ownership/lifetime management of which is to be handled internally (which means, by the window).
 		 */
-		std::vector<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
-
-		/** Tuple of images to present and associated windows (or, more specifically, the window's swap chain)
-		 */
-		std::vector<std::tuple<std::reference_wrapper<cgb::image_t>, cgb::window*>> mPresentImages;
+		std::deque<std::tuple<cgb::command_buffer, cgb::window*>> mSubmittedCommandBufferInstances;
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;
@@ -320,6 +282,5 @@ namespace cgb
 		bool mEnabled;
 		bool mRenderEnabled;
 		bool mRenderGizmosEnabled;
-		bool mRenderGuiEnabled;
 	};
 }

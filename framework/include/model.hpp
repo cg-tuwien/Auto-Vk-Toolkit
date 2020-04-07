@@ -139,7 +139,7 @@ namespace cgb
 		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(mesh_index_t _MeshIndex, int _Set = 0) const
 		{
-			throw std::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+			throw cgb::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
 		}
 
 		/** Gets the number of indices for the mesh at the given index.
@@ -273,7 +273,7 @@ namespace cgb
 				}
 				break;
 			default:
-				throw std::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw cgb::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
 			}
 		}
 		return result;
@@ -310,7 +310,7 @@ namespace cgb
 				}
 				break;
 			default:
-				throw std::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw cgb::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
 			}
 		}
 		return result;
@@ -331,7 +331,7 @@ namespace cgb
 		// Check whether all of the vertex data has the same length!
 		auto countOfNext = get_vertex_count(_Rest...);
 		if (countOfNext != _First.size()) {
-			throw std::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
+			throw cgb::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
 		}
 #endif
 		return _First.size();

@@ -60,7 +60,7 @@ namespace cgb
 			maxAnisotropy = 16.0f;
 			break;
 		default:
-			throw std::runtime_error("invalid cgb::filter_mode");
+			throw cgb::runtime_error("invalid cgb::filter_mode");
 		}
 
 		// Determine how to handle the borders:
@@ -83,7 +83,7 @@ namespace cgb
 			addressMode = vk::SamplerAddressMode::eMirroredRepeat;
 			break;
 		default:
-			throw std::runtime_error("invalid cgb::border_handling_mode");
+			throw cgb::runtime_error("invalid cgb::border_handling_mode");
 		}
 
 		// Compile the config for this sampler:

@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class ray_tracing_custom_intersection_app : public cgb::cg_element
 {
@@ -123,6 +124,32 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		cgb::current_composition().add_element(mQuakeCam);
+
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if(nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+				static std::vector<float> accum; // accumulate (then average) 10 frames
+				accum.push_back(ImGui::GetIO().Framerate);
+				static std::vector<float> values;
+				if (accum.size() == 10) {
+					values.push_back(std::accumulate(std::begin(accum), std::end(accum), 0) / 10.0f);
+					accum.clear();
+				}
+		        if (values.size() > 90) { // Display up to 90(*10) history frames
+			        values.erase(values.begin());
+		        }
+	            ImGui::PlotLines("FPS", values.data(), values.size(), 0, nullptr, 0.0f, 1500.0f, ImVec2(0.0f, 150.0f));
+				
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -188,19 +215,23 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Stop the current composition:
 			cgb::current_composition().stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::tab)) {
+		if (cgb::input().key_pressed(cgb::key_code::f1)) {
+			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
 			}
 			else {
 				mQuakeCam.enable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
 		}
 	}
 
 	void render() override
 	{
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		auto mainWnd = cgb::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
@@ -223,12 +254,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			nullptr, 0, 0,
-			cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
+			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
 			cgb::context().dynamic_dispatch());
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
+		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
 	}
 
 	void finalize() override
@@ -266,31 +297,19 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Custom Intersection Example");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
-		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
 		mainWnd->open(); 
 
-		// Create an instance of ray_tracing_custom_intersection_app which, in this case,
-		// contains the entire functionality of our application. 
-		auto element = ray_tracing_custom_intersection_app();
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = ray_tracing_custom_intersection_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
-		// Create a composition of:
-		//  - a timer
-		//  - an executor
-		//  - a behavior
-		// ...
-		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
-			});
-
-		// ... and start that composition!
-		hello.start();
+		auto rtCustomIntersection = cgb::setup(app, ui);
+		rtCustomIntersection.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-		//throw re;
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

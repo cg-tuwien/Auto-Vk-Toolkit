@@ -47,6 +47,12 @@ namespace cgb
 		 */
 		virtual cg_element* element_by_type(const std::type_info& pType, uint32_t pIndex = 0) = 0;
 
+		template <typename T>
+		T* element_by_type(uint32_t aIndex = 0)
+		{
+			return static_cast<T*>(element_by_type(typeid(T), aIndex));
+		}
+
 		/** @brief	Add an element to this composition which becomes active in the next frame
 		 *	This element will be added to the collection of elements at the end of the current frame.
 		 *  I.e. the first repeating method call on the element will be a call to @ref cg_element::fixed_update()
@@ -66,7 +72,7 @@ namespace cgb
 
 		/**	@brief	Removes an element from the composition at the end of the current frame
 		 *	Removes the given element from the composition at the end of the current frame.
-		 *	This means that all current frame's repeading method calls up until @ref cg_element::render_gui()
+		 *	This means that all current frame's repeading method calls up until @ref cg_element::render_gizmos()
 		 *  will be called on the element. After that, @ref cg_element::finalize() will be called and the
 		 *  element will be removed from the collection.
 		 *  @param	pElement	Reference to the element to be removed from the composition
@@ -110,7 +116,7 @@ namespace cgb
 		{
 			if (nullptr != sCurrentComposition && sCurrentComposition->is_running())
 			{
-				throw std::runtime_error("There is already an active composition_interface which is still running.");
+				throw cgb::runtime_error("There is already an active composition_interface which is still running.");
 			}
 			// It's okay.
 			sCurrentComposition = pNewComposition;

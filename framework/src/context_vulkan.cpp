@@ -98,76 +98,6 @@ namespace cgb
 
 			return true;
 		}, cgb::context_state::halfway_initialized);
-
-		// We're still not done yet with our initial setup efforts if we need ImGui,
-		// but we're going to set that up at an even later point -> when we have the 
-		// context fully initiylized:
-		if (!settings::gDisableImGui) {
-			// Init and wire-in IMGUI
-			//
-			// Attention: May not use the `add_event_handler`-method here, because it would internally
-			//   make use of `cgb::context()` which would refer to this static instance, which has not 
-			//   yet finished initialization => would deadlock; Instead, modify data structure directly. 
-			//   This constructor is the only exception, in all other cases, it's safe to use `add_event_handler`
-			//   
-			mEventHandlers.emplace_back([]() -> bool {
-				LOG_DEBUG_VERBOSE("Running IMGUI setup event handler");
-
-				// Just get any window:
-				auto* window = context().find_window([](cgb::window* w) { 
-					return w->handle().has_value();
-				});
-
-				// Do we have a window with a handle?
-				if (nullptr == window) { 
-					return false; // Nope => not done
-				}
-
-				IMGUI_CHECKVERSION();
-				ImGui::CreateContext();
-				ImGuiIO& io = ImGui::GetIO(); (void)io;
-				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-				// Setup Dear ImGui style
-				ImGui::StyleColorsDark();
-				//ImGui::StyleColorsClassic();
-
-				// Setup Platform/Renderer bindings
-				ImGui_ImplGlfw_InitForVulkan(window->handle()->mHandle, true); // TODO: Don't install callbacks
-
-				//struct ImGui_ImplVulkan_InitInfo
-				//{
-				//	VkInstance          Instance;
-				//	VkPhysicalDevice    PhysicalDevice;
-				//	VkDevice            Device;
-				//	uint32_t            QueueFamily;
-				//	VkQueue             Queue;
-				//	VkPipelineCache     PipelineCache;
-				//	VkDescriptorPool    DescriptorPool;
-				//	uint32_t            MinImageCount;          // >= 2
-				//	uint32_t            ImageCount;             // >= MinImageCount
-				//	const VkAllocationCallbacks* Allocator;
-				//	void                (*CheckVkResultFn)(VkResult err);
-				//};
-
-				ImGui_ImplVulkan_InitInfo init_info = {};
-				init_info.Instance = context().vulkan_instance();
-				init_info.PhysicalDevice = context().physical_device();
-				init_info.Device = context().logical_device();;
-				init_info.QueueFamily = context().graphics_queue_index();
-				init_info.Queue = context().graphics_queue().handle();
-				init_info.PipelineCache = VK_NULL_HANDLE;
-				//init_info.DescriptorPool = context().get_descriptor_pool().mDescriptorPool; // TODO: give ImGui a suitable descriptor pool!
-				init_info.Allocator = VK_NULL_HANDLE;
-				//init_info.MinImageCount = sActualMaxFramesInFlight; // <---- TODO
-				//init_info.ImageCount = sActualMaxFramesInFlight; // <---- TODO
-				init_info.CheckVkResultFn = check_vk_result;
-
-				// TODO: Hmm, or do we have to do this per swap chain? 
-				return true;
-			}, cgb::context_state::fully_initialized);
-		}
 	}
 
 	vulkan::~vulkan()
@@ -296,7 +226,7 @@ namespace cgb
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw std::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw cgb::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 			//window->mSurface = surface;
 			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
@@ -465,11 +395,11 @@ namespace cgb
 				nullptr, 
 				&mDebugCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw std::runtime_error("Failed to set up debug callback via vkCreateDebugUtilsMessengerEXT");
+				throw cgb::runtime_error("Failed to set up debug callback via vkCreateDebugUtilsMessengerEXT");
 			}
 		}
 		else {
-			throw std::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
+			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
 		}
 #endif
 	}
@@ -528,7 +458,7 @@ namespace cgb
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
 		if (devices.size() == 0) {
-			throw std::runtime_error("Failed to find GPUs with Vulkan support.");
+			throw cgb::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 		const vk::PhysicalDevice* currentSelection = nullptr;
 		uint32_t currentScore = 0; // device score
@@ -587,9 +517,9 @@ namespace cgb
 		// Handle failure:
 		if (nullptr == currentSelection) {
 			if (settings::gRequiredDeviceExtensions.size() > 0) {
-				throw std::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
+				throw cgb::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
 			}
-			throw std::runtime_error("Could not find a suitable physical device.");
+			throw cgb::runtime_error("Could not find a suitable physical device.");
 		}
 
 		// Handle success:
@@ -812,7 +742,7 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
-		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination;
+		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination		| image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
@@ -894,7 +824,7 @@ namespace cgb
 
 		// Create a renderpass for the back buffers
 		std::vector<attachment> renderpassAttachments = {
-			attachment::create_for(pWindow->mSwapChainImageViews[0]),
+			attachment::define_for(pWindow->mSwapChainImageViews[0], att::on_load::clear, att::color(0), att::on_store::dont_care)
 		};
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
@@ -972,7 +902,7 @@ namespace cgb
 				return i;
 			}
 		}
-		throw std::runtime_error("failed to find suitable memory type!");
+		throw cgb::runtime_error("failed to find suitable memory type!");
 	}
 
 	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName)

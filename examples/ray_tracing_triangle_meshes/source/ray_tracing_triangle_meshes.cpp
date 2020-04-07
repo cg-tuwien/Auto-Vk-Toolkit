@@ -1,4 +1,5 @@
 #include <cg_base.hpp>
+#include <imgui.h>
 
 class ray_tracing_triangle_meshes_app : public cgb::cg_element
 {
@@ -12,7 +13,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
-		mLightDir = { 0.8f, 1.0f, 0.0f, 0.0f };
+		mLightDir = { 0.8f, 1.0f, 0.0f };
 
 		// Load an ORCA scene from file:
 		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
@@ -174,6 +175,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		cgb::current_composition().add_element(mQuakeCam);
+
+		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this](){
+		        ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				ImGui::DragFloat3("Light Direction", glm::value_ptr(mLightDir), 0.005f, -1.0f, 1.0f);
+				mLightDir = glm::normalize(mLightDir);
+				ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -239,38 +255,23 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Stop the current composition:
 			cgb::current_composition().stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::tab)) {
+		if (cgb::input().key_pressed(cgb::key_code::f1)) {
+			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
 			}
 			else {
 				mQuakeCam.enable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
-		}
-
-		if (cgb::input().key_down(cgb::key_code::j)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::l)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{1.0f, 0.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::i)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::k)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 0.f, 1.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::u)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate( cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
-		}
-		if (cgb::input().key_down(cgb::key_code::o)) {
-			mLightDir = glm::vec4( glm::mat3(glm::rotate(-cgb::time().delta_time(), glm::vec3{0.0f, 1.f, 0.f})) * glm::vec3(mLightDir), 0.0f);
 		}
 	}
 
 	void render() override
 	{
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		auto mainWnd = cgb::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
@@ -288,7 +289,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 
 			mQuakeCam.view_matrix(),
-			mLightDir
+			glm::vec4{mLightDir, 0.0f}
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV | vk::ShaderStageFlagBits::eClosestHitNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
@@ -298,12 +299,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
 			nullptr, 0, 0,
-			cgb::context().main_window()->swap_chain_extent().width, cgb::context().main_window()->swap_chain_extent().height, 1,
+			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
 			cgb::context().dynamic_dispatch());
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		present_image(mOffscreenImageViews[inFlightIndex]->get_image());
+		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
 	}
 
 private: // v== Member variables ==v
@@ -325,7 +326,7 @@ private: // v== Member variables ==v
 
 	std::vector<std::shared_ptr<cgb::descriptor_set>> mDescriptorSet;
 
-	glm::vec4 mLightDir;
+	glm::vec3 mLightDir = {0.0f, -1.0f, 0.0f};
 	
 	cgb::ray_tracing_pipeline mPipeline;
 	cgb::graphics_pipeline mGraphicsPipeline;
@@ -346,31 +347,27 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Triangle Meshes Example");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::vsync);
-		mainWnd->set_additional_back_buffer_attachments({ cgb::attachment::create_depth(cgb::image_format::default_depth_format()) });
+		mainWnd->set_presentaton_mode(cgb::presentation_mode::fifo);
 		mainWnd->open(); 
 
-		// Create an instance of ray_tracing_triangle_meshes_app which, in this case,
-		// contains the entire functionality of our application. 
-		auto element = ray_tracing_triangle_meshes_app();
+		// Create an instance of our main cgb::element which contains all the functionality:
+		auto app = ray_tracing_triangle_meshes_app();
+		// Create another element for drawing the UI with ImGui
+		auto ui = cgb::imgui_manager();
 
 		// Create a composition of:
 		//  - a timer
 		//  - an executor
-		//  - a behavior
-		// ...
+		//  - elements
 		auto hello = cgb::composition<cgb::varying_update_timer, cgb::sequential_executor>({
-				&element
+				&ui, &app
 			});
 
 		// ... and start that composition!
 		hello.start();
 	}
-	catch (std::runtime_error& re)
-	{
-		LOG_ERROR_EM(re.what());
-		//throw re;
-	}
+	catch (cgb::logic_error&) {}
+	catch (cgb::runtime_error&) {}
 }
 
 

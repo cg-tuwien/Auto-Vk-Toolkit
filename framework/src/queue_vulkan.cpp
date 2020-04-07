@@ -11,7 +11,7 @@ namespace cgb
 	{
 		auto families = context().find_best_queue_family_for(aFlagsRequired, aSelectionStrategy, aSupportForSurface);
 		if (families.size() == 0) {
-			throw std::runtime_error("Couldn't find queue families satisfying the given criteria.");
+			throw cgb::runtime_error("Couldn't find queue families satisfying the given criteria.");
 		}
 
 		// Default to the first ones, each

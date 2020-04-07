@@ -93,8 +93,8 @@ namespace cgb
 		/** Switches to windowed mode by removing this window's monitor assignment */
 		void switch_to_windowed_mode();
 
-		/** Disables and hides, or shows the cursor */
-		void disable_cursor(bool pDisable);
+		/** Sets a specific cursor mode */
+		void set_cursor_mode(cursor aCursorMode);
 
 		/** Sets the cursor to the given coordinates */
 		void set_cursor_pos(glm::dvec2 pCursorPos);
@@ -151,9 +151,9 @@ namespace cgb
 		glm::dvec2 mScrollPosition;
 
 		// The window's resolution
-		glm::uvec2 mResultion;
+		glm::uvec2 mResoltion;
 
 		// Whether or not the cursor is operating in disabled-mode
-		bool mIsCursorDisabled;
+		cursor mCursorMode;
 	};
 }

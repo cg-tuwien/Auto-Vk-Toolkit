@@ -51,7 +51,7 @@ namespace cgb
 				}
 			}
 			else {
-				throw std::runtime_error("tableEntry holds an unknown alternative. That's mysterious.");
+				throw cgb::runtime_error("tableEntry holds an unknown alternative. That's mysterious.");
 			}
 		}
 		result.mShaders.reserve(orderedUniqueShaderInfos.size());
@@ -129,7 +129,7 @@ namespace cgb
 					.setClosestHitShader(rchitShaderIndex);
 			}
 			else {
-				throw std::runtime_error("tableEntry holds an unknown alternative. That's mysterious.");
+				throw cgb::runtime_error("tableEntry holds an unknown alternative. That's mysterious.");
 			}
 		}
 

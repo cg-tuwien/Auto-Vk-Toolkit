@@ -131,7 +131,7 @@ namespace cgb
 		static image_t wrap(vk::Image aImageToWrap, vk::ImageCreateInfo aImageCreateInfo, image_usage aImageUsage, vk::ImageAspectFlags aImageAspectFlags);
 #pragma endregion
 
-		void transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout = {}, sync aSyncHandler = sync::wait_idle());
+		std::optional<command_buffer> transition_to_layout(std::optional<vk::ImageLayout> aTargetLayout = {}, sync aSyncHandler = sync::wait_idle());
 		
 	private:
 		// The memory handle. This member will contain a valid handle only after successful image creation.

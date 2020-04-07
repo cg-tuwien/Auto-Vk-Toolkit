@@ -281,7 +281,7 @@ namespace cgb
 					//	with that is that it looks like it does not support move-only types.
 					//	An alternative to initializer lists would be to use `cgb::make_vector`.
 					//
-					throw std::logic_error("Can only copy construct owning_resources which have shared ownership enabled.");
+					throw cgb::logic_error(fmt::format("You are trying to copy-construct a resource of type {} which does not have shared ownership enabled. This call will fail now. You can try to use owning_resource::enable_shared_ownership().", typeid(T).name()));
 				}
 				*this_as_variant() = std::get<std::shared_ptr<T>>(other);
 			}
@@ -310,7 +310,7 @@ namespace cgb
 					//	with that is that it looks like it does not support move-only types.
 					//	An alternative to initializer lists would be to use `cgb::make_vector`.
 					//
-					throw std::logic_error("Can only copy assign owning_resources which have shared ownership enabled.");
+					throw cgb::logic_error("Can only copy assign owning_resources which have shared ownership enabled.");
 				}
 				*this_as_variant() = std::get<std::shared_ptr<T>>(other);
 			}
@@ -332,7 +332,7 @@ namespace cgb
 				return; // Already established
 			}
 			if (std::holds_alternative<std::monostate>(*this)) {
-				throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
+				throw cgb::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 			}
 			*this_as_variant() = std::make_shared<T>(std::move(std::get<T>(*this)));
 		}
@@ -341,14 +341,14 @@ namespace cgb
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
-			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
+			throw cgb::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 
 		operator T&() 
 		{ 
 			if (is_shared_ownership_enabled()) { return *std::get<std::shared_ptr<T>>(*this_as_variant()); }
 			if (holds_item_directly()) { return std::get<T>(*this_as_variant()); }
-			throw std::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
+			throw cgb::logic_error("This owning_resource is uninitialized, i.e. std::monostate.");
 		}
 		
 		const T& operator*() const
@@ -403,8 +403,8 @@ namespace cgb
 	        wrapper& operator=(wrapper&&) noexcept = default;
 
 	        // these two functions are instantiated by std::function and are never called
-	        wrapper(const wrapper& rhs) noexcept : fn(const_cast<Fn&&>(rhs.fn)) { throw std::logic_error("never called"); } // hack to initialize fn for non-DefaultContructible types
-	        wrapper& operator=(const wrapper&) noexcept { throw std::logic_error("never called"); }
+	        wrapper(const wrapper& rhs) noexcept : fn(const_cast<Fn&&>(rhs.fn)) { throw cgb::logic_error("never called"); } // hack to initialize fn for non-DefaultContructible types
+	        wrapper& operator=(const wrapper&) noexcept { throw cgb::logic_error("never called"); }
 
 			~wrapper() = default;
 

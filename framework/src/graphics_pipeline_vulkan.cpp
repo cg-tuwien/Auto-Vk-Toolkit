@@ -34,7 +34,7 @@ namespace cgb
 						return _GeneralData.mBinding == bindingId;
 					});
 				if (1 != numRecordsWithSameBinding) {
-					throw std::runtime_error(fmt::format("The input binding {} is defined in different ways. Make sure to define it uniformly across different bindings/attribute descriptions!", bindingData.mBinding));
+					throw cgb::runtime_error(fmt::format("The input binding {} is defined in different ways. Make sure to define it uniformly across different bindings/attribute descriptions!", bindingData.mBinding));
 				}
 
 				result.mVertexInputBindingDescriptions.push_back(vk::VertexInputBindingDescription()
@@ -148,12 +148,12 @@ namespace cgb
 				>> to_vector();
 
 			if (universalConfig.size() > 1) {
-				throw std::runtime_error("Ambiguous 'universal' color blending configurations. Either provide only one 'universal' "
+				throw cgb::runtime_error("Ambiguous 'universal' color blending configurations. Either provide only one 'universal' "
 					"config (which is not attached to a specific color target) or assign them to specific color target attachment ids.");
 			}
 
 			// Iterate over all color target attachments and set a color blending config
-			const auto n = (*result.mRenderPass).color_attachments().size();
+			const auto n = (*result.mRenderPass).color_attachments_for_subpass(result.subpass_id()).size(); /////////////////// TODO: (doublecheck or) FIX this section (after renderpass refactoring)
 			result.mBlendingConfigsForColorAttachments.reserve(n); // Important! Otherwise the vector might realloc and .data() will become invalid!
 			for (size_t i = 0; i < n; ++i) {
 				// Do we have a specific blending config for color attachment i?
@@ -161,7 +161,7 @@ namespace cgb
 					>> where([i](const color_blending_config& config) { return config.mTargetAttachment.has_value() && config.mTargetAttachment.value() == i; })
 					>> to_vector();
 				if (configForI.size() > 1) {
-					throw std::runtime_error(fmt::format("Ambiguous color blending configuration for color attachment at index {}. Provide only one config per color attachment!", i));
+					throw cgb::runtime_error(fmt::format("Ambiguous color blending configuration for color attachment at index {}. Provide only one config per color attachment!", i));
 				}
 				// Determine which color blending to use for this attachment:
 				color_blending_config toUse = configForI.size() == 1 ? configForI[0] : color_blending_config::disable();
@@ -195,11 +195,11 @@ namespace cgb
 
 		// 10. Multisample state
 		// TODO: Can the settings be inferred from the renderpass' color attachments (as they are right now)? If they can't, how to handle this situation? 
-		{
+		{ /////////////////// TODO: FIX this section (after renderpass refactoring)
 			vk::SampleCountFlagBits numSamples = vk::SampleCountFlagBits::e1;
 
 			// See what is configured in the render pass
-			auto colorAttConfigs = from ((*result.mRenderPass).color_attachments())
+			auto colorAttConfigs = from ((*result.mRenderPass).color_attachments_for_subpass(result.subpass_id()))
 				>> where ([](const vk::AttachmentReference& colorAttachment) { return colorAttachment.attachment != VK_ATTACHMENT_UNUSED; })
 				// The color_attachments() contain indices of the actual attachment_descriptions() => select the latter!
 				>> select ([&rp = (*result.mRenderPass)](const vk::AttachmentReference& colorAttachment) { return rp.attachment_descriptions()[colorAttachment.attachment]; })

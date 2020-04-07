@@ -87,30 +87,4 @@ namespace cgb
 		mTracker.setTrackee(*this);
 	}
 
-	attachment attachment::create_for(const image_view_t& _ImageView, std::optional<uint32_t> pLocation)
-	{
-		auto& imageInfo = _ImageView.get_image().config();
-		auto format = image_format{ imageInfo.format };
-		std::optional<image_usage> imageUsage = _ImageView.get_image().usage_config();
-		if (is_depth_format(format)) {
-			if (imageInfo.samples == vk::SampleCountFlagBits::e1) {
-				
-				return attachment::create_depth(format, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
-			}
-			else {	
-				// TODO: Should "is presentable" really be true by default? => set to false, maybe it should be handled via a barrier
-				return attachment::create_depth_multisampled(format, to_cgb_sample_count(imageInfo.samples), false, imageUsage.value_or(image_usage::depth_stencil_attachment), pLocation);
-			}
-		}
-		else { // must be color format
-			if (imageInfo.samples == vk::SampleCountFlagBits::e1) {
-				return attachment::create_color(format, imageUsage.value_or(image_usage::color_attachment), pLocation);
-			}
-			else {	
-				// TODO: Should "is presentable" really be true by default? => set to false, maybe it should be handled via a barrier
-				return attachment::create_color_multisampled(format, to_cgb_sample_count(imageInfo.samples), false, imageUsage.value_or(image_usage::color_attachment), pLocation);
-			}
-		}
-		throw std::runtime_error("Unable to create an attachment for the given image view");
-	}
 }
