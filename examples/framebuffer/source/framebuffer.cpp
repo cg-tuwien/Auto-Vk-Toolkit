@@ -178,10 +178,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Finally, submit the right command buffer in order to issue the draw call:
 		submit_command_buffer_ref(mCmdBfrIntoFramebuffer[inFlightIndex]);
 		if (0 == mUseCopyOrBlit) {
-			submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
+			submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
 		}
 		else {
-			submit_command_buffer_ownership(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
+			submit_command_buffer_ownership(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
 		}
 	}
 

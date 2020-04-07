@@ -259,7 +259,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		submit_command_buffer_ownership(std::move(cmdbfr));
-		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), inFlightIndex, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
 	}
 
 	void finalize() override
