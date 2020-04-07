@@ -19,7 +19,10 @@
     <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene">
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\assets\sponza_duo.fscene">
       <Filter>assets</Filter>
     </None>
   </ItemGroup>
@@ -28,11 +31,6 @@
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <Filter>assets</Filter>
-    </Object>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

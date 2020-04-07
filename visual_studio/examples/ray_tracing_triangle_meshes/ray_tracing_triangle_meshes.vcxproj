@@ -32,7 +32,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
+    <None Include="..\..\..\assets\sponza_duo.fscene" />
     <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rchit" />
     <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rgen" />
     <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rmiss" />

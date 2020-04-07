@@ -13,7 +13,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void initialize() override
 	{
 		// Load an ORCA scene from file:
-		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
+		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
 		// Iterate over all models, all model instances, and all meshes, and create bottom level acceleration structures for each one of them:
 		for (const auto& modelData : orca->models()) {
 			for (const auto& modelInstance : modelData.mInstances) {

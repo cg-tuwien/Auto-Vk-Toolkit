@@ -43,14 +43,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
+    <None Include="..\..\..\assets\sponza_duo.fscene" />
     <None Include="..\..\..\examples\orca_loader\shaders\diffuse_shading_fixed_lightsource.frag" />
     <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <FileType>Document</FileType>
-    </None>
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp" />

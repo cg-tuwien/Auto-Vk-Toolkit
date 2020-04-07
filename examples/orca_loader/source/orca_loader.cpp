@@ -32,7 +32,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
+		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 

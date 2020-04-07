@@ -32,7 +32,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene" />
     <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_aabb.rchit" />
     <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_aabb.rgen" />
     <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_aabb.rint" />

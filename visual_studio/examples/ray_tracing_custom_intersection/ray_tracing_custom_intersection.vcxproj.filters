@@ -13,9 +13,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene">
-      <Filter>assets</Filter>
-    </None>
     <None Include="..\..\..\examples\ray_tracing_custom_intersection\shaders\rt_aabb.rchit">
       <Filter>shaders</Filter>
     </None>

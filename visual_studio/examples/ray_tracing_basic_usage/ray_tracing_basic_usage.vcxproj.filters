@@ -13,9 +13,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza.fscene">
-      <Filter>assets</Filter>
-    </None>
     <None Include="..\..\..\examples\ray_tracing_basic_usage\shaders\closest_hit_shader.rchit">
       <Filter>shaders</Filter>
     </None>
@@ -24,6 +21,9 @@
     </None>
     <None Include="..\..\..\examples\ray_tracing_basic_usage\shaders\ray_generation_shader.rgen">
       <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\assets\sponza_duo.fscene">
+      <Filter>assets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
