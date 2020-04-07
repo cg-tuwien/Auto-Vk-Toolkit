@@ -447,8 +447,7 @@ namespace cgb
 	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
 	{
 		aSync.set_queue_hint(cgb::context().graphics_queue());
-		auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-		copy_image_to_another(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
+		copy_image_to_another(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
 			true, // Restore layout of source image
 			false // Don't restore layout of destination image
 		);
@@ -458,8 +457,7 @@ namespace cgb
 	std::optional<command_buffer> window::blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
 	{
 		aSync.set_queue_hint(cgb::context().graphics_queue());
-		auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-		blit_image(aSourceImage, mSwapChainImageViews[imageIndex]->get_image(), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
+		blit_image(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
 			true, // Restore layout of source image
 			false // Don't restore layout of destination image
 		);

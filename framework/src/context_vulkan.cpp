@@ -854,19 +854,29 @@ namespace cgb
 
 			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
+		assert(pWindow->mBackBuffers.size() == pWindow->get_config_number_of_presentable_images());
 
 		// ============= SYNCHRONIZATION OBJECTS ===========
-		// Create them here, already.
-		auto numSyncObjects = pWindow->get_config_number_of_concurrent_frames();
-		pWindow->mFences.reserve(numSyncObjects);
-		pWindow->mImageAvailableSemaphores.reserve(numSyncObjects);
-		pWindow->mRenderFinishedSemaphores.reserve(numSyncObjects);
-		for (uint32_t i = 0; i < numSyncObjects; ++i) {
-			pWindow->mFences.push_back(fence_t::create(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-			pWindow->mImageAvailableSemaphores.push_back(semaphore_t::create());
-			pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
+		{
+			const auto n = pWindow->get_config_number_of_presentable_images();
+			pWindow->mImageAvailableSemaphores.reserve(n);
+			for (uint32_t i = 0; i < n; ++i) {
+				pWindow->mImageAvailableSemaphores.push_back(semaphore_t::create());
+			}
 		}
-
+		assert(pWindow->mImageAvailableSemaphores.size() == pWindow->get_config_number_of_presentable_images());
+		
+		{
+			auto n = pWindow->get_config_number_of_concurrent_frames();
+			pWindow->mFences.reserve(n);
+			pWindow->mRenderFinishedSemaphores.reserve(n);
+			for (uint32_t i = 0; i < n; ++i) {
+				pWindow->mFences.push_back(fence_t::create(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+				pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
+			}
+		}
+		assert(pWindow->mFences.size() == pWindow->get_config_number_of_concurrent_frames());
+		assert(pWindow->mRenderFinishedSemaphores.size() == pWindow->get_config_number_of_concurrent_frames());
 	}
 
 	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)

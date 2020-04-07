@@ -123,6 +123,11 @@ namespace cgb
 			return static_cast<int64_t>(mFences.size());
 		}
 
+		/** Gets the number of images there are in the swap chain */
+		auto number_of_swapchain_images() const {
+			return mSwapChainImages.size();
+		}
+		
 		/** Gets the current frame index. */
 		auto current_frame() const { 
 			return mCurrentFrame; 
@@ -135,40 +140,48 @@ namespace cgb
 		auto in_flight_index_for_frame(std::optional<int64_t> aFrameId = {}) const { 
 			return aFrameId.value_or(current_frame()) % number_of_in_flight_frames(); 
 		}
-		
-		/** Returns the swap chain image for the requested frame, which depends on the frame's "in flight index.
+
+		/** Returns the "swapchain image index" for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const auto& image_for_frame(std::optional<int64_t> aFrameId = {}) const {
-			return mSwapChainImages[in_flight_index_for_frame(aFrameId)];
+		auto swapchain_image_index_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return aFrameId.value_or(current_frame()) % number_of_swapchain_images();
 		}
-		/** Returns the swap chain image view for the requested frame, which depends on the frame's "in flight index.
+		
+		/** Returns the swap chain image for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const image_view_t& image_view_for_frame(std::optional<int64_t> aFrameId = {}) const {
-			return mSwapChainImageViews[in_flight_index_for_frame(aFrameId)];
+		auto& image_for_frame(std::optional<int64_t> aFrameId = {}) {
+			return mSwapChainImages[swapchain_image_index_for_frame(aFrameId)];
+		}
+		/** Returns the swap chain image view for the requested frame.
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		image_view_t& image_view_for_frame(std::optional<int64_t> aFrameId = {}) {
+			return mSwapChainImageViews[swapchain_image_index_for_frame(aFrameId)];
 		}
 		/** Returns the fence for the requested frame, which depends on the frame's "in flight index.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) const {
+		fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mFences[in_flight_index_for_frame(aFrameId)];
 		}
-		/** Returns the "image available"-semaphore for the requested frame, which depends on the frame's "in flight index.
+		/** Returns the "image available"-semaphore for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) const {
-			return mImageAvailableSemaphores[in_flight_index_for_frame(aFrameId)];
+		semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) {
+			return mImageAvailableSemaphores[swapchain_image_index_for_frame(aFrameId)];
 		}
 		/** Returns the "render finished"-semaphore for the requested frame, which depends on the frame's "in flight index.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		const auto& render_finished_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) const {
+		auto& render_finished_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mRenderFinishedSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 
@@ -218,7 +231,7 @@ namespace cgb
 		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
 		{
 			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-			return copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
+			return copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
 		}
 
 		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
@@ -227,7 +240,7 @@ namespace cgb
 		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
 		{
 			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
-			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, mSwapChainImageViews[imageIndex]->get_image()));
+			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
 		}
 
 	protected:
