@@ -702,15 +702,21 @@ namespace CgbPostBuildHelper
                             // Add all the extracted data to the FilesAndFilters collection:
                             foreach (var referencedModel in referencedModels)
                             {
-                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedModel), fsceneFilter));
+								var pathInFscene = Path.GetDirectoryName(referencedModel);
+								var modelFilter = Path.Combine(fsceneFilter, pathInFscene);
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedModel), modelFilter));
                             }
                             foreach (var referencedLightProbe in referencedLightProbes)
                             {
-                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedLightProbe), fsceneFilter));
+                                var pathInFscene = Path.GetDirectoryName(referencedLightProbe);
+                                var lightProbeFilter = Path.Combine(fsceneFilter, pathInFscene);
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedLightProbe), lightProbeFilter));
                             }
                             foreach (var referencedSkybox in referencedSkyboxes)
                             {
-                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedSkybox), fsceneFilter));
+								var pathInFscene = Path.GetDirectoryName(referencedSkybox);
+                                var skyboxFilter = Path.Combine(fsceneFilter, pathInFscene);
+                                FilesAndFilters.Insert(i++, new Tuple<string, string>(Path.Combine(fsceneFile.DirectoryName, referencedSkybox), skyboxFilter));
                             }
                         }
                         catch (JsonException jex)

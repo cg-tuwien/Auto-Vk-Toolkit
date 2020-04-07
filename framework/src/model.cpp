@@ -4,14 +4,14 @@
 
 namespace cgb
 {
-	owning_resource<model_t> model_t::load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags)
+	owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
 	{
 		model_t result;
-		result.mModelPath = clean_up_path(_Path);
+		result.mModelPath = clean_up_path(aPath);
 		result.mImporter = std::make_unique<Assimp::Importer>();
-		result.mScene = result.mImporter->ReadFile(_Path, _AssimpFlags);
+		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw cgb::runtime_error("Loading model from file failed.");
+			throw cgb::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
 		}
 		return result;
 	}

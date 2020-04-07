@@ -230,7 +230,7 @@ namespace cgb
 		/** Returns all cameras stored in the model file */
 		std::vector<cgb::camera> cameras() const;
 
-		static owning_resource<model_t> load_from_file(const std::string& _Path, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
+		static owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
 
 	private:
