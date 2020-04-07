@@ -47,17 +47,17 @@ namespace namespace_name_lower_case_separated_by_underscores
 
         /** Setter of member variable mValue is called set_value 
          *
-         *  Parameters should be prefixed with '_' and are always named in camel case.
-         *  With prefixes, all names are distinct: mValue, _Value, value(), set_value()
+         *  Arguments should be prefixed with 'a' and are always named in camel case.
+         *  With prefixes, all names are distinct: mValue, aValue, value(), set_value()
          */
-        void set_value(const complex_type& _Value)
+        void set_value(const complex_type& aValue)
         {
-            mValue = _Value ; // no conflict with mValue or value here
+            mValue = aValue ; // no conflict with mValue or value here
         }
 
     protected:
-        // the more public it is, the more important it is,
-        // so order: public on top, then protected then private
+        // The more public it is, the more important it is. Therefore,
+        // order like follows: public on top, then protected then private
 
         template <typename Template, typename Parameters>
         void templated_method()
@@ -72,5 +72,5 @@ namespace namespace_name_lower_case_separated_by_underscores
     };
 }
 
-// Thanks to StackOverflow user GManNickG for the template for this
+// Thanks to StackOverflow user GManNickG for providing guidelines very similar to these
 ```
