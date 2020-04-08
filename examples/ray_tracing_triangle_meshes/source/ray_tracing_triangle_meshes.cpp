@@ -40,14 +40,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  buffers for everything which could potentially be instanced.)
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes(
+				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) },
 					cgb::sync::with_barriers_on_current_frame()
 				);
 				
 				// Get a buffer containing all texture coordinates for all submeshes with this material
 				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
-				auto texCoordsData = cgb::get_combined_2d_texture_coordinates_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
+				auto texCoordsData = cgb::get_2d_texture_coordinates({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
 				auto texCoordsTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(texCoordsData)
 						.describe_only_member(texCoordsData[0]),
@@ -58,7 +58,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mTexCoordBufferViews.push_back( cgb::buffer_view_t::create(std::move(texCoordsTexelBuffer)) );
 
 				// The following call is quite redundant => TODO: optimize!
-				auto [positionsData, indicesData] = cgb::get_combined_vertices_and_indices_for_selected_meshes({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
+				auto [positionsData, indicesData] = cgb::get_vertices_and_indices({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
 				auto indexTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(indicesData)
 						.set_format<glm::uvec3>(), // Combine 3 consecutive elements to one unit

@@ -575,7 +575,7 @@ namespace cgb
 		return texCoordsData;
 	}
 	
-	vertex_buffer create_2d_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
+	vertex_buffer create_2d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto texCoordsData = get_2d_texture_coordinates(std::move(aModelsAndSelectedMeshes), _TexCoordSet);

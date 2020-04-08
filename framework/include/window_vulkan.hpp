@@ -148,6 +148,14 @@ namespace cgb
 		auto swapchain_image_index_for_frame(std::optional<int64_t> aFrameId = {}) const {
 			return aFrameId.value_or(current_frame()) % number_of_swapchain_images();
 		}
+
+		/** Returns the backbuffer for the requested frame 
+		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
+		 *						If not set, refers to the current frame, i.e. `current_frame()`.
+		 */
+		auto& backbufer_for_frame(std::optional<int64_t> aFrameId = {}) const {
+			return mBackBuffers[swapchain_image_index_for_frame(aFrameId)];
+		}
 		
 		/** Returns the swap chain image for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
@@ -156,6 +164,7 @@ namespace cgb
 		auto& image_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mSwapChainImages[swapchain_image_index_for_frame(aFrameId)];
 		}
+
 		/** Returns the swap chain image view for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
@@ -163,6 +172,7 @@ namespace cgb
 		image_view_t& image_view_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mSwapChainImageViews[swapchain_image_index_for_frame(aFrameId)];
 		}
+
 		/** Returns the fence for the requested frame, which depends on the frame's "in flight index.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
@@ -170,6 +180,7 @@ namespace cgb
 		fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mFences[in_flight_index_for_frame(aFrameId)];
 		}
+
 		/** Returns the "image available"-semaphore for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
@@ -177,6 +188,7 @@ namespace cgb
 		semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mImageAvailableSemaphores[swapchain_image_index_for_frame(aFrameId)];
 		}
+
 		/** Returns the "render finished"-semaphore for the requested frame, which depends on the frame's "in flight index.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.

@@ -149,10 +149,14 @@ namespace cgb
 	 */
 	struct attachment
 	{
-		static attachment define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
-		static attachment define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
-		static attachment define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment declare(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment declare(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment declare_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 
+		attachment& set_clear_color(glm::vec4 aColor);
+		attachment& set_depth_clear_value(float aDepthClear);
+		attachment& set_stencil_clear_value(uint32_t aStencilClear);
+		
 		attachment& set_load_operation(att::on_load aLoadOp);
 		attachment& set_store_operation(att::on_store aStoreOp);
 		attachment& load_contents();
@@ -186,6 +190,10 @@ namespace cgb
 		/** Returns the stencil store operation */
 		auto get_stencil_store_op() const { return mStencilStoreOperation.value_or(mStoreOperation); }
 
+		auto clear_color() const { return mColorClearValue; }
+		auto depth_clear_value() const { return mDepthClearValue; }
+		auto stencil_clear_value() const { return mStencilClearValue; }
+
 		image_format mFormat;
 		int mSampleCount;
 		att::on_load mLoadOperation;
@@ -193,5 +201,8 @@ namespace cgb
 		std::optional<att::on_load> mStencilLoadOperation;
 		std::optional<att::on_store> mStencilStoreOperation;
 		att::usage_desc mSubpassUsages;
+		glm::vec4 mColorClearValue;
+		float mDepthClearValue;
+		uint32_t mStencilClearValue;
 	};
 }

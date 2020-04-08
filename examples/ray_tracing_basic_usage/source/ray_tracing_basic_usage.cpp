@@ -19,7 +19,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			for (const auto& modelInstance : modelData.mInstances) {
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
-				auto [vtxBfr, idxBfr] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes({ cgb::make_tuple_model_and_indices(model, meshIndices) });
+				auto [vtxBfr, idxBfr] = cgb::create_vertex_and_index_buffers({ cgb::make_tuple_model_and_indices(model, meshIndices) });
 				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(vtxBfr), std::move(idxBfr));
 				blas->build();
 				mGeometryInstances.push_back(

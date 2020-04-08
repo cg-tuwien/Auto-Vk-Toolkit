@@ -118,7 +118,7 @@ namespace cgb
 				}				
 				if (isStore) {
 					finalLayout = initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-				}				
+				}
 			}
 
 			if (a.is_presentable()) {
@@ -136,7 +136,7 @@ namespace cgb
 				.setInitialLayout(initialLayout)
 				.setFinalLayout(finalLayout)
 			);
-
+			
 			const auto attachmentIndex = static_cast<uint32_t>(result.mAttachmentDescriptions.size() - 1); // Index of this attachment as used in the further subpasses
 
 			// 2. Go throught the subpasses and gather data for subpass config
@@ -144,6 +144,29 @@ namespace cgb
 			if (nSubpasses != numSubpassesFirst) {
 				throw cgb::runtime_error("All attachments must have the exact same number of subpasses!");
 			}
+
+			// Determine and fill clear values:
+			assert(result.mAttachmentDescriptions.size() == result.mClearValues.size() + 1);
+			size_t spId = 0;
+			while (result.mAttachmentDescriptions.size() != result.mClearValues.size() && spId < nSubpasses) {
+				switch (a.mSubpassUsages.get_subpass_usage(spId)) {
+				case att::usage_type::unused: break;
+				case att::usage_type::input: break;
+				case att::usage_type::color:
+					result.mClearValues.emplace_back(vk::ClearColorValue{ *reinterpret_cast<const std::array<float, 4>*>(glm::value_ptr(a.clear_color())) });
+					break;
+				case att::usage_type::depth_stencil:
+					result.mClearValues.emplace_back(vk::ClearDepthStencilValue{ a.depth_clear_value(), a.stencil_clear_value() });
+					break;
+				case att::usage_type::preserve: break;
+				default: break;
+				}
+				++spId;
+			}
+			if (result.mAttachmentDescriptions.size() != result.mClearValues.size() ) {
+				result.mClearValues.emplace_back(); // just an empty clear value
+			}
+			assert(result.mAttachmentDescriptions.size() == result.mClearValues.size());
 			
 			for (size_t i = 0; i < nSubpasses; ++i) {
 				auto& sp = subpasses[i];

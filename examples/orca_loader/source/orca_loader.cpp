@@ -57,7 +57,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// the same length.
 
 			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-			auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes(
+			auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
 				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
 				cgb::sync::with_semaphores_on_current_frame()
 			);
@@ -65,13 +65,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			newElement.mIndexBuffer = std::move(indicesBuffer);
 
 			// Get a buffer containing all texture coordinates for all submeshes with this material
-			newElement.mTexCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes(
+			newElement.mTexCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
 				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 0,
 				cgb::sync::with_semaphores_on_current_frame()
 			);
 
 			// Get a buffer containing all normals for all submeshes with this material
-			newElement.mNormalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes(
+			newElement.mNormalsBuffer = cgb::create_normals_buffer(
 				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
 				cgb::sync::with_semaphores_on_current_frame()
 			);
@@ -105,7 +105,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  buffers for everything which could potentially be instanced.)
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = cgb::get_combined_vertex_and_index_buffers_for_selected_meshes(
+				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					cgb::sync::with_semaphores_on_current_frame()
 				);
@@ -113,14 +113,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = cgb::get_combined_2d_texture_coordinate_buffers_for_selected_meshes(
+				auto texCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
 					cgb::sync::with_semaphores_on_current_frame()
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = cgb::get_combined_normal_buffers_for_selected_meshes(
+				auto normalsBuffer = cgb::create_normals_buffer(
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					cgb::sync::with_semaphores_on_current_frame()
 				);
@@ -173,8 +173,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store_in_presentable_format),
-			cgb::attachment::define(cgb::image_format::default_depth_format(),		on_load::clear, depth_stencil(), on_store::dont_care),
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store_in_presentable_format),
+			cgb::attachment::declare(cgb::image_format::default_depth_format(),		on_load::clear, depth_stencil(), on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
@@ -208,7 +208,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	{
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass(mPipeline, cgb::context().main_window(), cgb::context().main_window()->in_flight_index_for_frame());
+		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),
@@ -312,7 +312,7 @@ int main() // <== Starting point ==
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
 		mainWnd->set_additional_back_buffer_attachments({ 
-			cgb::attachment::define(cgb::image_format::default_depth_format(), cgb::att::on_load::clear, cgb::att::depth_stencil(), cgb::att::on_store::dont_care)
+			cgb::attachment::declare(cgb::image_format::default_depth_format(), cgb::att::on_load::clear, cgb::att::depth_stencil(), cgb::att::on_store::dont_care)
 		});
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 

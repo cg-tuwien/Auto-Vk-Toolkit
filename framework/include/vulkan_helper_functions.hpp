@@ -3,7 +3,7 @@
 namespace cgb
 {
 	extern vk::IndexType to_vk_index_type(size_t aSize);
-
+	       
 	extern vk::ImageViewType to_image_view_type(const vk::ImageCreateInfo& info);
 
 	extern vk::Bool32 to_vk_bool(bool value);

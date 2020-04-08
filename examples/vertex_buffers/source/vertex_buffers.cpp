@@ -72,14 +72,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame(inFlightIndex)); // TODO: only works because #concurrent == #present
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			cgb::context().draw_indexed(mPipeline, commandBuffer, mVertexBuffers[inFlightIndex], mIndexBuffer);
+			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
 			commandBuffer.end_render_pass();
 		});
 

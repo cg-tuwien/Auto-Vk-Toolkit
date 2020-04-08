@@ -24,30 +24,50 @@ namespace cgb
 		
 	}
 	
-	attachment attachment::define(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
+	attachment attachment::declare(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		return attachment{
 			std::get<image_format>(aFormatAndSamples),
 			std::get<att::sample_count>(aFormatAndSamples).mNumSamples,
 			aLoadOp, aStoreOp,
 			{},      {},
-			std::move(aUsageInSubpasses)
+			std::move(aUsageInSubpasses),
+			glm::vec4{ 0.0, 0.0, 0.0, 0.0 },
+			1.0f, 0u
 		};
 	}
 	
-	attachment attachment::define(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
+	attachment attachment::declare(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
-		return define({aFormat, att::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		return declare({aFormat, att::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 	
-	attachment attachment::define_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
+	attachment attachment::declare_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		auto& imageInfo = aImageView.get_image().config();
 		auto format = image_format{ imageInfo.format };
 		std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
-		return define({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		return declare({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 
+	attachment& attachment::set_clear_color(glm::vec4 aColor)
+	{
+		mColorClearValue = aColor;
+		return *this;
+	}
+	
+	attachment& attachment::set_depth_clear_value(float aDepthClear)
+	{
+		mDepthClearValue = aDepthClear;
+		return *this;
+	}
+	
+	attachment& attachment::set_stencil_clear_value(uint32_t aStencilClear)
+	{
+		mStencilClearValue = aStencilClear;
+		return *this;
+	}
+	
 	attachment& attachment::set_load_operation(att::on_load aLoadOp)
 	{
 		mLoadOperation = aLoadOp;

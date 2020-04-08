@@ -58,95 +58,27 @@ namespace cgb
 		mState = command_buffer_state::finished_recording;
 	}
 
-	void command_buffer_t::begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aSwapchainImageIndex)
+	void command_buffer_t::begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, const framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset, std::optional<glm::uvec2> aRenderAreaExtent, bool aSubpassesInline)
 	{
-		const auto& rp = aPipeline.get_renderpass();
-		const auto subpassId = aPipeline.subpass_id();
-		begin_render_pass(rp, subpassId, aWindow, aSwapchainImageIndex);
-	}
-
-	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aSwapchainImageIndex)
-	{
-		auto extent = cgb::context().main_window()->swap_chain_extent();
-		const auto inFlightIndex = aSwapchainImageIndex.value_or(aWindow->swapchain_image_index_for_frame());
-		auto backbufferHandle = cgb::context().main_window()->backbuffer_at_index(inFlightIndex)->handle();
-
-		std::vector<vk::ClearValue> clearValues;
-		auto& rpAttachments = aRenderpass.attachment_descriptions();
-		clearValues.reserve(rpAttachments.size());
-		for (size_t i = 0; i < rpAttachments.size(); ++i) {
-			if (aRenderpass.is_color_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
-				continue;
-			}
-			if (aRenderpass.is_depth_stencil_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
-				continue;
-			}
-			if (aRenderpass.is_input_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
-				continue;
-			}
-			if (aRenderpass.is_resolve_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
-				continue;
-			}
-		}
-
-		// Begin render aass and clear the attachments (color and depth)
-		begin_render_pass_for_framebuffer(aRenderpass.handle(), backbufferHandle, { 0, 0 }, extent, std::move(clearValues));
-	}
-	
-	void command_buffer_t::begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues)
-	{
+		const auto firstAttachmentsSize = aFramebuffer.image_view_at(0)->get_image().config().extent;
+		const auto& clearValues = aRenderpass.clear_values();
 		auto renderPassBeginInfo = vk::RenderPassBeginInfo()
-			.setRenderPass(aRenderPass)
-			.setFramebuffer(aFramebuffer)
+			.setRenderPass(aRenderpass.handle())
+			.setFramebuffer(aFramebuffer.handle())
 			.setRenderArea(vk::Rect2D()
-				.setOffset(aOffset)
-				.setExtent(aExtent))
-			.setClearValueCount(static_cast<uint32_t>(aClearValues.size()))
-			.setPClearValues(aClearValues.data());
+				.setOffset(vk::Offset2D{ aRenderAreaOffset.x, aRenderAreaOffset.y })
+				.setExtent(aRenderAreaExtent.has_value() 
+							? vk::Extent2D{ aRenderAreaExtent.value().x, aRenderAreaExtent.value().y } 
+							: vk::Extent2D{ firstAttachmentsSize.width,  firstAttachmentsSize.height }
+					)
+				)
+			.setClearValueCount(static_cast<uint32_t>(clearValues.size()))
+			.setPClearValues(clearValues.data());
 
-		mCommandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+		mCommandBuffer->beginRenderPass(renderPassBeginInfo, aSubpassesInline ? vk::SubpassContents::eInline : vk::SubpassContents::eSecondaryCommandBuffers);
 		// 2nd parameter: how the drawing commands within the render pass will be provided. It can have one of two values [7]:
 		//  - VK_SUBPASS_CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed.
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
-	}
-
-	void command_buffer_t::begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, const framebuffer_t& aFramebuffer)
-	{
-		assert(!aFramebuffer.image_views().empty());
-
-		std::vector<vk::ClearValue> clearValues;
-		auto& rpAttachments = aRenderpass.attachment_descriptions();
-		clearValues.reserve(rpAttachments.size());
-		for (size_t i = 0; i < rpAttachments.size(); ++i) {
-			if (aRenderpass.is_color_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(vk::ClearColorValue{ make_array<float>(0.5f, 0.0f, 0.5f, 1.0f) }));
-				continue;
-			}
-			if (aRenderpass.is_depth_stencil_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(vk::ClearDepthStencilValue{ 1.0f, 0 }));
-				continue;
-			}
-			if (aRenderpass.is_input_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
-				continue;
-			}
-			if (aRenderpass.is_resolve_attachment(aSubpassId, i)) {
-				clearValues.push_back(vk::ClearValue(/* TODO: What to do? */));
-				continue;
-			}
-		}
-		
-		auto extent = aFramebuffer.image_view_at(0)->get_image().config().extent;
-		begin_render_pass_for_framebuffer(aRenderpass.handle(), aFramebuffer.handle(), { 0, 0 }, vk::Extent2D{ extent.width, extent.height }, std::move(clearValues));
-	}
-	
-	void command_buffer_t::begin_render_pass(const framebuffer_t& aFramebuffer)
-	{
-		begin_render_pass(aFramebuffer.get_renderpass(), 0u, aFramebuffer);
 	}
 
 	void command_buffer_t::establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage)

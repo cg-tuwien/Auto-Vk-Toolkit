@@ -103,7 +103,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::culling_mode::disabled,
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()).enable_dynamic_viewport(),
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format),
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),
 			cgb::binding(0, mUbo),
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
@@ -150,7 +150,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
 
 			// Begin drawing:
-			commandBuffer.begin_render_pass(mGraphicsPipeline, cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass_for_framebuffer(mGraphicsPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame(inFlightIndex)); // TODO: only works because #concurrent == #present
 			commandBuffer.bind_pipeline(mGraphicsPipeline);
 
 			// Draw left viewport:
@@ -159,7 +159,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::binding(0, mUbo),
 				cgb::binding(1, mInputImageAndSampler)
 			});
-			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
+			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffer);
 
 			// Draw right viewport (post compute)
 			commandBuffer.handle().setViewport(0, 1, &vpRight);
@@ -167,7 +167,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::binding(0, mUbo),
 				cgb::binding(1, mTargetImageAndSampler)
 			});
-			cgb::context().draw_indexed(mGraphicsPipeline, commandBuffer, mVertexBuffer, mIndexBuffer);
+			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffer);
 
 			commandBuffer.end_render_pass();
 		});

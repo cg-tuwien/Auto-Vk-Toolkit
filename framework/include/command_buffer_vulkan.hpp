@@ -58,23 +58,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		void begin_recording();
 		void end_recording();
-
-		/**	Begins a new render pass for the given window, i.e. calls Vulkan's vkBeginRenderPass.
-		 *	Also clears all the attachments.
-		 *	Pay attention to the parameter `_ConcurrentFrameIndex` as it will refer to one of the (concurrent) back buffers!
-		 *	
-		 *	@param	aWindow					The window which to begin the render pass for.
-		 *	@param	aSwapchainImageIndex			The "in flight index" referring to a specific index of the back buffers.
-		 *									If left unset, it will be set to the current frame's "in flight index",
-		 *									which is basically `cf % iff`, where `cf` is the current frame's id (or 
-		 *									`_Window->current_frame()`), and `iff` is the number of concurrent frames,
-		 *									in flight (or `_Window->number_of_in_flight_frames()`).
-		 */
-		void begin_render_pass(const graphics_pipeline_t& aPipeline, window* aWindow, std::optional<int64_t> aSwapchainImageIndex = {});
-		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, window* aWindow, std::optional<int64_t> aSwapchainImageIndex = {});
-		void begin_render_pass(const renderpass_t& aRenderpass, uint32_t aSubpassId, const framebuffer_t& aFramebuffer);
-		void begin_render_pass(const framebuffer_t& aFramebuffer);
-		void begin_render_pass_for_framebuffer(const vk::RenderPass& aRenderPass, const vk::Framebuffer& aFramebuffer, const vk::Offset2D& aOffset, const vk::Extent2D& aExtent, std::vector<vk::ClearValue> aClearValues);
+		void begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, const framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset = {0, 0}, std::optional<glm::uvec2> aRenderAreaExtent = {}, bool aSubpassesInline = true);
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
@@ -83,6 +67,38 @@ namespace cgb // ========================== TODO/WIP ===========================
 		void copy_image(const image_t& aSource, const vk::Image& aDestination);
 		void end_render_pass();
 
+		template <typename Bfr, typename... Bfrs>
+		void draw_vertices(const Bfr aVertexBuffer, const Bfrs&... aFurtherBuffers, uint32_t aNumberOfInstances = 1u, uint32_t aFirstVertex = 0u, uint32_t aFirstInstance = 0u)
+		{
+			handle().bindVertexBuffers(0u, { aVertexBuffer.buffer_handle(), aFurtherBuffers.buffer_handle() ... }, { vk::DeviceSize{0}, ((void)aFurtherBuffers, vk::DeviceSize{0}) ... });
+			//																									Make use of the discarding behavior of the comma operator ^, see: https://stackoverflow.com/a/61098748/387023
+			handle().draw(aVertexBuffer.mVertexCount, aNumberOfInstances, aFirstVertex, aFirstInstance);                      
+		}
+
+		template <typename IdxBfr, typename... Bfrs>
+		void draw_indexed(const IdxBfr& aIndexBuffer, uint32_t aNumberOfInstances, uint32_t aFirstIndex, uint32_t aVertexOffset, uint32_t aFirstInstance, const Bfrs&... aVertexBuffers)
+		{
+			handle().bindVertexBuffers(0u, { aVertexBuffers.buffer_handle() ... }, { ((void)aVertexBuffers, vk::DeviceSize{0}) ... });
+			//											Make use of the discarding behavior of the comma operator ^, see: https://stackoverflow.com/a/61098748/387023
+
+			// TODO: I have no idea why cgb::to_vk_index_type can not be found during compilation time
+			vk::IndexType indexType = vk::IndexType::eNoneNV;
+			switch (aIndexBuffer.meta_data().sizeof_one_element()) {
+				case sizeof(uint16_t): indexType = vk::IndexType::eUint16; break;
+				case sizeof(uint32_t): indexType = vk::IndexType::eUint32; break;
+				default: LOG_ERROR(fmt::format("The given size[{}] does not correspond to a valid vk::IndexType", aIndexBuffer.meta_data().sizeof_one_element())); break;
+			}
+			
+			handle().bindIndexBuffer(aIndexBuffer.buffer_handle(), 0u, indexType);
+			handle().drawIndexed(aIndexBuffer.meta_data().num_elements(), aNumberOfInstances, aFirstIndex, aVertexOffset, aFirstInstance);
+		}
+		
+		template <typename IdxBfr, typename... Bfrs>
+		void draw_indexed(const IdxBfr& aIndexBuffer, const Bfrs&... aVertexBuffers)
+		{
+			draw_indexed(aIndexBuffer, 1u, 0u, 0u, 0u, aVertexBuffers ...);
+		}
+		
 		auto& begin_info() const { return mBeginInfo; }
 		auto& handle() const { return mCommandBuffer.get(); }
 		auto* handle_addr() const { return &mCommandBuffer.get(); }

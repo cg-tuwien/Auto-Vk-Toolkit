@@ -15,12 +15,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/a_triangle.frag"),
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::viewport_depth_scissors_config::from_window(),
-			cgb::attachment::define(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
 		);
 
 		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass(mPipeline, cgb::context().main_window(), inFlightIndex);
+			commandBuffer.begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame(inFlightIndex)); // TODO: only because #concurrent == #present
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			commandBuffer.handle().draw(3u, 1u, 0u, 0u);
 			commandBuffer.end_render_pass();

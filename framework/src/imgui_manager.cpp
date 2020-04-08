@@ -65,7 +65,7 @@ namespace cgb
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
 			mRenderpass = renderpass_t::create({
-				cgb::attachment::define(image_format::from_window_color_buffer(wnd), att::on_load::load, att::color(0), att::on_store::store_in_presentable_format)
+				cgb::attachment::declare(image_format::from_window_color_buffer(wnd), att::on_load::load, att::color(0), att::on_store::store_in_presentable_format)
 			});
 		}
 
@@ -266,7 +266,7 @@ namespace cgb
 		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass(mRenderpass.value(), 0u /* only one subpass */, cgb::context().main_window());
+		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), cgb::context().main_window()->backbufer_for_frame());
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();

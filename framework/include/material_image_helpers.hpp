@@ -295,7 +295,7 @@ namespace cgb
 	extern std::vector<glm::vec4> get_colors(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet);
 	extern vertex_buffer create_colors_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet);
-	extern vertex_buffer create_2d_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern vertex_buffer create_2d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 	extern std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet);
 	extern vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 

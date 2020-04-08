@@ -48,6 +48,7 @@ namespace cgb
 		static owning_resource<renderpass_t> create(std::vector<attachment> aAttachments, std::function<void(renderpass_sync&)> aSync = {}, cgb::context_specific_function<void(renderpass_t&)> aAlterConfigBeforeCreation = {});
 
 		const auto& attachment_descriptions() const { return mAttachmentDescriptions; }
+		const auto& clear_values() const { return mClearValues; }
 
 		const auto& subpasses() const { return mSubpasses; }
 		const auto& subpass_dependencies() const { return mSubpassDependencies; }
@@ -73,6 +74,9 @@ namespace cgb
 	private:
 		// All the attachments to this renderpass
 		std::vector<vk::AttachmentDescription> mAttachmentDescriptions;
+
+		// All the clear values
+		std::vector<vk::ClearValue> mClearValues;
 
 		// Subpass data
 		std::vector<subpass_data> mSubpassData;

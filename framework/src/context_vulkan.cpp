@@ -195,13 +195,6 @@ namespace cgb
 		});
 	}
 
-	void vulkan::draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer_t& pCommandBuffer)
-	{
-		pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline.handle());
-		pCommandBuffer.handle().draw(3u, 1u, 0u, 0u);
-	}
-
-
 	window* vulkan::create_window(const std::string& _Title)
 	{
 		assert(are_we_on_the_main_thread());
@@ -824,7 +817,7 @@ namespace cgb
 
 		// Create a renderpass for the back buffers
 		std::vector<attachment> renderpassAttachments = {
-			attachment::define_for(pWindow->mSwapChainImageViews[0], att::on_load::clear, att::color(0), att::on_store::dont_care)
+			attachment::declare_for(pWindow->mSwapChainImageViews[0], att::on_load::clear, att::color(0), att::on_store::dont_care)
 		};
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),

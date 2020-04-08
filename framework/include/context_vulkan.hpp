@@ -82,26 +82,6 @@ namespace cgb
 		 */
 		window* create_window(const std::string& _Title);
 
-		void draw_triangle(const graphics_pipeline_t& pPipeline, const command_buffer_t& pCommandBuffer);
-
-		template <typename Bfr>
-		void draw_vertices(const graphics_pipeline& pPipeline, const command_buffer_t& pCommandBuffer, const Bfr& pVertexBuffer)
-		{
-			pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline->handle());
-			pCommandBuffer.handle().bindVertexBuffers(0u, { pVertexBuffer.buffer_handle() }, { 0 });
-			pCommandBuffer.handle().draw(pVertexBuffer.mVertexCount, 1u, 0u, 0u);                      
-		}
-
-		void draw_indexed(const graphics_pipeline& pPipeline, const command_buffer_t& pCommandBuffer, const vertex_buffer_t& pVertexBuffer, const index_buffer_t& pIndexBuffer)
-		{
-			pCommandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, pPipeline->handle());
-			pCommandBuffer.handle().bindVertexBuffers(0u, { pVertexBuffer.buffer_handle() }, { 0 });
-			vk::IndexType indexType = to_vk_index_type(pIndexBuffer.meta_data().sizeof_one_element());
-			pCommandBuffer.handle().bindIndexBuffer(pIndexBuffer.buffer_handle(), 0u, indexType);
-			pCommandBuffer.handle().drawIndexed(pIndexBuffer.meta_data().num_elements(), 1u, 0u, 0u, 0u);
-			//pCommandBuffer.handle().drawIndexedIndirect()
-		}
-
 		/** Completes all pending work on the device, blocks the current thread until then. */
 		void finish_pending_work();
 
