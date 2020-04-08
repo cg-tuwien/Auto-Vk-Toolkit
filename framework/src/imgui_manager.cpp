@@ -262,15 +262,16 @@ namespace cgb
 			a(); // TODO: Invoke here or in update()?
 		}
 		
+		auto mainWnd = cgb::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
 		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), cgb::context().main_window()->backbufer_for_frame());
+		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->backbufer_for_frame());
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
-		submit_command_buffer_ownership(std::move(cmdBfr));
+		mainWnd->submit_for_backbuffer(std::move(cmdBfr));
 	}
 
 	void imgui_manager::finalize()

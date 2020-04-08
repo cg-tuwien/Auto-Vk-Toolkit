@@ -70,9 +70,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
+		auto mainWnd = cgb::context().main_window();
+		
 		// Draw using the command buffer which is associated to the current frame in flight-index:
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+		mainWnd->submit_for_backbuffer_ref(mCmdBfrs[inFlightIndex]);
 	}
 
 private: // v== Member variables ==v

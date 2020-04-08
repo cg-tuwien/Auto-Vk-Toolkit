@@ -154,8 +154,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::context().dynamic_dispatch());
 
 		cmdbfr->end_recording();
-		submit_command_buffer_ownership(std::move(cmdbfr));
-		submit_command_buffer_ownership(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
 	}
 
 private: // v== Member variables ==v

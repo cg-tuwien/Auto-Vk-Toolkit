@@ -140,7 +140,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		//		 will ensure correct and smooth rendering regardless of the timer used.
 
 		// For the right vertex buffer, ...
-		auto inFlightIndex = cgb::context().main_window()->in_flight_index_for_frame();
+		auto mainWnd = cgb::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// ... update its vertex data:
 		cgb::fill(
@@ -155,7 +156,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		// Finally, submit the right command buffer in order to issue the draw call:
-		submit_command_buffer_ref(mCmdBfrs[inFlightIndex]);
+		mainWnd->submit_for_backbuffer_ref(mCmdBfrs[inFlightIndex]);
 	}
 
 

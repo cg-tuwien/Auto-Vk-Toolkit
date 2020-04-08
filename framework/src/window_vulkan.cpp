@@ -2,6 +2,8 @@
 
 namespace cgb
 {
+	std::mutex window::sSubmitMutex;
+	
 	void window::request_srgb_framebuffer(bool aRequestSrgb)
 	{
 		// Which formats are supported, depends on the surface.
@@ -244,19 +246,44 @@ namespace cgb
 
 	void window::handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
+		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
 			aFrameId = current_frame();
 		}
 		mSingleUseCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
 	}
-	
-	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aFrameId)
+
+	void window::submit_for_backbuffer(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
+		std::scoped_lock<std::mutex> guard(sSubmitMutex);
+		if (!aFrameId.has_value()) {
+			aFrameId = current_frame();
+		}
+		const auto frameId = aFrameId.value();
+		auto& refTpl = mSingleUseCommandBuffers.emplace_back(frameId, std::move(aCommandBuffer));
+		mCommandBufferRefs.emplace_back(frameId, std::cref(*std::get<command_buffer>(refTpl)));
+		// ^ Prefer code duplication over recursive_mutex
+	}
+
+	void window::submit_for_backbuffer_ref(const command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId)
+	{
+		std::scoped_lock<std::mutex> guard(sSubmitMutex);
+		if (!aFrameId.has_value()) {
+			aFrameId = current_frame();
+		}
+		mCommandBufferRefs.emplace_back(aFrameId.value(), std::cref(aCommandBuffer));
+	}
+
+	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId)
+	{
+		// No need to protect against concurrent access since that would be misuse of this function.
+		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
+		
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mExtraSemaphoreDependencies), std::end(mExtraSemaphoreDependencies),
-			[frameId = aFrameId](const auto& tpl) {
-				return std::get<int64_t>(tpl) == frameId;
+			[maxTTL = std::min(aPresentFrameId - number_of_in_flight_frames(), aPresentFrameId - number_of_swapchain_images())](const auto& tpl) {
+				return std::get<int64_t>(tpl) <= maxTTL;
 			});
 		// return ownership of all the semaphores to remove to the caller
 		std::vector<semaphore> moved_semaphores;
@@ -268,25 +295,54 @@ namespace cgb
 		return moved_semaphores;
 	}
 
-	std::vector<command_buffer> window::remove_all_single_use_command_buffers_for_frame(int64_t aFrameId)
+	std::vector<command_buffer> window::clean_up_command_buffers_for_frame(int64_t aPresentFrameId)
 	{
-		// Find all to remove
-		auto to_remove = std::remove_if(
-			std::begin(mSingleUseCommandBuffers), std::end(mSingleUseCommandBuffers),
-			[frameId = aFrameId](const auto& tpl) {
-				return std::get<int64_t>(tpl) == frameId;
+		// No need to protect against concurrent access since that would be misuse of this function.
+		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
+
+		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
+		auto maxTTL = std::min(aPresentFrameId - number_of_in_flight_frames(), aPresentFrameId - number_of_swapchain_images());
+		
+		// 1. COMMAND BUFFER REFERENCES
+		const auto refs_to_remove = std::remove_if(
+			std::begin(mCommandBufferRefs), std::end(mCommandBufferRefs),
+			[maxTTL](const auto& tpl){
+				return std::get<int64_t>(tpl) <= maxTTL;
 			});
-		// return ownership of all the command_buffers to remove to the caller
-		std::vector<command_buffer> moved_command_buffers;
-		for (decltype(to_remove) it = to_remove; it != std::end(mSingleUseCommandBuffers); ++it) {
-			moved_command_buffers.push_back(std::move(std::get<command_buffer>(*it)));
+		mCommandBufferRefs.erase(refs_to_remove, std::end(mCommandBufferRefs));
+		
+		// 2. SINGLE USE COMMAND BUFFERS
+		// Can not use the erase-remove idiom here because that would invalidate iterators and references
+		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
+		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
+		auto eraseBegin = std::begin(mSingleUseCommandBuffers);
+		std::vector<command_buffer> removedBuffers;
+		if (std::get<int64_t>(*eraseBegin) > maxTTL) {
+			return removedBuffers;
 		}
-		// Erase and return
-		mSingleUseCommandBuffers.erase(to_remove, std::end(mSingleUseCommandBuffers));
-		return moved_command_buffers;
+		// There are elements that we can remove => find position until where:
+		auto eraseEnd = eraseBegin;
+		while (eraseEnd != std::end(mSingleUseCommandBuffers) && std::get<int64_t>(*eraseEnd) <= maxTTL) {
+			// return ownership of all the command_buffers to remove to the caller
+			removedBuffers.push_back(std::move(std::get<command_buffer>(*eraseEnd)));
+			++eraseEnd;
+		}
+		mSingleUseCommandBuffers.erase(eraseBegin, eraseEnd);
+		return removedBuffers;
 	}
 
-	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId)
+	std::vector<std::reference_wrapper<const cgb::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
+	{
+		std::vector<std::reference_wrapper<const cgb::command_buffer_t>> result;
+		for (const auto& [cbFrameId, ref] : mCommandBufferRefs) {
+			if (cbFrameId == aFrameId) {
+				result.push_back(ref);
+			}
+		}
+		return result;
+	}
+
+	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const
 	{
 		for (const auto& [frameId, sem] : mExtraSemaphoreDependencies) {
 			if (frameId == aFrameId) {
@@ -295,7 +351,7 @@ namespace cgb
 		}
 	}
 
-	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId)
+	void window::fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const
 	{
 		// TODO: Fill mExtraRenderFinishedSemaphores with meaningful data
 		// TODO: Implement
@@ -310,7 +366,7 @@ namespace cgb
 
 	}*/
 
-	void window::render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs)
+	void window::render_frame()
 	{
 		vk::Result result;
 
@@ -322,10 +378,8 @@ namespace cgb
 
 		// At this point we are certain that frame which used the current fence before is done.
 		//  => Clean up the resources of that previous frame!
-		auto semaphoresToBeFreed 
-			= remove_all_extra_semaphore_dependencies_for_frame(current_frame() - number_of_in_flight_frames());
-		auto commandBuffersToBeFreed 
-			= remove_all_single_use_command_buffers_for_frame(current_frame() - number_of_in_flight_frames());
+		auto semaphoresToBeFreed = remove_all_extra_semaphore_dependencies_for_frame(current_frame());
+		auto commandBuffersToBeFreed 	= clean_up_command_buffers_for_frame(current_frame());
 
 		//
 		//
@@ -344,7 +398,6 @@ namespace cgb
 		//
 		//
 
-
 		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 		uint32_t imageIndex;
 		const auto& imgAvailableSem = image_available_semaphore_for_frame();
@@ -360,8 +413,10 @@ namespace cgb
 			nullptr,
 			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
+		auto cbRefs = get_command_buffer_refs_for_frame(current_frame());
 		std::vector<vk::CommandBuffer> cmdBuffers;
-		for (auto cb : aCommandBufferRefs) {
+		cmdBuffers.reserve(cbRefs.size());
+		for (auto cb : cbRefs) {
 			cmdBuffers.push_back(cb.get().handle());
 		}
 

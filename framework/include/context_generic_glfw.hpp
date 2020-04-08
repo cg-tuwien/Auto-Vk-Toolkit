@@ -122,6 +122,18 @@ namespace cgb
 			return nullptr;
 		}
 
+		/** Call a function for each window
+		 *	@tparam	F	void(window*)
+		 */
+		template <typename F>
+		void execute_for_each_window(F&& fun)
+		{
+			for (auto& wnd : mWindows) {
+				auto wnd_ptr = wnd.get();
+				fun(wnd_ptr);
+			}
+		}
+
 		/** Returns the window which is currently in focus, i.e. this is also
 		 *	the window which is affected by all mouse cursor input interaction.
 		 */

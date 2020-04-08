@@ -271,8 +271,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto curIndex = cgb::context().main_window()->in_flight_index_for_frame();
-		submit_command_buffer_ref(mCmdBfrs[curIndex]);
+		auto mainWnd = cgb::context().main_window();
+		auto curIndex = mainWnd->in_flight_index_for_frame();
+		mainWnd->submit_for_backbuffer_ref(mCmdBfrs[curIndex]);
 	}
 
 private: // v== Member variables ==v

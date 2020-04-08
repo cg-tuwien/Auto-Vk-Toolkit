@@ -159,9 +159,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
+		auto mainWnd = cgb::context().main_window();
+		
 		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame());
+		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mainWnd->backbufer_for_frame());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
 				cgb::binding(0, 0, mImageSamplers),
@@ -193,7 +195,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_render_pass();
 		cmdbfr->end_recording();
-		submit_command_buffer_ownership(std::move(cmdbfr));
+		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
 	}
 
 	void update() override

@@ -231,32 +231,10 @@ namespace cgb
 					// 6. render_gizmos
 					thiz->mExecutor.execute_render_gizmos(thiz->mElements);
 					
-					// Gather all the command buffers per window
-					std::unordered_map<window*, std::vector<std::reference_wrapper<const cgb::command_buffer_t>>> toRender;
-					for (auto& e : thiz->mElements)	{
-						for (auto [cb, wnd] : e->mSubmittedCommandBufferReferences) {
-							if (nullptr == wnd) {
-								wnd = cgb::context().main_window();
-							}
-							toRender[wnd].push_back(cb);
-						}
-					}
 					// Render per window
-					for (auto& [wnd, cbs] : toRender) {
-						wnd->render_frame(std::move(cbs));
-					}
-					// Transfer ownership of the command buffers in the elements' mSubmittedCommandBufferInstances to the respective window
-					for (auto& e : thiz->mElements)	{
-						for (auto& [cb, wnd] : e->mSubmittedCommandBufferInstances) {
-							if (nullptr == wnd) {
-								wnd = cgb::context().main_window();
-							}
-							wnd->handle_single_use_command_buffer_lifetime(std::move(cb), wnd->current_frame() - 1);
-						}
-						// Also, cleanup the elements:
-						e->mSubmittedCommandBufferReferences.clear();
-						e->mSubmittedCommandBufferInstances.clear();
-					}
+					cgb::context().execute_for_each_window([](window* wnd){
+						wnd->render_frame();
+					});
 				}
 				else
 				{

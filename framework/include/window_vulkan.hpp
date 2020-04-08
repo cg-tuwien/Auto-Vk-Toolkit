@@ -7,7 +7,9 @@ namespace cgb
 		friend class generic_glfw;
 		friend class vulkan;
 	public:
-
+		// A mutex used to protect concurrent command buffer submission
+		static std::mutex sSubmitMutex;
+		
 		window() = default;
 		window(window&&) noexcept = default;
 		window(const window&) = delete;
@@ -125,7 +127,7 @@ namespace cgb
 
 		/** Gets the number of images there are in the swap chain */
 		auto number_of_swapchain_images() const {
-			return mSwapChainImages.size();
+			return static_cast<int64_t>(mSwapChainImages.size());
 		}
 		
 		/** Gets the current frame index. */
@@ -214,22 +216,44 @@ namespace cgb
 		 */
 		void handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
-		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t aFrameId);
+		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
+		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
+		 *	image to become available.
+		 *	Put differently: No commands will execute until the referenced frame's swapchain image has become available.
+		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
+		 *	@param	aFrameId		The frame this command buffer is associated to.
+		 */
+		void submit_for_backbuffer(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
-		/** Remove all the "single use" command buffers for the given frame.
+		/**	Pass a reference to a command buffer and submit it after the given frame's back buffer has become available.
+		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
+		 *	image to become available (same characteristics as `submit_for_backbuffer` in that matter).
+		 *	Attention: The application must ensure that the command buffer lives long enough!
+		 *			   I.e., it is the application's responsibility to properly handle the command buffer's lifetime.
+		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
+		 *	@param	aFrameId		The frame this command buffer is associated to.
+		 */
+		void submit_for_backbuffer_ref(const command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId = {});
+
+		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
+		 *	can now be safely destroyed.
+		 */
+		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId);
+
+		/** Remove all the "single use" command buffers for the given frame, also clear command buffer references.
 		 *	The command buffers are moved out of the internal storage and returned to the caller.
 		 */
-		std::vector<command_buffer> remove_all_single_use_command_buffers_for_frame(int64_t aFrameId);
+		std::vector<command_buffer> clean_up_command_buffers_for_frame(int64_t aPresentFrameId);
 
-		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId);
+		std::vector<std::reference_wrapper<const cgb::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
+		
+		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
 
-		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId);
+		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
 
 		//std::vector<semaphore> set_num_extra_semaphores_to_generate_per_frame(uint32_t _NumExtraSemaphores);
 
-		//template<typename CBT, typename... CBTS>
-		//void render_frame(CBT _CommandBuffer, CBTS... _CommandBuffers)
-		void render_frame(std::vector<std::reference_wrapper<const cgb::command_buffer_t>> aCommandBufferRefs);
+		void render_frame();
 
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
@@ -242,7 +266,6 @@ namespace cgb
 		template <typename F>
 		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
 		{
-			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
 			return copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
 		}
 
@@ -251,7 +274,6 @@ namespace cgb
 		template <typename F>
 		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
 		{
-			auto imageIndex = in_flight_index_for_frame(aDestinationFrameId);
 			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
 		}
 
@@ -339,8 +361,15 @@ namespace cgb
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
-		// Command buffers which are only submitted once and only once - i.e., for a specific frame,
-		// taking their ownership, handling their lifetime (which lasts until current frame + frames in flight)
-		std::vector<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
+		// This container handles single use-command buffers' lifetimes.
+		// It is used for both, such that are committed `cgb::sync::with_barriers_on_current_frame` and
+		// for those submitted via `window::submit_for_backbuffer`.
+		// A command buffer's lifetime lasts until the specified int64_t frame-id + max(number_of_swapchain_images(), number_of_in_flight_frames())
+		std::deque<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
+
+		// Comand buffers which are submitted via `window::submit_for_backbuffer` or `window::submit_for_backbuffer_ref`
+		// are stored within this container. In the former case, they are moved into `mSingleUseCommandBuffers` first,
+		// and a reference into `mSingleUseCommandBuffers` ist pushed to the back of `mCommandBufferRefs` afterwards.
+		std::vector<std::tuple<int64_t, std::reference_wrapper<const cgb::command_buffer_t>>> mCommandBufferRefs;
 	};
 }
