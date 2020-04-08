@@ -20,6 +20,14 @@ namespace cgb
 		static owning_resource<framebuffer_t> create(renderpass aRenderpass, std::vector<image_view> aImageViews, cgb::context_specific_function<void(framebuffer_t&)> aAlterConfigBeforeCreation = {});
 		static owning_resource<framebuffer_t> create(std::vector<attachment> aAttachments, std::vector<image_view> aImageViews, cgb::context_specific_function<void(framebuffer_t&)> aAlterConfigBeforeCreation = {});
 
+		template <typename ...ImViews>
+		static owning_resource<framebuffer_t> create(std::vector<attachment> aAttachments, ImViews... aImViews)
+		{
+			std::vector<image_view> imageViews;
+			(imageViews.push_back(std::move(aImViews)), ...);
+			return create(std::move(aAttachments), std::move(imageViews));
+		}
+		
 		const auto& get_renderpass() const { return mRenderpass; }
 		const auto& image_views() const { return mImageViews; }
 		const auto& image_view_at(size_t i) const { return mImageViews[i]; }

@@ -148,7 +148,7 @@ namespace cgb
 	
 	void device_queue::submit(command_buffer_t& aCommandBuffer)
 	{
-		assert(aCommandBuffer.state() == command_buffer_state::finished_recording);
+		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
 			.setPCommandBuffers(aCommandBuffer.handle_addr());

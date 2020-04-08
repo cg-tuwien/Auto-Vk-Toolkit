@@ -29,7 +29,7 @@ namespace cgb
 				aWindow = cgb::context().main_window();
 			}
 			
-			auto dimensions = aWindow->resolution(); // TODO: Is this the right one?
+			const auto dimensions = aWindow->resolution(); // TODO: Is this the right one?
 			return viewport_depth_scissors_config{ 
 				{0.0f, 0.0f},
 				{static_cast<float>(dimensions.x), static_cast<float>(dimensions.y)}, 
