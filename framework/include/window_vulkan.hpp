@@ -277,6 +277,21 @@ namespace cgb
 			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
 		}
 
+		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
+		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
+		 *	(be it by the means of pipeline barriers, semaphores, or fences) and hence, it will be destroyed
+		 *	either number_of_in_flight_frames() or number_of_swapchain_images() frames later.
+		 *
+		 *	Example usage:
+		 *	cgb::sync::with_barriers(cgb::context().main_window().handle_command_buffer_lifetime);
+		 */
+		auto handle_command_buffer_lifetime(std::optional<int64_t> aFrameId = {})
+		{
+			return [this, aFrameId](command_buffer aCommandBufferToLifetimeHandle){
+				handle_single_use_command_buffer_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);
+			};
+		}
+		
 	protected:
 		
 

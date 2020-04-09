@@ -13,8 +13,8 @@ namespace cgb
 		ray_tracing_pipeline_t& operator=(const ray_tracing_pipeline_t&) = delete;
 		~ray_tracing_pipeline_t() = default;
 
-		std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
+		std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> layout() const { return std::make_tuple(this, layout_handle(), &mPushConstantRanges); }
 		const auto& handle() const { return mPipeline.get(); }
 		auto table_entry_size() const { return mShaderGroupHandleSize; }
 		const auto& shader_binding_table_handle() const { return mShaderBindingTable->buffer_handle(); }
@@ -68,7 +68,8 @@ namespace cgb
 	}
 
 	template <>
-	inline void command_buffer_t::bind_descriptors<std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*>>(std::tuple<const ray_tracing_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	inline void command_buffer_t::bind_descriptors<std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*>>
+		(std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
 	{
 		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
 	}

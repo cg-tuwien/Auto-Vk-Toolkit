@@ -115,7 +115,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		void bind_descriptors(vk::PipelineBindPoint aBindingPoint, vk::PipelineLayout aLayoutHandle, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr);
 
 		// Template specializations are implemented in the respective pipeline's header files
-		template <typename T> // Expected to be a tuple of type: std::tuple<const PIPE*, const set_of_descriptor_set_layouts*>
+		template <typename T> 
 		void bind_descriptors(T aPipelineLayoutTuple, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache = nullptr)
 		{
 			// TODO: In the current state, we're relying on COMPATIBLE layouts. Think about reusing the pipeline's allocated and internally stored layouts!
@@ -125,7 +125,29 @@ namespace cgb // ========================== TODO/WIP ===========================
 		
 		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
 		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
-		
+
+		// Template specializations are implemented in the respective pipeline's header files
+		template <typename T, typename D> 
+		void push_constants(T aPipelineLayoutTuple, const D& aData)
+		{
+			auto pcRanges = std::get<const std::vector<vk::PushConstantRange>*>(aPipelineLayoutTuple);
+			auto layoutHandle = std::get<const vk::PipelineLayout>(aPipelineLayoutTuple);
+			auto dataSize = static_cast<uint32_t>(sizeof(aData));
+			for (auto& r : *pcRanges) {
+				if (r.size == dataSize) {
+					handle().pushConstants(
+						layoutHandle, 
+						r.stageFlags, 
+						0, // TODO: How to deal with offset?
+						dataSize,
+						&aData);
+					return;
+				}
+				// TODO: How to deal with push constants of same size and multiple vk::PushConstantRanges??
+			}
+			LOG_WARNING(fmt::format("No vk::PushConstantRange entry found that matches the dataSize[{}]", dataSize));
+		}
+
 	private:
 		command_buffer_state mState;
 		vk::CommandBufferBeginInfo mBeginInfo;

@@ -13,8 +13,8 @@ namespace cgb
 		compute_pipeline_t& operator=(const compute_pipeline_t&) = delete;
 		~compute_pipeline_t() = default;
 
-		std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> layout() const { return std::make_tuple(this, &mAllDescriptorSetLayouts); }
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
+		std::tuple<const compute_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> layout() const { return std::make_tuple(this, layout_handle(), &mPushConstantRanges); }
 		const auto& handle() const { return mPipeline.get(); }
 
 		static owning_resource<compute_pipeline_t> create(compute_pipeline_config _Config, cgb::context_specific_function<void(compute_pipeline_t&)> _AlterConfigBeforeCreation = {});
@@ -57,7 +57,8 @@ namespace cgb
 	}
 
 	template <>
-	inline void command_buffer_t::bind_descriptors<std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*>>(std::tuple<const compute_pipeline_t*, const set_of_descriptor_set_layouts*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
+	inline void command_buffer_t::bind_descriptors<std::tuple<const compute_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*>>
+		(std::tuple<const compute_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
 	{
 		bind_descriptors(vk::PipelineBindPoint::eCompute, std::get<const compute_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
 	}

@@ -13,34 +13,45 @@ namespace cgb
 		if (nullptr == result.mScene) {
 			throw cgb::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
 		}
+		result.initialize_materials();
 		return result;
 	}
 
-	owning_resource<model_t> model_t::load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags)
+	owning_resource<model_t> model_t::load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags)
 	{
 		model_t result;
 		result.mModelPath = "";
 		result.mImporter = std::make_unique<Assimp::Importer>();
-		result.mScene = result.mImporter->ReadFileFromMemory(_Memory.c_str(), _Memory.size(), _AssimpFlags);
+		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
 		if (nullptr == result.mScene) {
 			throw cgb::runtime_error("Loading model from memory failed.");
 		}
+		result.initialize_materials();
 		return result;
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const
+	void model_t::initialize_materials()
 	{
-		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
-		for (unsigned int i = 0; i < _Node->mNumMeshes; i++)
+		auto n = static_cast<size_t>(mScene->mNumMeshes);
+		mMaterialConfigPerMesh.reserve(n);
+		for (size_t i = 0; i < n; ++i) {
+			mMaterialConfigPerMesh.emplace_back();
+		}
+	}
+
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const
+	{
+		aiMatrix4x4 nodeM = aM * aNode->mTransformation;
+		for (unsigned int i = 0; i < aNode->mNumMeshes; i++)
 		{
-			if (_Node->mMeshes[i] == _MeshIndexToFind) {
+			if (aNode->mMeshes[i] == aMeshIndexToFind) {
 				return glm::transpose(glm::make_mat4(&nodeM.a1));
 			}
 		}
 		// Not found => go deeper
-		for (unsigned int i = 0; i < _Node->mNumChildren; i++)
+		for (unsigned int i = 0; i < aNode->mNumChildren; i++)
 		{
-			auto mat = transformation_matrix_traverser(_MeshIndexToFind, _Node->mChildren[i], nodeM);
+			auto mat = transformation_matrix_traverser(aMeshIndexToFind, aNode->mChildren[i], nodeM);
 			if (mat.has_value()) {
 				return mat;
 			}
@@ -48,10 +59,10 @@ namespace cgb
 		return {};
 	}
 
-	glm::mat4 model_t::transformation_matrix_for_mesh(mesh_index_t _MeshIndex) const
+	glm::mat4 model_t::transformation_matrix_for_mesh(mesh_index_t aMeshIndex) const
 	{
 		// Find the mesh in Assim's node hierarchy
-		return transformation_matrix_traverser(static_cast<unsigned int>(_MeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
+		return transformation_matrix_traverser(static_cast<unsigned int>(aMeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
 	}
 
 	std::string model_t::name_of_mesh(mesh_index_t _MeshIndex) const
@@ -60,15 +71,15 @@ namespace cgb
 		return mScene->mMeshes[_MeshIndex]->mName.data;
 	}
 
-	size_t model_t::material_index_for_mesh(mesh_index_t _MeshIndex) const
+	size_t model_t::material_index_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		assert(mScene->mNumMeshes >= _MeshIndex);
-		return mScene->mMeshes[_MeshIndex]->mMaterialIndex;
+		assert(mScene->mNumMeshes >= aMeshIndex);
+		return mScene->mMeshes[aMeshIndex]->mMaterialIndex;
 	}
 
-	std::string model_t::name_of_material(size_t _MaterialIndex) const
+	std::string model_t::name_of_material(size_t aMaterialIndex) const
 	{
-		aiMaterial* pMaterial = mScene->mMaterials[_MaterialIndex];
+		aiMaterial* pMaterial = mScene->mMaterials[aMaterialIndex];
 		if (!pMaterial) return "";
 		aiString name;
 		if (pMaterial->Get(AI_MATKEY_NAME, name) == AI_SUCCESS)
@@ -77,8 +88,13 @@ namespace cgb
 			return "";
 	}
 
-	material_config model_t::material_config_for_mesh(mesh_index_t _MeshIndex) const
+	material_config model_t::material_config_for_mesh(mesh_index_t aMeshIndex)
 	{
+		assert (mMaterialConfigPerMesh.size() > aMeshIndex);
+		if (mMaterialConfigPerMesh[aMeshIndex].has_value()) {
+			return mMaterialConfigPerMesh[aMeshIndex].value();
+		}
+		
 		material_config result;
 
 		aiString strVal;
@@ -88,7 +104,7 @@ namespace cgb
 		float floatVal;
 		aiTextureMapping texMapping;
 
-		auto materialIndex = material_index_for_mesh(_MeshIndex);
+		auto materialIndex = material_index_for_mesh(aMeshIndex);
 		assert(materialIndex <= mScene->mNumMaterials);
 		aiMaterial* aimat = mScene->mMaterials[materialIndex];
 
@@ -252,10 +268,17 @@ namespace cgb
 			result.mLightmapTex = combine_paths(extract_base_path(mModelPath), strVal.data);
 		}
 
+		mMaterialConfigPerMesh[aMeshIndex] = result; // save
 		return result;
 	}
 
-	std::unordered_map<material_config, std::vector<size_t>> model_t::distinct_material_configs(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials) const
+	void model_t::set_material_config_for_mesh(mesh_index_t aMeshIndex, const material_config& aMaterialConfig)
+	{
+		assert(aMeshIndex < mMaterialConfigPerMesh.size());
+		mMaterialConfigPerMesh[aMeshIndex] = aMaterialConfig;
+	}
+
+	std::unordered_map<material_config, std::vector<size_t>> model_t::distinct_material_configs(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials)
 	{
 		assert(mScene);
 		std::unordered_map<material_config, std::vector<size_t>> result;
@@ -263,23 +286,23 @@ namespace cgb
 		for (decltype(n) i = 0; i < n; ++i) {
 			const aiMesh* paiMesh = mScene->mMeshes[i];
 			auto matConf = material_config_for_mesh(i);
-			matConf.mIgnoreCpuOnlyDataForEquality = !_AlsoConsiderCpuOnlyDataForDistinctMaterials;
+			matConf.mIgnoreCpuOnlyDataForEquality = !aAlsoConsiderCpuOnlyDataForDistinctMaterials;
 			result[matConf].emplace_back(i);
 		}
 		return result;
 	}
 
-	size_t model_t::number_of_vertices_for_mesh(mesh_index_t _MeshIndex) const
+	size_t model_t::number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const
 	{
 		assert(mScene);
-		assert(_MeshIndex < mScene->mNumMeshes);
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		assert(aMeshIndex < mScene->mNumMeshes);
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		return static_cast<size_t>(paiMesh->mNumVertices);
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_mesh(mesh_index_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::positions_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
@@ -289,14 +312,14 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_mesh(mesh_index_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::normals_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mNormals) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", _MeshIndex));
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
 			result.emplace_back(0.f, 0.f, 1.f);
 		}
 		else {
@@ -308,14 +331,14 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_mesh(mesh_index_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::tangents_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mTangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", _MeshIndex));
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
 			result.emplace_back(1.f, 0.f, 0.f);
 		}
 		else {
@@ -327,14 +350,14 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_mesh(mesh_index_t _MeshIndex) const
+	std::vector<glm::vec3> model_t::bitangents_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mBitangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", _MeshIndex));
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
 			result.emplace_back(0.f, 1.f, 0.f);
 		}
 		else {
@@ -346,37 +369,37 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_mesh(mesh_index_t _MeshIndex, int _Set) const
+	std::vector<glm::vec4> model_t::colors_for_mesh(mesh_index_t aMeshIndex, int aSet) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec4> result;
 		result.reserve(n);
-		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_COLOR_SETS);
-		if (nullptr == paiMesh->mColors[_Set]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", _MeshIndex, _Set));
+		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_COLOR_SETS);
+		if (nullptr == paiMesh->mColors[aSet]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
 			result.emplace_back(1.f, 0.f, 1.f, 1.f);
 		}
 		else {
 			// We've got colors[_Set]. Proceed as planned.
 			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(paiMesh->mColors[_Set][i][0], paiMesh->mColors[_Set][i][1], paiMesh->mColors[_Set][i][2], paiMesh->mColors[_Set][i][3]);
+				result.emplace_back(paiMesh->mColors[aSet][i][0], paiMesh->mColors[aSet][i][1], paiMesh->mColors[aSet][i][2], paiMesh->mColors[aSet][i][3]);
 			}
 		}
 		return result;
 	}
 
-	int model_t::num_uv_components_for_mesh(mesh_index_t _MeshIndex, int _Set) const
+	int model_t::num_uv_components_for_mesh(mesh_index_t aMeshIndex, int aSet) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
-		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
-		if (nullptr == paiMesh->mTextureCoords[_Set]) { return 0; }
-		return paiMesh->mNumUVComponents[_Set];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[aSet]) { return 0; }
+		return paiMesh->mNumUVComponents[aSet];
 	}
 
-	int model_t::number_of_indices_for_mesh(mesh_index_t _MeshIndex) const
+	int model_t::number_of_indices_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		size_t indicesCount = 0;
 		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++)
 		{
@@ -397,16 +420,16 @@ namespace cgb
 		return result;
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_light(const aiLight* _Light, const aiNode* _Node, const aiMatrix4x4& _M) const
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_light(const aiLight* aLight, const aiNode* aNode, const aiMatrix4x4& aM) const
 	{
-		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
-		if (_Node->mName == _Light->mName) {
+		aiMatrix4x4 nodeM = aM * aNode->mTransformation;
+		if (aNode->mName == aLight->mName) {
 			return glm::transpose(glm::make_mat4(&nodeM.a1));
 		}
 		// Not found => go deeper
-		for (unsigned int i = 0; i < _Node->mNumChildren; i++)
+		for (unsigned int i = 0; i < aNode->mNumChildren; i++)
 		{
-			auto mat = transformation_matrix_traverser_for_light(_Light, _Node->mChildren[i], nodeM);
+			auto mat = transformation_matrix_traverser_for_light(aLight, aNode->mChildren[i], nodeM);
 			if (mat.has_value()) {
 				return mat;
 			}
@@ -414,51 +437,51 @@ namespace cgb
 		return {};
 	}
 
-	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::positions_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
 	{
 		std::vector<glm::vec3> result;
-		for (auto meshIndex : _MeshIndices) {
+		for (auto meshIndex : aMeshIndices) {
 			auto tmp = positions_for_mesh(meshIndex);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::normals_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
 	{
 		std::vector<glm::vec3> result;
-		for (auto meshIndex : _MeshIndices) {
+		for (auto meshIndex : aMeshIndices) {
 			auto tmp = normals_for_mesh(meshIndex);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::tangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
 	{
 		std::vector<glm::vec3> result;
-		for (auto meshIndex : _MeshIndices) {
+		for (auto meshIndex : aMeshIndices) {
 			auto tmp = tangents_for_mesh(meshIndex);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
 	}
 
-	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const
+	std::vector<glm::vec3> model_t::bitangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
 	{
 		std::vector<glm::vec3> result;
-		for (auto meshIndex : _MeshIndices) {
+		for (auto meshIndex : aMeshIndices) {
 			auto tmp = bitangents_for_mesh(meshIndex);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<mesh_index_t> _MeshIndices, int _Set) const
+	std::vector<glm::vec4> model_t::colors_for_meshes(std::vector<mesh_index_t> aMeshIndices, int aSet) const
 	{
 		std::vector<glm::vec4> result;
-		for (auto meshIndex : _MeshIndices) {
-			auto tmp = colors_for_mesh(meshIndex, _Set);
+		for (auto meshIndex : aMeshIndices) {
+			auto tmp = colors_for_mesh(meshIndex, aSet);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
@@ -537,16 +560,16 @@ namespace cgb
 		return result;
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_camera(const aiCamera* _Camera, const aiNode* _Node, const aiMatrix4x4& _M) const
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_camera(const aiCamera* aCamera, const aiNode* aNode, const aiMatrix4x4& aM) const
 	{
-		aiMatrix4x4 nodeM = _M * _Node->mTransformation;
-		if (_Node->mName == _Camera->mName) {
+		aiMatrix4x4 nodeM = aM * aNode->mTransformation;
+		if (aNode->mName == aCamera->mName) {
 			return glm::transpose(glm::make_mat4(&nodeM.a1));
 		}
 		// Not found => go deeper
-		for (unsigned int i = 0; i < _Node->mNumChildren; i++)
+		for (unsigned int i = 0; i < aNode->mNumChildren; i++)
 		{
-			auto mat = transformation_matrix_traverser_for_camera(_Camera, _Node->mChildren[i], nodeM);
+			auto mat = transformation_matrix_traverser_for_camera(aCamera, aNode->mChildren[i], nodeM);
 			if (mat.has_value()) {
 				return mat;
 			}

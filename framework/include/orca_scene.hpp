@@ -91,15 +91,33 @@ namespace cgb
 		~orca_scene_t() = default;
 
 		const auto& models() const { return mModelData; }
-		const auto& model_at_index(size_t _Index) const { return mModelData[_Index]; }
+		const auto& model_at_index(size_t aIndex) const { return mModelData[aIndex]; }
+		auto& model_at_index(size_t aIndex) { return mModelData[aIndex]; }
 		const auto& directional_lights() const { return mDirLightsData; }
 		const auto& point_lights() const { return mPointLightsData; }
 		const auto& cameras() const { return mCamerasData; }
 		const auto& light_probes() const { return mLightProbesData; }
 		const auto& paths() const { return mPathsData; }
 
+		/** Return the indices of all models which the given predicate evaluates true for.
+		 *	@tparam F	bool(size_t, const model_data&) where the first parameter is the
+		 *				model index and the second a reference to the loaded data, which
+		 *				also includes the loaded model_t.
+		 */
+		template <typename F>
+		std::vector<size_t> select_models(F aPredicate) const
+		{
+			std::vector<size_t> result;
+			for (size_t i = 0; i < mModelData.size(); ++i) {
+				if (aPredicate(i, mModelData[i])) {
+					result.push_back(i);
+				}
+			}
+			return result;
+		}
+
 		/**	Gets all distinct `material_config` structs for all of this ORACA scene's models and also get all the model indices and mesh indices which have the materials assigned to.
-		 *	@param	_AlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
+		 *	@param	aAlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
 		 *															also the data in the material struct are evaluated which only remain on the CPU. This CPU 
 		 *															data will not be transmitted to the GPU. By default, this parameter is set to `false`, i.e.
 		 *															only the GPU data of the `material_config` struct will be evaluated when determining the distinct
@@ -112,9 +130,9 @@ namespace cgb
 		 *				[0] The model index as `size_t` at the first spot, and
 		 *				[1] The model's mesh indices as `std::vector<size_t>` at the second spot.
 		 */
-		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false) const;
+		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> distinct_material_configs_for_all_models(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials = false);
 
-		static owning_resource<orca_scene_t> load_from_file(const std::string& _Path, model_t::aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		static owning_resource<orca_scene_t> load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
 	private:
 		std::string mLoadPath;

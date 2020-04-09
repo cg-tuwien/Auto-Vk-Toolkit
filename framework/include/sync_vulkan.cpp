@@ -82,28 +82,13 @@ namespace cgb
 		return result;
 	}
 
-	sync sync::with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation, cgb::window* aWindow)
+	sync sync::with_semaphore_to_backbuffer_dependency(std::vector<semaphore> aWaitBeforeOperation, cgb::window* aWindow, std::optional<int64_t> aFrameId)
 	{
-		return sync::with_semaphores(
-			[wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (semaphore aSemaphore) {  
-				wnd->set_extra_semaphore_dependency(std::move(aSemaphore));
+		return sync::with_semaphore(
+			[wnd = nullptr != aWindow ? aWindow : cgb::context().main_window(), aFrameId] (semaphore aSemaphore) {  
+				wnd->set_extra_semaphore_dependency(std::move(aSemaphore), aFrameId);
 			}, 
 			std::move(aWaitBeforeOperation)
-		);
-	}
-
-	sync sync::with_barriers_on_current_frame(
-			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
-			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation,
-			cgb::window* aWindow
-		)
-	{
-		return sync::with_barriers(
-			[wnd = nullptr != aWindow ? aWindow : cgb::context().main_window()] (auto aCmdBfr) {  
-				wnd->handle_single_use_command_buffer_lifetime(std::move(aCmdBfr));
-			},
-			std::move(aEstablishBarrierBeforeOperation),
-			std::move(aEstablishBarrierAfterOperation)
 		);
 	}
 

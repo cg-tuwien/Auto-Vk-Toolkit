@@ -116,6 +116,7 @@ namespace cgb
 			}
 
 			static viewport_depth_scissors_config from_window(window* aWindow = nullptr);
+			static viewport_depth_scissors_config from_framebuffer(const framebuffer_t& aFramebuffer);
 
 			viewport_depth_scissors_config& enable_dynamic_viewport() { mDynamicViewportEnabled = true; return *this; }
 			viewport_depth_scissors_config& disable_dynamic_viewport() { mDynamicViewportEnabled = false; return *this; }

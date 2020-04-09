@@ -78,7 +78,7 @@ namespace cgb
 		 *	@param	aWaitBeforeOperation		A vector of other semaphores to be waited on before executing the command.
 		 */
 		template <typename F>
-		static sync with_semaphores(F&& aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation = {})
+		static sync with_semaphore(F&& aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation = {})
 		{
 			sync result;
 			result.mSemaphoreLifetimeHandler = std::forward<F>(aSignalledAfterOperation);
@@ -89,10 +89,14 @@ namespace cgb
 		/**	Establish semaphore-based synchronization and have its lifetime handled w.r.t the window's swap chain.
 		 *	@param	aWaitBeforeOperation		A vector of other semaphores to be waited on before executing the command.
 		 *	@param	aWindow						A window, whose swap chain shall be used to handle the lifetime of the possibly emerging semaphore.
+		 *	@param	aFrameId					Which frame shall wait on the semaphore. If left empty, the current frame's id is inserted.
 		 */
-		static sync with_semaphores_on_current_frame(std::vector<semaphore> aWaitBeforeOperation = {}, cgb::window* aWindow = nullptr);
+		static sync with_semaphore_to_backbuffer_dependency(std::vector<semaphore> aWaitBeforeOperation = {}, cgb::window* aWindow = nullptr, std::optional<int64_t> aFrameId = {});
 
-		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
+		/**	Establish barrier-based synchronization and return the resulting command buffer from the operation.
+		 *	Note: Not all operations support this type of synchronization. You can notice them by a method
+		 *	      signature that does NOT return `std::optional<command_buffer>`.
+		 *	
 		 *	@tparam F									void(command_buffer)
 		 *	@param	aCommandBufferLifetimeHandler		A function to handle the lifetime of a command buffer.
 		 *	
@@ -118,6 +122,7 @@ namespace cgb
 		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
 		 *	@tparam F									void(command_buffer)
 		 *	@param	aCommandBufferLifetimeHandler		A function to handle the lifetime of a command buffer.
+		 *												`window::handle_command_buffer_lifetime` might be suitable for your use case.
 		 *	
 		 *	@param	aEstablishBarrierBeforeOperation	Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::read_memory_access>)
 		 *												Callback which gets called at the beginning of the operation, in order to sync with whatever comes before.
@@ -139,14 +144,6 @@ namespace cgb
 			result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
 			return result;
 		}
-
-		/**	Establish barrier-based synchronization with a custom command buffer lifetime handler.
-		 */
-		static sync with_barriers_on_current_frame(
-			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
-			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation,
-			cgb::window* aWindow = nullptr
-		);
 
 		/**	Establish barrier-based synchronization for a command which is subordinate to a
 		 *	"master"-sync handler. The master handler is usually provided by the user and this

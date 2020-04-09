@@ -18,10 +18,10 @@ namespace cgb
 		~model_t() = default;
 
 		/** Determine the transformation matrix for the mesh at the given index.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Transformation matrix of the given mesh, can be the identity
 		 */
-		glm::mat4 transformation_matrix_for_mesh(mesh_index_t _MeshIndex) const;
+		glm::mat4 transformation_matrix_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets the name of the mesh at the given index (not to be confused with the material's name)
 		 *	@param		_MeshIndex		The index corresponding to the mesh
@@ -31,29 +31,35 @@ namespace cgb
 
 		/** Gets Assimp's internal material index for the given mesh index. 
 		 *	This value won't be useful if not operating directly on Assimp's internal materials.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Mesh index corresponding to Assimp's internal materials structure.
 		 */
-		size_t material_index_for_mesh(mesh_index_t _MeshIndex) const;
+		size_t material_index_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets the name of material at the given material index
-		 *	@param		_MaterialIndex		The index corresponding to the material
+		 *	@param		aMaterialIndex		The index corresponding to the material
 		 *	@return		Material name converted from Assimp's internal representation to std::string
 		 */
-		std::string name_of_material(size_t _MaterialIndex) const;
+		std::string name_of_material(size_t aMaterialIndex) const;
 
 		/** Gets the `material_config` struct for the mesh at the given index.
 		 *	The `material_config` struct is created from Assimp's internal material data.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		`material_config` struct, representing the "type of material". 
 		 *				To actually load all the resources it refers to, you'll have 
 		 *				to create a `material` based on it.
 		 */
-		material_config material_config_for_mesh(mesh_index_t _MeshIndex) const;
+		material_config material_config_for_mesh(mesh_index_t aMeshIndex);
+
+		/**	Sets some material config struct for the mesh at the given index.
+		 *	@param	aMeshIndex			The index corresponding to the mesh
+		 *	@param	aMaterialConfig		Material config that is to be assigned to the mesh.
+		 */
+		void set_material_config_for_mesh(mesh_index_t aMeshIndex, const material_config& aMaterialConfig);
 
 		/**	Gets all distinct `material_config` structs foor this model and, as a bonus, so to say,
 		 *	also gets all the mesh indices which have the materials assigned to.
-		 *	@param	_AlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
+		 *	@param	aAlsoConsiderCpuOnlyDataForDistinctMaterials	Setting this parameter to `true` means that for determining if a material is unique or not,
 		 *															also the data in the material struct are evaluated which only remain on the CPU. This CPU 
 		 *															data will not be transmitted to the GPU. By default, this parameter is set to `false`, i.e.
 		 *															only the GPU data of the `material_config` struct will be evaluated when determining the distinct
@@ -64,80 +70,80 @@ namespace cgb
 		 *	@return	A `std::unordered_map` containing the distinct `material_config` structs as the
 		 *			keys and a vector of mesh indices as the value type, i.e. `std::vector<size_t>`. 
 		 */
-		std::unordered_map<material_config, std::vector<mesh_index_t>> distinct_material_configs(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials = false) const;
+		std::unordered_map<material_config, std::vector<mesh_index_t>> distinct_material_configs(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials = false);
 			
 		/** Gets the number of vertices for the mesh at the given index.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Number of vertices, which is also the length of all the vectors,
 		 *				which are returned by: `positions_for_mesh`, `normals_for_mesh`,
 		 *				`tangents_for_mesh`, `bitangents_for_mesh`, `colors_for_mesh`, 
 		 *				and `texture_coordinates_for_mesh`
 		 */
-		inline size_t number_of_vertices_for_mesh(mesh_index_t _MeshIndex) const;
+		inline size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the positions for the mesh at the given index.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Vector of vertex positions, converted to `glm::vec3` 
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec3> positions_for_mesh(mesh_index_t _MeshIndex) const;
+		std::vector<glm::vec3> positions_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the normals for the mesh at the given index.
 		 *	If the mesh has no normals, a vector filled with values is
 		 *	returned regardless. All the values will be set to (0,0,1) in this case.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Vector of normals, converted to `glm::vec3`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec3> normals_for_mesh(mesh_index_t _MeshIndex) const;
+		std::vector<glm::vec3> normals_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the tangents for the mesh at the given index.
 		 *	If the mesh has no tangents, a vector filled with values is
 		 *	returned regardless. All the values will be set to (1,0,0) in this case.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Vector of tangents, converted to `glm::vec3`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec3> tangents_for_mesh(mesh_index_t _MeshIndex) const;
+		std::vector<glm::vec3> tangents_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the bitangents for the mesh at the given index.
 		 *	If the mesh has no bitangents, a vector filled with values is
 		 *	returned regardless. All the values will be set to (0,1,0) in this case.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Vector of bitangents, converted to `glm::vec3`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec3> bitangents_for_mesh(mesh_index_t _MeshIndex) const;
+		std::vector<glm::vec3> bitangents_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the colors of a specific color set for the mesh at the given index.
 		 *	If the mesh has no colors for the given set index, a vector filled with values is
 		 *	returned regardless. All the values will be set to (1,0,1,1) in this case (magenta).
-		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@param		_Set			Index to a specific set of colors
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aSet			Index to a specific set of colors
 		 *	@return		Vector of colors, converted to `glm::vec4`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec4> colors_for_mesh(mesh_index_t _MeshIndex, int _Set = 0) const;
+		std::vector<glm::vec4> colors_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const;
 
 		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index
-		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@param		_Set			Index to a specific set of texture coordinates
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aSet			Index to a specific set of texture coordinates
 		 *	@return		Number of uv components the given set has. This can, e.g., be used to 
 		 *				determine how to retrieve the texture coordinates: as vec2 or as vec3, 
 		 *				like follows: `texture_coordinates_for_mesh<vec2>(0)` or `texture_coordinates_for_mesh<vec3>(0)`, respectively.
 		 */
-		int num_uv_components_for_mesh(mesh_index_t _MeshIndex, int _Set = 0) const;
+		int num_uv_components_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const;
 
 		/** Gets all the texture coordinates of a UV-set for the mesh at the given index.
 		 *	If the mesh has no colors for the given set index, a vector filled with values is
 		 *	returned regardless. You'll have to specify the type of UV-coordinates which you
 		 *	want to retrieve. Supported types are `glm::vec2` and `glm::vec3`.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
-		 *	@param		_Set			Index to a specific set of UV-coordinates
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aSet			Index to a specific set of UV-coordinates
 		 *	@return		Vector of UV-coordinates, converted to `T`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		template <typename T> std::vector<T> texture_coordinates_for_mesh(mesh_index_t _MeshIndex, int _Set = 0) const
+		template <typename T> std::vector<T> texture_coordinates_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const
 		{
 			throw cgb::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
 		}
@@ -146,22 +152,22 @@ namespace cgb
 		 *	Please note: Theoretically it can happen that a mesh has faces with different 
 		 *	numbers of vertices (e.g. triangles and quads). Use the `aiProcess_Triangulate`
 		 *	import flag to get only triangles, or make sure to handle them properly.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Number of indices for the given mesh.
 		 */
-		int number_of_indices_for_mesh(mesh_index_t _MeshIndex) const;
+		int number_of_indices_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the indices for the mesh at the given index.
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Vector of vertex positions, converted to type `T`
 		 *				of length `number_of_indices_for_mesh()`.
 		 *				In most cases, you'll want to pass `uint16_t` or `uint32_t` for `T`.
 		 */
 		template <typename T> 
-		std::vector<T> indices_for_mesh(mesh_index_t _MeshIndex) const
+		std::vector<T> indices_for_mesh(mesh_index_t aMeshIndex) const
 		{ 
-			const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
-			size_t indicesCount = number_of_indices_for_mesh(_MeshIndex);
+			const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+			size_t indicesCount = number_of_indices_for_mesh(aMeshIndex);
 			std::vector<T> result;
 			result.reserve(indicesCount);
 			for (unsigned int i = 0; i < paiMesh->mNumFaces; ++i) {
@@ -174,17 +180,17 @@ namespace cgb
 			return result;
 		}
 
-		/** Return the indices of all meshes which the given _Predicate evaluates true for.
+		/** Return the indices of all meshes which the given predicate evaluates true for.
 		 *	Function-signature: bool(size_t, const aiMesh*) where the first parameter is the 
 		 *									mesh index and the second the pointer to the data
 		 */
 		template <typename F>
-		std::vector<size_t> select_meshes(F _Predicate) const
+		std::vector<size_t> select_meshes(F aPredicate) const
 		{
 			std::vector<size_t> result;
 			for (size_t i = 0; i < mScene->mNumMeshes; ++i) {
 				const aiMesh* paiMesh = mScene->mMeshes[i];
-				if (_Predicate(i, paiMesh)) {
+				if (aPredicate(i, paiMesh)) {
 					result.push_back(i);
 				}
 			}
@@ -196,11 +202,11 @@ namespace cgb
 		 */
 		std::vector<size_t> select_all_meshes() const;
 
-		std::vector<glm::vec3> positions_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
-		std::vector<glm::vec3> normals_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
-		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
-		std::vector<glm::vec3> bitangents_for_meshes(std::vector<mesh_index_t> _MeshIndices) const;
-		std::vector<glm::vec4> colors_for_meshes(std::vector<mesh_index_t> _MeshIndices, int _Set = 0) const;
+		std::vector<glm::vec3> positions_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::vec3> normals_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::vec3> bitangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::vec4> colors_for_meshes(std::vector<mesh_index_t> aMeshIndices, int aSet = 0) const;
 
 		template <typename T>
 		std::vector<T> texture_coordinates_for_meshes(std::vector<mesh_index_t> _MeshIndices, int _Set = 0) const
@@ -231,16 +237,18 @@ namespace cgb
 		std::vector<cgb::camera> cameras() const;
 
 		static owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
-		static owning_resource<model_t> load_from_memory(const std::string& _Memory, aiProcessFlagsType _AssimpFlags = aiProcess_Triangulate);
+		static owning_resource<model_t> load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 
 	private:
-		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int _MeshIndexToFind, const aiNode* _Node, const aiMatrix4x4& _M) const;
-		std::optional<glm::mat4> transformation_matrix_traverser_for_light(const aiLight* _Light, const aiNode* _Node, const aiMatrix4x4& _M) const;
-		std::optional<glm::mat4> transformation_matrix_traverser_for_camera(const aiCamera* _Camera, const aiNode* _Node, const aiMatrix4x4& _M) const;
+		void initialize_materials();
+		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const;
+		std::optional<glm::mat4> transformation_matrix_traverser_for_light(const aiLight* aLight, const aiNode* Node, const aiMatrix4x4& aM) const;
+		std::optional<glm::mat4> transformation_matrix_traverser_for_camera(const aiCamera* aCamera, const aiNode* aNode, const aiMatrix4x4& aM) const;
 
 		std::unique_ptr<Assimp::Importer> mImporter;
 		std::string mModelPath;
 		const aiScene* mScene;
+		std::vector<std::optional<material_config>> mMaterialConfigPerMesh;
 	};
 
 	using model = owning_resource<model_t>;

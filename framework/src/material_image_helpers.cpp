@@ -561,24 +561,24 @@ namespace cgb
 		return colorsBuffer;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
-				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>(meshIndex, _TexCoordSet));
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>(meshIndex, aTexCoordSet));
 			}
 		}
 
 		return texCoordsData;
 	}
 	
-	vertex_buffer create_2d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
+	vertex_buffer create_2d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto texCoordsData = get_2d_texture_coordinates(std::move(aModelsAndSelectedMeshes), _TexCoordSet);
+		auto texCoordsData = get_2d_texture_coordinates(std::move(aModelsAndSelectedMeshes), aTexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
@@ -592,24 +592,24 @@ namespace cgb
 		return texCoordsBuffer;
 	}
 
-	std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet)
+	std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<const model_t&>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
-				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec3>(meshIndex, _TexCoordSet));
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec3>(meshIndex, aTexCoordSet));
 			}
 		}
 
 		return texCoordsData;
 	}
 	
-	vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _TexCoordSet, sync aSyncHandler)
+	vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet, sync aSyncHandler)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		auto texCoordsData = get_3d_texture_coordinates(std::move(aModelsAndSelectedMeshes), _TexCoordSet);
+		auto texCoordsData = get_3d_texture_coordinates(std::move(aModelsAndSelectedMeshes), aTexCoordSet);
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),

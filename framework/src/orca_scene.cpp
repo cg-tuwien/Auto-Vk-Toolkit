@@ -2,12 +2,12 @@
 
 namespace cgb
 {
-	std::unordered_map<material_config, std::vector<model_and_mesh_indices>> orca_scene_t::distinct_material_configs_for_all_models(bool _AlsoConsiderCpuOnlyDataForDistinctMaterials) const
+	std::unordered_map<material_config, std::vector<model_and_mesh_indices>> orca_scene_t::distinct_material_configs_for_all_models(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials)
 	{
 		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> result;
 
 		for (size_t i = 0; i < mModelData.size(); ++i) {
-			auto modelMaterials = mModelData[i].mLoadedModel->distinct_material_configs(_AlsoConsiderCpuOnlyDataForDistinctMaterials);
+			auto modelMaterials = mModelData[i].mLoadedModel->distinct_material_configs(aAlsoConsiderCpuOnlyDataForDistinctMaterials);
 			for (auto& pair : modelMaterials) {
 				result[pair.first].push_back({ static_cast<model_index_t>(i), pair.second });
 			}
@@ -16,17 +16,17 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& _Path, model_t::aiProcessFlagsType _AssimpFlags)
+	owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
 	{
-		std::ifstream stream(_Path, std::ifstream::in);
+		std::ifstream stream(aPath, std::ifstream::in);
 		if (!stream.good() || !stream || stream.fail())
 		{
-			throw cgb::runtime_error(fmt::format("Unable to load scene from path[{}]", _Path));
+			throw cgb::runtime_error(fmt::format("Unable to load scene from path[{}]", aPath));
 		}
 		std::string filecontents = std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 		if (filecontents.empty())
 		{
-			throw cgb::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", _Path));
+			throw cgb::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", aPath));
 		}
 
 		nlohmann::json j = nlohmann::json::parse(filecontents);
@@ -38,7 +38,7 @@ namespace cgb
 		nlohmann::json jPaths = j["paths"];
 
 		orca_scene_t result;
-		result.mLoadPath = _Path;
+		result.mLoadPath = aPath;
 
 		// === process models === //
 		result.mModelData.reserve(jModels.size());
@@ -153,7 +153,7 @@ namespace cgb
 		auto fsceneBasePath = cgb::extract_base_path(result.mLoadPath);
 		for (auto& modelData : result.mModelData) {
 			modelData.mFullPathName = cgb::combine_paths(fsceneBasePath, modelData.mFileName);
-			modelData.mLoadedModel = cgb::model_t::load_from_file(modelData.mFullPathName, _AssimpFlags);
+			modelData.mLoadedModel = cgb::model_t::load_from_file(modelData.mFullPathName, aAssimpFlags);
 		}
 		
 		return result;
