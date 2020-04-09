@@ -662,6 +662,7 @@ namespace cgb
 			auto deviceFeatures = vk::PhysicalDeviceFeatures2()
 				.setFeatures(vk::PhysicalDeviceFeatures()
 					.setGeometryShader(VK_TRUE)
+					.setTessellationShader(VK_TRUE)
 					.setSamplerAnisotropy(VK_TRUE)
 					.setVertexPipelineStoresAndAtomics(VK_TRUE)
 					.setFragmentStoresAndAtomics(VK_TRUE)

@@ -522,6 +522,11 @@ namespace cgb
 			triangle_strip_with_adjacency,
 			patches
 		};
+
+		struct tessellation_patch_control_points
+		{
+			uint32_t mPatchControlPoints;
+		};
 	}
 
 	// Forward declare that the graphics_pipeline_t class for the context_specific_function
@@ -555,6 +560,7 @@ namespace cgb
 		cfg::color_blending_settings mColorBlendingSettings;
 		std::vector<binding_data> mResourceBindings;
 		std::vector<push_constant_binding_data> mPushConstantsBindings;
+		std::optional<cfg::tessellation_patch_control_points> mTessellationPatchControlPoints;
 	};
 }
 

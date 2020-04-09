@@ -54,7 +54,8 @@ namespace cgb
 		set_of_descriptor_set_layouts mAllDescriptorSetLayouts;
 		std::vector<vk::PushConstantRange> mPushConstantRanges;
 		vk::PipelineLayoutCreateInfo mPipelineLayoutCreateInfo;
-
+		std::optional<vk::PipelineTessellationStateCreateInfo> mPipelineTessellationStateCreateInfo;
+		
 		// TODO: What to do with flags?
 		vk::PipelineCreateFlags mPipelineCreateFlags;
 

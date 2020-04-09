@@ -149,6 +149,14 @@ namespace cgb
 		add_config(_Config, _Attachments, _Func, std::move(args)...);
 	}
 
+	// Sets patch control points for tessellation pipelines
+	template <typename... Ts>
+	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, cfg::tessellation_patch_control_points aPatchControlPoints, Ts... args)
+	{
+		_Config.mTessellationPatchControlPoints = aPatchControlPoints;
+		add_config(_Config, _Attachments, _Func, std::move(args)...);
+	}
+
 	// Add a resource binding to the pipeline config
 	template <typename... Ts>
 	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, binding_data _ResourceBinding, Ts... args)

@@ -273,7 +273,13 @@ namespace cgb
 			result.mPipelineCreateFlags |= vk::PipelineCreateFlagBits::eDisableOptimization;
 		}
 
-		// 13. Compile the PIPELINE LAYOUT data and create-info
+		// 13. Patch Control Points for Tessellation
+		if (_Config.mTessellationPatchControlPoints.has_value()) {
+			result.mPipelineTessellationStateCreateInfo = vk::PipelineTessellationStateCreateInfo{}
+				.setPatchControlPoints(_Config.mTessellationPatchControlPoints.value().mPatchControlPoints);
+		}
+
+		// 14. Compile the PIPELINE LAYOUT data and create-info
 		// Get the descriptor set layouts
 		result.mAllDescriptorSetLayouts = set_of_descriptor_set_layouts::prepare(std::move(_Config.mResourceBindings));
 		result.mAllDescriptorSetLayouts.allocate_all();
@@ -295,7 +301,7 @@ namespace cgb
 			.setPushConstantRangeCount(static_cast<uint32_t>(result.mPushConstantRanges.size())) 
 			.setPPushConstantRanges(result.mPushConstantRanges.data());
 
-		// 14. Maybe alter the config?!
+		// 15. Maybe alter the config?!
 		if (_AlterConfigBeforeCreation.mFunction) {
 			_AlterConfigBeforeCreation.mFunction(result);
 		}
@@ -337,6 +343,13 @@ namespace cgb
 			.setBasePipelineHandle(nullptr) // Optional
 			.setBasePipelineIndex(-1); // Optional
 
+		// 13.
+		if (result.mPipelineTessellationStateCreateInfo.has_value()) {
+			pipelineInfo.setPTessellationState(&result.mPipelineTessellationStateCreateInfo.value());
+		}
+
+		// TODO: Shouldn't the config be altered HERE, after the pipelineInfo has been compiled?!
+		
 		result.mPipeline = context().logical_device().createGraphicsPipelineUnique(nullptr, pipelineInfo);
 		result.mTracker.setTrackee(result);
 		return result;
