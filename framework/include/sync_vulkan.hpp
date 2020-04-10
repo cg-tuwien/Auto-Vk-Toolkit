@@ -12,7 +12,7 @@ namespace cgb
 	class sync
 	{
 	public:
-		enum struct sync_type { not_required, by_return, via_wait_idle, via_semaphore, via_barrier };
+		enum struct sync_type { not_required, by_return, via_wait_idle, via_wait_idle_deliberately, via_semaphore, via_barrier };
 		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
 		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
 		static void steal_before_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
@@ -70,7 +70,7 @@ namespace cgb
 	
 		/**	Establish very coarse (and inefficient) synchronization by waiting for the queue to become idle before continuing.
 		 */
-		static sync wait_idle();
+		static sync wait_idle(bool aDontWarn = false);
 
 		/**	Establish semaphore-based synchronization with a custom semaphore lifetime handler.
 		 *	@tparam F							void(semaphore)

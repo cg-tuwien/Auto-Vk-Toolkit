@@ -91,6 +91,7 @@ namespace cgb
 		~orca_scene_t() = default;
 
 		const auto& models() const { return mModelData; }
+		auto& models() { return mModelData; }
 		const auto& model_at_index(size_t aIndex) const { return mModelData[aIndex]; }
 		auto& model_at_index(size_t aIndex) { return mModelData[aIndex]; }
 		const auto& directional_lights() const { return mDirLightsData; }

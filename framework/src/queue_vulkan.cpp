@@ -146,19 +146,47 @@ namespace cgb
 		return result;
 	}
 	
-	void device_queue::submit(command_buffer_t& aCommandBuffer)
+	std::optional<fence> device_queue::submit(command_buffer_t& aCommandBuffer, bool aCreateFence)
 	{
+		std::optional<fence> fen = aCreateFence ? std::optional<fence>{ fence_t::create() } : std::optional<fence>{};
+		
 		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
 			.setPCommandBuffers(aCommandBuffer.handle_addr());
-		handle().submit({ submitInfo }, nullptr);
+		handle().submit({ submitInfo }, fen.has_value() ? fen.value()->handle() : nullptr);
 		aCommandBuffer.mState = command_buffer_state::submitted;
+
+		return fen;
+	}
+	// The code between these two ^ and v is mostly copied... I know. It avoids the usage of an unneccessary
+	// temporary vector in single command buffer-case. Should, however, probably be refactored.
+	std::optional<fence> device_queue::submit(std::vector<std::reference_wrapper<command_buffer_t>> aCommandBuffers, bool aCreateFence)
+	{
+		std::optional<fence> fen = aCreateFence ? std::optional<fence>{ fence_t::create() } : std::optional<fence>{};
+		
+		std::vector<vk::CommandBuffer> handles;
+		handles.reserve(aCommandBuffers.size());
+		for (auto& cb : aCommandBuffers) {
+			assert(cb.get().state() >= command_buffer_state::finished_recording);
+			handles.push_back(cb.get().handle());
+		}
+		
+		const auto submitInfo = vk::SubmitInfo{}
+			.setCommandBufferCount(static_cast<uint32_t>(handles.size()))
+			.setPCommandBuffers(handles.data());
+		handle().submit({ submitInfo }, fen.has_value() ? fen.value()->handle() : nullptr);
+
+		for (auto& cb : aCommandBuffers) {
+			cb.get().mState = command_buffer_state::submitted;
+		}
+		
+		return fen;
 	}
 	
 	semaphore device_queue::submit_and_handle_with_semaphore(command_buffer aCommandBuffer, std::vector<semaphore> aWaitSemaphores)
 	{
-		assert(aCommandBuffer->state() == command_buffer_state::finished_recording);
+		assert(aCommandBuffer->state() >= command_buffer_state::finished_recording);
 		
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto signalWhenCompleteSemaphore = semaphore_t::create();
@@ -208,6 +236,76 @@ namespace cgb
 			signalWhenCompleteSemaphore->set_custom_deleter([
 				lOwnedWaitSemaphores{ std::move(aWaitSemaphores) },
 				lOwnedCommandBuffer{ std::move(aCommandBuffer) } // Take care of the command_buffer's lifetime.. OMG!
+			](){});	
+		}
+		
+		return signalWhenCompleteSemaphore;
+	}
+	// The code between these two ^ and v is mostly copied... I know. It avoids the usage of an unneccessary
+	// temporary vector in single command buffer-case. Should, however, probably be refactored.
+	semaphore device_queue::submit_and_handle_with_semaphore(std::vector<command_buffer> aCommandBuffers, std::vector<semaphore> aWaitSemaphores)
+	{
+		std::vector<vk::CommandBuffer> handles;
+		handles.reserve(aCommandBuffers.size());
+		for (auto& cb : aCommandBuffers) {
+			assert(cb->state() >= command_buffer_state::finished_recording);
+			handles.push_back(cb->handle());
+		}
+		
+		// Create a semaphore which can, or rather, MUST be used to wait for the results
+		auto signalWhenCompleteSemaphore = semaphore_t::create();
+		
+		if (0 == aWaitSemaphores.size()) {
+			// Optimized route for 0 _WaitSemaphores
+			const auto submitInfo = vk::SubmitInfo{}
+				.setCommandBufferCount(static_cast<uint32_t>(handles.size()))
+				.setPCommandBuffers(handles.data())
+				.setWaitSemaphoreCount(0u)
+				.setPWaitSemaphores(nullptr)
+				.setPWaitDstStageMask(nullptr)
+				.setSignalSemaphoreCount(1u)
+				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
+
+			handle().submit({ submitInfo }, nullptr);
+
+			for (auto& cb : aCommandBuffers) {
+				cb->mState = command_buffer_state::submitted;
+			}
+
+			signalWhenCompleteSemaphore->set_custom_deleter([
+				lOwnedCommandBuffer{ std::move(aCommandBuffers) } // Take care of the command_buffer's lifetime.. OMG!
+			](){});
+		}
+		else {
+			// Also set the wait semaphores and take care of their lifetimes
+			std::vector<vk::Semaphore> waitSemaphoreHandles;
+			waitSemaphoreHandles.reserve(aWaitSemaphores.size());
+			std::vector<vk::PipelineStageFlags> waitDstStageMasks;
+			waitDstStageMasks.reserve(aWaitSemaphores.size());
+			
+			for (const auto& semaphoreDependency : aWaitSemaphores) {
+				waitSemaphoreHandles.push_back(semaphoreDependency->handle());
+				waitDstStageMasks.push_back(semaphoreDependency->semaphore_wait_stage());
+			}
+			
+			const auto submitInfo = vk::SubmitInfo{}
+				.setCommandBufferCount(static_cast<uint32_t>(handles.size()))
+				.setPCommandBuffers(handles.data())
+				.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphoreHandles.size()))
+				.setPWaitSemaphores(waitSemaphoreHandles.data())
+				.setPWaitDstStageMask(waitDstStageMasks.data())
+				.setSignalSemaphoreCount(1u)
+				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
+
+			handle().submit({ submitInfo }, nullptr);
+			
+			for (auto& cb : aCommandBuffers) {
+				cb->mState = command_buffer_state::submitted;
+			}
+
+			signalWhenCompleteSemaphore->set_custom_deleter([
+				lOwnedWaitSemaphores{ std::move(aWaitSemaphores) },
+				lOwnedCommandBuffer{ std::move(aCommandBuffers) } // Take care of the command_buffer's lifetime.. OMG!
 			](){});	
 		}
 		

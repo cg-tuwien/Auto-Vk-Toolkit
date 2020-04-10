@@ -283,9 +283,9 @@ namespace cgb
 		 *	either number_of_in_flight_frames() or number_of_swapchain_images() frames later.
 		 *
 		 *	Example usage:
-		 *	cgb::sync::with_barriers(cgb::context().main_window().handle_command_buffer_lifetime);
+		 *	cgb::sync::with_barriers(cgb::context().main_window().handle_command_buffer_lifetime());
 		 */
-		auto handle_command_buffer_lifetime(std::optional<int64_t> aFrameId = {})
+		auto command_buffer_lifetime_handler(std::optional<int64_t> aFrameId = {})
 		{
 			return [this, aFrameId](command_buffer aCommandBufferToLifetimeHandle){
 				handle_single_use_command_buffer_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);

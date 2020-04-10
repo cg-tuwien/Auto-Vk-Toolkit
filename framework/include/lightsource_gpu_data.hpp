@@ -9,14 +9,19 @@ namespace cgb
 	{
 		/** Ambient color of the light source. */
 		alignas(16) glm::vec4 mColorAmbient;
+
 		/** Diffuse color of the light source. */
 		alignas(16) glm::vec4 mColorDiffuse;
+
 		/** Specular color of the light source. */
 		alignas(16) glm::vec4 mColorSpecular;
+
 		/** Direction of the light source. */
 		alignas(16) glm::vec4 mDirection;
+
 		/** Position of the light source. */
 		alignas(16) glm::vec4 mPosition;
+
 		/** Angles, where the individual elements contain the following data:
 		 *  [0] ... inner cone angle
 		 *  [1] ... outer cone angle
@@ -24,6 +29,7 @@ namespace cgb
 		 *  [3] ... unused
 		 */
 		alignas(16) glm::vec4 mAngles;
+
 		/** Light source attenuation, where the individual elements contain the following data:
 		 *  [0] ... constant attenuation factor
 		 *  [1] ... linear attenuation factor

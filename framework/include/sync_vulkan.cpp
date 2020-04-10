@@ -76,9 +76,12 @@ namespace cgb
 		return result;
 	}
 	
-	sync sync::wait_idle()
+	sync sync::wait_idle(bool aDontWarn)
 	{
 		sync result;
+		if (aDontWarn) {
+			result.mSpecialSync = sync_type::via_wait_idle_deliberately;
+		}
 		return result;
 	}
 
@@ -269,10 +272,11 @@ namespace cgb
 			}
 			break;
 		case sync_type::via_wait_idle:
+			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
+		case sync_type::via_wait_idle_deliberately:
 			assert(mCommandBuffer.has_value());
 			mCommandBuffer.value()->end_recording();		// What started in get_or_create_command_buffer() ends here.
 			queue.submit(mCommandBuffer.value());
-			LOG_WARNING(fmt::format("Performing waitIdle on queue {} in order to sync because no other type of handler is present.", queue_to_use().get().queue_index()));
 			queue_to_use().get().handle().waitIdle();
 			mCommandBuffer.reset();							// Command buffer is fully handled after waitIdle() and can be destroyed.
 			break;
