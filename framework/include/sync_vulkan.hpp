@@ -76,6 +76,9 @@ namespace cgb
 		 *	@tparam F							void(semaphore)
 		 *	@param	aSignalledAfterOperation	A function to handle the lifetime of a created semaphore. 
 		 *	@param	aWaitBeforeOperation		A vector of other semaphores to be waited on before executing the command.
+		 *
+		 *	Example usage:
+		 *	cgb::sync::with_semaphore([](cgb::semaphore s) { cgb::context().main_window()->set_extra_semaphore_dependency(std::move(s)); }
 		 */
 		template <typename F>
 		static sync with_semaphore(F&& aSignalledAfterOperation, std::vector<semaphore> aWaitBeforeOperation = {})

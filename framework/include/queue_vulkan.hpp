@@ -74,10 +74,16 @@ namespace cgb // ========================== TODO/WIP ===========================
 		std::vector<command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
 
 		/** TODO */
-		std::optional<fence> submit(command_buffer_t& aCommandBuffer, bool aCreateFence = false);
+		void submit(command_buffer_t& aCommandBuffer);
 		
 		/** TODO */
-		std::optional<fence> submit(std::vector<std::reference_wrapper<command_buffer_t>> aCommandBuffers, bool aCreateFence = false);
+		void submit(std::vector<std::reference_wrapper<command_buffer_t>> aCommandBuffers);
+
+		/** TODO */
+		fence submit_with_fence(command_buffer_t& aCommandBuffer, std::vector<semaphore> aWaitSemaphores = {});
+		
+		/** TODO */
+		fence submit_with_fence(std::vector<std::reference_wrapper<command_buffer_t>> aCommandBuffers, std::vector<semaphore> aWaitSemaphores = {});
 
 		/** TODO */
 		semaphore submit_and_handle_with_semaphore(command_buffer aCommandBuffer, std::vector<semaphore> aWaitSemaphores = {});
