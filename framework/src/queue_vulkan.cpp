@@ -178,7 +178,7 @@ namespace cgb
 
 	fence device_queue::submit_with_fence(command_buffer_t& aCommandBuffer, std::vector<semaphore> aWaitSemaphores)
 	{
-		assert(aCommandBuffer->state() >= command_buffer_state::finished_recording);
+		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
 		
 		// Create a semaphore which can, or rather, MUST be used to wait for the results
 		auto fen = fence_t::create();
