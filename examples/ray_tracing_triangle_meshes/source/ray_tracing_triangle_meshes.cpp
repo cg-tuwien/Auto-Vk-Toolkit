@@ -42,7 +42,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
 					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) },
-					cgb::sync::with_barriers_on_current_frame()
+					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
 				
 				// Get a buffer containing all texture coordinates for all submeshes with this material
@@ -53,7 +53,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 						.describe_only_member(texCoordsData[0]),
 					cgb::memory_usage::device,
 					texCoordsData.data(),
-					cgb::sync::with_barriers_on_current_frame()
+					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
 				mTexCoordBufferViews.push_back( cgb::buffer_view_t::create(std::move(texCoordsTexelBuffer)) );
 
@@ -64,7 +64,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 						.set_format<glm::uvec3>(), // Combine 3 consecutive elements to one unit
 					cgb::memory_usage::device,
 					indicesData.data(),
-					cgb::sync::with_barriers_on_current_frame()
+					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
 				mIndexBufferViews.push_back( cgb::buffer_view_t::create(std::move(indexTexelBuffer)) );
 
@@ -88,7 +88,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//   The idea of this is that multiple BLAS can be built
 				//   in parallel, we only have to make sure to synchronize
 				//   before we start building the TLAS.
-				mBLASs.back()->build(cgb::sync::with_barriers_on_current_frame({}, {}));
+				mBLASs.back()->build(cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler(), {}, {}));
 			}
 		}
 
@@ -98,13 +98,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::image_usage::read_only_sampled_image,
 			cgb::filter_mode::bilinear,
 			cgb::border_handling_mode::repeat,
-			cgb::sync::with_barriers_on_current_frame());
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
+		);
 		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
 			cgb::memory_usage::host_coherent,
 			gpuMaterials.data(),
-			cgb::sync::with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		mImageSamplers = std::move(imageSamplers);
@@ -114,7 +115,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
 			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
 			// Build the TLAS, ...
-			tlas->build(mGeometryInstances, cgb::sync::with_barriers_on_current_frame(
+			tlas->build(mGeometryInstances, cgb::sync::with_barriers(
+					cgb::context().main_window()->command_buffer_lifetime_handler(),
 					// Sync before building the TLAS:
 					[](cgb::command_buffer_t& commandBuffer, cgb::pipeline_stage destinationStage, std::optional<cgb::read_memory_access> readAccess){
 						assert(cgb::pipeline_stage::acceleration_structure_build == destinationStage);
@@ -146,7 +148,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					cgb::image_t::create(wdth, hght, frmt, false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image)
 				)
 			);
-			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers_on_current_frame());
+			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		});
 
@@ -234,7 +236,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 			//
 			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			mTLAS[inFlightIndex]->update(mGeometryInstances, cgb::sync::with_barriers_on_current_frame(
+			mTLAS[inFlightIndex]->update(mGeometryInstances, cgb::sync::with_barriers(
+				cgb::context().main_window()->command_buffer_lifetime_handler(),
 				{}, // Nothing to wait for
 				[](cgb::command_buffer_t& commandBuffer, cgb::pipeline_stage srcStage, std::optional<cgb::write_memory_access> srcAccess){
 					// We want this update to be as efficient/as tight as possible

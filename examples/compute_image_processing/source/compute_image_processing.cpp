@@ -49,7 +49,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::vertex_buffer_meta::create_from_data(mVertexData), 
 			cgb::memory_usage::device,
 			mVertexData.data(),
-			cgb::sync::with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		// Create and upload incides for drawing the quad
@@ -57,7 +57,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::device,
 			mIndices.data(),
-			cgb::sync::with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		// Create a host-coherent buffer for the matrices
@@ -89,7 +89,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::copy_image_to_another(
 			mInputImageAndSampler->get_image_view()->get_image(), 
 			mTargetImageAndSampler->get_image_view()->get_image(), 
-			cgb::sync::with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		using namespace cgb::att;
@@ -220,7 +220,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::copy_image_to_another(
 				mInputImageAndSampler->get_image_view()->get_image(), 
 				mTargetImageAndSampler->get_image_view()->get_image(),
-				cgb::sync::with_barriers_on_current_frame()
+				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
 

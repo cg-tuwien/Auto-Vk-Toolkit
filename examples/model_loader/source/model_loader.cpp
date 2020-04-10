@@ -61,21 +61,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
 				cgb::memory_usage::device,
 				newElement.mPositions.data(),
-				cgb::sync::with_barriers_on_current_frame() // TODO: I wonder why validation layers do not complain here, but.... 
+				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: I wonder why validation layers do not complain here, but.... 
 			);
 			// 2.2 Texture Coordinates:
 			newElement.mTexCoordsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mTexCoords),
 				cgb::memory_usage::device,
 				newElement.mTexCoords.data(),
-				cgb::sync::with_barriers_on_current_frame()
+				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.3 Normals:
 			newElement.mNormalsBuffer = cgb::create_and_fill(
 				cgb::vertex_buffer_meta::create_from_data(newElement.mNormals),
 				cgb::memory_usage::device,
 				newElement.mNormals.data(),
-				cgb::sync::with_barriers_on_current_frame()
+				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.4 Indices:
 			newElement.mIndexBuffer = cgb::create_and_fill(
@@ -84,7 +84,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::memory_usage::device,
 				// Pass pointer to the data:
 				newElement.mIndices.data(),
-				cgb::sync::with_barriers_on_current_frame()
+				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
 
@@ -97,7 +97,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::image_usage::read_only_sampled_image,
 			cgb::filter_mode::bilinear,
 			cgb::border_handling_mode::repeat,
-			cgb::sync::with_barriers_on_current_frame() // TODO: ....they complain here, if I use with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()
 		);
 		
 		mMaterialBuffer = cgb::create_and_fill(

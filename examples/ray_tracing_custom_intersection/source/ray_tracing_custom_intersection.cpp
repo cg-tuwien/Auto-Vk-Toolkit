@@ -99,7 +99,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					cgb::image_t::create(wdth, hght, frmt, false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image)
 				)
 			);
-			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers_on_current_frame());
+			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		});
 
@@ -194,7 +194,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}
 			//
 			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			mTLAS[inFlightIndex]->update(mGeometryInstances, cgb::sync::with_barriers_on_current_frame(
+			mTLAS[inFlightIndex]->update(mGeometryInstances, cgb::sync::with_barriers(
+				cgb::context().main_window()->command_buffer_lifetime_handler(),
 				{}, // Nothing to wait for
 				[](cgb::command_buffer_t& commandBuffer, cgb::pipeline_stage srcStage, std::optional<cgb::write_memory_access> srcAccess){
 					// We want this update to be as efficient/as tight as possible

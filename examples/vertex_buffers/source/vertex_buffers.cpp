@@ -148,7 +148,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mVertexBuffers[inFlightIndex],
 			vertexDataCurrentFrame.data(),
 			// Sync this fill-operation with pipeline memory barriers:
-			cgb::sync::with_barriers_on_current_frame()
+			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			// ^ This handler is a convenience method which hands over the (internally created, but externally
 			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
 			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
