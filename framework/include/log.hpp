@@ -3,10 +3,14 @@
 namespace cgb
 {
 	// Define LOGGING_ON_SEPARATE_THREAD to have all the logging being transmitted and performed by a separate thread
+	#if !defined(NO_SEPARATE_LOGGING_THREAD)
 	#define LOGGING_ON_SEPARATE_THREAD
+	#endif
 
 	// Define PRINT_STACKTRACE to have the stack trace printed for errors
+	#if !defined(DONT_PRINT_STACKTRACE)
 	#define PRINT_STACKTRACE
+	#endif
 
 	// LOG-LEVELS:
 	// 0 ... nothing (except debug messages in DEBUG-mode)

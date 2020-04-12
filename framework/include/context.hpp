@@ -10,6 +10,9 @@ namespace cgb
 		/** Set this to your application's version */
 		extern uint32_t gApplicationVersion;
 
+		/** Set a hint about which device to select. This could be, e.g., "Intel" or "RTX". */
+		extern std::string gPhysicalDeviceSelectionHint;
+
 		/** Fill this vector with further required instance extensions, if required */
 		extern std::vector<const char*> gRequiredInstanceExtensions;
 
@@ -17,6 +20,9 @@ namespace cgb
 		 *  By default, it will be initialized with a default validation layer name.
 		 */
 		extern std::vector<const char*> gValidationLayersToBeActivated;
+
+		/** Set to true to also enable validation layers in RELEASE and PUBLISH builds. Default = false. */
+		extern bool gEnableValidationLayersAlsoInReleaseBuilds;
 
 		/** Fill this vector with required device extensions, if required */
 		extern std::vector<const char*> gRequiredDeviceExtensions;

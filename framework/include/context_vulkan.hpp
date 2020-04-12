@@ -123,10 +123,16 @@ namespace cgb
 		void create_instance();
 
 		/** Method which handles debug callbacks from the validation layers */
-		static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*, void*);
+		static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_utils_callback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*, void*);
 
 		/** Set up the debug callbacks, i.e. hook into vk to have @ref vk_debug_callback called */
 		void setup_vk_debug_callback();
+
+		/** Method which handles debug report callbacks from the VK_EXT_debug_report extension */
+		static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_report_callback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
+
+		/** Setup debug report callbacks from VK_EXT_debug_report */
+		void setup_vk_debug_report_callback();
 
 		/** Returns a vector containing all elements from @ref sRequiredDeviceExtensions
 		 *  and settings::gRequiredDeviceExtensions
@@ -234,7 +240,8 @@ namespace cgb
 		static std::mutex sConcurrentAccessMutex;
 		
 		vk::Instance mInstance;
-		VkDebugUtilsMessengerEXT mDebugCallbackHandle;
+		VkDebugUtilsMessengerEXT mDebugUtilsCallbackHandle;
+		VkDebugReportCallbackEXT mDebugReportCallbackHandle;
 		//std::vector<swap_chain_data_ptr> mSurfSwap;
 		vk::PhysicalDevice mPhysicalDevice;
 		vk::Device mLogicalDevice;

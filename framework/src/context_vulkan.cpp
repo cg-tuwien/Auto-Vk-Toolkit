@@ -13,16 +13,25 @@ namespace cgb
 	auto vulkan::assemble_validation_layers()
 	{
 		std::vector<const char*> supportedValidationLayers;
-		std::copy_if(
-			std::begin(settings::gValidationLayersToBeActivated), std::end(settings::gValidationLayersToBeActivated),
-			std::back_inserter(supportedValidationLayers),
-			[](auto name) {
-				auto supported = is_validation_layer_supported(name);
-				if (!supported) {
-					LOG_WARNING(fmt::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
-				}
-				return supported;
-			});
+
+		bool enableValidationLayers = settings::gEnableValidationLayersAlsoInReleaseBuilds;
+#ifdef _DEBUG
+		enableValidationLayers = true; // always true
+#endif
+
+		if (enableValidationLayers) {
+			std::copy_if(
+				std::begin(settings::gValidationLayersToBeActivated), std::end(settings::gValidationLayersToBeActivated),
+				std::back_inserter(supportedValidationLayers),
+				[](auto name) {
+					auto supported = is_validation_layer_supported(name);
+					if (!supported) {
+						LOG_WARNING(fmt::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
+					}
+					return supported;
+				});
+		}
+
 		return supportedValidationLayers;
 	}
 
@@ -33,6 +42,10 @@ namespace cgb
 
 		// Setup debug callback and enable all validation layers configured in global settings 
 		setup_vk_debug_callback();
+
+		if (std::find(std::begin(settings::gRequiredInstanceExtensions), std::end(settings::gRequiredInstanceExtensions), VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != settings::gRequiredInstanceExtensions.end()) {
+			setup_vk_debug_report_callback();
+		}
 
 		// The window surface needs to be created right after the instance creation 
 		// and before physical device selection, because it can actually influence 
@@ -137,7 +150,7 @@ namespace cgb
 #if LOG_LEVEL > 0
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
 		if (func != nullptr) {
-			func(mInstance, mDebugCallbackHandle, nullptr); 
+			func(mInstance, mDebugUtilsCallbackHandle, nullptr); 
 		}
 #endif
 
@@ -294,7 +307,7 @@ namespace cgb
 			});
 	}
 
-	VKAPI_ATTR VkBool32 VKAPI_CALL vulkan::vk_debug_callback(
+	VKAPI_ATTR VkBool32 VKAPI_CALL vulkan::vk_debug_utils_callback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT pMessageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT pMessageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -318,41 +331,45 @@ namespace cgb
 
 		if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_ERROR__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+			LOG_ERROR__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber, 
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
+			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_WARNING__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+			LOG_WARNING__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
+			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			assert(pCallbackData);
 			if (std::string("Loader Message") == pCallbackData->pMessageIdName) {
-				LOG_VERBOSE__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+				LOG_VERBOSE__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
 			}
 			else {
-				LOG_INFO__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+				LOG_INFO__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
 			}
+			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_VERBOSE__(fmt::format("Vk-callback with Id[{}|{}] and Message[{}]",
+			LOG_VERBOSE__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
+			return VK_FALSE; 
 		}
-		return VK_FALSE; 
+		return VK_TRUE;
 	}
 
 	void vulkan::setup_vk_debug_callback()
@@ -377,23 +394,99 @@ namespace cgb
 #endif
 			)
 			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
-			.setPfnUserCallback(vulkan::vk_debug_callback);
+			.setPfnUserCallback(vulkan::vk_debug_utils_callback);
 
 		// Hook in
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
+		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)mInstance.getProcAddr("vkCreateDebugUtilsMessengerEXT");
 		if (func != nullptr) {
 			auto result = func(
 				mInstance, 
 				&static_cast<VkDebugUtilsMessengerCreateInfoEXT>(msgCreateInfo), 
 				nullptr, 
-				&mDebugCallbackHandle);
+				&mDebugUtilsCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw cgb::runtime_error("Failed to set up debug callback via vkCreateDebugUtilsMessengerEXT");
+				throw cgb::runtime_error("Failed to set up debug utils callback via vkCreateDebugUtilsMessengerEXT");
 			}
 		}
 		else {
 			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
 		}
+#endif
+	}
+
+	VKAPI_ATTR VkBool32 VKAPI_CALL vulkan::vk_debug_report_callback(
+		VkDebugReportFlagsEXT                       flags,
+		VkDebugReportObjectTypeEXT                  objectType,
+		uint64_t                                    object,
+		size_t                                      location,
+		int32_t                                     messageCode,
+		const char* pLayerPrefix,
+		const char* pMessage,
+		void* pUserData)
+	{
+		if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0) {
+			LOG_ERROR__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+				to_string(vk::DebugReportFlagsEXT{ flags }),
+				to_string(vk::DebugReportObjectTypeEXT{objectType}),
+				pMessage));
+			return VK_FALSE;
+		}
+		if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) != 0) {
+			LOG_WARNING__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+				to_string(vk::DebugReportFlagsEXT{ flags }),
+				to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+				pMessage));
+			return VK_FALSE;
+		}
+		if ((flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) != 0) {
+			LOG_DEBUG__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+				to_string(vk::DebugReportFlagsEXT{ flags }),
+				to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+				pMessage));
+			return VK_FALSE;
+		}
+		LOG_INFO__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			to_string(vk::DebugReportFlagsEXT{ flags }),
+			to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+			pMessage));
+		return VK_FALSE;
+	}
+
+	void vulkan::setup_vk_debug_report_callback()
+	{
+		assert(mInstance);
+#if LOG_LEVEL > 0
+		auto createInfo = vk::DebugReportCallbackCreateInfoEXT{}
+			.setFlags(
+				vk::DebugReportFlagBitsEXT::eError
+#if LOG_LEVEL > 1
+				| vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::ePerformanceWarning
+#if LOG_LEVEL > 2
+				| vk::DebugReportFlagBitsEXT::eInformation
+#endif
+#if defined(_DEBUG)
+				| vk::DebugReportFlagBitsEXT::eDebug
+#endif
+#endif
+			)
+			.setPfnCallback(vulkan::vk_debug_report_callback);
+		
+		// Hook in
+		auto func = (PFN_vkCreateDebugReportCallbackEXT)mInstance.getProcAddr("vkCreateDebugReportCallbackEXT");
+		if (func != nullptr) {
+			auto result = func(
+				mInstance,
+				&static_cast<VkDebugReportCallbackCreateInfoEXT>(createInfo),
+				nullptr,
+				&mDebugReportCallbackHandle);
+			if (VK_SUCCESS != result) {
+				throw cgb::runtime_error("Failed to set up debug report callback via vkCreateDebugReportCallbackEXT");
+			}
+		}
+		else {
+			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugReportCallbackEXT.");
+		}
+
 #endif
 	}
 
@@ -470,22 +563,25 @@ namespace cgb
 				computeBitSet = computeBitSet || ((qfp.queueFlags & vk::QueueFlagBits::eCompute) == vk::QueueFlagBits::eCompute);
 			}
 
-			// TODO: Prioritizing nvidia is a bad solution, of course. 
-			// It is/was useful during development, but should be replaced by some meaningful code:
 			uint32_t score =
 				(graphicsBitSet ? 10 : 0) +
 				(computeBitSet ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 10 : 0) +
-				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0) +
-				(find_case_insensitive(properties.deviceName, "nvidia", 0) != std::string::npos ? 1 : 0);
+				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
+			
+			if (!settings::gPhysicalDeviceSelectionHint.empty()) {
+				score += find_case_insensitive(properties.deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
+			}
 
 			// Check if extensions are required
 			if (!supports_all_required_extensions(device)) {
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all required extensions.", properties.deviceName));
 				score = 0;
 			}
 
 			// Check if anisotropy is supported
 			if (!supportedFeatures.samplerAnisotropy) {
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not sampler anisotropy.", properties.deviceName));
 				score = 0;
 			}
 
@@ -517,6 +613,7 @@ namespace cgb
 
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
+		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
 	std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> vulkan::find_queue_families_for_criteria(
