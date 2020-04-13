@@ -78,12 +78,62 @@ namespace cgb
 
 	image_format image_format::default_depth_format() noexcept
 	{
-		return { vk::Format::eD32Sfloat };
+		const auto formatCandidates = cgb::make_array<vk::Format>(
+			vk::Format::eD32Sfloat,
+			vk::Format::eD24UnormS8Uint,
+			vk::Format::eD16Unorm,
+			vk::Format::eD16UnormS8Uint,
+			vk::Format::eD32SfloatS8Uint
+		);
+
+		if (cgb::context().state() < context_state::fully_initialized) {
+			return formatCandidates[1];
+		}
+
+		auto candidateScores = cgb::make_array<uint32_t>(0u, 0u, 0u, 0u, 0u);
+		size_t topScorer = 0;
+		
+		for (size_t i = 0; i < formatCandidates.size(); ++i) {
+			auto formatProps = cgb::context().physical_device().getFormatProperties(formatCandidates[i]);
+			candidateScores[i] = static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.optimalTilingFeatures)
+							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.linearTilingFeatures)
+							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.bufferFeatures);
+
+			if (candidateScores[i] > candidateScores[topScorer]) {
+				topScorer = i;
+			}
+		}
+		
+		return { formatCandidates[topScorer] };
 	}
 
 	image_format image_format::default_depth_stencil_format() noexcept
 	{
-		return { vk::Format::eD24UnormS8Uint };
+		const auto formatCandidates = cgb::make_array<vk::Format>(
+			vk::Format::eD24UnormS8Uint,
+			vk::Format::eD16UnormS8Uint,
+			vk::Format::eD32SfloatS8Uint
+		);
+		
+		if (cgb::context().state() < context_state::fully_initialized) {
+			return formatCandidates[0];
+		}
+
+		auto candidateScores = cgb::make_array<uint32_t>(0u, 0u, 0u);
+		size_t topScorer = 0;
+		
+		for (size_t i = 0; i < formatCandidates.size(); ++i) {
+			auto formatProps = cgb::context().physical_device().getFormatProperties(formatCandidates[i]);
+			candidateScores[i] = static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.optimalTilingFeatures)
+							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.linearTilingFeatures)
+							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.bufferFeatures);
+
+			if (candidateScores[i] > candidateScores[topScorer]) {
+				topScorer = i;
+			}
+		}
+		
+		return { formatCandidates[topScorer] };
 	}
 
 
@@ -93,6 +143,20 @@ namespace cgb
 			aWindow = cgb::context().main_window();
 		}
 		return aWindow->swap_chain_image_format();
+	}
+	
+
+	image_format image_format::from_window_depth_buffer(window* aWindow)
+	{
+		if (nullptr == aWindow) {
+			aWindow = cgb::context().main_window();
+		}
+		for (auto& a : aWindow->get_additional_back_buffer_attachments()) {
+			if (a.is_used_as_depth_stencil_attachment()) {
+				return a.format();
+			}
+		}
+		return image_format::default_depth_format();
 	}
 	
 
@@ -757,8 +821,20 @@ namespace cgb
 			? static_cast<uint32_t>(std::floor(std::log2(std::max(aWidth, aHeight))) + 1)
 			: 1u;
 
+		vk::ImageAspectFlags aspectFlags = {};
+		if (is_depth_format(aFormat)) {
+			aspectFlags |= vk::ImageAspectFlagBits::eDepth;
+		}
+		if (has_stencil_component(aFormat)) {
+			aspectFlags |= vk::ImageAspectFlagBits::eStencil;
+		}
+		if (!aspectFlags) {
+			aspectFlags = vk::ImageAspectFlagBits::eColor;
+			// TODO: maybe support further aspect flags?!
+		}
+
 		image_t result;
-		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
+		result.mAspectFlags = aspectFlags;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
 		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
@@ -874,6 +950,10 @@ namespace cgb
 		if (curLayout == trgLayout) {
 			return {}; // done (:
 		}
+		if (vk::ImageLayout::eUndefined == trgLayout || vk::ImageLayout::ePreinitialized == trgLayout) {
+			LOG_VERBOSE(fmt::format("Won't transition into layout {}.", to_string(trgLayout)));
+			return {}; // Won't do it!
+		}
 		
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 
@@ -888,11 +968,8 @@ namespace cgb
 		commandBuffer.establish_image_memory_barrier(*this,
 			pipeline_stage::transfer, pipeline_stage::transfer,				// Execution dependency chain
 			std::optional<memory_access>{}, std::optional<memory_access>{}	// There should be no need to make any memory available or visible... the image should be available already (see above)
-		);
+		); // establish_image_memory_barrier ^ will set the mCurrentLayout to mTargetLayout
 
-		// Act as if the layout transition was successful already:
-		mCurrentLayout = mTargetLayout;
-		
 		aSyncHandler.establish_barrier_after_the_operation(
 			pipeline_stage::transfer,	// The end of the execution dependency chain
 			write_memory_access{memory_access::transfer_write_access}

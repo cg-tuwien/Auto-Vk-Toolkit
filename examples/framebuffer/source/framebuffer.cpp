@@ -66,10 +66,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		using namespace cgb::att;
 		
 		const auto r = cgb::context().main_window()->resolution();
-		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format()));
-		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format()));
+		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_color_attachment));
+		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_depth_stencil_attachment));
 		auto colorAttachmentDescription = cgb::attachment::declare_for(colorAttachment, on_load::clear, color(0),			on_store::store);
-		auto depthAttachmentDescription = cgb::attachment::declare_for(depthAttachment, on_load::clear, depth_stencil(),		on_store::store);
+		auto depthAttachmentDescription = cgb::attachment::declare_for(depthAttachment, on_load::clear, depth_stencil(),	on_store::store);
 		mOneFramebuffer = cgb::framebuffer_t::create(
 			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
 			cgb::move_into_vector(colorAttachment, depthAttachment)			// For owning resources, we have to use move_into_vector in order to properly move ownership.
@@ -88,7 +88,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		mCmdBfrIntoFramebuffer = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass_for_framebuffer(mOneFramebuffer->get_renderpass(), mOneFramebuffer);
+			commandBuffer.begin_render_pass_for_framebuffer(mPipelineIntoFramebuffer->get_renderpass(), mOneFramebuffer);
 			commandBuffer.bind_pipeline(mPipelineIntoFramebuffer);
 			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
 			commandBuffer.end_render_pass();
@@ -142,6 +142,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto translateY = glm::translate(glm::vec3{ 0.0f, -mAdditionalTranslationY, 0.0f });
 
 		// Store modified vertices in vertexDataCurrentFrame:
+
 		std::vector<Vertex> vertexDataCurrentFrame;
 		for (const Vertex& vtx : mVertexData) {
 			glm::vec4 origPos{ vtx.pos, 1.0f };
@@ -150,6 +151,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				vtx.color
 			});
 		}
+
+		//cgb::context().graphics_queue().handle().waitIdle();
 
 		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
 		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
@@ -164,25 +167,31 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// ... update its vertex data:
-		cgb::fill(
+		//mainWnd->submit_for_backbuffer(
+			cgb::fill(
 			mVertexBuffers[inFlightIndex],
 			vertexDataCurrentFrame.data(),
 			// Sync this fill-operation with pipeline memory barriers:
+			//cgb::sync::with_barriers_by_return()
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 			// ^ This handler is a convenience method which hands over the (internally created, but externally
 			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
 			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
 			//   cgb::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
 		);
+		//);
 
 		// Finally, submit the right command buffer in order to issue the draw call:
-		mainWnd->submit_for_backbuffer_ref(mCmdBfrIntoFramebuffer[inFlightIndex]);
+		//mainWnd->submit_for_backbuffer_ref(mCmdBfrIntoFramebuffer[inFlightIndex]);
+		cgb::context().graphics_queue().submit(mCmdBfrIntoFramebuffer[inFlightIndex]);
 		if (0 == mUseCopyOrBlit) {
-			mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
+			mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, false));
 		}
 		else {
-			mainWnd->submit_for_backbuffer(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
+			mainWnd->submit_for_backbuffer(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, false));
 		}
+
+
 	}
 
 

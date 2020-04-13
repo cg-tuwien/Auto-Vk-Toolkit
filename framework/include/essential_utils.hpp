@@ -445,7 +445,7 @@ namespace cgb
 		{ return &base::template target<wrapper<Fn>>()->fn; }
 
 		template<class Fn> 
-		Fn* target() const noexcept
+		const Fn* target() const noexcept // TODO/ATTENTION/NOTE: changed this to const Fn* in order to allow `const unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest` in `cgb::sync` (i.e. the CONST&). Not sure if this is totally okay or has any side effects.
 		{ return &base::template target<wrapper<Fn>>()->fn; }
 
 		template<class Fn> 

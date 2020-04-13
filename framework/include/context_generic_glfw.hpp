@@ -182,6 +182,9 @@ namespace cgb
 		// Activates a specific type of cursor
 		void activate_cursor(window_base* aWindow, cursor aCursorType);
 
+		// Returns the current context state
+		auto state() const { return mContextState; }
+		
 	protected:
 		static void glfw_error_callback(int error, const char* description);
 		static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods);

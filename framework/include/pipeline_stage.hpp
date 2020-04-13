@@ -23,7 +23,7 @@ namespace cgb
 		all_commands						= 0x00010000,
 		transform_feedback					= 0x00020000,
 		conditional_rendering				= 0x00040000,
-		command_processing					= 0x00080000,
+		command_preprocess					= 0x00080000,
 		shading_rate_image					= 0x00100000,
 		ray_tracing_shaders					= 0x00200000,
 		acceleration_structure_build		= 0x00400000,

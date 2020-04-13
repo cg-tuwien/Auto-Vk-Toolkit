@@ -92,13 +92,9 @@ namespace cgb
 		auto swap_chain_extent() const {
 			return mSwapChainExtent; 
 		}
-		/** Gets a collection containing all this window's swap chain images. */
-		const auto& swap_chain_images() { 
-			return mSwapChainImages;
-		}
 		/** Gets this window's swap chain's image at the specified index. */
-		const auto& swap_chain_image_at_index(size_t aIdx) { 
-			return mSwapChainImages[aIdx]; 
+		auto& swap_chain_image_at_index(size_t aIdx) { 
+			return mSwapChainImageViews[aIdx]->get_image(); 
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
 		const auto& swap_chain_image_views() { 
@@ -127,7 +123,7 @@ namespace cgb
 
 		/** Gets the number of images there are in the swap chain */
 		auto number_of_swapchain_images() const {
-			return static_cast<int64_t>(mSwapChainImages.size());
+			return static_cast<int64_t>(mSwapChainImageViews.size());
 		}
 		
 		/** Gets the current frame index. */
@@ -155,7 +151,7 @@ namespace cgb
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		auto& backbufer_for_frame(std::optional<int64_t> aFrameId = {}) const {
+		auto& backbufer_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mBackBuffers[swapchain_image_index_for_frame(aFrameId)];
 		}
 		
@@ -164,7 +160,7 @@ namespace cgb
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
 		auto& image_for_frame(std::optional<int64_t> aFrameId = {}) {
-			return mSwapChainImages[swapchain_image_index_for_frame(aFrameId)];
+			return swap_chain_image_at_index(swapchain_image_index_for_frame(aFrameId));
 		}
 
 		/** Returns the swap chain image view for the requested frame.
@@ -225,6 +221,15 @@ namespace cgb
 		 */
 		void submit_for_backbuffer(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
+		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
+		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
+		 *	image to become available.
+		 *	Put differently: No commands will execute until the referenced frame's swapchain image has become available.
+		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
+		 *	@param	aFrameId		The frame this command buffer is associated to.
+		 */
+		void submit_for_backbuffer(std::optional<command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId = {});
+
 		/**	Pass a reference to a command buffer and submit it after the given frame's back buffer has become available.
 		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
 		 *	image to become available (same characteristics as `submit_for_backbuffer` in that matter).
@@ -253,29 +258,67 @@ namespace cgb
 
 		//std::vector<semaphore> set_num_extra_semaphores_to_generate_per_frame(uint32_t _NumExtraSemaphores);
 
+		/**
+		 *	Called BEFORE all the render callbacks are invoked.
+		 *	This is where fences are waited on and resources are freed.
+		 */
+		void sync_before_render();
+		
+		/**
+		 *	This is THE "render into backbuffer" method.
+		 *	Invoked every frame internally, from `composition.hpp`
+		 */
 		void render_frame();
 
+		/**	Gets the handle of the renderpass.
+		 */
 		const auto& renderpass_handle() const { return (*mBackBufferRenderpass).handle(); }
 
+		/** Gets a const reference to the backbuffer's render pass
+		 */
 		const cgb::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
-		static cgb::sync wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage);
-		
-		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
+		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
+		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
+		 *
+		 *	For tighter synchronization, feel free to copy&modify&paste the code of this method.
+		 *
+		 *	Source:
+		 *
+		 *		auto& destinationImage = image_for_frame(aDestinationFrameId);
+		 *		return copy_image_to_another(aSourceImage, destinationImage, cgb::sync::with_barriers_by_return(
+		 *				cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		 *				aShallBePresentedDirectlyAfterwards 
+		 *					? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+		 *					: cgb::sync::presets::image_copy::restore_layout_and_let_subsequent_operations_wait(aSourceImage, destinationImage)
+		 *			),
+		 *			true, // Restore layout of source image
+		 *			false // Don't restore layout of destination => this is handled by the after-handler in any case
+		 *		);
+		 *		
+		 */
+		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
-		template <typename F>
-		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
-		{
-			return copy_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
-		}
-
-		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync);
-
-		template <typename F>
-		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, F aSyncCreationFunction)
-		{
-			return blit_to_swapchain_image(aSourceImage, aDestinationFrameId, aSyncCreationFunction(aSourceImage, image_for_frame(aDestinationFrameId)));
-		}
+		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
+		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
+		 *
+		 *	For tighter synchronization, feel free to copy&modify&paste the code of this method.
+		 *
+		 *	Source:
+		 *
+		 *		auto& destinationImage = image_for_frame(aDestinationFrameId);
+		 *		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::with_barriers_by_return(
+		 *			cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		 *			aShallBePresentedDirectlyAfterwards 
+		 *				? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+		 *				: cgb::sync::presets::image_copy::restore_layout_and_let_subsequent_operations_wait(aSourceImage, destinationImage)
+		 *			),	
+		 *			true, // Restore layout of source image
+		 *			false // Don't restore layout of destination => this is handled by the after-handler in any case
+		 *		);
+		 *	
+		 */
+		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -336,8 +379,6 @@ namespace cgb
 		std::vector<uint32_t> mQueueFamilyIndices;
 		// Image data of the swap chain images
 		vk::ImageCreateInfo mImageCreateInfoSwapChain;
-		// All the images of the swap chain
-		std::vector<image_t> mSwapChainImages; // They don't need to be destroyed explicitely (due to get...()), ... 
 		// All the image views of the swap chain
 		std::vector<image_view> mSwapChainImageViews; // ...but the image views do!
 #pragma endregion

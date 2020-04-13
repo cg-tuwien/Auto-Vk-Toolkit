@@ -43,14 +43,14 @@ namespace cgb
 			.setExtent(aSrcImage.config().extent) // TODO: Support different ranges/extents
 			.setSrcOffset({0, 0})
 			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setAspectMask(aSrcImage.aspect_flags())
 				.setBaseArrayLayer(0u)
 				.setLayerCount(1u)
 				.setMipLevel(0u)
 			)
 			.setDstOffset({0, 0})
 			.setDstSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setAspectMask(aDstImage.aspect_flags())
 				.setBaseArrayLayer(0u)
 				.setLayerCount(1u)
 				.setMipLevel(0u));
@@ -62,11 +62,11 @@ namespace cgb
 			aDstImage.current_layout(),
 			1u, &copyRegion);
 
-		if (!suitableSrcLayout && aRestoreSrcLayout) { // => restore original layout of the src image
+		if (!suitableSrcLayout && aRestoreSrcLayout && vk::ImageLayout::eUndefined != initialSrcLayout && vk::ImageLayout::ePreinitialized != initialSrcLayout) { // => restore original layout of the src image
 			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 
-		if (!suitableDstLayout && aRestoreDstLayout) { // => restore original layout of the dst image
+		if (!suitableDstLayout && aRestoreDstLayout && vk::ImageLayout::eUndefined != initialDstLayout && vk::ImageLayout::ePreinitialized != initialDstLayout) { // => restore original layout of the dst image
 			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 		
@@ -114,20 +114,20 @@ namespace cgb
 		}
 
 
-		std::array<vk::Offset3D, 2> srcOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aSrcImage.width()), static_cast<int32_t>(aSrcImage.height()), static_cast<int32_t>(aSrcImage.depth()) } };
-		std::array<vk::Offset3D, 2> dstOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aDstImage.width()), static_cast<int32_t>(aDstImage.height()), static_cast<int32_t>(aDstImage.depth()) } };
+		std::array<vk::Offset3D, 2> srcOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aSrcImage.width()), static_cast<int32_t>(aSrcImage.height()), 1 } };
+		std::array<vk::Offset3D, 2> dstOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aDstImage.width()), static_cast<int32_t>(aDstImage.height()), 1 } };
 		
 		// Operation:
 		auto blitRegion = vk::ImageBlit{}
 			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setAspectMask(aSrcImage.aspect_flags())
 				.setBaseArrayLayer(0u)
 				.setLayerCount(1u)
 				.setMipLevel(0u)
 			)
 			.setSrcOffsets(srcOffsets)
 			.setDstSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setAspectMask(aDstImage.aspect_flags())
 				.setBaseArrayLayer(0u)
 				.setLayerCount(1u)
 				.setMipLevel(0u)

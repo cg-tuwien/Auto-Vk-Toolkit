@@ -59,14 +59,19 @@ namespace cgb
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
 		// allocate. MinImageCount is not actually used even though there is a check at init time that its value is greater than 1.
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
-	    init_info.MinImageCount = std::max(2u, static_cast<uint32_t>(wnd->number_of_in_flight_frames()));
-	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_in_flight_frames()));
+	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_in_flight_frames()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
+	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
 	    init_info.CheckVkResultFn = cgb::context().check_vk_result;
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
-			mRenderpass = renderpass_t::create({
-				cgb::attachment::declare(image_format::from_window_color_buffer(wnd), att::on_load::load, att::color(0), att::on_store::store_in_presentable_format)
-			});
+			std::vector<cgb::attachment> attachments;
+			attachments.push_back(cgb::attachment::declare(image_format::from_window_color_buffer(wnd), att::on_load::load, att::color(0), att::on_store::store_in_presentable_format));
+			for (auto a : wnd->get_additional_back_buffer_attachments()) {
+				a.mLoadOperation = att::on_load::dont_care;
+				a.mStoreOperation = att::on_store::dont_care;
+				attachments.push_back(a);
+			}
+			mRenderpass = renderpass_t::create(attachments);
 		}
 
 		// Init it:

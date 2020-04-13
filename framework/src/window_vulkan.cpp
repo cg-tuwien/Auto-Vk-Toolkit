@@ -259,10 +259,22 @@ namespace cgb
 		if (!aFrameId.has_value()) {
 			aFrameId = current_frame();
 		}
+
+		aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
+		
 		const auto frameId = aFrameId.value();
 		auto& refTpl = mSingleUseCommandBuffers.emplace_back(frameId, std::move(aCommandBuffer));
 		mCommandBufferRefs.emplace_back(frameId, std::cref(*std::get<command_buffer>(refTpl)));
 		// ^ Prefer code duplication over recursive_mutex
+	}
+
+	void window::submit_for_backbuffer(std::optional<command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId)
+	{
+		if (!aCommandBuffer.has_value()) {
+			LOG_WARNING("std::optional<command_buffer> submitted and it has no value.");
+			return;
+		}
+		submit_for_backbuffer(std::move(aCommandBuffer.value()), aFrameId);
 	}
 
 	void window::submit_for_backbuffer_ref(const command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId)
@@ -271,6 +283,9 @@ namespace cgb
 		if (!aFrameId.has_value()) {
 			aFrameId = current_frame();
 		}
+
+		aCommandBuffer.invoke_post_execution_handler(); // Yes, do it now!
+		
 		mCommandBufferRefs.emplace_back(aFrameId.value(), std::cref(aCommandBuffer));
 	}
 
@@ -317,7 +332,7 @@ namespace cgb
 		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
 		auto eraseBegin = std::begin(mSingleUseCommandBuffers);
 		std::vector<command_buffer> removedBuffers;
-		if (std::get<int64_t>(*eraseBegin) > maxTTL) {
+		if (std::end(mSingleUseCommandBuffers) == eraseBegin || std::get<int64_t>(*eraseBegin) > maxTTL) {
 			return removedBuffers;
 		}
 		// There are elements that we can remove => find position until where:
@@ -366,10 +381,10 @@ namespace cgb
 
 	}*/
 
-	void window::render_frame()
+	void window::sync_before_render()
 	{
 		vk::Result result;
-
+		
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
 		cgb::context().logical_device().waitForFences(1u, fence.handle_addr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
@@ -397,6 +412,14 @@ namespace cgb
 		//
 		//
 		//
+
+	}
+	
+	void window::render_frame()
+	{
+		vk::Result result;
+
+		const auto& fence = fence_for_frame();
 
 		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 		uint32_t imageIndex;
@@ -445,6 +468,7 @@ namespace cgb
 		// Also provide a fence for GPU -> CPU sync which will be waited on next time we need this frame (top of this method).
 		result = cgb::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
 		assert (vk::Result::eSuccess == result);
+		// Attention: Do not invoke post execution handlers here, they have already been invoked in submit_for_backbuffer/submit_for_backbuffer_ref
 
 		// Present as soon as the render finished semaphore has been signalled:
 		auto presentInfo = vk::PresentInfoKHR()
@@ -460,63 +484,33 @@ namespace cgb
 		// increment frame counter
 		++mCurrentFrame;
 	}
-
-	cgb::sync window::wait_for_previous_commands_directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationSwapchainImage)
+	
+	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
-		return cgb::sync::with_barriers_by_return(
-				// These are rather coarse barriers:
-				[&](command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess) {
-					// Must transfer the swap chain image's layout:
-					aDestinationSwapchainImage.set_target_layout(vk::ImageLayout::eTransferDstOptimal);
-					aCommandBuffer.establish_image_memory_barrier(
-						aDestinationSwapchainImage,
-						pipeline_stage::top_of_pipe,					// Wait for nothing
-						pipeline_stage::transfer,						// Unblock TRANSFER after the layout transition is done
-						std::optional<memory_access>{},					// No pending writes to flush out
-						memory_access::transfer_write_access			// Transfer write access must have all required memory visible
-					);
-
-					// But, IMPORTANT: must also wait for writing to the image to complete!
-					aCommandBuffer.establish_image_memory_barrier(
-						aSourceImage,
-						pipeline_stage::all_commands, /* -> */ aDestinationStage,	// Wait for all previous command before continuing with the operation's command
-						write_memory_access{memory_access::any_write_access},		// Make any write access available, ...
-						aDestinationAccess											// ... before making the operation's read access type visible
-					);
-				},
-				[&](command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess){
-					assert(vk::ImageLayout::eTransferDstOptimal == aDestinationSwapchainImage.current_layout());
-					aDestinationSwapchainImage.set_target_layout(vk::ImageLayout::ePresentSrcKHR); // From transfer-dst into present-src layout
-					aCommandBuffer.establish_image_memory_barrier(
-						aDestinationSwapchainImage,
-						pipeline_stage::transfer,						// When the TRANSFER has completed
-						pipeline_stage::bottom_of_pipe,					// Afterwards comes the semaphore -> present
-						memory_access::transfer_write_access,			// Copied memory must be available
-						std::optional<memory_access>{}					// Present does not need any memory access specified, it's synced with a semaphore anyways.
-					);
-					// No further sync required
-				}
-			);
+		auto& destinationImage = image_for_frame(aDestinationFrameId);
+		return copy_image_to_another(aSourceImage, destinationImage, cgb::sync::with_barriers_by_return(
+				cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+				aShallBePresentedDirectlyAfterwards 
+					? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+					: cgb::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+			),
+			true, // Restore layout of source image
+			false // Don't restore layout of destination => this is handled by the after-handler in any case
+		);
 	}
 	
-	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
+	std::optional<command_buffer> window::blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
-		aSync.set_queue_hint(cgb::context().graphics_queue());
-		copy_image_to_another(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
+		auto& destinationImage = image_for_frame(aDestinationFrameId);
+		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::with_barriers_by_return(
+			cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+			aShallBePresentedDirectlyAfterwards 
+				? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+				: cgb::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+			),	
 			true, // Restore layout of source image
-			false // Don't restore layout of destination image
+			false // Don't restore layout of destination => this is handled by the after-handler in any case
 		);
-		return aSync.submit_and_sync();
-	}
-	
-	std::optional<command_buffer> window::blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, cgb::sync aSync)
-	{
-		aSync.set_queue_hint(cgb::context().graphics_queue());
-		blit_image(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::auxiliary_with_barriers(aSync, sync::steal_before_handler_immediately, sync::steal_after_handler_immediately),
-			true, // Restore layout of source image
-			false // Don't restore layout of destination image
-		);
-		return aSync.submit_and_sync();
 	}
 	
 }

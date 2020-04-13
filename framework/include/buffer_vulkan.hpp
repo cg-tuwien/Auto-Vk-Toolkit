@@ -180,14 +180,14 @@ namespace cgb
 	}
 
 	// For convenience:
-	inline void fill(const generic_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ fill<generic_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
-	inline void fill(const uniform_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ fill<uniform_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
-	inline void fill(const uniform_texel_buffer_t& target, const void* pData,	sync aSyncHandler = sync::wait_idle())	{ fill<uniform_texel_buffer_meta>(target, pData,	std::move(aSyncHandler)); }
-	inline void fill(const storage_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ fill<storage_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
-	inline void fill(const storage_texel_buffer_t& target, const void* pData,	sync aSyncHandler = sync::wait_idle())	{ fill<storage_texel_buffer_meta>(target, pData,	std::move(aSyncHandler)); }
-	inline void fill(const vertex_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ fill<vertex_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
-	inline void fill(const index_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ fill<index_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
-	inline void fill(const instance_buffer_t& target, const void* pData,		sync aSyncHandler = sync::wait_idle())	{ fill<instance_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const generic_buffer_t& target, const void* pData,		sync aSyncHandler = sync::wait_idle())	{ return fill<generic_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const uniform_buffer_t& target, const void* pData,		sync aSyncHandler = sync::wait_idle())	{ return fill<uniform_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const uniform_texel_buffer_t& target, const void* pData,	sync aSyncHandler = sync::wait_idle())	{ return fill<uniform_texel_buffer_meta>(target, pData,		std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const storage_buffer_t& target, const void* pData,		sync aSyncHandler = sync::wait_idle())	{ return fill<storage_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const storage_texel_buffer_t& target, const void* pData,	sync aSyncHandler = sync::wait_idle())	{ return fill<storage_texel_buffer_meta>(target, pData,		std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const vertex_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ return fill<vertex_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const index_buffer_t& target, const void* pData,			sync aSyncHandler = sync::wait_idle())	{ return fill<index_buffer_meta>(target, pData,				std::move(aSyncHandler)); }
+	inline std::optional<command_buffer> fill(const instance_buffer_t& target, const void* pData,		sync aSyncHandler = sync::wait_idle())	{ return fill<instance_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
 
 
 	// CREATE 

@@ -87,10 +87,11 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		/** TODO */
 		semaphore submit_and_handle_with_semaphore(command_buffer aCommandBuffer, std::vector<semaphore> aWaitSemaphores = {});
+		semaphore submit_and_handle_with_semaphore(std::optional<command_buffer> aCommandBuffer, std::vector<semaphore> aWaitSemaphores = {});
 		
 		/** TODO */
 		semaphore submit_and_handle_with_semaphore(std::vector<command_buffer> aCommandBuffers, std::vector<semaphore> aWaitSemaphores = {});
-
+		
 	private:
 		uint32_t mQueueFamilyIndex;
 		uint32_t mQueueIndex;

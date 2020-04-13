@@ -122,7 +122,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 						assert(cgb::pipeline_stage::acceleration_structure_build == destinationStage);
 						assert(!readAccess.has_value() || cgb::memory_access::acceleration_structure_read_access == readAccess.value().value());
 						// Wait on all the BLAS builds that happened before (and their memory):
-						commandBuffer.establish_global_memory_barrier(
+						commandBuffer.establish_global_memory_barrier_rw(
 							cgb::pipeline_stage::acceleration_structure_build, destinationStage,
 							cgb::memory_access::acceleration_structure_write_access, readAccess
 						);
@@ -131,7 +131,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 					//   However, that's exactly what the default_handler_after_operation
 					//   does, so let's just use that (it is also the default value for
 					//   this handler)
-					cgb::sync::default_handler_after_operation
+					cgb::sync::presets::default_handler_after_operation
 				)
 			);
 			mTLAS.push_back(std::move(tlas));
@@ -241,7 +241,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				{}, // Nothing to wait for
 				[](cgb::command_buffer_t& commandBuffer, cgb::pipeline_stage srcStage, std::optional<cgb::write_memory_access> srcAccess){
 					// We want this update to be as efficient/as tight as possible
-					commandBuffer.establish_global_memory_barrier(
+					commandBuffer.establish_global_memory_barrier_rw(
 						srcStage, cgb::pipeline_stage::ray_tracing_shaders, // => ray tracing shaders must wait on the building of the acceleration structure
 						srcAccess, cgb::memory_access::acceleration_structure_read_access // TLAS-update's memory must be made visible to ray tracing shader's caches (so they can read from)
 					);
@@ -307,7 +307,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, true));
 	}
 
 private: // v== Member variables ==v

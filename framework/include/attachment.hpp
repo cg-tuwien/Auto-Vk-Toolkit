@@ -60,7 +60,7 @@ namespace cgb
 			usage_desc& preserve(int location)				{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
 
 			usage_desc* operator->()						{ return this; }
-			usage_desc& operator+(usage_desc& resolveAndMore);
+			usage_desc& operator+(usage_desc resolveAndMore);
 
 		protected:
 			bool contains_unused() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::unused;			}) != mDescriptions.end(); }
@@ -69,6 +69,36 @@ namespace cgb
 			bool contains_resolve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<bool>(tpl) == true;								}) != mDescriptions.end(); }
 			bool contains_depth_stencil() const	{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::depth_stencil;	}) != mDescriptions.end(); }
 			bool contains_preserve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::preserve;		}) != mDescriptions.end(); }
+
+			usage_type first_color_depth_input_usage() const
+			{
+				auto n = mDescriptions.size();
+				usage_type firstUt = usage_type::unused;
+				for (size_t i = 0; i < n; ++i) {
+					auto ut = std::get<usage_type>(mDescriptions[i]);
+					if (usage_type::color == ut || usage_type::depth_stencil == ut || usage_type::input == ut) {
+						return ut;
+					}
+					if (i > 0) { continue; }
+					firstUt = ut;
+				}
+				return firstUt;
+			}
+
+			usage_type last_color_depth_input_usage() const
+			{
+				auto n = mDescriptions.size();
+				usage_type lastUt = usage_type::unused;
+				for (size_t i = n; i > 0; --i) {
+					auto ut = std::get<usage_type>(mDescriptions[i - 1]);
+					if (usage_type::color == ut || usage_type::depth_stencil == ut || usage_type::input == ut) {
+						return ut;
+					}
+					if (i < n) { continue; }
+					lastUt = ut;
+				}
+				return lastUt;
+			}
 
 			auto num_subpasses() const { return mDescriptions.size(); }
 			auto get_subpass_usage(size_t subpassId) const { return std::get<usage_type>(mDescriptions[subpassId]); }
@@ -170,15 +200,20 @@ namespace cgb
 		
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
-		/** True if this attachment shall be, finally, presented on screen. */
-		auto is_presentable() const { return att::on_store::store_in_presentable_format == mStoreOperation; }
-		/** True if this attachment is used as depth/stencil attachment in the subpasses. */
-		auto is_depth_stencil_attachment() const { return mSubpassUsages.contains_depth_stencil(); }
-		/** True if this attachment is used as color attachment in the subpasses. */
-		auto is_color_attachment() const { return mSubpassUsages.contains_color(); }
-		/** True if this attachment is only used as input attachment in the subpasses, but not as color or depth attachment */
-		auto is_pure_input_attachment() const { return mSubpassUsages.contains_input() && !is_depth_stencil_attachment() && !is_color_attachment(); }
-		/** True fi the sample count is greater than 1 */
+		
+		auto shall_be_presentable() const { return att::on_store::store_in_presentable_format == mStoreOperation; }
+
+		auto get_first_usage_type() const { return mSubpassUsages.first_color_depth_input_usage(); }
+
+		auto get_last_usage_type() const { return mSubpassUsages.last_color_depth_input_usage(); }
+		
+		auto is_used_as_depth_stencil_attachment() const { return mSubpassUsages.contains_depth_stencil(); }
+
+		auto is_used_as_color_attachment() const { return mSubpassUsages.contains_color(); }
+		
+		auto is_used_as_input_attachment() const { return mSubpassUsages.contains_input(); }
+
+		/** True if the sample count is greater than 1 */
 		bool is_multisampled() const { return mSampleCount > 1; }
 		/** The sample count for this attachment. */
 		auto sample_count() const { return mSampleCount; }

@@ -27,6 +27,7 @@ namespace cgb
 		vk::Format mFormat;
 
 		static image_format from_window_color_buffer(window* aWindow = nullptr);
+		static image_format from_window_depth_buffer(window* aWindow = nullptr);
 	};
 
 	/** Analyze the given `cgb::image_usage` flags, and assemble some (hopefully valid) `vk::ImageUsageFlags`, and determine `vk::ImageLayout` and `vk::ImageTiling`. */
@@ -89,6 +90,8 @@ namespace cgb
 		 *	i.e. all layers, all mip-levels
 		 */
 		vk::ImageSubresourceRange entire_subresource_range() const;
+
+		auto aspect_flags() const { return mAspectFlags; }
 
 #pragma region static creation methods
 		/** Creates a new image

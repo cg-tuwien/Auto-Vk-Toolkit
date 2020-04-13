@@ -46,6 +46,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 					existingDeleter = std::move(mCustomDeleter.value()),
 					additionalDeleter = std::forward<F>(aDeleter)
 				]() {
+					// Invoke in inverse order of addition:
 					additionalDeleter();
 					existingDeleter();
 				};
@@ -56,14 +57,40 @@ namespace cgb // ========================== TODO/WIP ===========================
 			return *this;
 		}
 
+		/** Set a post execution handler function.
+		 *	This is (among possible other use cases) used for keeping the C++-side of things in sync with the GPU-side,
+		 *	e.g., to update image layout transitions after command buffers with renderpasses have been submitted.
+		 */
+		template <typename F>
+		command_buffer_t& set_post_execution_handler(F&& aHandler) noexcept
+		{
+			if (mPostExecutionHandler.has_value()) {
+				// There is already a custom deleter! Make sure that this stays alive as well.
+				mPostExecutionHandler = [
+					existingHandler = std::move(mPostExecutionHandler.value()),
+					additionalHandler = std::forward<F>(aHandler)
+				]() {
+					// Invoke IN addition order:
+					existingHandler();
+					additionalHandler();
+				};
+			}
+			else {
+				mPostExecutionHandler = std::forward<F>(aHandler);
+			}
+			return *this;
+		}
+
+		void invoke_post_execution_handler() const;
+
 		void begin_recording();
 		void end_recording();
-		void begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, const framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset = {0, 0}, std::optional<glm::uvec2> aRenderAreaExtent = {}, bool aSubpassesInline = true);
+		void begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset = {0, 0}, std::optional<glm::uvec2> aRenderAreaExtent = {}, bool aSubpassesInline = true);
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
-		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
+		void establish_global_memory_barrier_rw(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
 		void establish_image_memory_barrier(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
-		void establish_image_memory_barrier(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
+		void establish_image_memory_barrier_rw(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
 		void copy_image(const image_t& aSource, const vk::Image& aDestination);
 		void end_render_pass();
 
@@ -155,6 +182,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 		
 		/** A custom deleter function called upon destruction of this command buffer */
 		std::optional<cgb::unique_function<void()>> mCustomDeleter;
+
+		std::optional<cgb::unique_function<void()>> mPostExecutionHandler;
 	};
 
 	// Typedef for a variable representing an owner of a command_buffer

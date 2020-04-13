@@ -67,7 +67,7 @@ namespace cgb
 		versatile_color_attachment				= versatile_image | color_attachment,
 
 		/** The image can be used as a depth/stencil attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_depth_stencil_attachment		= versatile_image | depth_stencil_attachment,
+		versatile_depth_stencil_attachment		= transfer_source | transfer_destination | sampled | depth_stencil_attachment,
 
 		/** The image can be used as read-only depth/stencil attachment, to transfer from, to sample and serve for readonly shader image/store operations. */
 		read_only_depth_stencil_attachment		= transfer_source | sampled | read_only | depth_stencil_attachment,

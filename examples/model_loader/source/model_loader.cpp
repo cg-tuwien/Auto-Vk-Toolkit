@@ -127,8 +127,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store_in_presentable_format),
-			cgb::attachment::declare(cgb::image_format::default_depth_format(),		on_load::clear, depth_stencil(), on_store::dont_care),
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store),	 // But not in presentable format, because ImGui comes after
+			cgb::attachment::declare(cgb::image_format::from_window_depth_buffer(), on_load::clear, depth_stencil(), on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },

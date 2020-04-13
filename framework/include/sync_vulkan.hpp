@@ -12,6 +12,41 @@ namespace cgb
 	class sync
 	{
 	public:
+		struct presets
+		{
+			static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess)
+			{
+				// We do not know which operation came before. Hence, we have to be overly cautious and
+				// establish a (possibly) hefty barrier w.r.t. write access that happened before.
+				aCommandBuffer.establish_global_memory_barrier_rw(
+					pipeline_stage::all_commands,							aDestinationStage,	// Wait for all previous command before continuing with the operation's command
+					write_memory_access{memory_access::any_write_access},	aDestinationAccess	// Make any write access available before making the operation's read access type visible
+				);
+			}
+			
+			static void default_handler_after_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess)
+			{
+				// We do not know which operation comes after. Hence, we have to be overly cautious and
+				// establish a (possibly) hefty barrier w.r.t. read access that happens after.
+				aCommandBuffer.establish_global_memory_barrier_rw(
+					aSourceStage,	pipeline_stage::all_commands,							// All subsequent stages have to wait until the operation has completed
+					aSourceAccess,  read_memory_access{memory_access::any_read_access}		// Make the operation's writes available and visible to all memory stages
+				);
+			}
+			
+			struct image_copy
+			{
+				/** Destination image is assumed to be ready to be read. A rather coarse barrier is established for the source image, waiting for all commands and any memory access. */
+				static cgb::unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)> wait_for_previous_operations(cgb::image_t& aSourceImage, cgb::image_t& aDestinationImage);
+
+				/** Set up rather coarse barrier for subsequent operations and transfer the destination image into color attachment optimal format */
+				static cgb::unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)> let_subsequent_operations_wait(cgb::image_t& aSourceImage, cgb::image_t& aDestinationImage);
+
+				/** Set up lightweight sync for the image is to be sent to present right afterwards. Destination image's layout is transferred in to presentable format. */
+				static cgb::unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)> directly_into_present(cgb::image_t& aSourceImage, cgb::image_t& aDestinationImage);
+			};
+		};
+		
 		enum struct sync_type { not_required, by_return, via_wait_idle, via_wait_idle_deliberately, via_semaphore, via_barrier };
 		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
 		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
@@ -19,20 +54,20 @@ namespace cgb
 		static void steal_after_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
 		static void steal_before_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
 		static void steal_after_handler_immediately(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>) {}
-		static bool is_about_to_steal_before_handler_on_demand(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
-			auto trgPtr = aToTest.target<steal_before_handler_t>();
+		static bool is_about_to_steal_before_handler_on_demand(const unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_before_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_on_demand ? true : false;
 		}
-		static bool is_about_to_steal_after_handler_on_demand(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
-			auto trgPtr = aToTest.target<steal_after_handler_t>();
+		static bool is_about_to_steal_after_handler_on_demand(const unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_after_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_on_demand ? true : false;
 		}
-		static bool is_about_to_steal_before_handler_immediately(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
-			auto trgPtr = aToTest.target<steal_before_handler_t>();
+		static bool is_about_to_steal_before_handler_immediately(const unique_function<void(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_before_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_before_handler_immediately ? true : false;
 		}
-		static bool is_about_to_steal_after_handler_immediately(unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
-			auto trgPtr = aToTest.target<steal_after_handler_t>();
+		static bool is_about_to_steal_after_handler_immediately(const unique_function<void(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>)>& aToTest) {
+			const auto trgPtr = aToTest.target<steal_after_handler_t>();
 			return nullptr == trgPtr ? false : *trgPtr == steal_after_handler_immediately ? true : false;
 		}
 		
@@ -44,26 +79,6 @@ namespace cgb
 		~sync();
 		
 #pragma region static creation functions
-		static void default_handler_before_operation(command_buffer_t& aCommandBuffer, pipeline_stage aDestinationStage, std::optional<read_memory_access> aDestinationAccess)
-		{
-			// We do not know which operation came before. Hence, we have to be overly cautious and
-			// establish a (possibly) hefty barrier w.r.t. write access that happened before.
-			aCommandBuffer.establish_global_memory_barrier(
-				pipeline_stage::all_commands,							aDestinationStage,	// Wait for all previous command before continuing with the operation's command
-				write_memory_access{memory_access::any_write_access},	aDestinationAccess	// Make any write access available before making the operation's read access type visible
-			);
-		}
-		
-		static void default_handler_after_operation(command_buffer_t& aCommandBuffer, pipeline_stage aSourceStage, std::optional<write_memory_access> aSourceAccess)
-		{
-			// We do not know which operation comes after. Hence, we have to be overly cautious and
-			// establish a (possibly) hefty barrier w.r.t. read access that happens after.
-			aCommandBuffer.establish_global_memory_barrier(
-				aSourceStage,	pipeline_stage::all_commands,							// All subsequent stages have to wait until the operation has completed
-				aSourceAccess,  read_memory_access{memory_access::any_read_access}		// Make the operation's writes available and visible to all memory stages
-			);
-		}
-
 		/**	Indicate that no sync is required. If you are wrong, there will be an exception.
 		 */
 		static sync not_required();
@@ -113,7 +128,7 @@ namespace cgb
 		 */
 		static sync with_barriers_by_return(
 			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
-			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation)
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = presets::default_handler_after_operation)
 		{
 			sync result;
 			result.mSpecialSync = sync_type::by_return;
@@ -139,7 +154,7 @@ namespace cgb
 		static sync with_barriers(
 			F&& aCommandBufferLifetimeHandler,
 			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
-			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = default_handler_after_operation)
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = presets::default_handler_after_operation)
 		{
 			sync result;
 			result.mCommandBufferRefOrLifetimeHandler = std::forward<F>(aCommandBufferLifetimeHandler); // <-- Set the lifetime handler, not the command buffer reference.

@@ -30,6 +30,14 @@ namespace cgb
 
 		result.mTracker.setTrackee(result);
 		result.mFramebuffer = context().logical_device().createFramebufferUnique(result.mCreateInfo);
+
+		// Set the right layouts for the images:
+		const auto n = result.mImageViews.size();
+		const auto& attDescs = result.mRenderpass->attachment_descriptions();
+		for (size_t i = 0; i < n; ++i) {
+			result.mImageViews[i]->get_image().transition_to_layout(attDescs[i].initialLayout);
+		}
+		
 		return result;
 	}
 

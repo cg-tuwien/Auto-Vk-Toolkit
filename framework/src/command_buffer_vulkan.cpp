@@ -13,6 +13,13 @@ namespace cgb
 		// ^ This is ensured by the order of the members
 		//   See: https://isocpp.org/wiki/faq/dtors#calling-member-dtors
 	}
+
+	void command_buffer_t::invoke_post_execution_handler() const
+	{
+		if (mPostExecutionHandler.has_value() && *mPostExecutionHandler) {
+			(*mPostExecutionHandler)();
+		}
+	}
 	
 	std::vector<owning_resource<command_buffer_t>> command_buffer_t::create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags)
 	{
@@ -58,7 +65,7 @@ namespace cgb
 		mState = command_buffer_state::finished_recording;
 	}
 
-	void command_buffer_t::begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, const framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset, std::optional<glm::uvec2> aRenderAreaExtent, bool aSubpassesInline)
+	void command_buffer_t::begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset, std::optional<glm::uvec2> aRenderAreaExtent, bool aSubpassesInline)
 	{
 		const auto firstAttachmentsSize = aFramebuffer.image_view_at(0)->get_image().config().extent;
 		const auto& clearValues = aRenderpass.clear_values();
@@ -79,6 +86,33 @@ namespace cgb
 		// 2nd parameter: how the drawing commands within the render pass will be provided. It can have one of two values [7]:
 		//  - VK_SUBPASS_CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed.
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
+
+		// Sorry, but have to do this:
+#ifdef _DEBUG
+		bool hadToEnable = false;
+#endif
+		std::vector<cgb::image_view> imageViews;
+		for (auto& view : aFramebuffer.image_views()) {
+			if (!view.is_shared_ownership_enabled()) {
+				view.enable_shared_ownership();
+#ifdef _DEBUG
+				hadToEnable = true;
+#endif
+			}
+			imageViews.push_back(view);
+		}
+#ifdef _DEBUG
+		if (hadToEnable) {
+			LOG_DEBUG("Had to enable shared ownership on all the framebuffers' views in command_buffer_t::begin_render_pass_for_framebuffer, fyi.");
+		}
+#endif
+		set_post_execution_handler([lAttachmentDescs = aRenderpass.attachment_descriptions(), lImageViews = std::move(imageViews)] () {
+			const auto n = lImageViews.size();
+			for (size_t i = 0; i < n; ++i) {
+				// I think, the const_cast is justified here:
+				const_cast<image_t&>(lImageViews[i]->get_image()).set_current_layout(lAttachmentDescs[i].finalLayout);
+			}
+		});
 	}
 
 	void command_buffer_t::establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage)
@@ -105,7 +139,7 @@ namespace cgb
 		);
 	}
 
-	void command_buffer_t::establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
+	void command_buffer_t::establish_global_memory_barrier_rw(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
 	{
 		establish_global_memory_barrier(aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
 	}
@@ -131,7 +165,7 @@ namespace cgb
 		aImage.set_current_layout(aImage.target_layout()); // Just optimistically set it
 	}
 	
-	void command_buffer_t::establish_image_memory_barrier(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
+	void command_buffer_t::establish_image_memory_barrier_rw(image_t& aImage, pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible)
 	{
 		establish_image_memory_barrier(aImage, aSrcStage, aDstStage, to_memory_access(aSrcAccessToBeMadeAvailable), to_memory_access(aDstAccessToBeMadeVisible));
 	}

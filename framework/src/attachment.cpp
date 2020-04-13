@@ -4,7 +4,7 @@ namespace cgb
 {
 	namespace att
 	{
-		usage_desc& usage_desc::operator+(usage_desc& resolveAndMore)
+		usage_desc& usage_desc::operator+(usage_desc resolveAndMore)
 		{
 			assert(resolveAndMore.mDescriptions.size() >= 1);
 			auto& mustBeResolve = resolveAndMore.mDescriptions.front();

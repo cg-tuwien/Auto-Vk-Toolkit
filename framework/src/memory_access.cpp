@@ -17,7 +17,7 @@ namespace cgb
 						| memory_access::any_read_access							
 						| memory_access::transform_feedback_counter_read_access		
 						| memory_access::conditional_rendering_predicate_read_access
-						| memory_access::command_process_read_access				
+						| memory_access::command_preprocess_read_access				
 						| memory_access::color_attachment_noncoherent_read_access	
 						| memory_access::shading_rate_image_read_access				
 						| memory_access::acceleration_structure_read_access			

@@ -225,6 +225,11 @@ namespace cgb
 					// Tell the main thread that we'd like to have the new input buffers from A) here:
 					please_swap_input_buffers(thiz);
 
+					// Sync (wait for fences and so) per window BEFORE executing render callbacks
+					cgb::context().execute_for_each_window([](window* wnd){
+						wnd->sync_before_render();
+					});
+
 					// 5. render
 					thiz->mExecutor.execute_renders(thiz->mElements);
 

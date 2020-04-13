@@ -72,7 +72,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format)
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store) // But not in presentable format, because ImGui comes after
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.

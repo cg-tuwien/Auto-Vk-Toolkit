@@ -155,7 +155,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, cgb::window::wait_for_previous_commands_directly_into_present).value());
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, true));
 	}
 
 private: // v== Member variables ==v
@@ -184,6 +184,7 @@ int main() // <== Starting point ==
 		cgb::settings::gApplicationName = "cg_base::ray_tracing_basic_usage";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
+		//cgb::settings::gRequiredDeviceExtensions.push_back("VK_KHR_ray_tracing");
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 

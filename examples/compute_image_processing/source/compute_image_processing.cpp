@@ -103,7 +103,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::culling_mode::disabled,
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()).enable_dynamic_viewport(),
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store_in_presentable_format).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),
+			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
 			cgb::binding(0, mUbo),
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
@@ -136,7 +136,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
 
 			// Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
-			commandBuffer.establish_image_memory_barrier(
+			commandBuffer.establish_image_memory_barrier_rw(
 				mTargetImageAndSampler->get_image_view()->get_image(),
 				cgb::pipeline_stage::compute_shader, 
 				cgb::pipeline_stage::fragment_shader,
@@ -257,6 +257,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				.setPCommandBuffers(cmdbfr->handle_addr());
 
 			cgb::context().graphics_queue().handle().submit({ submitInfo }, mComputeFence->handle());
+			cmdbfr->invoke_post_execution_handler();
 
 			mComputeFence->set_custom_deleter([
 				ownedCmdbfr{ std::move(cmdbfr) }

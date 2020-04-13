@@ -787,7 +787,11 @@ namespace cgb
 				.setPpEnabledLayerNames(supportedValidationLayers.data());
 			context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
 			// Create a dynamic dispatch loader for extensions
-			context().mDynamicDispatch = vk::DispatchLoaderDynamic(context().vulkan_instance(), context().logical_device());
+			context().mDynamicDispatch = vk::DispatchLoaderDynamic(
+				context().vulkan_instance(), 
+				vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
+				context().logical_device()
+			);
 
 			// Create the queues which have been prepared in the beginning of this method:
 			context().mPresentQueue		= device_queue::create(*presentQueue);
@@ -900,17 +904,12 @@ namespace cgb
 		auto swapChainImages = logical_device().getSwapchainImagesKHR(pWindow->swap_chain());
 		assert(swapChainImages.size() == pWindow->get_config_number_of_presentable_images());
 
-		// Store the images,
-		for (auto& imageHandle : swapChainImages) {
-			pWindow->mSwapChainImages.emplace_back(image_t::wrap(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor));
-		}
-
 		// and create one image view per image
-		pWindow->mSwapChainImageViews.reserve(pWindow->mSwapChainImages.size());
-		for (auto& image : pWindow->mSwapChainImages) {
+		pWindow->mSwapChainImageViews.reserve(swapChainImages.size());
+		for (auto& imageHandle : swapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			pWindow->mSwapChainImageViews.push_back(image_view_t::create(image));
-			pWindow->mSwapChainImageViews.back().enable_shared_ownership(); // TODO: Why again do we need shared ownership here?
+			auto& ref = pWindow->mSwapChainImageViews.emplace_back(image_view_t::create(image_t::wrap(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
+			ref.enable_shared_ownership(); // Back buffers must be in shared ownership, because they are also stored in the renderpass (see below), and imgui_manager will also require it that way if it is enabled.
 		}
 
 		// Create a renderpass for the back buffers
@@ -920,7 +919,7 @@ namespace cgb
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
 		pWindow->mBackBufferRenderpass = renderpass_t::create(renderpassAttachments);
-		pWindow->mBackBufferRenderpass.enable_shared_ownership();
+		pWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
 
 		// Create a back buffer per image
 		pWindow->mBackBuffers.reserve(pWindow->mSwapChainImageViews.size());
@@ -932,11 +931,9 @@ namespace cgb
 			imageViews.reserve(renderpassAttachments.size());
 			imageViews.push_back(imView); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
-				if (is_depth_format(aa.format())) {
-					// TODO: can setting the config-alteration function for depth attachments be somehow abstracted?! e.g. by moving it into the framebuffer class (or a framebuffer's ::create method)
-					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment,
-						[](image_t& imageToConfig) { imageToConfig.config().setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment); })); 
-					imageViews.push_back(std::move(depthView));
+				if (aa.is_used_as_depth_stencil_attachment()) {
+					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment)); 
+					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
 					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, memory_usage::device, cgb::image_usage::versatile_color_attachment)));
@@ -946,6 +943,15 @@ namespace cgb
 			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
 		assert(pWindow->mBackBuffers.size() == pWindow->get_config_number_of_presentable_images());
+
+		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
+		for (auto& bb : pWindow->mBackBuffers) {
+			const auto n = bb->image_views().size();
+			assert(n == pWindow->get_renderpass().attachment_descriptions().size());
+			for (size_t i = 0; i < n; ++i) {
+				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout);
+			}
+		}
 
 		// ============= SYNCHRONIZATION OBJECTS ===========
 		{

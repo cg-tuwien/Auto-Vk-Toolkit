@@ -149,10 +149,14 @@ namespace cgb
 	void device_queue::submit(command_buffer_t& aCommandBuffer)
 	{
 		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
+
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
 			.setPCommandBuffers(aCommandBuffer.handle_addr());
+		
 		handle().submit({ submitInfo },  nullptr);
+		aCommandBuffer.invoke_post_execution_handler();
+
 		aCommandBuffer.mState = command_buffer_state::submitted;
 	}
 	// The code between these two ^ and v is mostly copied... I know. It avoids the usage of an unneccessary
@@ -169,9 +173,11 @@ namespace cgb
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(static_cast<uint32_t>(handles.size()))
 			.setPCommandBuffers(handles.data());
-		handle().submit({ submitInfo }, nullptr);
 
+		handle().submit({ submitInfo }, nullptr);
 		for (auto& cb : aCommandBuffers) {
+			cb.get().invoke_post_execution_handler();
+			
 			cb.get().mState = command_buffer_state::submitted;
 		}
 	}
@@ -195,6 +201,8 @@ namespace cgb
 				.setPSignalSemaphores(nullptr);
 
 			handle().submit({ submitInfo }, fen->handle());
+			aCommandBuffer.invoke_post_execution_handler();
+			
 			aCommandBuffer.mState = command_buffer_state::submitted;
 		}
 		else {
@@ -219,6 +227,8 @@ namespace cgb
 				.setPSignalSemaphores(nullptr);
 
 			handle().submit({ submitInfo }, fen->handle());
+			aCommandBuffer.invoke_post_execution_handler();
+			
 			aCommandBuffer.mState = command_buffer_state::submitted;
 
 			fen->set_custom_deleter([
@@ -254,8 +264,9 @@ namespace cgb
 				.setPSignalSemaphores(nullptr);
 
 			handle().submit({ submitInfo }, fen->handle());
-			
 			for (auto& cb : aCommandBuffers) {
+				cb.get().invoke_post_execution_handler();
+				
 				cb.get().mState = command_buffer_state::submitted;
 			}
 		}
@@ -281,8 +292,9 @@ namespace cgb
 				.setPSignalSemaphores(nullptr);
 
 			handle().submit({ submitInfo }, fen->handle());
-
 			for (auto& cb : aCommandBuffers) {
+				cb.get().invoke_post_execution_handler();
+				
 				cb.get().mState = command_buffer_state::submitted;
 			}
 
@@ -313,6 +325,8 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
+			aCommandBuffer->invoke_post_execution_handler();
+			
 			aCommandBuffer->mState = command_buffer_state::submitted;
 
 			signalWhenCompleteSemaphore->set_custom_deleter([
@@ -341,6 +355,8 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
+			aCommandBuffer->invoke_post_execution_handler();
+			
 			aCommandBuffer->mState = command_buffer_state::submitted;
 
 			signalWhenCompleteSemaphore->set_custom_deleter([
@@ -377,8 +393,9 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
-
 			for (auto& cb : aCommandBuffers) {
+				cb->invoke_post_execution_handler();
+				
 				cb->mState = command_buffer_state::submitted;
 			}
 
@@ -408,8 +425,9 @@ namespace cgb
 				.setPSignalSemaphores(signalWhenCompleteSemaphore->handle_addr());
 
 			handle().submit({ submitInfo }, nullptr);
-			
 			for (auto& cb : aCommandBuffers) {
+				cb->invoke_post_execution_handler();
+				
 				cb->mState = command_buffer_state::submitted;
 			}
 
@@ -421,4 +439,13 @@ namespace cgb
 		
 		return signalWhenCompleteSemaphore;
 	}
+
+	semaphore device_queue::submit_and_handle_with_semaphore(std::optional<command_buffer> aCommandBuffer, std::vector<semaphore> aWaitSemaphores)
+	{
+		if (!aCommandBuffer.has_value()) {
+			throw cgb::runtime_error("std::optional<command_buffer> submitted and it has no value.");
+		}
+		return submit_and_handle_with_semaphore(std::move(aCommandBuffer.value()), std::move(aWaitSemaphores));
+	}
+
 }

@@ -25,8 +25,8 @@ namespace cgb
 		transform_feedback_counter_read_access		= 0x00040000,
 		transform_feedback_counter_write_access		= 0x00080000,
 		conditional_rendering_predicate_read_access = 0x00100000,
-		command_process_read_access					= 0x00200000,
-		command_process_write_access				= 0x00400000,
+		command_preprocess_read_access				= 0x00200000,
+		command_preprocess_write_access				= 0x00400000,
 		color_attachment_noncoherent_read_access	= 0x00800000,
 		shading_rate_image_read_access				= 0x01000000,
 		acceleration_structure_read_access			= 0x02000000,
@@ -48,7 +48,7 @@ namespace cgb
 		any_device_read_access_to_image				= shader_buffers_and_images_read_access | color_attachment_read_access | depth_stencil_attachment_read_access | transfer_read_access | color_attachment_noncoherent_read_access | shading_rate_image_read_access,
 		any_device_write_access_to_image			= shader_buffers_and_images_write_access | color_attachment_write_access | depth_stencil_attachment_write_access | transfer_write_access,
 		any_device_access_to_image					= shader_buffers_and_images_any_access | color_attachment_any_access | depth_stencil_attachment_any_access | transfer_any_access | color_attachment_noncoherent_read_access | shading_rate_image_read_access,
-		command_process_any_access					= command_process_read_access | command_process_write_access,
+		command_process_any_access					= command_preprocess_read_access | command_preprocess_write_access,
 		acceleration_structure_any_access			= acceleration_structure_read_access | acceleration_structure_write_access
 	};
 

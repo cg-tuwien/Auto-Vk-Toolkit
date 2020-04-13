@@ -45,83 +45,78 @@ namespace cgb
 			// Try to infer initial and final image layouts (If this isn't cool => user must use aAlterConfigBeforeCreation)
 			vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
 			vk::ImageLayout finalLayout = vk::ImageLayout::eUndefined;
+
 			const auto isLoad = att::on_load::load == a.mLoadOperation;
 			const auto isClear = att::on_load::clear == a.mLoadOperation;
 			const auto isStore  = att::on_store::store == a.mStoreOperation || att::on_store::store_in_presentable_format == a.mStoreOperation;
 			const auto makePresentable = att::on_store::store_in_presentable_format == a.mStoreOperation;
-			if (a.is_depth_stencil_attachment()) {
-				const auto hasSeparateStencilLoad = a.mStencilLoadOperation.has_value();
-				const auto hasSeparateStencilStore = a.mStencilStoreOperation.has_value();
-				const auto isStencilLoad = att::on_load::load == a.get_stencil_load_op();
-				const auto isStencilClear = att::on_load::clear == a.get_stencil_load_op();
-				const auto isStencilStore  = att::on_store::store == a.get_stencil_store_op() || att::on_store::store_in_presentable_format == a.get_stencil_store_op();
-				const auto makeStencilPresentable = att::on_store::store_in_presentable_format == a.get_stencil_store_op();
-				const auto hasStencilComponent = has_stencil_component(a.format());
-				if (isLoad) {
-					if (hasSeparateStencilLoad || hasSeparateStencilStore || hasStencilComponent) {
-						if (isStencilStore) {
-							initialLayout = vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal;
-						}
-						else { // applies to all other cases
-							initialLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
-						}
-					}
-					else {
-						initialLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
-					}
-				}
-				else {
-					if (hasSeparateStencilLoad || hasSeparateStencilStore || hasStencilComponent) {
-						if (isStencilStore) {
-							initialLayout = vk::ImageLayout::eStencilAttachmentOptimal;
-						}
-						else {
-							initialLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
-						}
-					}
-				}
-				if (isStore) {
-					if (hasSeparateStencilLoad || hasSeparateStencilStore || hasStencilComponent) {
-						if (isStencilStore) {
-							finalLayout = initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-						}
-						else { // applies to all other cases
-							finalLayout = initialLayout = vk::ImageLayout::eDepthAttachmentStencilReadOnlyOptimal;
-						}
-					}
-					else {
-						finalLayout = initialLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-					}
-				}
-				else {
-					if (hasSeparateStencilLoad || hasSeparateStencilStore || hasStencilComponent) {
-						if (isStencilStore) {
-							finalLayout = initialLayout = vk::ImageLayout::eStencilAttachmentOptimal;
-						}
-						else {
-							finalLayout = initialLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
-						}
-					}
-				}
-			}
-			else if (a.is_color_attachment()) {
-				if (isLoad) {
-					initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-				}				
-				if (isStore) {
-					finalLayout = initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-				}				
-			}
-			else if (a.is_pure_input_attachment()) {
+			
+			const auto hasSeparateStencilLoad = a.mStencilLoadOperation.has_value();
+			const auto hasSeparateStencilStore = a.mStencilStoreOperation.has_value();
+			const auto isStencilLoad = att::on_load::load == a.get_stencil_load_op();
+			const auto isStencilClear = att::on_load::clear == a.get_stencil_load_op();
+			const auto isStencilStore  = att::on_store::store == a.get_stencil_store_op() || att::on_store::store_in_presentable_format == a.get_stencil_store_op();
+			const auto makeStencilPresentable = att::on_store::store_in_presentable_format == a.get_stencil_store_op();
+			const auto hasStencilComponent = has_stencil_component(a.format());
+
+			switch (a.get_first_usage_type()) {
+			case att::usage_type::unused:
+				break;
+			case att::usage_type::input:
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-				}				
-				if (isStore) {
-					finalLayout = initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				}
+				break;
+			case att::usage_type::color:
+				if (isLoad) {
+					initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+				}
+				break;
+			case att::usage_type::depth_stencil:
+				if (isLoad) {
+					initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+					{
+						// TODO: Set other depth/stencil-specific formats
+						//       - vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
+						//       - vk::ImageLayout::eDepthStencilReadOnlyOptimal
+						//       - vk::ImageLayout::eDepthReadOnlyOptimal
+						//       - vk::ImageLayout::eStencilAttachmentOptimal
+						//       - vk::ImageLayout::eStencilReadOnlyOptimal
+					}
+				}
+				break;
+			case att::usage_type::preserve:
+				break;
 			}
 
-			if (a.is_presentable()) {
+			switch (a.get_first_usage_type()) {
+			case att::usage_type::unused:
+				finalLayout = vk::ImageLayout::eGeneral;
+				break;
+			case att::usage_type::input:
+				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+				break;
+			case att::usage_type::color:
+				finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+				break;
+			case att::usage_type::depth_stencil:
+				finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+				{
+					// TODO: Set other depth/stencil-specific formats
+					//       - vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
+					//       - vk::ImageLayout::eDepthStencilReadOnlyOptimal
+					//       - vk::ImageLayout::eDepthReadOnlyOptimal
+					//       - vk::ImageLayout::eStencilAttachmentOptimal
+					//       - vk::ImageLayout::eStencilReadOnlyOptimal
+				}
+				break;
+			case att::usage_type::preserve:
+				finalLayout = vk::ImageLayout::eGeneral;
+				break;
+			}
+		
+			if (a.shall_be_presentable()) {
+				
 				finalLayout = vk::ImageLayout::ePresentSrcKHR;
 			}
 
