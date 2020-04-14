@@ -64,7 +64,7 @@ namespace cgb
 		read_only_sampled_image					= transfer_destination | sampled | read_only,
 
 		/** The image can be used as a color attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_color_attachment				= versatile_image | color_attachment,
+		versatile_color_attachment				= transfer_source | transfer_destination | sampled | color_attachment,
 
 		/** The image can be used as a depth/stencil attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
 		versatile_depth_stencil_attachment		= transfer_source | transfer_destination | sampled | depth_stencil_attachment,
@@ -73,7 +73,7 @@ namespace cgb
 		read_only_depth_stencil_attachment		= transfer_source | sampled | read_only | depth_stencil_attachment,
 
 		/** The image can be used as an input attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_input_attachment				= versatile_image | input_attachment,
+		versatile_input_attachment				= transfer_source | transfer_destination | sampled | input_attachment,
 
 		/** The image can be used as a shading rate image, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
 		versatile_shading_rate_image			= versatile_image | shading_rate_image,

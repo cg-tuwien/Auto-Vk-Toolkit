@@ -212,25 +212,26 @@ namespace cgb
 				>> select ([&rp = (*result.mRenderPass)](const vk::AttachmentReference& colorAttachment) { return rp.attachment_descriptions()[colorAttachment.attachment]; })
 				>> to_vector();
 
-			if (colorAttConfigs.size() > 0) {
-				numSamples = colorAttConfigs[0].samples;
+			for (const vk::AttachmentDescription& config: colorAttConfigs) {
+				typedef std::underlying_type<vk::SampleCountFlagBits>::type EnumType;
+				numSamples = static_cast<vk::SampleCountFlagBits>(std::max(static_cast<EnumType>(config.samples), static_cast<EnumType>(numSamples)));
 			}
 
 #if defined(_DEBUG) 
 			for (const vk::AttachmentDescription& config: colorAttConfigs) {
 				if (config.samples != numSamples) {
-					LOG_WARNING("Not all of the color target attachments have the same number of samples configured.");
+					LOG_DEBUG("Not all of the color target attachments have the same number of samples configured, fyi. This might be fine, though.");
 				}
 			}
 #endif
 
 			result.mMultisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo()
-				.setSampleShadingEnable(vk::SampleCountFlagBits::e1 == numSamples ? VK_FALSE : VK_TRUE) // disable/enable?
 				.setRasterizationSamples(numSamples)
-				.setMinSampleShading(1.0f) // Optional
-				.setPSampleMask(nullptr) // Optional
-				.setAlphaToCoverageEnable(VK_FALSE) // Optional
-				.setAlphaToOneEnable(VK_FALSE); // Optional
+				.setSampleShadingEnable(VK_FALSE) // can be used to enable Sample Shading.
+				.setMinSampleShading(1.0f) // specifies a minimum fraction of sample shading if sampleShadingEnable is set to VK_TRUE.
+				.setPSampleMask(nullptr) // If pSampleMask is NULL, it is treated as if the mask has all bits enabled, i.e. no coverage is removed from fragments. See https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#fragops-samplemask
+				.setAlphaToCoverageEnable(VK_FALSE) // controls whether a temporary coverage value is generated based on the alpha component of the fragment’s first color output as specified in the Multisample Coverage section.
+				.setAlphaToOneEnable(VK_FALSE); // controls whether the alpha component of the fragment’s first color output is replaced with one as described in Multisample Coverage.
 			// TODO: That is probably not enough for every case. Further customization options should be added!
 		}
 

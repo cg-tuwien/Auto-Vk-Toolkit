@@ -786,7 +786,7 @@ namespace cgb
 		}
 	}
 	
-	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, image_format aFormat, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, std::tuple<image_format, int> pFormatAndSamples, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
 		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
@@ -821,11 +821,15 @@ namespace cgb
 			? static_cast<uint32_t>(std::floor(std::log2(std::max(aWidth, aHeight))) + 1)
 			: 1u;
 
+		const auto format = std::get<image_format>(pFormatAndSamples);
+		const auto samples = std::get<int>(pFormatAndSamples);
+		const auto samplesVk = to_vk_sample_count(samples);
+		
 		vk::ImageAspectFlags aspectFlags = {};
-		if (is_depth_format(aFormat)) {
+		if (is_depth_format(format)) {
 			aspectFlags |= vk::ImageAspectFlagBits::eDepth;
 		}
-		if (has_stencil_component(aFormat)) {
+		if (has_stencil_component(format)) {
 			aspectFlags |= vk::ImageAspectFlagBits::eStencil;
 		}
 		if (!aspectFlags) {
@@ -839,12 +843,12 @@ namespace cgb
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(aWidth), static_cast<uint32_t>(aHeight), 1u))
 			.setMipLevels(mipLevels)
 			.setArrayLayers(1u) // TODO: support multiple array layers
-			.setFormat(aFormat.mFormat)
+			.setFormat(format.mFormat)
 			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
 			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one, Exclusive should be the default, though.
-			.setSamples(vk::SampleCountFlagBits::e1)
+			.setSamples(samplesVk)
 			.setFlags(imageCreateFlags); // Optional;
 		result.mTargetLayout = targetLayout;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
@@ -871,6 +875,12 @@ namespace cgb
 		
 		return result;
 	}
+
+	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	{
+		return create(pWidth, pHeight, std::make_tuple(pFormat, 1u), pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+	}
+
 
 	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{

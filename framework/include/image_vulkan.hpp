@@ -105,6 +105,19 @@ namespace cgb
 		 *	@param	pAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageCreateInfo` just before the image will be created. Use `.config()` to access the configuration structure!
 		 *	@return	Returns a newly created image.
 		 */
+		static owning_resource<image_t> create(uint32_t pWidth, uint32_t pHeight, std::tuple<image_format, int> pFormatAndSamples, bool pUseMipMaps = false, int pNumLayers = 1, memory_usage pMemoryUsage = memory_usage::device, image_usage pImageUsage = image_usage::versatile_image, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
+		
+		/** Creates a new image
+		 *	@param	pWidth						The width of the image to be created
+		 *	@param	pHeight						The height of the image to be created
+		 *	@param	pFormat						The image format of the image to be created
+		 *	@param	pUseMipMaps					Whether or not MIP maps shall be created for this image. Specifying `true` will set the maximum number of MIP map images.
+		 *	@param	pMemoryUsage				Where the memory of the image shall be allocated (GPU or CPU) and how it is going to be used.
+		 *	@param	pImageUsage					How this image is intended to being used.
+		 *	@param	pNumLayers					How many layers the image to be created shall contain.
+		 *	@param	pAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageCreateInfo` just before the image will be created. Use `.config()` to access the configuration structure!
+		 *	@return	Returns a newly created image.
+		 */
 		static owning_resource<image_t> create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps = false, int pNumLayers = 1, memory_usage pMemoryUsage = memory_usage::device, image_usage pImageUsage = image_usage::versatile_image, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation = {});
 
 		/** Creates a new image

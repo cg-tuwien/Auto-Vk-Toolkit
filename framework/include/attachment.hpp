@@ -20,17 +20,6 @@ namespace cgb
 			store_in_presentable_format
 		};
 
-		struct sample_count
-		{
-			sample_count(int numSamples) : mNumSamples{ numSamples } {}
-			sample_count(sample_count&&) noexcept = default;
-			sample_count(const sample_count&) noexcept = default;
-			sample_count& operator=(sample_count&&) noexcept = default;
-			sample_count& operator=(const sample_count&) noexcept = default;
-			
-			int mNumSamples;
-		};
-
 		enum struct usage_type
 		{
 			unused,
@@ -114,7 +103,7 @@ namespace cgb
 		class unused : public usage_desc
 		{
 		public:
-			unused(int location = -1)						{ mDescriptions.emplace_back(usage_type::unused,		false, location); }
+			explicit unused(int location = -1)						{ mDescriptions.emplace_back(usage_type::unused,		false, location); }
 			unused(unused&&) noexcept = default;
 			unused(const unused&) = default;
 			unused& operator=(unused&&) noexcept = default;
@@ -124,7 +113,7 @@ namespace cgb
 		class input : public usage_desc
 		{
 		public:
-			input(int location)								{ mDescriptions.emplace_back(usage_type::input,			false, location); }
+			explicit input(int location)								{ mDescriptions.emplace_back(usage_type::input,			false, location); }
 			input(input&&) noexcept = default;
 			input(const input&) = default;
 			input& operator=(input&&) noexcept = default;
@@ -134,7 +123,7 @@ namespace cgb
 		class color : public usage_desc
 		{
 		public:
-			color(int location)								{ mDescriptions.emplace_back(usage_type::color,			false, location); }
+			explicit color(int location)								{ mDescriptions.emplace_back(usage_type::color,			false, location); }
 			color(color&&) noexcept = default;
 			color(const color&) = default;
 			color& operator=(color&&) noexcept = default;
@@ -144,7 +133,7 @@ namespace cgb
 		class resolve : public usage_desc
 		{
 		public:
-			resolve(bool doResolve = true)					{ mDescriptions.emplace_back(usage_type::unused,		doResolve, -1); }
+			explicit resolve(bool doResolve = true)					{ mDescriptions.emplace_back(usage_type::unused,		doResolve, -1); }
 			resolve(resolve&&) noexcept = default;										// ^ usage_type not applicable here
 			resolve(const resolve&) = default;
 			resolve& operator=(resolve&&) noexcept = default;
@@ -154,7 +143,7 @@ namespace cgb
 		class depth_stencil : public usage_desc
 		{
 		public:
-			depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
+			explicit depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); }
 			depth_stencil(depth_stencil&&) noexcept = default;
 			depth_stencil(const depth_stencil&) = default;
 			depth_stencil& operator=(depth_stencil&&) noexcept = default;
@@ -164,7 +153,7 @@ namespace cgb
 		class preserve : public usage_desc
 		{
 		public:
-			preserve(int location = -1)						{ mDescriptions.emplace_back(usage_type::preserve,		false, location); }
+			explicit preserve(int location = -1)						{ mDescriptions.emplace_back(usage_type::preserve,		false, location); }
 			preserve(preserve&&) noexcept = default;
 			preserve(const preserve&) = default;
 			preserve& operator=(preserve&&) noexcept = default;
@@ -179,7 +168,7 @@ namespace cgb
 	 */
 	struct attachment
 	{
-		static attachment declare(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
+		static attachment declare(std::tuple<image_format, int> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 		static attachment declare(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 		static attachment declare_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp);
 

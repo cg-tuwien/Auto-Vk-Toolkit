@@ -8,7 +8,7 @@ namespace cgb
 		{
 			assert(resolveAndMore.mDescriptions.size() >= 1);
 			auto& mustBeResolve = resolveAndMore.mDescriptions.front();
-			if (dynamic_cast<resolve*>(&resolveAndMore) != nullptr || std::get<bool>(mustBeResolve) != true) {
+			if (dynamic_cast<resolve*>(&resolveAndMore) != nullptr) {
 				throw cgb::runtime_error("A 'resolve' element must follow after a '+'");
 			}
 			auto& mustBeColor = mDescriptions.back();
@@ -24,11 +24,11 @@ namespace cgb
 		
 	}
 	
-	attachment attachment::declare(std::tuple<image_format, att::sample_count> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
+	attachment attachment::declare(std::tuple<image_format, int> aFormatAndSamples, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
 		return attachment{
 			std::get<image_format>(aFormatAndSamples),
-			std::get<att::sample_count>(aFormatAndSamples).mNumSamples,
+			std::get<int>(aFormatAndSamples),
 			aLoadOp, aStoreOp,
 			{},      {},
 			std::move(aUsageInSubpasses),
@@ -39,7 +39,7 @@ namespace cgb
 	
 	attachment attachment::declare(image_format aFormat, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
-		return declare({aFormat, att::sample_count{1}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		return declare({aFormat, 1}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 	}
 	
 	attachment attachment::declare_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
@@ -47,7 +47,7 @@ namespace cgb
 		const auto& imageInfo = aImageView.get_image().config();
 		const auto format = image_format{ imageInfo.format };
 		const std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
-		auto result = declare({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		auto result = declare({format, to_cgb_sample_count(imageInfo.samples)}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
 		if (imageUsage.has_value()) {
 			result.set_image_usage_hint(imageUsage.value());
 		}
