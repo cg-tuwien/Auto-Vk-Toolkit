@@ -59,6 +59,7 @@ namespace cgb
 	
 	sync::sync(sync&& aOther) noexcept
 		: mSpecialSync{ std::move(aOther.mSpecialSync) }
+		, mCommandbufferRequest { std::move(aOther.mCommandbufferRequest) }
 		, mSemaphoreLifetimeHandler{ std::move(aOther.mSemaphoreLifetimeHandler) }
 		, mWaitBeforeSemaphores{ std::move(aOther.mWaitBeforeSemaphores) }
 		, mCommandBufferRefOrLifetimeHandler{ std::move(aOther.mCommandBufferRefOrLifetimeHandler) }
@@ -82,6 +83,7 @@ namespace cgb
 	sync& sync::operator=(sync&& aOther) noexcept
 	{
 		mSpecialSync = std::move(aOther.mSpecialSync);
+		mCommandbufferRequest = std::move(aOther.mCommandbufferRequest);
 		mSemaphoreLifetimeHandler = std::move(aOther.mSemaphoreLifetimeHandler);
 		mWaitBeforeSemaphores = std::move(aOther.mWaitBeforeSemaphores);
 		mCommandBufferRefOrLifetimeHandler = std::move(aOther.mCommandBufferRefOrLifetimeHandler);
@@ -243,6 +245,18 @@ namespace cgb
 		);
 	}
 
+	sync& sync::create_reusable_commandbuffer()
+	{
+		mCommandbufferRequest = commandbuffer_request::reusable;
+		return *this;
+	}
+	
+	sync& sync::create_single_use_commandbuffer()
+	{
+		mCommandbufferRequest = commandbuffer_request::single_use;
+		return *this;
+	}
+	
 	command_buffer_t& sync::get_or_create_command_buffer()
 	{
 		if (std::holds_alternative<std::reference_wrapper<command_buffer_t>>(mCommandBufferRefOrLifetimeHandler)) {
@@ -250,7 +264,14 @@ namespace cgb
 		}
 
 		if (!mCommandBuffer.has_value()) {
-			mCommandBuffer = queue_to_use().get().create_single_use_command_buffer();
+			switch (mCommandbufferRequest) {
+			case commandbuffer_request::reusable:
+				mCommandBuffer = queue_to_use().get().create_command_buffer();;
+				break;
+			default:
+				mCommandBuffer = queue_to_use().get().create_single_use_command_buffer();
+				break;
+			}
 			mCommandBuffer.value()->begin_recording(); // Immediately start recording
 		}
 		return mCommandBuffer.value();

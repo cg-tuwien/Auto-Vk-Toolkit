@@ -6,13 +6,16 @@ namespace cgb
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		
+		const auto originalSrcLayout = aSrcImage.target_layout();
+		const auto originalDstLayout = aDstImage.target_layout();
+		
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		auto initialSrcLayout = aSrcImage.target_layout();
-		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
+		const auto srcLayoutAfterBarrier = aSrcImage.current_layout();
+		const bool suitableSrcLayout = srcLayoutAfterBarrier == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
 									//|| initialSrcLayout == vk::ImageLayout::eGeneral
 									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableSrcLayout) {
@@ -25,10 +28,10 @@ namespace cgb
 		}
 
 		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		auto initialDstLayout = aDstImage.target_layout();
-		const bool suitableDstLayout = initialDstLayout == vk::ImageLayout::eTransferDstOptimal
-									|| initialDstLayout == vk::ImageLayout::eGeneral
-									|| initialDstLayout == vk::ImageLayout::eSharedPresentKHR;
+		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
+		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal
+									|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
+									|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableDstLayout) {
 			// Just make sure that is really is in target layout:
 			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
@@ -62,12 +65,12 @@ namespace cgb
 			aDstImage.current_layout(),
 			1u, &copyRegion);
 
-		if (!suitableSrcLayout && aRestoreSrcLayout && vk::ImageLayout::eUndefined != initialSrcLayout && vk::ImageLayout::ePreinitialized != initialSrcLayout) { // => restore original layout of the src image
-			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		if (aRestoreSrcLayout) { // => restore original layout of the src image
+			aSrcImage.transition_to_layout(originalSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 
-		if (!suitableDstLayout && aRestoreDstLayout && vk::ImageLayout::eUndefined != initialDstLayout && vk::ImageLayout::ePreinitialized != initialDstLayout) { // => restore original layout of the dst image
-			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		if (aRestoreDstLayout) { // => restore original layout of the dst image
+			aDstImage.transition_to_layout(originalDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 		
 		// Sync after:
@@ -80,14 +83,17 @@ namespace cgb
 	std::optional<command_buffer> blit_image(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+
+		const auto originalSrcLayout = aSrcImage.target_layout();
+		const auto originalDstLayout = aDstImage.target_layout();
 		
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
 		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		auto initialSrcLayout = aSrcImage.target_layout();
-		const bool suitableSrcLayout = initialSrcLayout == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
+		const auto srcLayoutAfterBarrier = aSrcImage.current_layout();
+		const bool suitableSrcLayout = srcLayoutAfterBarrier == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
 									//|| initialSrcLayout == vk::ImageLayout::eGeneral
 									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableSrcLayout) {
@@ -100,10 +106,10 @@ namespace cgb
 		}
 
 		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		auto initialDstLayout = aDstImage.target_layout();
-		const bool suitableDstLayout = initialDstLayout == vk::ImageLayout::eTransferDstOptimal
-									|| initialDstLayout == vk::ImageLayout::eGeneral
-									|| initialDstLayout == vk::ImageLayout::eSharedPresentKHR;
+		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
+		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal
+									|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
+									|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableDstLayout) {
 			// Just make sure that is really is in target layout:
 			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
@@ -142,12 +148,12 @@ namespace cgb
 			1u, &blitRegion, 
 			vk::Filter::eNearest); // TODO: Support other filters and everything
 
-		if (!suitableSrcLayout && aRestoreSrcLayout) { // => restore original layout of the src image
-			aSrcImage.transition_to_layout(initialSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		if (aRestoreSrcLayout) { // => restore original layout of the src image
+			aSrcImage.transition_to_layout(originalSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 
-		if (!suitableDstLayout && aRestoreDstLayout) { // => restore original layout of the dst image
-			aDstImage.transition_to_layout(initialDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		if (aRestoreDstLayout) { // => restore original layout of the dst image
+			aDstImage.transition_to_layout(originalDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
 		
 		// Sync after:

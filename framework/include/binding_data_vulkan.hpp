@@ -21,6 +21,7 @@ namespace cgb
 			instance_buffer_t*,
 			top_level_acceleration_structure_t*,
 			image_view_t*,
+			image_view_as_input_attachment*,
 			buffer_view_t*,
 			sampler_t*,
 			image_sampler_t*,
@@ -34,6 +35,7 @@ namespace cgb
 			std::vector<instance_buffer_t*>,
 			std::vector<top_level_acceleration_structure_t*>,
 			std::vector<image_view_t*>,
+			std::vector<image_view_as_input_attachment*>,
 			std::vector<buffer_view_t*>,
 			std::vector<sampler_t*>,
 			std::vector<image_sampler_t*>
@@ -96,6 +98,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<instance_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<instance_buffer_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_t*>>(mResourcePtr).size()); }
+			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_as_input_attachment*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<sampler_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_sampler_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<buffer_view_t*>>(mResourcePtr).size()); }
@@ -114,6 +117,7 @@ namespace cgb
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return &std::get<image_view_t*>(mResourcePtr)->descriptor_info(); }
+			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return &std::get<image_view_as_input_attachment*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return &std::get<sampler_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return &std::get<image_sampler_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
@@ -130,6 +134,9 @@ namespace cgb
 
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { 
 				return aDescriptorSet.store_image_infos(mLayoutBinding.binding, gather_image_infos(std::get<std::vector<image_view_t*>>(mResourcePtr)));
+			}
+			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { 
+				return aDescriptorSet.store_image_infos(mLayoutBinding.binding, gather_image_infos(std::get<std::vector<image_view_as_input_attachment*>>(mResourcePtr)));
 			}
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { 
 				return aDescriptorSet.store_image_infos(mLayoutBinding.binding, gather_image_infos(std::get<std::vector<sampler_t*>>(mResourcePtr)));
@@ -155,6 +162,7 @@ namespace cgb
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return &std::get<instance_buffer_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
@@ -186,6 +194,7 @@ namespace cgb
 
 			if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
@@ -205,6 +214,7 @@ namespace cgb
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return &std::get<top_level_acceleration_structure_t*>(mResourcePtr)->descriptor_info(); }
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
@@ -223,6 +233,7 @@ namespace cgb
 			}
 
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<buffer_view_t*>>(mResourcePtr)) { return nullptr; }
@@ -242,6 +253,7 @@ namespace cgb
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return &std::get<buffer_view_t*>(mResourcePtr)->view_handle(); }
@@ -256,6 +268,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<instance_buffer_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }
+			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<sampler_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<image_sampler_t*>>(mResourcePtr)) { return nullptr; }
 			

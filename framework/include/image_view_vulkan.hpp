@@ -2,6 +2,16 @@
 
 namespace cgb
 {
+	class image_view_as_input_attachment
+	{
+		friend class image_view_t;
+	public:
+		const auto& descriptor_info() const		{ return mDescriptorInfo; }
+		
+	private:
+		vk::DescriptorImageInfo mDescriptorInfo;
+	};
+	
 	/** Class representing an image view. */
 	class image_view_t
 	{
@@ -48,7 +58,8 @@ namespace cgb
 		const auto& handle() const { return mImageView.get(); }
 
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
-		const auto& descriptor_type() const		{ return mDescriptorType; }
+
+		image_view_as_input_attachment as_input_attachment() const;
 
 		/** Creates a new image view upon a given image
 		*	@param	aImageToOwn					The image which to create an image view for
@@ -70,7 +81,6 @@ namespace cgb
 		// The image view's handle. This member will contain a valid handle only after successful image view creation.
 		vk::UniqueImageView mImageView;
 		vk::DescriptorImageInfo mDescriptorInfo;
-		vk::DescriptorType mDescriptorType;
 		context_tracker<image_view_t> mTracker;
 	};
 

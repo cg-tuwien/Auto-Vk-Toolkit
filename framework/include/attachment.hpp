@@ -57,7 +57,7 @@ namespace cgb
 			usage_desc& input(int location)					{ mDescriptions.emplace_back(usage_type::input,			false, location); return *this; }
 			usage_desc& color(int location)					{ mDescriptions.emplace_back(usage_type::color,			false, location); return *this; }
 			usage_desc& depth_stencil(int location = 0)		{ mDescriptions.emplace_back(usage_type::depth_stencil,	false, location); return *this; }
-			usage_desc& preserve(int location)				{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
+			usage_desc& preserve(int location = -1)			{ mDescriptions.emplace_back(usage_type::preserve,		false, location); return *this; }
 
 			usage_desc* operator->()						{ return this; }
 			usage_desc& operator+(usage_desc resolveAndMore);
@@ -197,6 +197,8 @@ namespace cgb
 		attachment& load_stencil_contents();
 		attachment& clear_stencil_contents();
 		attachment& store_stencil_contents();
+
+		attachment& set_image_usage_hint(cgb::image_usage aImageUsage);
 		
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
@@ -239,5 +241,6 @@ namespace cgb
 		glm::vec4 mColorClearValue;
 		float mDepthClearValue;
 		uint32_t mStencilClearValue;
+		std::optional<image_usage> mImageUsageHint;
 	};
 }

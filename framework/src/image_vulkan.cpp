@@ -832,11 +832,8 @@ namespace cgb
 			aspectFlags = vk::ImageAspectFlagBits::eColor;
 			// TODO: maybe support further aspect flags?!
 		}
-
+		
 		image_t result;
-		result.mAspectFlags = aspectFlags;
-		result.mCurrentLayout = vk::ImageLayout::eUndefined;
-		result.mTargetLayout = targetLayout;
 		result.mInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(aWidth), static_cast<uint32_t>(aHeight), 1u))
@@ -849,6 +846,10 @@ namespace cgb
 			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one, Exclusive should be the default, though.
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setFlags(imageCreateFlags); // Optional;
+		result.mTargetLayout = targetLayout;
+		result.mCurrentLayout = vk::ImageLayout::eUndefined;
+		result.mImageUsage = aImageUsage;
+		result.mAspectFlags = aspectFlags;
 
 		// Maybe alter the config?!
 		if (aAlterConfigBeforeCreation.mFunction) {

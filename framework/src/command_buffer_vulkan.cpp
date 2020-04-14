@@ -82,7 +82,8 @@ namespace cgb
 			.setClearValueCount(static_cast<uint32_t>(clearValues.size()))
 			.setPClearValues(clearValues.data());
 
-		mCommandBuffer->beginRenderPass(renderPassBeginInfo, aSubpassesInline ? vk::SubpassContents::eInline : vk::SubpassContents::eSecondaryCommandBuffers);
+		mSubpassContentsState = aSubpassesInline ? vk::SubpassContents::eInline : vk::SubpassContents::eSecondaryCommandBuffers;
+		mCommandBuffer->beginRenderPass(renderPassBeginInfo, mSubpassContentsState);
 		// 2nd parameter: how the drawing commands within the render pass will be provided. It can have one of two values [7]:
 		//  - VK_SUBPASS_CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed.
 		//  - VK_SUBPASS_CONTENTS_SECONDARY_command_buffer_tS : The render pass commands will be executed from secondary command buffers.
@@ -113,6 +114,11 @@ namespace cgb
 				const_cast<image_t&>(lImageViews[i]->get_image()).set_current_layout(lAttachmentDescs[i].finalLayout);
 			}
 		});
+	}
+
+	void command_buffer_t::next_subpass()
+	{
+		mCommandBuffer->nextSubpass(mSubpassContentsState);
 	}
 
 	void command_buffer_t::establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage)

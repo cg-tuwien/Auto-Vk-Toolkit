@@ -253,6 +253,25 @@ namespace cgb
 
 
 
+	// SFINAE test for detecting if a type can be dereferenced, by testing for availability of `.operator*()`
+	template <typename T>
+	class is_dereferenceable
+	{
+	private:
+		typedef char NoType[1];
+		typedef char YesType[2];
+
+		template<typename C> static auto Test(void*)
+			-> std::tuple<YesType, decltype(std::declval<C const>().operator*())>;
+
+		  template<typename> static NoType& Test(...);
+
+		public:
+			static bool const value = sizeof(Test<T>(0)) != sizeof(NoType);
+	};
+	
+
+
 	template <typename T>
 	class owning_resource : public std::variant<std::monostate, T, std::shared_ptr<T>>
 	{
@@ -371,7 +390,7 @@ namespace cgb
 			return &this->operator T&();
 		}
 	};
-
+	
 
 
 	template<typename T>

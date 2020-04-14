@@ -86,6 +86,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		void begin_recording();
 		void end_recording();
 		void begin_render_pass_for_framebuffer(const renderpass_t& aRenderpass, framebuffer_t& aFramebuffer, glm::ivec2 aRenderAreaOffset = {0, 0}, std::optional<glm::uvec2> aRenderAreaExtent = {}, bool aSubpassesInline = true);
+		void next_subpass();
 		void establish_execution_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage);
 		void establish_global_memory_barrier(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<memory_access> aSrcAccessToBeMadeAvailable, std::optional<memory_access> aDstAccessToBeMadeVisible);
 		void establish_global_memory_barrier_rw(pipeline_stage aSrcStage, pipeline_stage aDstStage, std::optional<write_memory_access> aSrcAccessToBeMadeAvailable, std::optional<read_memory_access> aDstAccessToBeMadeVisible);
@@ -179,6 +180,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		command_buffer_state mState;
 		vk::CommandBufferBeginInfo mBeginInfo;
 		vk::UniqueCommandBuffer mCommandBuffer;
+		vk::SubpassContents mSubpassContentsState;
 		
 		/** A custom deleter function called upon destruction of this command buffer */
 		std::optional<cgb::unique_function<void()>> mCustomDeleter;

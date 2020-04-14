@@ -48,6 +48,7 @@ namespace cgb
 		};
 		
 		enum struct sync_type { not_required, by_return, via_wait_idle, via_wait_idle_deliberately, via_semaphore, via_barrier };
+		enum struct commandbuffer_request { not_specified, single_use, reusable };
 		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
 		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
 		static void steal_before_handler_on_demand(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>) {}
@@ -177,7 +178,12 @@ namespace cgb
 			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation,
 			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */, std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation
 		);
-#pragma endregion 
+#pragma endregion
+
+#pragma region commandbuffer-related settings
+		sync& create_reusable_commandbuffer();
+		sync& create_single_use_commandbuffer();
+#pragma endregion
 
 #pragma region ownership-related settings
 		/**	Set the queue where the command is to be submitted to AND also where the sync will happen.
@@ -215,6 +221,7 @@ namespace cgb
 		
 	private:
 		std::optional<sync_type> mSpecialSync;
+		commandbuffer_request mCommandbufferRequest;
 		unique_function<void(semaphore)> mSemaphoreLifetimeHandler;
 		std::vector<semaphore> mWaitBeforeSemaphores;
 		std::variant<std::monostate, unique_function<void(command_buffer)>, std::reference_wrapper<command_buffer_t>> mCommandBufferRefOrLifetimeHandler;

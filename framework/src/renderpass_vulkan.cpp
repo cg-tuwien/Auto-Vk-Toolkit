@@ -114,6 +114,16 @@ namespace cgb
 				finalLayout = vk::ImageLayout::eGeneral;
 				break;
 			}
+
+			if (a.mImageUsageHint.has_value()) {
+				// If we detect the image usage to be more generic, we should change the layout to something more generic
+				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::sampled) ||
+					cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::shader_storage)
+					)
+				{
+					finalLayout = vk::ImageLayout::eGeneral;
+				}
+			}
 		
 			if (a.shall_be_presentable()) {
 				
@@ -218,6 +228,7 @@ namespace cgb
 				case att::usage_type::preserve:
 					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve preserve attachments
 					sp.mPreserveAttachments.push_back(attachmentIndex);
+					break;
 				default:
 					assert(false);
 					throw cgb::logic_error("How did we end up here?");
@@ -356,7 +367,7 @@ namespace cgb
 			addDependency(syncBefore);
 		}
 
-		for (auto i = firstSubpassId + 1; i < lastSubpassId; ++i) {
+		for (auto i = firstSubpassId + 1; i <= lastSubpassId; ++i) {
 			auto prevSubpassId = i - 1;
 			auto nextSubpassId = i;
 			renderpass_sync syncBetween {static_cast<int>(prevSubpassId), static_cast<int>(nextSubpassId),

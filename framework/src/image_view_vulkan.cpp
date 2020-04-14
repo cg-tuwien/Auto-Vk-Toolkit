@@ -2,6 +2,15 @@
 
 namespace cgb
 {
+	image_view_as_input_attachment image_view_t::as_input_attachment() const
+	{
+		image_view_as_input_attachment result;
+		result.mDescriptorInfo = vk::DescriptorImageInfo{}
+			.setImageView(handle())
+			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal); // TODO: This SHOULD be the most common layout for input attachments... but can it also not be?
+		return result;
+	}
+	
 	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
@@ -83,7 +92,6 @@ namespace cgb
 
 		mDescriptorInfo.setImageLayout(get_image().target_layout()); // Note: The image's current layout might be different to its target layout.
 
-		mDescriptorType = vk::DescriptorType::eStorageImage; // TODO: Is it storage image or sampled image?
 		mTracker.setTrackee(*this);
 	}
 

@@ -157,7 +157,10 @@ namespace cgb
 			}
 
 			// Iterate over all color target attachments and set a color blending config
-			const auto n = (*result.mRenderPass).color_attachments_for_subpass(result.subpass_id()).size(); /////////////////// TODO: (doublecheck or) FIX this section (after renderpass refactoring)
+			if (result.subpass_id() >= result.mRenderPass->attachment_descriptions().size()) {
+				throw cgb::runtime_error(fmt::format("There are fewer subpasses in the renderpass ({}) as the subpass index indicates ({}). I.e. subpass index is out of bounds.", result.mRenderPass->attachment_descriptions().size(), result.subpass_id()));
+			}
+			const auto n = result.mRenderPass->color_attachments_for_subpass(result.subpass_id()).size(); /////////////////// TODO: (doublecheck or) FIX this section (after renderpass refactoring)
 			result.mBlendingConfigsForColorAttachments.reserve(n); // Important! Otherwise the vector might realloc and .data() will become invalid!
 			for (size_t i = 0; i < n; ++i) {
 				// Do we have a specific blending config for color attachment i?

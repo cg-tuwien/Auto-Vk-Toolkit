@@ -56,6 +56,8 @@ namespace cgb
 	template<>
 	inline vk::DescriptorType descriptor_type_of<image>(const image*) { return vk::DescriptorType::eSampledImage; }
 
+	template<>
+	inline vk::DescriptorType descriptor_type_of<image_view_as_input_attachment>(const image_view_as_input_attachment*) { return vk::DescriptorType::eInputAttachment; }
 
 
 	template<typename T> 
@@ -68,10 +70,14 @@ namespace cgb
 	}
 
 	template<typename T> 
-	typename std::enable_if<!has_size_and_iterators<T>::value, typename T::value_type*>::type gather_one_or_multiple_element_pointers(T& t) {
+	typename std::enable_if<!has_size_and_iterators<T>::value && is_dereferenceable<T>::value, typename T::value_type*>::type gather_one_or_multiple_element_pointers(T& t) {
 		return &*t;
 	}
 
+	template<typename T> 
+	typename std::enable_if<!has_size_and_iterators<T>::value && !is_dereferenceable<T>::value, T*>::type gather_one_or_multiple_element_pointers(T& t) {
+		return &t;
+	}
 
 	template <typename T>
 	binding_data binding(uint32_t aSet, uint32_t aBinding, const T& aResource, shader_type aShaderStages = shader_type::all)

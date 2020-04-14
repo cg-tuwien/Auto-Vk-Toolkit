@@ -44,10 +44,14 @@ namespace cgb
 	
 	attachment attachment::declare_for(const image_view_t& aImageView, att::on_load aLoadOp, att::usage_desc aUsageInSubpasses, att::on_store aStoreOp)
 	{
-		auto& imageInfo = aImageView.get_image().config();
-		auto format = image_format{ imageInfo.format };
-		std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
-		return declare({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		const auto& imageInfo = aImageView.get_image().config();
+		const auto format = image_format{ imageInfo.format };
+		const std::optional<image_usage> imageUsage = aImageView.get_image().usage_config();
+		auto result = declare({format, att::sample_count{to_cgb_sample_count(imageInfo.samples)}}, aLoadOp, std::move(aUsageInSubpasses), aStoreOp);
+		if (imageUsage.has_value()) {
+			result.set_image_usage_hint(imageUsage.value());
+		}
+		return result;
 	}
 
 	attachment& attachment::set_clear_color(glm::vec4 aColor)
@@ -120,5 +124,11 @@ namespace cgb
 	attachment& attachment::store_stencil_contents()
 	{
 		return set_stencil_store_operation(att::on_store::store);
+	}
+
+	attachment& attachment::set_image_usage_hint(cgb::image_usage aImageUsage)
+	{
+		mImageUsageHint = aImageUsage;
+		return *this;
 	}
 }
