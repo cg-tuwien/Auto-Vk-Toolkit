@@ -81,17 +81,14 @@ namespace cgb
 				h++; 
 				continue;
 			}
-			if (needType < haveType) {
-				return false;
-			}
-			// same type:
-			if (weNeed[n].descriptorCount <= weHave[n].descriptorCount) {
+			if (needType == haveType && weNeed[n].descriptorCount <= weHave[n].descriptorCount) {
 				n++;
+				h++;
 				continue;
 			}
+			return false;
 		}
-		// all checks passed
-		return true;
+		return n == h; // if true => all checks have passed, if false => checks failed
 	}
 
 	std::vector<vk::UniqueDescriptorSet> descriptor_pool::allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
