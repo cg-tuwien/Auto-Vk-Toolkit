@@ -41,6 +41,7 @@ namespace cgb
 			a.mDepthStencilMaxLoc = 0u;
 		}
 
+		result.mAttachmentDescriptions.reserve(aAttachments.size());
 		for (const auto& a : aAttachments) {
 			// Try to infer initial and final image layouts (If this isn't cool => user must use aAlterConfigBeforeCreation)
 			vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
@@ -202,13 +203,13 @@ namespace cgb
 							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
 						}
 						sp.mSpecificColorLocations[loc] =	 vk::AttachmentReference{attachmentIndex,									vk::ImageLayout::eColorAttachmentOptimal};
-						sp.mSpecificResolveLocations[loc] =	 vk::AttachmentReference{resolve ? attachmentIndex : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal};
+						sp.mSpecificResolveLocations[loc] =	 vk::AttachmentReference{resolve ? a.mSubpassUsages.get_resolve_target_index(i) : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal};
 						sp.mColorMaxLoc = std::max(sp.mColorMaxLoc, loc);
 					}
 					else {
 						LOG_WARNING(fmt::format("No layout location is specified for a color attachment in subpass {}. This might be problematic. Consider declaring it 'unused'.", i));
 						sp.mUnspecifiedColorLocations.push(	 vk::AttachmentReference{attachmentIndex,									vk::ImageLayout::eColorAttachmentOptimal});
-						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? attachmentIndex : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
+						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? a.mSubpassUsages.get_resolve_target_index(i) : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
 					}
 					break;
 				case att::usage_type::depth_stencil:
@@ -238,6 +239,7 @@ namespace cgb
 
 		// 3. Fill all the vectors in the right order:
 		const auto unusedAttachmentRef = vk::AttachmentReference().setAttachment(VK_ATTACHMENT_UNUSED);
+		result.mSubpassData.reserve(numSubpassesFirst);
 		for (size_t i = 0; i < numSubpassesFirst; ++i) {
 			auto& a = subpasses[i];
 			auto& b = result.mSubpassData.emplace_back();
@@ -309,6 +311,7 @@ namespace cgb
 		subpasses.clear();
 		
 		// 4. Now we can fill the subpass description
+		result.mSubpasses.reserve(numSubpassesFirst);
 		for (size_t i = 0; i < numSubpassesFirst; ++i) {
 			auto& b = result.mSubpassData[i];
 			

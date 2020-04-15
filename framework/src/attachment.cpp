@@ -8,14 +8,15 @@ namespace cgb
 		{
 			assert(resolveAndMore.mDescriptions.size() >= 1);
 			auto& mustBeResolve = resolveAndMore.mDescriptions.front();
-			if (dynamic_cast<resolve*>(&resolveAndMore) != nullptr) {
+			if (dynamic_cast<resolve_to*>(&resolveAndMore) != nullptr) {
 				throw cgb::runtime_error("A 'resolve' element must follow after a '+'");
 			}
 			auto& mustBeColor = mDescriptions.back();
 			if (std::get<usage_type>(mustBeColor) != usage_type::color) {
-				throw cgb::runtime_error("A 'resolve' operation can only be applied to 'color' attachments.");
+				throw cgb::runtime_error("A 'resolve' operation can only be applied to 'color' attachments."); // TODO: Implement VkSubpassDescription2 to also support resolve() for depth/stencil attachments
 			}
-			std::get<bool>(mustBeColor) = std::get<bool>(mustBeResolve);
+			assert(std::get<std::optional<int>>(mustBeResolve).has_value());
+			std::get<std::optional<int>>(mustBeColor) = std::get<std::optional<int>>(mustBeResolve);
 
 			// Add the rest:
 			mDescriptions.insert(mDescriptions.end(), resolveAndMore.mDescriptions.begin() + 1, resolveAndMore.mDescriptions.end());
