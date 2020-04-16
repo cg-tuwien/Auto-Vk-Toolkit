@@ -763,7 +763,9 @@ namespace cgb
 					.setSamplerAnisotropy(VK_TRUE)
 					.setVertexPipelineStoresAndAtomics(VK_TRUE)
 					.setFragmentStoresAndAtomics(VK_TRUE)
-					.setShaderStorageImageExtendedFormats(VK_TRUE))
+					.setShaderStorageImageExtendedFormats(VK_TRUE)
+					.setSampleRateShading(VK_TRUE)
+				)
 				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
 
 			//Require variable descriptor count

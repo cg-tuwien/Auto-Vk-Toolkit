@@ -167,6 +167,18 @@ namespace cgb
 		}
 	}
 
+	int to_cgb_sample_count(vk::SampleCountFlags aSampleCount)
+	{
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e64)) return 64;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e32)) return 32;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e16)) return 16;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e8)) return 8;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e4)) return 4;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e2)) return 2;
+		if (cgb::has_flag(aSampleCount, vk::SampleCountFlagBits::e1)) return 1;
+		return 0;
+	}
+
 	vk::VertexInputRate to_vk_vertex_input_rate(input_binding_general_data::kind aValue)
 	{
 		switch (aValue) {

@@ -225,10 +225,13 @@ namespace cgb
 			}
 #endif
 
+			// Evaluate and set the PER SAMPLE shading configuration:
+			auto perSample = _Config.mPerSampleShading.value_or(per_sample_shading_config{ false, 1.0f });
+			
 			result.mMultisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo()
 				.setRasterizationSamples(numSamples)
-				.setSampleShadingEnable(VK_FALSE) // can be used to enable Sample Shading.
-				.setMinSampleShading(1.0f) // specifies a minimum fraction of sample shading if sampleShadingEnable is set to VK_TRUE.
+				.setSampleShadingEnable(perSample.mPerSampleShadingEnabled ? VK_TRUE : VK_FALSE) // enable/disable Sample Shading
+				.setMinSampleShading(perSample.mMinFractionOfSamplesShaded) // specifies a minimum fraction of sample shading if sampleShadingEnable is set to VK_TRUE.
 				.setPSampleMask(nullptr) // If pSampleMask is NULL, it is treated as if the mask has all bits enabled, i.e. no coverage is removed from fragments. See https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#fragops-samplemask
 				.setAlphaToCoverageEnable(VK_FALSE) // controls whether a temporary coverage value is generated based on the alpha component of the fragment’s first color output as specified in the Multisample Coverage section.
 				.setAlphaToOneEnable(VK_FALSE); // controls whether the alpha component of the fragment’s first color output is replaced with one as described in Multisample Coverage.

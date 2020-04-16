@@ -523,10 +523,33 @@ namespace cgb
 			patches
 		};
 
+		/** Specify the number of control points per patch.
+		 *	This setting only makes sense in conjunction with primitive_topology::patches,
+		 *	which only makes sense in conjunction with tessellation shaders.
+		 */
 		struct tessellation_patch_control_points
 		{
 			uint32_t mPatchControlPoints;
 		};
+
+		/** Data about the "Sample Shading" configuration of a graphics pipeline's MSAA section */
+		struct per_sample_shading_config
+		{
+			bool mPerSampleShadingEnabled;
+			float mMinFractionOfSamplesShaded;
+		};
+
+		/** Indicate that fragment shaders shall be invoked once per fragment. */
+		inline per_sample_shading_config shade_per_fragment()
+		{
+			return per_sample_shading_config { false, 1.0f };
+		}
+
+		/** Indicate that fragment shaders shall be invoked once per sample. */
+		inline per_sample_shading_config shade_per_sample(float aMinFractionOfSamplesShaded = 1.0f)
+		{
+			return per_sample_shading_config { true, aMinFractionOfSamplesShaded };
+		}
 	}
 
 	// Forward declare that the graphics_pipeline_t class for the context_specific_function
@@ -561,6 +584,7 @@ namespace cgb
 		std::vector<binding_data> mResourceBindings;
 		std::vector<push_constant_binding_data> mPushConstantsBindings;
 		std::optional<cfg::tessellation_patch_control_points> mTessellationPatchControlPoints;
+		std::optional<cfg::per_sample_shading_config> mPerSampleShading;
 	};
 }
 

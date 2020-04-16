@@ -17,6 +17,9 @@ namespace cgb
 
 	extern int to_cgb_sample_count(vk::SampleCountFlagBits aSampleCount);
 
+	// Returns the maximum sample count
+	extern int to_cgb_sample_count(vk::SampleCountFlags aSampleCount);
+
 	extern vk::VertexInputRate to_vk_vertex_input_rate(input_binding_general_data::kind aValue);
 	
 	extern vk::PrimitiveTopology to_vk_primitive_topology(cfg::primitive_topology aValue);
