@@ -12,7 +12,7 @@ namespace CgbPostBuildHelper.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.5.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -25,7 +25,7 @@ namespace CgbPostBuildHelper.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool AlwaysDeployReleaseDlls {
             get {
                 return ((bool)(this["AlwaysDeployReleaseDlls"]));
@@ -61,7 +61,7 @@ namespace CgbPostBuildHelper.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool ShowWindowForVkShaderDeployment {
             get {
                 return ((bool)(this["ShowWindowForVkShaderDeployment"]));
@@ -116,6 +116,18 @@ namespace CgbPostBuildHelper.Properties {
             }
             set {
                 this["DebugSubPathInExternals"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HideAccessDeniedErrorsForDlls {
+            get {
+                return ((bool)(this["HideAccessDeniedErrorsForDlls"]));
+            }
+            set {
+                this["HideAccessDeniedErrorsForDlls"] = value;
             }
         }
     }

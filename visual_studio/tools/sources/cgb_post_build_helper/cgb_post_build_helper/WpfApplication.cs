@@ -250,8 +250,10 @@ namespace CgbPostBuildHelper
 			IList<IFileDeployment> modDeployments, IList<FileDeploymentData> modFileDeployments, IList<FileDeploymentData> modWindowsToShowFor,
 			bool doNotOverwriteExisting = false)
 		{
+			IFileDeployment savedForUseInException = null;
 			try
 			{
+				savedForUseInException = null;
 				CgbUtils.PrepareDeployment(
 					config,
 					filePath, filterPath,
@@ -262,6 +264,8 @@ namespace CgbPostBuildHelper
 				{
 					return;
 				}
+
+				savedForUseInException = deployment;
 
 				// Do it!
 				if (doNotOverwriteExisting)
@@ -346,6 +350,26 @@ namespace CgbPostBuildHelper
 
 				modDeployments.Add(deployment);
 			}
+			catch (UnauthorizedAccessException uaex)
+			{
+				if (uaex.Message.IndexOf(".dll", StringComparison.InvariantCultureIgnoreCase) >= 0 
+					&& null != savedForUseInException
+					&& 0 != savedForUseInException.FilesDeployed.Count
+					&& CgbPostBuildHelper.Properties.Settings.Default.HideAccessDeniedErrorsForDlls)
+				{
+					savedForUseInException.FilesDeployed.Last().Messages.Add(Message.Create(MessageType.Information, uaex.Message, null));
+					foreach (var deployedFile in savedForUseInException.FilesDeployed)
+					{
+						modFileDeployments.Add(deployedFile);
+					}
+					modDeployments.Add(savedForUseInException);
+				}
+				else
+				{
+					AddToMessagesList(Message.Create(MessageType.Error, uaex.Message, null), config); // TODO: Window with more info?
+					ShowMessagesList();
+				}
+			}
 			catch (Exception ex)
 			{
 				AddToMessagesList(Message.Create(MessageType.Error, ex.Message, null), config); // TODO: Window with more info?
@@ -409,10 +433,12 @@ namespace CgbPostBuildHelper
 				var evnt = new CgbEventVM(eventType);
 				var eventHasErrors = false;
 				var eventHasWarnings = false;
+				var eventHasInfos = false;
 				foreach (var fd in fileDeployments)
 				{
 					eventHasErrors = eventHasErrors || fd.Messages.ContainsMessagesOfType(MessageType.Error);
 					eventHasWarnings = eventHasWarnings || fd.Messages.ContainsMessagesOfType(MessageType.Warning);
+					eventHasInfos = eventHasInfos || fd.Messages.ContainsMessagesOfType(MessageType.Information);
 					evnt.Files.Insert(0, new FileDeploymentDataVM(fd, inst));
 
 					if (CgbEventType.Build == eventType)
@@ -472,7 +498,15 @@ namespace CgbPostBuildHelper
 				}
 				else
 				{
-					AddToMessagesList(Message.Create(MessageType.Success, $"Deployed {fileDeployments.Count} files.", () =>
+					var msgType = MessageType.Success;
+					var additionalInfo = "";
+					if (eventHasInfos)
+					{
+						msgType = MessageType.Information;
+						additionalInfo = " with INFOS";
+					}
+
+					AddToMessagesList(Message.Create(msgType, $"Deployed {fileDeployments.Count} files{additionalInfo}.", () =>
 					{
 						var window = new View.WindowToTheTop
 						{

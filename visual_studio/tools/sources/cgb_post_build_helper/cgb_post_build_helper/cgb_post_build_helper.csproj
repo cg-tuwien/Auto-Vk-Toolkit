@@ -290,12 +290,11 @@
     <Error Condition="!Exists('..\packages\AssimpNet.4.1.0\build\AssimpNet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\AssimpNet.4.1.0\build\AssimpNet.targets'))" />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>xcopy $(TargetPath) $(SolutionDir)..\..\executables\ /R /Y
-xcopy $(TargetDir)AssimpNet.dll $(SolutionDir)..\..\executables\ /R /Y
-xcopy $(TargetDir)Newtonsoft.Json.dll $(SolutionDir)..\..\executables\ /R /Y
-xcopy $(TargetDir)EnvDTE.dll $(SolutionDir)..\..\executables\ /R /Y
-xcopy $(TargetDir)EnvDTE80.dll $(SolutionDir)..\..\executables\ /R /Y
-xcopy $(TargetDir)Hardcodet.Wpf.TaskbarNotification.dll $(SolutionDir)..\..\executables\ /R /Y
-</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetPath)" "$(SolutionDir)..\..\executables\" /R /Y
+xcopy "$(TargetDir)AssimpNet.dll" "$(SolutionDir)..\..\executables\" /R /Y
+xcopy "$(TargetDir)Newtonsoft.Json.dll" "$(SolutionDir)..\..\executables\" /R /Y
+xcopy "$(TargetDir)EnvDTE.dll" "$(SolutionDir)..\..\executables\" /R /Y
+xcopy "$(TargetDir)EnvDTE80.dll" "$(SolutionDir)..\..\executables\" /R /Y
+xcopy "$(TargetDir)Hardcodet.Wpf.TaskbarNotification.dll" "$(SolutionDir)..\..\executables\" /R /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>

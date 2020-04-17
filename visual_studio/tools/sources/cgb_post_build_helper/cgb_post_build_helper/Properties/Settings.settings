@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="AlwaysDeployReleaseDlls" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
+      <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="AlwaysCopyNeverSymlink" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
@@ -12,7 +12,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="ShowWindowForVkShaderDeployment" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
+      <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="ShowWindowForGlShaderDeployment" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
@@ -25,6 +25,9 @@
     </Setting>
     <Setting Name="DebugSubPathInExternals" Type="System.String" Scope="User">
       <Value Profile="(Default)">debug</Value>
+    </Setting>
+    <Setting Name="HideAccessDeniedErrorsForDlls" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
     </Setting>
   </Settings>
 </SettingsFile>

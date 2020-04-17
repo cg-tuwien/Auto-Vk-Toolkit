@@ -44,6 +44,20 @@ namespace CgbPostBuildHelper.ViewModel
 			}
 		}
 
+		public bool HideAccessDeniedForDlls
+		{
+			get
+			{
+				return Properties.Settings.Default.HideAccessDeniedErrorsForDlls;
+			}
+			set
+			{
+				Properties.Settings.Default.HideAccessDeniedErrorsForDlls = value;
+				Properties.Settings.Default.Save();
+				IssueOnPropertyChanged();
+			}
+		}
+
 		public bool DoNotMonitorFiles
 		{
 			get

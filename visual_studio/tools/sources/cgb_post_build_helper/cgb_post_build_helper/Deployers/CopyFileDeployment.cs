@@ -26,9 +26,8 @@ namespace CgbPostBuildHelper.Deployers
 			assetFileModel.OutputFilePath = outPath.FullName;
 
 			// Now, are we going to copy or are we going to symlink?
+			FilesDeployed.Add(assetFileModel); // store before deployment to keep the info - even if DeployFile() might fail
 			DeployFile(assetFileModel);
-
-			FilesDeployed.Add(assetFileModel);
 		}
 
 	}

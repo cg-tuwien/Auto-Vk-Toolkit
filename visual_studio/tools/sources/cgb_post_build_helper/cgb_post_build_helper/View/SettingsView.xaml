@@ -9,7 +9,7 @@
     <Grid>
 		<StackPanel Orientation="Vertical" Margin="20">
 			<TextBlock FontSize="20" Margin="0">
-				<Run>cgb_post_process_helper</Run>
+				<Run>cgb_post_build_helper</Run>
 				<Run FontWeight="Bold">settings</Run>
 			</TextBlock>
 			<TextBlock FontSize="10">Tick/untick/enter to change cgb_post_process_helper's behavior!</TextBlock>
@@ -52,14 +52,21 @@
 				</StackPanel>
 			</CheckBox>
 
-			<CheckBox Margin="0,15,0,0" IsChecked="{Binding DoNotMonitorFiles}">
-				<StackPanel Orientation="Vertical">
-					<TextBlock Text="Do not monitor files during app execution" />
-					<TextBlock FontSize="10" Text="(i.e. files might not get updated at runtime)" />
-				</StackPanel>
-			</CheckBox>
+            <CheckBox Margin="0,15,0,0" IsChecked="{Binding DoNotMonitorFiles}">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="Do not monitor files during app execution" />
+                    <TextBlock FontSize="10" Text="(i.e. files might not get updated at runtime)" />
+                </StackPanel>
+            </CheckBox>
 
-			<TextBlock Margin="0,15,0,0" Text="Immediately open a window showing errors and warnings" />
+            <CheckBox Margin="0,15,0,0" IsChecked="{Binding HideAccessDeniedForDlls}">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="Hide access denied errors for *.dll files" />
+                    <TextBlock FontSize="10" Text="(when trying to overwrite them in the target directory after a build)" />
+                </StackPanel>
+            </CheckBox>
+
+            <TextBlock Margin="0,15,0,0" Text="Immediately open a window showing errors and warnings" />
 			<TextBlock Margin="0,0,0,0" Text="that happen during deployment of the following types:" />
 			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForVulkanShaders}">
 				<StackPanel Orientation="Vertical">
