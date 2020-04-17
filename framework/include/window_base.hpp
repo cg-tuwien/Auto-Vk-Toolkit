@@ -3,10 +3,6 @@
 
 namespace cgb
 {
-	// Forward-declare the context-specific window class.
-	// It will be defined in window_vulkan.h or window_opengl.h (or similarly named), respectively.
-	class window;
-
 	/** Dimensions of a window */
 	struct window_size
 	{
@@ -104,8 +100,6 @@ namespace cgb
 		/** Get the cursor position w.r.t. the given window 
 		 */
 		glm::dvec2 cursor_position() const;
-
-		glm::dvec2 scroll_position() const;
 
 		/** Determine the window's extent 
 		 */

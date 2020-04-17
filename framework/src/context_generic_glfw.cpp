@@ -10,7 +10,7 @@ namespace cgb
 
 	generic_glfw::generic_glfw()
 		: mInitialized(false)
-
+		, mMainWindowIndex(0)
 	{
 		LOG_VERBOSE("Creating GLFW context...");
 	
@@ -194,13 +194,13 @@ namespace cgb
 	window* generic_glfw::prepare_window()
 	{
 		assert(are_we_on_the_main_thread());
-
+		
 		// Insert in the back and return the newly created window
-		auto& back = mWindows.emplace_back(std::make_unique<window>());
+		auto& back = mWindows.emplace_back();
 
 		// Continue initialization later, after this window has gotten a handle:
 		context().add_event_handler(context_state::anytime, // execute handler asap
-			[wnd = back.get()]() -> bool {
+			[wnd = &back]() -> bool {
 				LOG_DEBUG_VERBOSE("Running event handler which sets up windows focus callbacks");
 				// We can't be sure whether it still exists
 				auto* exists = context().find_window([wnd](const auto* w) -> bool {
@@ -229,7 +229,7 @@ namespace cgb
 
 		// Also add an event handler which will run at the end of the application for cleanup:
 		context().add_event_handler(context_state::about_to_finalize,
-			[wnd = back.get()]() -> bool {
+			[wnd = &back]() -> bool {
 				LOG_DEBUG_VERBOSE("Running window cleanup event handler");
 				// We can't be sure whether it still exists
 				auto* exists = context().find_window([wnd](const auto* w) -> bool {
@@ -245,7 +245,7 @@ namespace cgb
 				return true;
 			});
 		
-		return back.get();
+		return &back;
 	}
 
 	void generic_glfw::close_window(window_base& wnd)
@@ -272,7 +272,7 @@ namespace cgb
 				std::remove_if(
 					std::begin(context().mWindows), std::end(context().mWindows),
 					[&wnd](const auto& inQuestion) -> bool {
-						return inQuestion.get() == &wnd;
+						return &inQuestion == &wnd;
 					}),
 				std::end(context().mWindows));
 
@@ -313,24 +313,24 @@ namespace cgb
 
 	window* generic_glfw::main_window() const
 	{
-		if (mWindows.size() > 0) {
-			return mWindows[0].get();
+		if (mMainWindowIndex < mWindows.size()) {
+			return const_cast<window*>(&mWindows[mMainWindowIndex]);
 		}
 		return nullptr;
 	}
 
-	void generic_glfw::set_main_window(window* pMainWindowToBe) 
+	void generic_glfw::set_main_window(window* aMainWindowToBe) 
 	{
-		context().dispatch_to_main_thread([this, pMainWindowToBe]() {
-			auto position = std::find_if(std::begin(mWindows), std::end(mWindows), [pMainWindowToBe](const window_ptr & w) -> bool {
-				return w.get() == pMainWindowToBe;
+		context().dispatch_to_main_thread([this, aMainWindowToBe]() {
+			auto position = std::find_if(std::begin(mWindows), std::end(mWindows), [aMainWindowToBe](const window& w) -> bool {
+				return &w == aMainWindowToBe;
 				});
 
 			if (position == mWindows.end()) {
-				throw cgb::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(pMainWindowToBe)));
+				throw cgb::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
 			}
 
-			std::rotate(std::begin(mWindows), position, position + 1); // Move ONE element to the beginning, not the rest of the vector => hence, not std::end(mWindows)
+			mMainWindowIndex = std::distance(std::begin(mWindows), position);
 		});
 	}
 
@@ -338,18 +338,18 @@ namespace cgb
 	{
 		auto it = std::find_if(std::begin(mWindows), std::end(mWindows),
 							   [&pTitle](const auto& w) {
-								   return w->title() == pTitle;
+								   return w.title() == pTitle;
 							   });
-		return it != mWindows.end() ? it->get() : nullptr;
+		return it != mWindows.end() ? const_cast<window*>(&*it) : nullptr;
 	}
 
 	window* generic_glfw::window_by_id(uint32_t pId) const
 	{
 		auto it = std::find_if(std::begin(mWindows), std::end(mWindows),
 							   [&pId](const auto & w) {
-								   return w->id() == pId;
+								   return w.id() == pId;
 							   });
-		return it != mWindows.end() ? it->get() : nullptr;
+		return it != mWindows.end() ? const_cast<window*>(&*it) : nullptr;
 	}
 
 	void generic_glfw::glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -436,11 +436,23 @@ namespace cgb
 		wnd->mResoltion = glm::uvec2(width, height);
 	}
 
+	window* generic_glfw::window_for_handle(GLFWwindow* handle) const
+	{
+		for (auto& wnd : mWindows) {
+			if (wnd.handle().has_value()) {
+				if (wnd.handle().value().mHandle == handle) {
+					return const_cast<window*>(&wnd);
+				}
+			}
+		}
+		return nullptr;
+	}
+
 	GLFWwindow* generic_glfw::get_window_for_shared_context()
 	{
 		for (const auto& w : mWindows) {
-			if (w->handle().has_value()) {
-				return w->handle()->mHandle;
+			if (w.handle().has_value()) {
+				return w.handle()->mHandle;
 			}
 		}
 		return nullptr;

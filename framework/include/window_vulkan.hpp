@@ -17,6 +17,9 @@ namespace cgb
 		window& operator =(const window&) = delete;
 		~window() = default;
 
+		/** Set to true to create a resizable window, set to false to prevent the window from being resized */
+		void enable_resizing(bool aEnable);
+		
 		/** Request a framebuffer for this window which is capable of sRGB formats */
 		void request_srgb_framebuffer(bool aRequestSrgb);
 
@@ -42,6 +45,9 @@ namespace cgb
 		/** Creates or opens the window */
 		void open();
 
+		/** Returns true if the window shall be resizable, false if it shall not be. */
+		bool get_config_shall_be_resizable() const;
+		
 		/** Gets the requested surface format for the given surface.
 		 *	A default value will be set if no other value has been configured.
 		 */
@@ -339,6 +345,9 @@ namespace cgb
 		
 
 #pragma region configuration properties
+		// A function which returns whether or not the window should be resizable
+		bool mShallBeResizable = false;
+		
 		// A function which returns the surface format for this window's surface
 		unique_function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
 

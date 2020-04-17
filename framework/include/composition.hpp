@@ -362,6 +362,13 @@ namespace cgb
 					// reset flag:
 					mInputBufferSwapPending = false;
 
+					int width = 0, height = 0;
+				    glfwGetFramebufferSize(cgb::context().main_window()->handle()->mHandle, &width, &height);
+				    while (width == 0 || height == 0) {
+				        glfwGetFramebufferSize(cgb::context().main_window()->handle()->mHandle, &width, &height);
+				        glfwWaitEvents();
+				    }
+					
 					// resume render_thread:
 					lk.unlock();
 					sInputBufferCondVar.notify_one();

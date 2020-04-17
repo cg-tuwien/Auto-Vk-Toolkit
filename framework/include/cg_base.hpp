@@ -155,7 +155,6 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater tha
 #elif defined(USE_VULKAN_CONTEXT)
 #include "context_generic_glfw_types.hpp"
 #include "window_base.hpp"
-#include "context_generic_glfw.hpp"
 #include "sampler_vulkan.hpp"
 #include "image_sampler_vulkan.hpp"
 #include "command_pool_vulkan.hpp"
@@ -167,6 +166,7 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater tha
 #include "renderpass_vulkan.hpp"
 #include "framebuffer_vulkan.hpp"
 #include "window_vulkan.hpp"
+#include "context_generic_glfw.hpp"
 #include "geometry_instance_vulkan.hpp"
 #include "bottom_level_acceleration_structure_vulkan.hpp"
 #include "top_level_acceleration_structure_vulkan.hpp"

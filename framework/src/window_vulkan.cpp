@@ -3,6 +3,16 @@
 namespace cgb
 {
 	std::mutex window::sSubmitMutex;
+
+	void window::enable_resizing(bool aEnable)
+	{
+		mShallBeResizable = aEnable;
+		
+		if (is_alive()) {
+			mRecreationRequired = true;
+		}
+	}
+
 	
 	void window::request_srgb_framebuffer(bool aRequestSrgb)
 	{
@@ -147,6 +157,7 @@ namespace cgb
 			// Share the graphics context between all windows
 			auto* sharedContex = context().get_window_for_shared_context();
 			// Bring window into existance:
+			glfwWindowHint(GLFW_RESIZABLE, get_config_shall_be_resizable() ? GLFW_TRUE : GLFW_FALSE);
 			auto* handle = glfwCreateWindow(mRequestedSize.mWidth, mRequestedSize.mHeight,
 				mTitle.c_str(),
 				mMonitor.has_value() ? mMonitor->mHandle : nullptr,
@@ -163,6 +174,11 @@ namespace cgb
 			// Why wait? Invoke them now!
 			context().work_off_event_handlers();
 		});
+	}
+
+	bool window::get_config_shall_be_resizable() const
+	{
+		return mShallBeResizable;
 	}
 
 	vk::SurfaceFormatKHR window::get_config_surface_format(const vk::SurfaceKHR & aSurface)
@@ -417,72 +433,74 @@ namespace cgb
 	
 	void window::render_frame()
 	{
-		vk::Result result;
+		try
+		{
+			const auto& fence = fence_for_frame();
 
-		const auto& fence = fence_for_frame();
+			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
+			uint32_t imageIndex;
+			const auto& imgAvailableSem = image_available_semaphore_for_frame();
+			cgb::context().logical_device().acquireNextImageKHR(
+				swap_chain(), // the swap chain from which we wish to acquire an image 
+				// At this point, I have to rant about the `timeout` parameter:
+				// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
+				// HOWEVER, don't think that a numeric_limit<int64_t>::max() will wait for nine quintillion nanoseconds!
+				//    No, instead it will return instantly, yielding an invalid swap chain image index. OMG, WTF?!
+				// Long story short: make sure to pass the UNSINGEDint64_t's maximum value, since only that will disable the timeout.
+				std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
+				imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
+				nullptr,
+				&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 
-		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
-		uint32_t imageIndex;
-		const auto& imgAvailableSem = image_available_semaphore_for_frame();
-		cgb::context().logical_device().acquireNextImageKHR(
-			swap_chain(), // the swap chain from which we wish to acquire an image 
-			// At this point, I have to rant about the `timeout` parameter:
-			// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
-			// HOWEVER, don't think that a numeric_limit<int64_t>::max() will wait for nine quintillion nanoseconds!
-			//    No, instead it will return instantly, yielding an invalid swap chain image index. OMG, WTF?!
-			// Long story short: make sure to pass the UNSINGEDint64_t's maximum value, since only that will disable the timeout.
-			std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
-			imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
-			nullptr,
-			&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
+			auto cbRefs = get_command_buffer_refs_for_frame(current_frame());
+			std::vector<vk::CommandBuffer> cmdBuffers;
+			cmdBuffers.reserve(cbRefs.size());
+			for (auto cb : cbRefs) {
+				cmdBuffers.push_back(cb.get().handle());
+			}
 
-		auto cbRefs = get_command_buffer_refs_for_frame(current_frame());
-		std::vector<vk::CommandBuffer> cmdBuffers;
-		cmdBuffers.reserve(cbRefs.size());
-		for (auto cb : cbRefs) {
-			cmdBuffers.push_back(cb.get().handle());
+			// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
+			// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit
+			std::vector<vk::Semaphore> waitBeforeExecuteSemaphores = { imgAvailableSem.handle() };
+			fill_in_extra_semaphore_dependencies_for_frame(waitBeforeExecuteSemaphores, current_frame());
+			// For every semaphore, also add a entry for the corresponding stage:
+			std::vector<vk::PipelineStageFlags> waitBeforeExecuteStages;
+			std::transform( std::begin(waitBeforeExecuteSemaphores), std::end(waitBeforeExecuteSemaphores),
+							std::back_inserter(waitBeforeExecuteStages),
+							[](const auto & s) { return vk::PipelineStageFlagBits::eColorAttachmentOutput; });
+			// Signal at least one semaphore when done, potentially also more.
+			const auto& renderFinishedSem = render_finished_semaphore_for_frame();
+			std::vector<vk::Semaphore> toSignalAfterExecute = { renderFinishedSem->handle() };
+			fill_in_extra_render_finished_semaphores_for_frame(toSignalAfterExecute, current_frame());
+			auto submitInfo = vk::SubmitInfo()
+				.setWaitSemaphoreCount(static_cast<uint32_t>(waitBeforeExecuteSemaphores.size()))
+				.setPWaitSemaphores(waitBeforeExecuteSemaphores.data())
+				.setPWaitDstStageMask(waitBeforeExecuteStages.data())
+				.setCommandBufferCount(static_cast<uint32_t>(cmdBuffers.size()))
+				.setPCommandBuffers(cmdBuffers.data())
+				.setSignalSemaphoreCount(static_cast<uint32_t>(toSignalAfterExecute.size()))
+				.setPSignalSemaphores(toSignalAfterExecute.data());
+			// Finally, submit to the graphics queue.
+			// Also provide a fence for GPU -> CPU sync which will be waited on next time we need this frame (top of this method).
+			cgb::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
+			// Attention: Do not invoke post execution handlers here, they have already been invoked in submit_for_backbuffer/submit_for_backbuffer_ref
+
+			// Present as soon as the render finished semaphore has been signalled:
+			auto presentInfo = vk::PresentInfoKHR()
+				.setWaitSemaphoreCount(1u)
+				.setPWaitSemaphores(&renderFinishedSem->handle())
+				.setSwapchainCount(1u)
+				.setPSwapchains(&swap_chain())
+				.setPImageIndices(&imageIndex)
+				.setPResults(nullptr);
+			cgb::context().presentation_queue().handle().presentKHR(presentInfo);
+			
+			// increment frame counter
+			++mCurrentFrame;
 		}
-
-		// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
-		// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit
-		std::vector<vk::Semaphore> waitBeforeExecuteSemaphores = { imgAvailableSem.handle() };
-		fill_in_extra_semaphore_dependencies_for_frame(waitBeforeExecuteSemaphores, current_frame());
-		// For every semaphore, also add a entry for the corresponding stage:
-		std::vector<vk::PipelineStageFlags> waitBeforeExecuteStages;
-		std::transform( std::begin(waitBeforeExecuteSemaphores), std::end(waitBeforeExecuteSemaphores),
-						std::back_inserter(waitBeforeExecuteStages),
-						[](const auto & s) { return vk::PipelineStageFlagBits::eColorAttachmentOutput; });
-		// Signal at least one semaphore when done, potentially also more.
-		const auto& renderFinishedSem = render_finished_semaphore_for_frame();
-		std::vector<vk::Semaphore> toSignalAfterExecute = { renderFinishedSem->handle() };
-		fill_in_extra_render_finished_semaphores_for_frame(toSignalAfterExecute, current_frame());
-		auto submitInfo = vk::SubmitInfo()
-			.setWaitSemaphoreCount(static_cast<uint32_t>(waitBeforeExecuteSemaphores.size()))
-			.setPWaitSemaphores(waitBeforeExecuteSemaphores.data())
-			.setPWaitDstStageMask(waitBeforeExecuteStages.data())
-			.setCommandBufferCount(static_cast<uint32_t>(cmdBuffers.size()))
-			.setPCommandBuffers(cmdBuffers.data())
-			.setSignalSemaphoreCount(static_cast<uint32_t>(toSignalAfterExecute.size()))
-			.setPSignalSemaphores(toSignalAfterExecute.data());
-		// Finally, submit to the graphics queue.
-		// Also provide a fence for GPU -> CPU sync which will be waited on next time we need this frame (top of this method).
-		result = cgb::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
-		assert (vk::Result::eSuccess == result);
-		// Attention: Do not invoke post execution handlers here, they have already been invoked in submit_for_backbuffer/submit_for_backbuffer_ref
-
-		// Present as soon as the render finished semaphore has been signalled:
-		auto presentInfo = vk::PresentInfoKHR()
-			.setWaitSemaphoreCount(1u)
-			.setPWaitSemaphores(&renderFinishedSem->handle())
-			.setSwapchainCount(1u)
-			.setPSwapchains(&swap_chain())
-			.setPImageIndices(&imageIndex)
-			.setPResults(nullptr);
-		result = cgb::context().presentation_queue().handle().presentKHR(presentInfo);
-		assert (vk::Result::eSuccess == result);
-
-		// increment frame counter
-		++mCurrentFrame;
+		catch (vk::OutOfDateKHRError omg) {
+			LOG_INFO(fmt::format("Swap chain out of date at presentKHR-call[{}]. Waiting for better times...", omg.what()));
+		}
 	}
 	
 	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)

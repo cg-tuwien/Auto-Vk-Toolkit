@@ -1,15 +1,12 @@
 #pragma once
-#include "context_generic_glfw_types.hpp"
 
 namespace cgb
 {
 	// ============================= forward declarations ===========================
-	class window;
 	class input_buffer;
 	enum struct key_code;
 
 	// =============================== type aliases =================================
-	using window_ptr = std::unique_ptr<window>;
 	using dispatcher_action = void(void);
 
 	/** Context event handler types are of type bool()
@@ -61,7 +58,7 @@ namespace cgb
 
 		/** Sets the given window as the new main window.
 		 */
-		void set_main_window(window* pMainWindowToBe);
+		void set_main_window(window* aMainWindowToBe);
 
 		/** Returns the first window which has been created and is still alive or
 		 *	the one which has been made the main window via set_main_window()
@@ -87,9 +84,8 @@ namespace cgb
 		window* find_window(T selector)
 		{
 			for (auto& wnd : mWindows) {
-				auto wnd_ptr = wnd.get();
-				if (selector(wnd_ptr)) {
-					return wnd_ptr;
+				if (selector(&wnd)) {
+					return &wnd;
 				}
 			}
 			return nullptr;
@@ -103,9 +99,8 @@ namespace cgb
 		{
 			std::vector<window*> results;
 			for (auto& wnd : mWindows) {
-				auto wnd_ptr = wnd.get();
-				if (selector(wnd_ptr)) {
-					results.push_back(wnd_ptr);
+				if (selector(&wnd)) {
+					results.push_back(&wnd);
 				}
 			}
 			return results;
@@ -114,13 +109,7 @@ namespace cgb
 		/** Finds the window which is associated to the given handle.
 		 *	Throws an exception if the handle does not exist in the list of windows!
 		 */
-		window* window_for_handle(GLFWwindow* handle)
-		{
-			for (auto& wnd : mWindows) {
-				return wnd.get();
-			}
-			return nullptr;
-		}
+		window* window_for_handle(GLFWwindow* handle) const;
 
 		/** Call a function for each window
 		 *	@tparam	F	void(window*)
@@ -129,8 +118,7 @@ namespace cgb
 		void execute_for_each_window(F&& fun)
 		{
 			for (auto& wnd : mWindows) {
-				auto wnd_ptr = wnd.get();
-				fun(wnd_ptr);
+				fun(&wnd);
 			}
 		}
 
@@ -195,7 +183,8 @@ namespace cgb
 		static void glfw_window_focus_callback(GLFWwindow* window, int focused);
 		static void glfw_window_size_callback(GLFWwindow* window, int width, int height);
 
-		std::vector<window_ptr> mWindows;
+		std::deque<window> mWindows;
+		size_t mMainWindowIndex;
 		static window* sWindowInFocus;
 		bool mInitialized;
 
