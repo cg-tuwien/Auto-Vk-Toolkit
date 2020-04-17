@@ -112,7 +112,7 @@
 #include "image_view_opengl.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
 #include <vulkan/vulkan.hpp>
-static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater than or equal 135 (SDK 1.2.135.0 or newer)." );
+static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater than or equal 130 (SDK 1.1.130.0 or newer)." );
 #include "buffer_member_format_vulkan.hpp"
 #include "semaphore_vulkan.hpp"
 #include "fence_vulkan.hpp"

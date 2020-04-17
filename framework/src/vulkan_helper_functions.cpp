@@ -459,7 +459,11 @@ namespace cgb
 		if (cgb::is_included(aValue, cgb::pipeline_stage::all_commands					)) { result |= vk::PipelineStageFlagBits::eAllCommands					; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::transform_feedback			)) { result |= vk::PipelineStageFlagBits::eTransformFeedbackEXT			; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::conditional_rendering			)) { result |= vk::PipelineStageFlagBits::eConditionalRenderingEXT		; }
+#if VK_HEADER_VERSION >= 135
 		if (cgb::is_included(aValue, cgb::pipeline_stage::command_preprocess			)) { result |= vk::PipelineStageFlagBits::eCommandPreprocessNV			; }
+#else 
+		if (cgb::is_included(aValue, cgb::pipeline_stage::command_preprocess			)) { result |= vk::PipelineStageFlagBits::eCommandProcessNVX			; }
+#endif
 		if (cgb::is_included(aValue, cgb::pipeline_stage::shading_rate_image			)) { result |= vk::PipelineStageFlagBits::eShadingRateImageNV			; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::ray_tracing_shaders			)) { result |= vk::PipelineStageFlagBits::eRayTracingShaderNV			; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::acceleration_structure_build	)) { result |= vk::PipelineStageFlagBits::eAccelerationStructureBuildNV	; }
@@ -502,8 +506,13 @@ namespace cgb
 		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_read_access		)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterReadEXT; }
 		if (cgb::is_included(aValue, cgb::memory_access::transform_feedback_counter_write_access	)) { result |= vk::AccessFlagBits::eTransformFeedbackCounterWriteEXT; }
 		if (cgb::is_included(aValue, cgb::memory_access::conditional_rendering_predicate_read_access)) { result |= vk::AccessFlagBits::eConditionalRenderingReadEXT; }
+#if VK_HEADER_VERSION >= 135
 		if (cgb::is_included(aValue, cgb::memory_access::command_preprocess_read_access				)) { result |= vk::AccessFlagBits::eCommandPreprocessReadNV; }
 		if (cgb::is_included(aValue, cgb::memory_access::command_preprocess_write_access			)) { result |= vk::AccessFlagBits::eCommandPreprocessWriteNV; }
+#else
+		if (cgb::is_included(aValue, cgb::memory_access::command_preprocess_read_access				)) { result |= vk::AccessFlagBits::eCommandProcessReadNVX; }
+		if (cgb::is_included(aValue, cgb::memory_access::command_preprocess_write_access			)) { result |= vk::AccessFlagBits::eCommandProcessWriteNVX; }
+#endif
 		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_noncoherent_read_access	)) { result |= vk::AccessFlagBits::eColorAttachmentReadNoncoherentEXT; }
 		if (cgb::is_included(aValue, cgb::memory_access::shading_rate_image_read_access				)) { result |= vk::AccessFlagBits::eShadingRateImageReadNV; }
 		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_read_access			)) { result |= vk::AccessFlagBits::eAccelerationStructureReadNV; }

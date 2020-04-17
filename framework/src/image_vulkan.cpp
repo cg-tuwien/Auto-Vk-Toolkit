@@ -95,9 +95,9 @@ namespace cgb
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
 			auto formatProps = cgb::context().physical_device().getFormatProperties(formatCandidates[i]);
-			candidateScores[i] = static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.optimalTilingFeatures)
-							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.linearTilingFeatures)
-							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.bufferFeatures);
+			candidateScores[i] = static_cast<uint32_t>(formatProps.optimalTilingFeatures)
+							   + static_cast<uint32_t>(formatProps.linearTilingFeatures)
+							   + static_cast<uint32_t>(formatProps.bufferFeatures);
 
 			if (candidateScores[i] > candidateScores[topScorer]) {
 				topScorer = i;
@@ -124,9 +124,9 @@ namespace cgb
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
 			auto formatProps = cgb::context().physical_device().getFormatProperties(formatCandidates[i]);
-			candidateScores[i] = static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.optimalTilingFeatures)
-							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.linearTilingFeatures)
-							   + static_cast<vk::FormatFeatureFlags::MaskType>(formatProps.bufferFeatures);
+			candidateScores[i] = static_cast<uint32_t>(formatProps.optimalTilingFeatures)
+							   + static_cast<uint32_t>(formatProps.linearTilingFeatures)
+							   + static_cast<uint32_t>(formatProps.bufferFeatures);
 
 			if (candidateScores[i] > candidateScores[topScorer]) {
 				topScorer = i;
