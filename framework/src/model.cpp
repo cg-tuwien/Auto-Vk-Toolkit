@@ -495,6 +495,7 @@ namespace cgb
 		for (decltype(n) i = 0; i < n; ++i) {
 			const aiLight* aiLight = mScene->mLights[i];
 			glm::mat4 transfo = transformation_matrix_traverser_for_light(aiLight, mScene->mRootNode, aiMatrix4x4()).value();
+			glm::mat3 transfoForDirections = glm::mat3(glm::inverse(glm::transpose(transfo))); // TODO: inverse transpose okay for direction??
 			lightsource cgbLight;
 			cgbLight.mAngleInnerCone = aiLight->mAngleInnerCone;
 			cgbLight.mAngleOuterCone = aiLight->mAngleOuterCone;
@@ -504,14 +505,17 @@ namespace cgb
 			auto aiColor = aiLight->mColorAmbient;
 			cgbLight.mColorAmbient = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
 			aiColor = aiLight->mColorDiffuse;
-			cgbLight.mColorDiffuse = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
+			cgbLight.mColor = glm::vec3(aiColor.r, aiColor.g, aiColor.b); // The "diffuse color" is considered to be the main color of this light source
 			aiColor = aiLight->mColorSpecular;
 			cgbLight.mColorSpecular = glm::vec3(aiColor.r, aiColor.g, aiColor.b);
 			auto aiVec = aiLight->mDirection;
-			cgbLight.mDirection = glm::mat3(glm::inverse(glm::transpose(transfo))) * glm::vec3(aiVec.x, aiVec.y, aiVec.z);
+			cgbLight.mDirection = transfoForDirections * glm::vec3(aiVec.x, aiVec.y, aiVec.z);
 			cgbLight.mName = std::string(aiLight->mName.C_Str());
 			aiVec = aiLight->mPosition;
 			cgbLight.mPosition = transfo * glm::vec4(aiVec.x, aiVec.y, aiVec.z, 1.0f);
+			aiVec = aiLight->mUp;
+			cgbLight.mUpVector = transfoForDirections * glm::vec3(aiVec.x, aiVec.y, aiVec.z);
+			cgbLight.mAreaExtent = glm::vec2(aiLight->mSize.x, aiLight->mSize.y);
 			switch (aiLight->mType) {
 			case aiLightSource_DIRECTIONAL:
 				cgbLight.mType = lightsource_type::directional;
@@ -522,8 +526,12 @@ namespace cgb
 			case aiLightSource_SPOT:
 				cgbLight.mType = lightsource_type::spot;
 				break;
+			case aiLightSource_AMBIENT:
+				cgbLight.mType = lightsource_type::ambient;
+			case aiLightSource_AREA:
+				cgbLight.mType = lightsource_type::area;
 			default:
-				cgbLight.mType = lightsource_type::undefined;
+				cgbLight.mType = lightsource_type::reserved0;
 			}
 			result.push_back(cgbLight);
 		}

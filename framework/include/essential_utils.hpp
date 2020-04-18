@@ -269,6 +269,24 @@ namespace cgb
 		public:
 			static bool const value = sizeof(Test<T>(0)) != sizeof(NoType);
 	};
+
+	
+	// SFINAE test for detecting if a type has a `.resize()` method
+	template <typename T>
+	class has_resize
+	{
+	private:
+		typedef char NoType[1];
+		typedef char YesType[2];
+
+		template<typename C> static auto Test(void*)
+			-> std::tuple<YesType, decltype(std::declval<C const>().resize())>;
+
+		  template<typename> static NoType& Test(...);
+
+		public:
+			static bool const value = sizeof(Test<T>(0)) != sizeof(NoType);
+	};
 	
 
 

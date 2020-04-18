@@ -79,9 +79,6 @@
     <ClCompile Include="..\..\framework\src\shader_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\image.cpp">
-      <Filter>Source Files\data_buffers_images</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\image_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
@@ -225,9 +222,6 @@
     </ClCompile>
     <ClCompile Include="..\..\framework\src\geometry_instance_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\lightsource_gpu_data.cpp">
-      <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\include\sync_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
