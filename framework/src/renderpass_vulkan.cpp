@@ -118,10 +118,10 @@ namespace cgb
 
 			if (a.mImageUsageHint.has_value()) {
 				// If we detect the image usage to be more generic, we should change the layout to something more generic
-				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::sampled) ||
-					cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::shader_storage)
-					)
-				{
+				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::sampled)) {
+					finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal; // TODO: Check if layout transitions are still behaving well!!!!
+				}
+				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::shader_storage)) {
 					finalLayout = vk::ImageLayout::eGeneral;
 				}
 			}

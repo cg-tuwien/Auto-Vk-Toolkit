@@ -17,6 +17,9 @@ namespace cgb
 		model_t& operator=(const model_t&) = delete;
 		~model_t() = default;
 
+		/** Returns this model's path where it has been loaded from */
+		auto path() const { return mModelPath; }
+
 		/** Determine the transformation matrix for the mesh at the given index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Transformation matrix of the given mesh, can be the identity
@@ -409,13 +412,13 @@ namespace cgb
 		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
 	}
 
-	/** This is a convenience function and is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
-	 *	but it should help to express the intent better. 
-	 */
-	template <typename M>
-	_NODISCARD constexpr std::tuple<const model_t&, std::vector<size_t>> make_tuple_model_and_indices(const M& _Model, std::vector<mesh_index_t> _Indices) noexcept {
-		return std::forward_as_tuple<const model_t&, std::vector<size_t>>(static_cast<const model_t&>(_Model), std::move(_Indices));
-	}
+	///** This is a convenience function and is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
+	// *	but it should help to express the intent better. 
+	// */
+	//template <typename M>
+	//_NODISCARD constexpr std::tuple<std::reference_wrapper<model_t>, std::vector<size_t>> make_tuple_model_and_indices(const M& _Model, std::vector<mesh_index_t> _Indices) noexcept {
+	//	return std::forward_as_tuple<std::reference_wrapper<model_t>, std::vector<size_t>>(std::ref(_Model), std::move(_Indices));
+	//}
 
 
 }

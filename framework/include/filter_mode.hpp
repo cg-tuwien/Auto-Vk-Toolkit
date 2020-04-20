@@ -13,5 +13,7 @@ namespace cgb
 		anisotropic_4x,
 		anisotropic_8x,
 		anisotropic_16x,
+		anisotropic_32x,
+		anisotropic_64x
 	};
 }

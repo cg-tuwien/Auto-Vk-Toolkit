@@ -934,11 +934,11 @@ namespace cgb
 			imageViews.push_back(imView); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment)); 
+					auto depthView = image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
 					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), false, 1, memory_usage::device, cgb::image_usage::versatile_color_attachment)));
+					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, memory_usage::device, cgb::image_usage::general_color_attachment)));
 				}
 			}
 

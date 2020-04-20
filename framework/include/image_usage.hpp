@@ -5,78 +5,96 @@ namespace cgb
 	enum struct image_usage
 	{
 		/** The image can be used as the source of a transfer operation. */
-		transfer_source							= 0x0001,
+		transfer_source							= 0x000001,
 
 		/** The image can be used as the source of a transfer operation. */
-		transfer_destination					= 0x0002,
+		transfer_destination					= 0x000002,
 
 		/** The image can be used to sample from using a sampler. */
-		sampled									= 0x0004,
+		sampled									= 0x000004,
 
 		/** The image can be used for shader load/store operations. */
-		shader_storage							= 0x0008,
+		shader_storage							= 0x000008,
 
 		/** The image can be used as a color attachment to a framebuffer. */
-		color_attachment						= 0x0010,
+		color_attachment						= 0x000010,
 
 		/** The image can be used as a depth/stencil attachment to a framebuffer. */
-		depth_stencil_attachment				= 0x0020,
+		depth_stencil_attachment				= 0x000020,
 
 		/** The image can be used as an input attachment to a pipeline. */
-		input_attachment						= 0x0040,
+		input_attachment						= 0x000040,
 
 		/** The image can be used as variable rate shading image. */
-		shading_rate_image						= 0x0080,
+		shading_rate_image						= 0x000080,
 
 		/** The image will only be read from. */
-		read_only								= 0x0100,
+		read_only								= 0x000100,
 
 		/** The image can be used for presenting a presentable image for display. */
-		presentable								= 0x0200,
+		presentable								= 0x000200,
 
 		/** valid only for shared presentable images */
-		shared_presentable						= 0x0400,
+		shared_presentable						= 0x000400,
 
 		/** The image shall be internally stored in a format which is optimal for tiling. */
-		tiling_optimal							= 0x0800,
+		tiling_optimal							= 0x000800,
 
 		/** The image shall be stored internally in linear tiling format (i.e. row-major + possible some padding) */
-		tiling_linear							= 0x1000,
+		tiling_linear							= 0x001000,
 
 		/** The image will be backed by sparse memory binding. */
-		sparse_memory_binding					= 0x2000,
+		sparse_memory_binding					= 0x002000,
 
 		/** The image can be used to create an image view of a cube map-type */
-		cube_compatible							= 0x4000,
+		cube_compatible							= 0x004000,
 
 		/** In protected memory. */
-		is_protected							= 0x8000,
+		is_protected							= 0x008000,
 
+		/** Used as a texture with mip mapping enabled */
+		mip_mapped								= 0x010000,
+		
 		// v== Some convenience-predefines ==v
 
-		/** The image can be used to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_image							= transfer_source | transfer_destination | sampled | shader_storage,
+		/** General image usage that can be used for transfer and be sampled, stored in an efficient `tiling_optimal` format. */
+		general_image							= transfer_source | transfer_destination | sampled | tiling_optimal,
 
-		/** The image can be used to transfer from and to, be sampled and serve for shader image/store operations. It is set to read-only. */
-		versatile_read_only_image				= versatile_image | read_only,
+		/** An image that shall only be used in readonly-mode. */
+		read_only_image							= transfer_source | sampled | read_only | tiling_optimal,
 
-		/** The image can be used as transfer destination, can be sampled, and is read-only. */
-		read_only_sampled_image					= transfer_destination | sampled | read_only,
+		/** An image with the same properties as `general_image` and in addition, can be used for shader storage operations */
+		general_storage_image					= general_image | shader_storage, 
 
-		/** The image can be used as a color attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_color_attachment				= transfer_source | transfer_destination | sampled | color_attachment,
+		/** An image with the same properties as `general_image` with the `read_only` flag set in addition. */
+		general_read_only_image					= general_image | read_only,
 
-		/** The image can be used as a depth/stencil attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_depth_stencil_attachment		= transfer_source | transfer_destination | sampled | depth_stencil_attachment,
+		/** A `general_image` intended to be used as a color attachment. */
+		general_color_attachment				= general_image | color_attachment,
 
-		/** The image can be used as read-only depth/stencil attachment, to transfer from, to sample and serve for readonly shader image/store operations. */
-		read_only_depth_stencil_attachment		= transfer_source | sampled | read_only | depth_stencil_attachment,
+		/** A color attachment used in read only manner. */
+		read_only_color_attachment				= read_only_image | color_attachment,
 
-		/** The image can be used as an input attachment, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_input_attachment				= transfer_source | transfer_destination | sampled | input_attachment,
+		/** A `general_image` intended to be used as a depth/stencil attachment. */
+		general_depth_stencil_attachment		= general_image | depth_stencil_attachment,
 
-		/** The image can be used as a shading rate image, to transfer from and to, be sampled and serve for shader image/store operations. It is not read-only. */
-		versatile_shading_rate_image			= versatile_image | shading_rate_image,
+		/** A depth/stencil attachment used in read only manner. */
+		read_only_depth_stencil_attachment		= read_only_image | depth_stencil_attachment,
+
+		/** A `general_image` intended to be used as input attachment. */
+		general_input_attachment				= general_image | input_attachment,
+
+		/** An input attachment used in read only manner. */
+		read_only_input_attachment				= read_only_image | input_attachment,
+
+		/** A `general_image` intended to be used as shading rate image */
+		general_shading_rate_image				= general_image | shading_rate_image,
+
+		/** A `general_image` intended to be used as texture and has MIP mapping enabled by default. */
+		general_texture							= general_image | mip_mapped,
+
+		/** A `general_texture` intended to be used as cube map. */
+		general_cube_map_texture				= general_texture | cube_compatible,
 	};
 
 	inline image_usage operator| (image_usage a, image_usage b)

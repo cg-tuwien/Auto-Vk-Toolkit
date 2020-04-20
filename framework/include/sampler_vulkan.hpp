@@ -20,11 +20,12 @@ namespace cgb
 		const auto& descriptor_type() const		{ return mDescriptorType; }
 
 		/**	Create a new sampler with the given configuration parameters
-		 *	@param	pFilterMode					Filtering strategy for the sampler to be created
-		 *	@param	pBorderHandlingMode			Border handling strategy for the sampler to be created
-		 *	@param	pAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
+		 *	@param	aFilterMode					Filtering strategy for the sampler to be created
+		 *	@param	aBorderHandlingMode			Border handling strategy for the sampler to be created
+		 *	@param	aMipMapMaxLod				Default value = house number
+		 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
 		 */
-		static owning_resource<sampler_t> create(filter_mode pFilterMode, border_handling_mode pBorderHandlingMode, context_specific_function<void(sampler_t&)> pAlterConfigBeforeCreation = {});
+		static owning_resource<sampler_t> create(filter_mode aFilterMode, border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = 20.0f, context_specific_function<void(sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	private:
 		// Sampler creation configuration

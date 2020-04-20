@@ -54,4 +54,6 @@ namespace cgb
 	extern cgb::memory_access to_memory_access(cgb::write_memory_access aValue);
 	extern std::optional<cgb::memory_access> to_memory_access(std::optional<cgb::write_memory_access> aValue);
 
+	extern cgb::filter_mode to_cgb_filter_mode(float aVulkanAnisotropy, bool aMipMappingAvailable);
+	
 }

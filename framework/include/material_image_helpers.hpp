@@ -2,8 +2,8 @@
 
 namespace cgb
 {	
-	extern std::optional<command_buffer> copy_image_to_another(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
-	extern std::optional<command_buffer> blit_image(image_t& pSrcImage, image_t& pDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
+	extern std::optional<command_buffer> copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
+	extern std::optional<command_buffer> blit_image(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler = sync::wait_idle(), bool aRestoreSrcLayout = true, bool aRestoreDstLayout = true);
 
 	template <typename Bfr>
 	std::optional<command_buffer> copy_buffer_to_image(const Bfr& pSrcBuffer, const image_t& pDstImage, sync aSyncHandler = sync::wait_idle())
@@ -41,22 +41,22 @@ namespace cgb
 		return aSyncHandler.submit_and_sync();
 	}
 
-	static image create_1px_texture(std::array<uint8_t, 4> _Color, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
+	static image create_1px_texture(std::array<uint8_t, 4> aColor, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 		
 		auto stagingBuffer = cgb::create_and_fill(
-			cgb::generic_buffer_meta::create_from_size(sizeof(_Color)),
+			cgb::generic_buffer_meta::create_from_size(sizeof(aColor)),
 			cgb::memory_usage::host_coherent,
-			_Color.data(),
+			aColor.data(),
 			sync::not_required(),
 			vk::BufferUsageFlagBits::eTransferSrc);
 
 		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
-		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), false, 1, _MemoryUsage, _ImageUsage);
+		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
@@ -67,46 +67,62 @@ namespace cgb
 																									   // TODO: Verify the above ^ comment
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
-		// 3. Transition image layout to its target layout and handle lifetimes of things via sync
-		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		// 3. Generate MIP-maps/transition to target layout:
+		if (img->config().mipLevels > 1u) {
+			// generat_mip_maps will perform the final layout transitiion
+			img->set_target_layout(finalTargetLayout);
+			img->generate_mip_maps(cgb::sync::auxiliary_with_barriers(aSyncHandler,
+				// We have to sync copy_buffer_to_image with generate_mip_maps:
+				[&img](command_buffer_t& cb, pipeline_stage dstStage, std::optional<read_memory_access> dstAccess){
+					cb.establish_image_memory_barrier_rw(img,
+						pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
+						write_memory_access{ memory_access::transfer_write_access }, /* -> */ dstAccess
+					);
+				},
+				cgb::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
+			);
+		}
+		else {
+			img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access}); 
+		}
 
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 		auto result = aSyncHandler.submit_and_sync();
 		assert (!result.has_value());
 		
 		return img;
 	}
 
-	static image create_image_from_file(const std::string& _Path, cgb::image_format _Format, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
+	static image create_image_from_file(const std::string& aPath, cgb::image_format aFormat, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		generic_buffer stagingBuffer;
 		int width = 0;
 		int height = 0;
 
 		// ============ RGB 8-bit formats ==========
-		if (is_uint8_format(_Format) || is_int8_format(_Format)) {
+		if (is_uint8_format(aFormat) || is_int8_format(aFormat)) {
 
 			stbi_set_flip_vertically_on_load(true);
 			int desiredColorChannels = STBI_rgb_alpha;
 			
-			if (!is_4component_format(_Format)) { 
-				if (is_3component_format(_Format)) {
+			if (!is_4component_format(aFormat)) { 
+				if (is_3component_format(aFormat)) {
 					desiredColorChannels = STBI_rgb;
 				}
-				else if (is_2component_format(_Format)) {
+				else if (is_2component_format(aFormat)) {
 					desiredColorChannels = STBI_grey_alpha;
 				}
-				else if (is_1component_format(_Format)) {
+				else if (is_1component_format(aFormat)) {
 					desiredColorChannels = STBI_grey;
 				}
 			}
 			
 			int channelsInFile = 0;
-			stbi_uc* pixels = stbi_load(_Path.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
-			size_t imageSize = width * height * desiredColorChannels;
+			stbi_uc* pixels = stbi_load(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
+			size_t imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
 
 			if (!pixels) {
-				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", _Path));
+				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", aPath));
 			}
 
 			stagingBuffer = cgb::create_and_fill(
@@ -119,29 +135,29 @@ namespace cgb
 			stbi_image_free(pixels);
 		}
 		// ============ RGB 16-bit float formats (HDR) ==========
-		else if (is_float16_format(_Format)) {
+		else if (is_float16_format(aFormat)) {
 			
 			stbi_set_flip_vertically_on_load(true);
 			int desiredColorChannels = STBI_rgb_alpha;
 			
-			if (!is_4component_format(_Format)) { 
-				if (is_3component_format(_Format)) {
+			if (!is_4component_format(aFormat)) { 
+				if (is_3component_format(aFormat)) {
 					desiredColorChannels = STBI_rgb;
 				}
-				else if (is_2component_format(_Format)) {
+				else if (is_2component_format(aFormat)) {
 					desiredColorChannels = STBI_grey_alpha;
 				}
-				else if (is_1component_format(_Format)) {
+				else if (is_1component_format(aFormat)) {
 					desiredColorChannels = STBI_grey;
 				}
 			}
 
 			int channelsInFile = 0;
-			float* pixels = stbi_loadf(_Path.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
-			size_t imageSize = width * height * desiredColorChannels;
+			float* pixels = stbi_loadf(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels); 
+			size_t imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
 
 			if (!pixels) {
-				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", _Path));
+				throw cgb::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", aPath));
 			}
 
 			stagingBuffer = cgb::create_and_fill(
@@ -162,7 +178,7 @@ namespace cgb
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
 
-		auto img = cgb::image_t::create(width, height, cgb::image_format(_Format), false, 1, _MemoryUsage, _ImageUsage);
+		auto img = cgb::image_t::create(width, height, cgb::image_format(aFormat), 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 
 		// 1. Transition image layout to eTransferDstOptimal
@@ -176,19 +192,21 @@ namespace cgb
 		
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync
 		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		
+
+		img->generate_mip_maps(cgb::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
 		auto result = aSyncHandler.submit_and_sync();
 		assert(!result.has_value());
 		return img;
 	}
 	
-	static image create_image_from_file(const std::string& _Path, bool _LoadHdrIfPossible = true, bool _LoadSrgbIfApplicable = true, int _PreferredNumberOfTextureComponents = 4, cgb::memory_usage _MemoryUsage = cgb::memory_usage::device, cgb::image_usage _ImageUsage = cgb::image_usage::versatile_image, sync aSyncHandler = sync::wait_idle())
+	static image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		cgb::image_format imFmt;
-		if (_LoadHdrIfPossible) {
-			if (stbi_is_hdr(_Path.c_str())) {
-				switch (_PreferredNumberOfTextureComponents) {
+		if (aLoadHdrIfPossible) {
+			if (stbi_is_hdr(aPath.c_str())) {
+				switch (aPreferredNumberOfTextureComponents) {
 				case 4:
 					imFmt = image_format::default_rgb16f_4comp_format();
 					break;
@@ -206,11 +224,11 @@ namespace cgb
 					imFmt = image_format::default_rgb16f_4comp_format();
 					break;
 				}
-				return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
+				return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 			}
 		}
-		if (_LoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
-			switch (_PreferredNumberOfTextureComponents) {
+		if (aLoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
+			switch (aPreferredNumberOfTextureComponents) {
 			case 4:
 				imFmt = image_format::default_srgb_4comp_format();
 				break;
@@ -228,9 +246,9 @@ namespace cgb
 				imFmt = image_format::default_srgb_4comp_format();
 				break;
 			}
-			return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
+			return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 		}
-		switch (_PreferredNumberOfTextureComponents) {
+		switch (aPreferredNumberOfTextureComponents) {
 		case 4:
 			imFmt = image_format::default_rgb8_4comp_format();
 			break;
@@ -248,56 +266,56 @@ namespace cgb
 			imFmt = image_format::default_rgb8_4comp_format();
 			break;
 		}
-		return create_image_from_file(_Path, imFmt, _MemoryUsage, _ImageUsage, std::move(aSyncHandler));
+		return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
 		std::vector<cgb::material_config> aMaterialConfigs, 
-		cgb::image_usage aImageUsage = cgb::image_usage::read_only_sampled_image,
-		cgb::filter_mode aTextureFilteMode = cgb::filter_mode::bilinear, // TODO: Implement MIP-mapping and default to anisotropic 16x
+		cgb::image_usage aImageUsage = cgb::image_usage::general_texture,
+		cgb::filter_mode aTextureFilterMode = cgb::filter_mode::bilinear,
 		cgb::border_handling_mode aBorderHandlingMode = cgb::border_handling_mode::repeat,
 		sync aSyncHandler = sync::wait_idle());
 
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult)
+	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aResult)
 	{ }
 	
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult, const model_t& aModel, const Rest&... rest)
+	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aResult, const model_t& aModel, const Rest&... rest)
 	{
-		aResult.emplace_back(std::forward_as_tuple(aModel, std::vector<size_t>{}));
+		aResult.emplace_back(std::cref(aModel), std::vector<size_t>{});
 		add_tuple_or_indices(aResult, rest...);
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>>& aResult, size_t aMeshIndex, const Rest&... rest)
+	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aResult, size_t aMeshIndex, const Rest&... rest)
 	{
 		std::get<std::vector<size_t>>(aResult.back()).emplace_back(aMeshIndex);
 		add_tuple_or_indices(aResult, rest...);
 	}
 	
 	template <typename... Args>
-	std::vector<std::tuple<const model_t&, std::vector<size_t>>> make_models_and_meshes_selection(const Args&... args)
+	std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>> make_models_and_meshes_selection(const Args&... args)
 	{
-		std::vector<std::tuple<const model_t&, std::vector<size_t>>> result;
+		std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>> result;
 		add_tuple_or_indices(result, args...);
 		return result;
 	}
 	
-	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
-	extern std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_normals(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
-	extern vertex_buffer create_normals_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_tangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
-	extern vertex_buffer create_tangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_bitangents(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes);
-	extern vertex_buffer create_bitangents_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec4> get_colors(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet);
-	extern vertex_buffer create_colors_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec2> get_2d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern vertex_buffer create_2d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
-	extern std::vector<glm::vec3> get_3d_texture_coordinates(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern vertex_buffer create_3d_texture_coordinates_buffer(std::vector<std::tuple<const model_t&, std::vector<size_t>>> aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
+	extern std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
+	extern vertex_buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
+	extern vertex_buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
+	extern vertex_buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet);
+	extern vertex_buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern vertex_buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern vertex_buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
 
 	// TODO: Not sure if the following leads somewhere:
 	//

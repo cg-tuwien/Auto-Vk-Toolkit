@@ -555,5 +555,34 @@ namespace cgb
 		}
 		return {};
 	}
-	
+
+
+	cgb::filter_mode to_cgb_filter_mode(float aVulkanAnisotropy, bool aMipMappingAvailable)
+	{
+		if (aMipMappingAvailable) {
+			if (aVulkanAnisotropy > 1.0f) {
+				if (std::fabs(aVulkanAnisotropy - 16.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_16x;
+				}
+				if (std::fabs(aVulkanAnisotropy - 8.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_8x;
+				}
+				if (std::fabs(aVulkanAnisotropy - 4.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_4x;
+				}
+				if (std::fabs(aVulkanAnisotropy - 2.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_2x;
+				}
+				if (std::fabs(aVulkanAnisotropy - 32.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_32x;
+				}
+				if (std::fabs(aVulkanAnisotropy - 64.0f) <= std::numeric_limits<float>::epsilon()) {
+					return cgb::filter_mode::anisotropic_64x;
+				}
+				LOG_WARNING(fmt::format("Encountered a strange anisotropy value of {}", aVulkanAnisotropy));
+			}
+			return cgb::filter_mode::trilinear;
+		}
+		return cgb::filter_mode::bilinear;
+	}
 }

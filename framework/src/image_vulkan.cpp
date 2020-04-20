@@ -687,20 +687,20 @@ namespace cgb
 
 
 
-	std::tuple<vk::ImageUsageFlags, vk::ImageLayout, vk::ImageTiling, vk::ImageCreateFlags> determine_usage_layout_tiling_flags_based_on_image_usage(image_usage _ImageUsageFlags)
+	std::tuple<vk::ImageUsageFlags, vk::ImageLayout, vk::ImageTiling, vk::ImageCreateFlags> determine_usage_layout_tiling_flags_based_on_image_usage(image_usage aImageUsageFlags)
 	{
 		vk::ImageUsageFlags imageUsage{};
 
-		bool isReadOnly = (_ImageUsageFlags & image_usage::read_only) == image_usage::read_only;
-		image_usage cleanedUpUsageFlagsForReadOnly = exclude(_ImageUsageFlags, image_usage::transfer_source | image_usage::transfer_destination | image_usage::sampled | image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+		bool isReadOnly = cgb::has_flag(aImageUsageFlags, image_usage::read_only);
+		image_usage cleanedUpUsageFlagsForReadOnly = exclude(aImageUsageFlags, image_usage::transfer_source | image_usage::transfer_destination | image_usage::sampled | image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
 
 		auto targetLayout = isReadOnly ? vk::ImageLayout::eShaderReadOnlyOptimal : vk::ImageLayout::eGeneral; // General Layout or Shader Read Only Layout is the default
 		auto imageTiling = vk::ImageTiling::eOptimal; // Optimal is the default
 		vk::ImageCreateFlags imageCreateFlags{};
 
-		if ((_ImageUsageFlags & image_usage::transfer_source) == image_usage::transfer_source) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::transfer_source)) {
 			imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
-			image_usage cleanedUpUsageFlags = exclude(_ImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+			image_usage cleanedUpUsageFlags = exclude(aImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected | image_usage::mip_mapped); // TODO: To be verified, it's just a guess.
 			if (image_usage::transfer_source == cleanedUpUsageFlags) {
 				targetLayout = vk::ImageLayout::eTransferSrcOptimal;
 			}
@@ -708,9 +708,9 @@ namespace cgb
 				targetLayout = vk::ImageLayout::eGeneral;
 			}
 		}
-		if ((_ImageUsageFlags & image_usage::transfer_destination) == image_usage::transfer_destination) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::transfer_destination)) {
 			imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
-			image_usage cleanedUpUsageFlags = exclude(_ImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected); // TODO: To be verified, it's just a guess.
+			image_usage cleanedUpUsageFlags = exclude(aImageUsageFlags, image_usage::read_only | image_usage::presentable | image_usage::shared_presentable | image_usage::tiling_optimal | image_usage::tiling_linear | image_usage::sparse_memory_binding | image_usage::cube_compatible | image_usage::is_protected | image_usage::mip_mapped); // TODO: To be verified, it's just a guess.
 			if (image_usage::transfer_destination == cleanedUpUsageFlags) {
 				targetLayout = vk::ImageLayout::eTransferDstOptimal;
 			}
@@ -718,14 +718,14 @@ namespace cgb
 				targetLayout = vk::ImageLayout::eGeneral;
 			}
 		}
-		if ((_ImageUsageFlags & image_usage::sampled) == image_usage::sampled) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::sampled)) {
 			imageUsage |= vk::ImageUsageFlagBits::eSampled;
 		}
-		if ((_ImageUsageFlags & image_usage::color_attachment) == image_usage::color_attachment) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::color_attachment)) {
 			imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
 			targetLayout = vk::ImageLayout::eColorAttachmentOptimal;
 		}
-		if ((_ImageUsageFlags & image_usage::depth_stencil_attachment) == image_usage::depth_stencil_attachment) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::depth_stencil_attachment)) {
 			imageUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
 			if (isReadOnly && image_usage::depth_stencil_attachment == cleanedUpUsageFlagsForReadOnly) {
 				targetLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
@@ -734,34 +734,34 @@ namespace cgb
 				targetLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			}
 		}
-		if ((_ImageUsageFlags & image_usage::input_attachment) == image_usage::input_attachment) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::input_attachment)) {
 			imageUsage |= vk::ImageUsageFlagBits::eInputAttachment;
 		}
-		if ((_ImageUsageFlags & image_usage::shading_rate_image) == image_usage::shading_rate_image) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::shading_rate_image)) {
 			imageUsage |= vk::ImageUsageFlagBits::eShadingRateImageNV;
 		}
-		if ((_ImageUsageFlags & image_usage::presentable) == image_usage::presentable) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::presentable)) {
 			targetLayout = vk::ImageLayout::ePresentSrcKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
 		}
-		if ((_ImageUsageFlags & image_usage::shared_presentable) == image_usage::shared_presentable) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::shared_presentable)) {
 			targetLayout = vk::ImageLayout::eSharedPresentKHR; // TODO: This probably needs some further action(s) => implement that further action(s)
 		}
-		if ((_ImageUsageFlags & image_usage::tiling_optimal) == image_usage::tiling_optimal) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::tiling_optimal)) {
 			imageTiling = vk::ImageTiling::eOptimal;
 		}
-		if ((_ImageUsageFlags & image_usage::tiling_linear) == image_usage::tiling_linear) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::tiling_linear)) {
 			imageTiling = vk::ImageTiling::eLinear;
 		}
-		if ((_ImageUsageFlags & image_usage::sparse_memory_binding) == image_usage::sparse_memory_binding) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::sparse_memory_binding)) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eSparseBinding;
 		}
-		if ((_ImageUsageFlags & image_usage::cube_compatible) == image_usage::cube_compatible) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::cube_compatible)) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eCubeCompatible;
 		}
-		if ((_ImageUsageFlags & image_usage::is_protected) == image_usage::is_protected) {
+		if (cgb::has_flag(aImageUsageFlags, image_usage::is_protected)) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eProtected;
 		}
-		if ((_ImageUsageFlags & image_usage::shader_storage) == image_usage::shader_storage) { 
+		if (cgb::has_flag(aImageUsageFlags, image_usage::shader_storage)) { 
 			imageUsage |= vk::ImageUsageFlagBits::eStorage;	
 			// Can not be Shader Read Only Layout
 			targetLayout = vk::ImageLayout::eGeneral; // TODO: Verify that this should always be in general layout!
@@ -786,7 +786,7 @@ namespace cgb
 		}
 	}
 	
-	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, std::tuple<image_format, int> pFormatAndSamples, bool aUseMipMaps, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t aWidth, uint32_t aHeight, std::tuple<image_format, int> pFormatAndSamples, int aNumLayers, memory_usage aMemoryUsage, image_usage aImageUsage, context_specific_function<void(image_t&)> aAlterConfigBeforeCreation)
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
 		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
@@ -817,7 +817,7 @@ namespace cgb
 		}
 
 		// How many MIP-map levels are we going to use?
-		auto mipLevels = aUseMipMaps
+		auto mipLevels = cgb::has_flag(aImageUsage, image_usage::mip_mapped)
 			? static_cast<uint32_t>(std::floor(std::log2(std::max(aWidth, aHeight))) + 1)
 			: 1u;
 
@@ -842,14 +842,14 @@ namespace cgb
 			.setImageType(vk::ImageType::e2D) // TODO: Support 3D textures
 			.setExtent(vk::Extent3D(static_cast<uint32_t>(aWidth), static_cast<uint32_t>(aHeight), 1u))
 			.setMipLevels(mipLevels)
-			.setArrayLayers(1u) // TODO: support multiple array layers
+			.setArrayLayers(1u) // TODO: support multiple array layers!!!!!!!!!
 			.setFormat(format.mFormat)
 			.setTiling(imageTiling)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(imageUsage)
 			.setSharingMode(vk::SharingMode::eExclusive) // TODO: Not sure yet how to handle this one, Exclusive should be the default, though.
 			.setSamples(samplesVk)
-			.setFlags(imageCreateFlags); // Optional;
+			.setFlags(imageCreateFlags);
 		result.mTargetLayout = targetLayout;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
 		result.mImageUsage = aImageUsage;
@@ -876,13 +876,13 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, bool pUseMipMaps, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create(uint32_t pWidth, uint32_t pHeight, image_format pFormat, int pNumLayers, memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
-		return create(pWidth, pHeight, std::make_tuple(pFormat, 1u), pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		return create(pWidth, pHeight, std::make_tuple(pFormat, 1u), pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
 	}
 
 
-	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create_depth(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth format
 		if (!pFormat) {
@@ -901,12 +901,12 @@ namespace cgb
 		pImageUsage |= image_usage::depth_stencil_attachment;
 
 		// Create the image (by default only on the device which should be sufficient for a depth buffer => see pMemoryUsage's default value):
-		auto result = image_t::create(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create(pWidth, pHeight, *pFormat, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
 		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth;
 		return result;
 	}
 
-	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, bool pUseMipMaps, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
+	owning_resource<image_t> image_t::create_depth_stencil(uint32_t pWidth, uint32_t pHeight, std::optional<image_format> pFormat, int pNumLayers,  memory_usage pMemoryUsage, image_usage pImageUsage, context_specific_function<void(image_t&)> pAlterConfigBeforeCreation)
 	{
 		// Select a suitable depth+stencil format
 		if (!pFormat) {
@@ -923,7 +923,7 @@ namespace cgb
 		}
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
-		auto result = image_t::create_depth(pWidth, pHeight, *pFormat, pUseMipMaps, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
+		auto result = image_t::create_depth(pWidth, pHeight, *pFormat, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
 		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
 		return result;
 	}
@@ -938,7 +938,7 @@ namespace cgb
 		result.mTargetLayout = targetLayout;
 		result.mCurrentLayout = vk::ImageLayout::eUndefined;
 		result.mImageUsage = aImageUsage;
-		result.mAspectFlags = vk::ImageAspectFlagBits::eColor;
+		result.mAspectFlags = aImageAspectFlags; 
 		return result;
 	}
 	
@@ -988,5 +988,88 @@ namespace cgb
 		return aSyncHandler.submit_and_sync();
 	}
 
+
+	std::optional<command_buffer> image_t::generate_mip_maps(sync aSyncHandler)
+	{
+		if (config().mipLevels <= 1u) {
+			return {};
+		}
+
+		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{ memory_access::transfer_read_access }); // Make memory visible
+
+		const auto originalLayout = current_layout();
+		const auto targetLayout = target_layout();
+		auto w = static_cast<int32_t>(width());
+		auto h = static_cast<int32_t>(height());
+
+		std::array layoutTransitions = { // during the loop, we'll use 1 or 2 of these
+			vk::ImageMemoryBarrier{
+				{}, {}, // Memory is available AND already visible for transfer read because that has been established in establish_barrier_before_the_operation above.
+				originalLayout, vk::ImageLayout::eTransferSrcOptimal, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, handle(), vk::ImageSubresourceRange{ mAspectFlags, 0u, 1u, 0u, 1u }},
+			vk::ImageMemoryBarrier{
+				{}, vk::AccessFlagBits::eTransferWrite, // This is the first mip-level we're going to write to
+				originalLayout, vk::ImageLayout::eTransferDstOptimal, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, handle(), vk::ImageSubresourceRange{ mAspectFlags, 1u, 1u, 0u, 1u }},
+			vk::ImageMemoryBarrier{} // To be used in loop
+		};
+
+		commandBuffer.handle().pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eTransfer, // Can we also use bottom of pipe here??
+			vk::DependencyFlags{},
+			0u, nullptr,
+			0u, nullptr,
+			2u /* initially, only 2 required */, layoutTransitions.data()
+		);
+
+		for (uint32_t i = 1u; i < config().mipLevels; ++i) {
+
+			commandBuffer.handle().blitImage(
+				handle(), vk::ImageLayout::eTransferSrcOptimal,
+				handle(), vk::ImageLayout::eTransferDstOptimal,
+				{ vk::ImageBlit{
+					vk::ImageSubresourceLayers{ mAspectFlags, i-1, 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ w  , h  , 1 } },
+					vk::ImageSubresourceLayers{ mAspectFlags, i  , 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ w/2, h/2, 1 } }
+				  }
+				},
+				vk::Filter::eLinear
+			);
+
+			// mip-level  i-1  is done:
+			layoutTransitions[0] = vk::ImageMemoryBarrier{
+				{}, {}, // Blit Read -> Done
+				vk::ImageLayout::eTransferSrcOptimal, targetLayout, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, handle(), vk::ImageSubresourceRange{ mAspectFlags, i-1, 1u, 0u, 1u }};
+			// mip-level   i   has been transfer destination, but is going to be transfer source:
+			layoutTransitions[1] = vk::ImageMemoryBarrier{
+				vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead, // Blit Write -> Blit Read
+				vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, handle(), vk::ImageSubresourceRange{ mAspectFlags, i, 1u, 0u, 1u }};
+			// mip-level  i+1  is entering the game:
+			layoutTransitions[2] = vk::ImageMemoryBarrier{
+				{}, vk::AccessFlagBits::eTransferWrite, // make visible to Blit Write
+				originalLayout, vk::ImageLayout::eTransferDstOptimal, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, handle(), vk::ImageSubresourceRange{ mAspectFlags, i+1, 1u, 0u, 1u }};
+
+			uint32_t numBarriersRequired = std::min(3u, config().mipLevels - i + 1);
+			if (config().mipLevels - 1 == i) {
+				layoutTransitions[1].newLayout = targetLayout; // Last one => done
+			}
+			
+			commandBuffer.handle().pipelineBarrier(
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::PipelineStageFlagBits::eTransfer, // Dependency from previous BLIT to subsequent BLIT
+				vk::DependencyFlags{},
+				0u, nullptr,
+				0u, nullptr,
+				numBarriersRequired, layoutTransitions.data()
+			);
+
+			w /= 2;
+			h /= 2;
+		}
+		
+		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{ memory_access::transfer_write_access });
+		return aSyncHandler.submit_and_sync();
+	}
 
 }

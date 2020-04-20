@@ -2,14 +2,14 @@
 
 namespace cgb
 {
-	owning_resource<sampler_t> sampler_t::create(filter_mode pFilterMode, border_handling_mode pBorderHandlingMode, context_specific_function<void(sampler_t&)> pAlterConfigBeforeCreation)
+	owning_resource<sampler_t> sampler_t::create(filter_mode aFilterMode, border_handling_mode aBorderHandlingMode, float aMipMapMaxLod, context_specific_function<void(sampler_t&)> aAlterConfigBeforeCreation)
 	{
 		vk::Filter magFilter;
 		vk::Filter minFilter;
 		vk::SamplerMipmapMode mipmapMode;
 		vk::Bool32 enableAnisotropy = VK_FALSE;
 		float maxAnisotropy = 1.0f;
-		switch (pFilterMode)
+		switch (aFilterMode)
 		{
 		case cgb::filter_mode::nearest_neighbor:
 			magFilter = vk::Filter::eNearest;
@@ -24,7 +24,7 @@ namespace cgb
 		case cgb::filter_mode::trilinear:
 			magFilter = vk::Filter::eLinear;
 			minFilter = vk::Filter::eLinear;
-			mipmapMode = vk::SamplerMipmapMode::eLinear; // TODO: Create MIP-maps!
+			mipmapMode = vk::SamplerMipmapMode::eLinear;
 			break;
 		case cgb::filter_mode::cubic: // I have no idea what I'm doing.
 			magFilter = vk::Filter::eCubicIMG;
@@ -59,13 +59,27 @@ namespace cgb
 			enableAnisotropy = VK_TRUE;
 			maxAnisotropy = 16.0f;
 			break;
+		case cgb::filter_mode::anisotropic_32x:
+			magFilter = vk::Filter::eLinear;
+			minFilter = vk::Filter::eLinear;
+			mipmapMode = vk::SamplerMipmapMode::eLinear;
+			enableAnisotropy = VK_TRUE;
+			maxAnisotropy = 32.0f;
+			break;
+		case cgb::filter_mode::anisotropic_64x:
+			magFilter = vk::Filter::eLinear;
+			minFilter = vk::Filter::eLinear;
+			mipmapMode = vk::SamplerMipmapMode::eLinear;
+			enableAnisotropy = VK_TRUE;
+			maxAnisotropy = 64.0f;
+			break;
 		default:
 			throw cgb::runtime_error("invalid cgb::filter_mode");
 		}
 
 		// Determine how to handle the borders:
 		vk::SamplerAddressMode addressMode;
-		switch (pBorderHandlingMode)
+		switch (aBorderHandlingMode)
 		{
 		case cgb::border_handling_mode::clamp_to_edge:
 			addressMode = vk::SamplerAddressMode::eClampToEdge;
@@ -110,11 +124,11 @@ namespace cgb
 			.setMipmapMode(mipmapMode)
 			.setMipLodBias(0.0f)
 			.setMinLod(0.0f)
-			.setMaxLod(0.0f);
+			.setMaxLod(aMipMapMaxLod);
 
 		// Call custom config function
-		if (pAlterConfigBeforeCreation.mFunction) {
-			pAlterConfigBeforeCreation.mFunction(result);
+		if (aAlterConfigBeforeCreation.mFunction) {
+			aAlterConfigBeforeCreation.mFunction(result);
 		}
 
 		result.mSampler = context().logical_device().createSamplerUnique(result.config());
