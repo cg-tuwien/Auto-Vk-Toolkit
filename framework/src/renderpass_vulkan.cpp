@@ -60,17 +60,26 @@ namespace cgb
 			const auto makeStencilPresentable = att::on_store::store_in_presentable_format == a.get_stencil_store_op();
 			const auto hasStencilComponent = has_stencil_component(a.format());
 
+			bool initialLayoutFixed = false;
 			switch (a.get_first_usage_type()) {
 			case att::usage_type::unused:
 				break;
 			case att::usage_type::input:
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+					initialLayoutFixed = true;
+				}
+				if (isClear) {
+					initialLayoutFixed = true;
 				}
 				break;
 			case att::usage_type::color:
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+					initialLayoutFixed = true;
+				}
+				if (isClear) {
+					initialLayoutFixed = true;
 				}
 				break;
 			case att::usage_type::depth_stencil:
@@ -84,17 +93,29 @@ namespace cgb
 						//       - vk::ImageLayout::eStencilAttachmentOptimal
 						//       - vk::ImageLayout::eStencilReadOnlyOptimal
 					}
+					initialLayoutFixed = true;
+				}
+				if (isClear) {
+					initialLayoutFixed = true;
 				}
 				break;
 			case att::usage_type::preserve:
 				break;
 			}
-
+			if (!initialLayoutFixed) {
+				if (a.mImageUsageHintBefore.has_value()) {
+					// If we detect the image usage to be more generic, we should change the layout to something more generic
+					if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::sampled)) {
+						initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+					}
+					if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::shader_storage)) {
+						initialLayout = vk::ImageLayout::eGeneral;
+					}
+				}
+			}
+			
 			switch (a.get_last_usage_type()) {
 			case att::usage_type::unused:
-				// We can just guess:
-				LOG_WARNING("Consider specifying image_usage flags for renderpass attachments that are used as 'unused' attachments in the last subpass.");
-				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				break;
 			case att::usage_type::input:
 				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -114,19 +135,17 @@ namespace cgb
 				}
 				break;
 			case att::usage_type::preserve:
-				// We can just guess:
-				LOG_WARNING("Consider specifying image_usage flags for renderpass attachments that are used as 'preserve' attachments in the last subpass.");
-				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				break;
 			}
-
-			if (a.mImageUsageHintBefore.has_value()) {
-				// If we detect the image usage to be more generic, we should change the layout to something more generic
-				if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::sampled)) {
-					initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+			if (isStore && vk::ImageLayout::eUndefined == finalLayout) {
+				if (a.is_used_as_color_attachment()) {
+					finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
 				}
-				if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::shader_storage)) {
-					initialLayout = vk::ImageLayout::eGeneral;
+				else if (a.is_used_as_depth_stencil_attachment()) {
+					finalLayout = vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal;
+				}
+				else if (a.is_used_as_input_attachment()) {
+					finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				}
 			}
 			if (a.mImageUsageHintAfter.has_value()) {
@@ -138,10 +157,19 @@ namespace cgb
 					finalLayout = vk::ImageLayout::eGeneral;
 				}
 			}
+			if (vk::ImageLayout::eUndefined == finalLayout) {
+				// We can just guess:
+				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+			}
 			
 			if (a.shall_be_presentable()) {
 				finalLayout = vk::ImageLayout::ePresentSrcKHR;
 			}
+
+			if (!initialLayoutFixed && isLoad) {
+				initialLayout = finalLayout;
+			}
+			// ^^^ I have no idea what I'm assuming ^^^
 
 			// 1. Create the attachment descriptions
 			result.mAttachmentDescriptions.push_back(vk::AttachmentDescription()
