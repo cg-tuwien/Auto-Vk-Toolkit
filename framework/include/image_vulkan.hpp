@@ -70,7 +70,10 @@ namespace cgb
 		/**	Sets a new target layout for this image, simply overwriting any previous value.
 		 *	Attention: Only use if you know what you are doing!
 		 */
-		void set_target_layout(vk::ImageLayout aNewTargetLayout) { mTargetLayout = aNewTargetLayout; }
+		void set_target_layout(vk::ImageLayout aNewTargetLayout)
+		{
+			mTargetLayout = aNewTargetLayout;
+		}
 
 		/** Gets this image's target layout as specified during image creation. */
 		auto target_layout() const { return mTargetLayout; }

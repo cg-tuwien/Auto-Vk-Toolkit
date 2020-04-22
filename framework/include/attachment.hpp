@@ -195,7 +195,8 @@ namespace cgb
 		attachment& clear_stencil_contents();
 		attachment& store_stencil_contents();
 
-		attachment& set_image_usage_hint(cgb::image_usage aImageUsage);
+		attachment& set_image_usage_hint(cgb::image_usage aImageUsageBeforeAndAfter);
+		attachment& set_image_usage_hints(cgb::image_usage aImageUsageBefore, cgb::image_usage aImageUsageAfter);
 		
 		/** The color/depth/stencil format of the attachment */
 		auto format() const { return mFormat; }
@@ -238,6 +239,7 @@ namespace cgb
 		glm::vec4 mColorClearValue;
 		float mDepthClearValue;
 		uint32_t mStencilClearValue;
-		std::optional<image_usage> mImageUsageHint;
+		std::optional<image_usage> mImageUsageHintBefore;
+		std::optional<image_usage> mImageUsageHintAfter;
 	};
 }

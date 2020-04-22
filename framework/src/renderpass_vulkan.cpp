@@ -9,13 +9,13 @@ namespace cgb
 		size_t mSubpassId;
 		std::map<uint32_t, vk::AttachmentReference> mSpecificInputLocations;
 		std::queue<vk::AttachmentReference> mUnspecifiedInputLocations;
-		uint32_t mInputMaxLoc;
+		int mInputMaxLoc;
 		std::map<uint32_t, vk::AttachmentReference> mSpecificColorLocations;
 		std::queue<vk::AttachmentReference> mUnspecifiedColorLocations;
-		uint32_t mColorMaxLoc;
+		int mColorMaxLoc;
 		std::map<uint32_t, vk::AttachmentReference> mSpecificDepthStencilLocations;
 		std::queue<vk::AttachmentReference> mUnspecifiedDepthStencilLocations;
-		uint32_t mDepthStencilMaxLoc;
+		int mDepthStencilMaxLoc;
 		std::map<uint32_t, vk::AttachmentReference> mSpecificResolveLocations;
 		std::queue<vk::AttachmentReference> mUnspecifiedResolveLocations;
 		std::vector<uint32_t> mPreserveAttachments;
@@ -36,9 +36,9 @@ namespace cgb
 		for (size_t i = 0; i < numSubpassesFirst; ++i) {
 			auto& a = subpasses.emplace_back();
 			a.mSubpassId = i;
-			a.mInputMaxLoc = 0u;
-			a.mColorMaxLoc = 0u;
-			a.mDepthStencilMaxLoc = 0u;
+			a.mInputMaxLoc = -1;
+			a.mColorMaxLoc = -1;
+			a.mDepthStencilMaxLoc = -1;
 		}
 
 		result.mAttachmentDescriptions.reserve(aAttachments.size());
@@ -90,9 +90,11 @@ namespace cgb
 				break;
 			}
 
-			switch (a.get_first_usage_type()) {
+			switch (a.get_last_usage_type()) {
 			case att::usage_type::unused:
-				finalLayout = vk::ImageLayout::eGeneral;
+				// We can just guess:
+				LOG_WARNING("Consider specifying image_usage flags for renderpass attachments that are used as 'unused' attachments in the last subpass.");
+				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				break;
 			case att::usage_type::input:
 				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -112,22 +114,32 @@ namespace cgb
 				}
 				break;
 			case att::usage_type::preserve:
-				finalLayout = vk::ImageLayout::eGeneral;
+				// We can just guess:
+				LOG_WARNING("Consider specifying image_usage flags for renderpass attachments that are used as 'preserve' attachments in the last subpass.");
+				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				break;
 			}
 
-			if (a.mImageUsageHint.has_value()) {
+			if (a.mImageUsageHintBefore.has_value()) {
 				// If we detect the image usage to be more generic, we should change the layout to something more generic
-				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::sampled)) {
-					finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal; // TODO: Check if layout transitions are still behaving well!!!!
+				if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::sampled)) {
+					initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 				}
-				if (cgb::has_flag(a.mImageUsageHint.value(), cgb::image_usage::shader_storage)) {
+				if (cgb::has_flag(a.mImageUsageHintBefore.value(), cgb::image_usage::shader_storage)) {
+					initialLayout = vk::ImageLayout::eGeneral;
+				}
+			}
+			if (a.mImageUsageHintAfter.has_value()) {
+				// If we detect the image usage to be more generic, we should change the layout to something more generic
+				if (cgb::has_flag(a.mImageUsageHintAfter.value(), cgb::image_usage::sampled)) {
+					finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+				}
+				if (cgb::has_flag(a.mImageUsageHintAfter.value(), cgb::image_usage::shader_storage)) {
 					finalLayout = vk::ImageLayout::eGeneral;
 				}
 			}
-		
+			
 			if (a.shall_be_presentable()) {
-				
 				finalLayout = vk::ImageLayout::ePresentSrcKHR;
 			}
 
@@ -177,7 +189,7 @@ namespace cgb
 			for (size_t i = 0; i < nSubpasses; ++i) {
 				auto& sp = subpasses[i];
 				const auto hasLoc = a.mSubpassUsages.has_layout_at_subpass(i);
-				const auto loc = static_cast<uint32_t>(a.mSubpassUsages.layout_at_subpass(i));
+				const auto loc = static_cast<int>(a.mSubpassUsages.layout_at_subpass(i));
 				const auto resolve = a.mSubpassUsages.is_to_be_resolved_after_subpass(i);
 				switch (a.mSubpassUsages.get_subpass_usage(i)) {
 				case att::usage_type::unused:
@@ -245,7 +257,7 @@ namespace cgb
 			auto& b = result.mSubpassData.emplace_back();
 			assert(result.mSubpassData.size() == i + 1);
 			// INPUT ATTACHMENTS
-			for (uint32_t loc = 0u; loc <= a.mInputMaxLoc || !a.mUnspecifiedInputLocations.empty(); ++loc) {
+			for (int loc = 0; loc <= a.mInputMaxLoc || !a.mUnspecifiedInputLocations.empty(); ++loc) {
 				if (a.mSpecificInputLocations.count(loc) > 0) {
 					assert (a.mSpecificInputLocations.count(loc) == 1);
 					b.mOrderedInputAttachmentRefs.push_back(a.mSpecificInputLocations[loc]);
@@ -261,7 +273,7 @@ namespace cgb
 				}
 			}
 			// COLOR ATTACHMENTS
-			for (uint32_t loc = 0u; loc <= a.mColorMaxLoc || !a.mUnspecifiedColorLocations.empty(); ++loc) {
+			for (int loc = 0; loc <= a.mColorMaxLoc || !a.mUnspecifiedColorLocations.empty(); ++loc) {
 				if (a.mSpecificColorLocations.count(loc) > 0) {
 					assert (a.mSpecificColorLocations.count(loc) == 1);
 					assert (a.mSpecificResolveLocations.count(loc) == 1);
@@ -283,7 +295,7 @@ namespace cgb
 				}
 			}
 			// DEPTH/STENCIL ATTACHMENTS
-			for (uint32_t loc = 0u; loc <= a.mDepthStencilMaxLoc || !a.mUnspecifiedDepthStencilLocations.empty(); ++loc) {
+			for (int loc = 0; loc <= a.mDepthStencilMaxLoc || !a.mUnspecifiedDepthStencilLocations.empty(); ++loc) {
 				if (a.mSpecificDepthStencilLocations.count(loc) > 0) {
 					assert (a.mSpecificDepthStencilLocations.count(loc) == 1);
 					b.mOrderedDepthStencilAttachmentRefs.push_back(a.mSpecificDepthStencilLocations[loc]);

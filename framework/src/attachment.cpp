@@ -127,9 +127,17 @@ namespace cgb
 		return set_stencil_store_operation(att::on_store::store);
 	}
 
-	attachment& attachment::set_image_usage_hint(cgb::image_usage aImageUsage)
+	attachment& attachment::set_image_usage_hint(cgb::image_usage aImageUsageBeforeAndAfter)
 	{
-		mImageUsageHint = aImageUsage;
+		mImageUsageHintBefore = aImageUsageBeforeAndAfter;
+		mImageUsageHintAfter = aImageUsageBeforeAndAfter;
+		return *this;
+	}
+
+	attachment& attachment::set_image_usage_hints(cgb::image_usage aImageUsageBefore, cgb::image_usage aImageUsageAfter)
+	{
+		mImageUsageHintBefore = aImageUsageBefore;
+		mImageUsageHintAfter = aImageUsageAfter;
 		return *this;
 	}
 }

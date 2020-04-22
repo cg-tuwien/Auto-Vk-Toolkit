@@ -96,8 +96,8 @@ namespace cgb
 				LOG_WARNING(fmt::format("Possibly misconfigured framebuffer: image[{}] is a depth/stencil format, but it is never indicated to be used as such in the attachment-description[{}].", i, i));
 			}
 			// TODO: Maybe further checks?
-			if (!a.mImageUsageHint.has_value()) {
-				a.mImageUsageHint = v->get_image().usage_config();
+			if (!a.mImageUsageHintBefore.has_value() && !a.mImageUsageHintAfter.has_value()) {
+				a.mImageUsageHintAfter = a.mImageUsageHintBefore = v->get_image().usage_config();
 			}
 		}
 	}
