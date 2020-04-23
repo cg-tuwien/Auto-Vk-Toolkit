@@ -4,22 +4,26 @@ namespace cgb
 {
 	namespace att
 	{
-		usage_desc& usage_desc::operator+(usage_desc resolveAndMore)
+		usage_desc& usage_desc::operator+(usage_desc additionalUsages)
 		{
-			assert(resolveAndMore.mDescriptions.size() >= 1);
-			auto& mustBeResolve = resolveAndMore.mDescriptions.front();
-			if (dynamic_cast<resolve_to*>(&resolveAndMore) != nullptr) {
-				throw cgb::runtime_error("A 'resolve' element must follow after a '+'");
-			}
-			auto& mustBeColor = mDescriptions.back();
-			if (std::get<usage_type>(mustBeColor) != usage_type::color) {
-				throw cgb::runtime_error("A 'resolve' operation can only be applied to 'color' attachments."); // TODO: Implement VkSubpassDescription2 to also support resolve() for depth/stencil attachments
-			}
-			assert(std::get<std::optional<int>>(mustBeResolve).has_value());
-			std::get<std::optional<int>>(mustBeColor) = std::get<std::optional<int>>(mustBeResolve);
+			assert(additionalUsages.mDescriptions.size() >= 1);
+			auto& additional = additionalUsages.mDescriptions.front();
+			auto& existing = mDescriptions.back();
 
+			existing.mInput	= existing.mInput || additional.mInput;
+			existing.mColor = existing.mColor || additional.mColor;
+			existing.mDepthStencil = existing.mDepthStencil || additional.mDepthStencil;
+			existing.mPreserve = existing.mPreserve || additional.mPreserve;
+			assert(existing.mInputLocation == -1 || additional.mInputLocation == -1);
+			existing.mInputLocation = std::max(existing.mInputLocation, additional.mInputLocation);
+			assert(existing.mColorLocation == -1 || additional.mColorLocation == -1);
+			existing.mColorLocation	= std::max(existing.mColorLocation, additional.mColorLocation);
+			existing.mResolve = existing.mResolve || additional.mResolve;
+			assert(existing.mResolveAttachmentIndex == -1 || additional.mResolveAttachmentIndex == -1);
+			existing.mResolveAttachmentIndex = std::max(existing.mResolveAttachmentIndex, additional.mResolveAttachmentIndex);
+			
 			// Add the rest:
-			mDescriptions.insert(mDescriptions.end(), resolveAndMore.mDescriptions.begin() + 1, resolveAndMore.mDescriptions.end());
+			mDescriptions.insert(mDescriptions.end(), additionalUsages.mDescriptions.begin() + 1, additionalUsages.mDescriptions.end());
 			return *this;
 		}
 		

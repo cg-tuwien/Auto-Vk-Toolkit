@@ -61,10 +61,8 @@ namespace cgb
 			const auto hasStencilComponent = has_stencil_component(a.format());
 
 			bool initialLayoutFixed = false;
-			switch (a.get_first_usage_type()) {
-			case att::usage_type::unused:
-				break;
-			case att::usage_type::input:
+			auto firstUsage = a.get_first_color_depth_input();
+			if (firstUsage.as_input()) {
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 					initialLayoutFixed = true;
@@ -72,8 +70,8 @@ namespace cgb
 				if (isClear) {
 					initialLayoutFixed = true;
 				}
-				break;
-			case att::usage_type::color:
+			}
+			if (firstUsage.as_color()) { // this potentially overwrites the above
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
 					initialLayoutFixed = true;
@@ -81,8 +79,8 @@ namespace cgb
 				if (isClear) {
 					initialLayoutFixed = true;
 				}
-				break;
-			case att::usage_type::depth_stencil:
+			}
+			if (firstUsage.as_depth_stencil()) {
 				if (isLoad) {
 					initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 					{
@@ -98,9 +96,6 @@ namespace cgb
 				if (isClear) {
 					initialLayoutFixed = true;
 				}
-				break;
-			case att::usage_type::preserve:
-				break;
 			}
 			if (!initialLayoutFixed) {
 				if (a.mImageUsageHintBefore.has_value()) {
@@ -114,16 +109,14 @@ namespace cgb
 				}
 			}
 			
-			switch (a.get_last_usage_type()) {
-			case att::usage_type::unused:
-				break;
-			case att::usage_type::input:
+			auto lastUsage = a.get_last_color_depth_input();
+			if (lastUsage.as_input()) {
 				finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-				break;
-			case att::usage_type::color:
+			}
+			if (lastUsage.as_color()) { // This potentially overwrites the above
 				finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
-				break;
-			case att::usage_type::depth_stencil:
+			}
+			if (lastUsage.as_depth_stencil()) {
 				finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 				{
 					// TODO: Set other depth/stencil-specific formats
@@ -133,9 +126,6 @@ namespace cgb
 					//       - vk::ImageLayout::eStencilAttachmentOptimal
 					//       - vk::ImageLayout::eStencilReadOnlyOptimal
 				}
-				break;
-			case att::usage_type::preserve:
-				break;
 			}
 			if (isStore && vk::ImageLayout::eUndefined == finalLayout) {
 				if (a.is_used_as_color_attachment()) {
@@ -195,17 +185,12 @@ namespace cgb
 			assert(result.mAttachmentDescriptions.size() == result.mClearValues.size() + 1);
 			size_t spId = 0;
 			while (result.mAttachmentDescriptions.size() != result.mClearValues.size() && spId < nSubpasses) {
-				switch (a.mSubpassUsages.get_subpass_usage(spId)) {
-				case att::usage_type::unused: break;
-				case att::usage_type::input: break;
-				case att::usage_type::color:
+				auto subpassUsage = a.mSubpassUsages.get_subpass_usage(spId);
+				if (subpassUsage.as_color()) {
 					result.mClearValues.emplace_back(vk::ClearColorValue{ *reinterpret_cast<const std::array<float, 4>*>(glm::value_ptr(a.clear_color())) });
-					break;
-				case att::usage_type::depth_stencil:
+				}
+				if (subpassUsage.as_depth_stencil()) {
 					result.mClearValues.emplace_back(vk::ClearDepthStencilValue{ a.depth_clear_value(), a.stencil_clear_value() });
-					break;
-				case att::usage_type::preserve: break;
-				default: break;
 				}
 				++spId;
 			}
@@ -216,16 +201,11 @@ namespace cgb
 			
 			for (size_t i = 0; i < nSubpasses; ++i) {
 				auto& sp = subpasses[i];
-				const auto hasLoc = a.mSubpassUsages.has_layout_at_subpass(i);
-				const auto loc = static_cast<int>(a.mSubpassUsages.layout_at_subpass(i));
-				const auto resolve = a.mSubpassUsages.is_to_be_resolved_after_subpass(i);
-				switch (a.mSubpassUsages.get_subpass_usage(i)) {
-				case att::usage_type::unused:
-					// nothing to do here
-					break;
-				case att::usage_type::input:
-					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve input attachments
-					if (hasLoc) {
+				auto subpassUsage = a.mSubpassUsages.get_subpass_usage(i);
+				if (subpassUsage.as_input()) {
+					assert(!subpassUsage.has_resolve() || subpassUsage.as_color()); // Can not resolve input attachments, it's fine if it's also used as color attachment
+					if (subpassUsage.has_input_location()) {
+						auto loc = subpassUsage.input_location();
 						if (sp.mSpecificInputLocations.count(loc) != 0) {
 							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for an input attachments in subpass {}. This is not allowed.", loc, i));
 						}
@@ -236,43 +216,39 @@ namespace cgb
 						LOG_WARNING(fmt::format("No layout location is specified for an input attachment in subpass {}. This might be problematic. Consider declaring it 'unused'.", i));
 						sp.mUnspecifiedInputLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eShaderReadOnlyOptimal});
 					}
-					break;
-				case att::usage_type::color:
-					if (hasLoc) {
+				}
+				if (subpassUsage.as_color()) {
+					auto resolve = subpassUsage.has_resolve();
+					if (subpassUsage.has_color_location()) {
+						auto loc = subpassUsage.color_location();
 						if (sp.mSpecificColorLocations.count(loc) != 0) {
 							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a color attachments in subpass {}. This is not allowed.", loc, i));
 						}
 						sp.mSpecificColorLocations[loc] =	 vk::AttachmentReference{attachmentIndex,									vk::ImageLayout::eColorAttachmentOptimal};
-						sp.mSpecificResolveLocations[loc] =	 vk::AttachmentReference{resolve ? a.mSubpassUsages.get_resolve_target_index(i) : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal};
+						sp.mSpecificResolveLocations[loc] =	 vk::AttachmentReference{resolve ? subpassUsage.resolve_target_index() : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal};
 						sp.mColorMaxLoc = std::max(sp.mColorMaxLoc, loc);
 					}
 					else {
 						LOG_WARNING(fmt::format("No layout location is specified for a color attachment in subpass {}. This might be problematic. Consider declaring it 'unused'.", i));
 						sp.mUnspecifiedColorLocations.push(	 vk::AttachmentReference{attachmentIndex,									vk::ImageLayout::eColorAttachmentOptimal});
-						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? a.mSubpassUsages.get_resolve_target_index(i) : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
+						sp.mUnspecifiedResolveLocations.push(vk::AttachmentReference{resolve ? subpassUsage.resolve_target_index() : VK_ATTACHMENT_UNUSED,	vk::ImageLayout::eColorAttachmentOptimal});
 					}
-					break;
-				case att::usage_type::depth_stencil:
-					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // TODO: Support depth/stencil resolve by using VkSubpassDescription2
-					if (hasLoc) {
-						if (sp.mSpecificDepthStencilLocations.count(loc) != 0) {
-							throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a depth/stencil attachments in subpass {}. This is not allowed.", loc, i));
-						}
-						sp.mSpecificDepthStencilLocations[loc] = vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal};
-						sp.mDepthStencilMaxLoc = std::max(sp.mDepthStencilMaxLoc, loc);
-					}
-					else {
-						LOG_WARNING(fmt::format("No layout location is specified for a depth/stencil attachment in subpass {}. This might be problematic. Consider declaring it 'unused'.", i));
-						sp.mUnspecifiedDepthStencilLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal});
-					}
-					break;
-				case att::usage_type::preserve:
-					assert(!a.mSubpassUsages.is_to_be_resolved_after_subpass(i)); // Can not resolve preserve attachments
+				}
+				if (subpassUsage.as_depth_stencil()) {
+					assert(!subpassUsage.has_resolve() || subpassUsage.as_color()); // Can not resolve input attachments, it's fine if it's also used as color attachment // TODO: Support depth/stencil resolve by using VkSubpassDescription2
+					//if (hasLoc) { // Depth/stencil attachments have no location... have they?
+					//	if (sp.mSpecificDepthStencilLocations.count(loc) != 0) {
+					//		throw cgb::runtime_error(fmt::format("Layout location {} is used multiple times for a depth/stencil attachments in subpass {}. This is not allowed.", loc, i));
+					//	}
+					//	sp.mSpecificDepthStencilLocations[loc] = vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal};
+					//	sp.mDepthStencilMaxLoc = std::max(sp.mDepthStencilMaxLoc, loc);
+					//}
+					sp.mUnspecifiedDepthStencilLocations.push(vk::AttachmentReference{attachmentIndex, vk::ImageLayout::eDepthStencilAttachmentOptimal});
+				}
+				if (subpassUsage.as_preserve()) {
+					assert(!subpassUsage.has_resolve() || subpassUsage.as_color()); // Can not resolve input attachments, it's fine if it's also used as color attachment 
+					assert(!subpassUsage.as_input() && !subpassUsage.as_color() && !subpassUsage.as_depth_stencil()); // Makes no sense to preserve and use as something else
 					sp.mPreserveAttachments.push_back(attachmentIndex);
-					break;
-				default:
-					assert(false);
-					throw cgb::logic_error("How did we end up here?");
 				}
 			}
 		}

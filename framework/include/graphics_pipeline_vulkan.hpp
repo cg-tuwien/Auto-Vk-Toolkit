@@ -20,7 +20,7 @@ namespace cgb
 		const auto& renderpass_handle() const { return mRenderPass->handle(); }
 		auto subpass_id() const { return mSubpassIndex; }
 
-		static owning_resource<graphics_pipeline_t> create(graphics_pipeline_config _Config, cgb::context_specific_function<void(graphics_pipeline_t&)> _AlterConfigBeforeCreation = {});
+		static owning_resource<graphics_pipeline_t> create(graphics_pipeline_config aConfig, cgb::context_specific_function<void(graphics_pipeline_t&)> aAlterConfigBeforeCreation = {});
 
 	private:
 		renderpass mRenderPass;

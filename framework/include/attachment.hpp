@@ -20,13 +20,35 @@ namespace cgb
 			store_in_presentable_format
 		};
 
-		enum struct usage_type
+		struct usage_type
 		{
-			unused,
-			input,
-			color,
-			depth_stencil,
-			preserve
+			static usage_type create_unused()			{ return { false, false, false, false,  -1,  -1, false, -1 }; }
+			static usage_type create_input(int loc)		{ return { true , false, false, false, loc,  -1, false, -1 }; }
+			static usage_type create_color(int loc)		{ return { false, true , false, false,  -1, loc, false, -1 }; }
+			static usage_type create_depth_stencil()	{ return { false, false, true , false,  -1,  -1, false, -1 }; }
+			static usage_type create_preserve()			{ return { false, false, false, true ,  -1,  -1, false, -1 }; }
+			
+			bool as_unused() const { return !(mInput || mColor || mDepthStencil || mPreserve); }
+			bool as_input() const { return mInput; }
+			bool as_color() const { return mColor; }
+			bool as_depth_stencil() const { return mDepthStencil; }
+			bool as_preserve() const { return mPreserve; }
+
+			bool has_input_location() const { return -1 != mInputLocation; }
+			bool has_color_location() const { return -1 != mColorLocation; }
+			auto input_location() const { return mInputLocation; }
+			auto color_location() const { return mColorLocation; }
+			bool has_resolve() const { return mResolve; }
+			auto resolve_target_index() const { return mResolveAttachmentIndex; }
+			
+			bool mInput;
+			bool mColor;
+			bool mDepthStencil;
+			bool mPreserve;
+			int mInputLocation;
+			int mColorLocation;
+			bool mResolve;
+			int mResolveAttachmentIndex;
 		};
 
 		class usage_desc
@@ -42,70 +64,64 @@ namespace cgb
 			//usage_desc& operator=(const usage_desc* ud) noexcept { mDescriptions = ud->mDescriptions; return *this; };
 			virtual ~usage_desc() {}
 			
-			usage_desc& unused()							{ mDescriptions.emplace_back(usage_type::unused,		std::optional<int>{}, -1); return *this; }
+			usage_desc& unused()							{ mDescriptions.emplace_back(usage_type::create_unused()); return *this; }
 			usage_desc& resolve_receiver()					{ return unused(); }
-			usage_desc& input(int location)					{ mDescriptions.emplace_back(usage_type::input,			std::optional<int>{}, location); return *this; }
-			usage_desc& color(int location)					{ mDescriptions.emplace_back(usage_type::color,			std::optional<int>{}, location); return *this; }
-			usage_desc& depth_stencil(int location = 0)		{ mDescriptions.emplace_back(usage_type::depth_stencil,	std::optional<int>{}, location); return *this; }
-			usage_desc& preserve()							{ mDescriptions.emplace_back(usage_type::preserve,		std::optional<int>{}, -1); return *this; }
+			usage_desc& input(int location)					{ mDescriptions.emplace_back(usage_type::create_input(location)); return *this; }
+			usage_desc& color(int location)					{ mDescriptions.emplace_back(usage_type::create_color(location)); return *this; }
+			usage_desc& depth_stencil()						{ mDescriptions.emplace_back(usage_type::create_depth_stencil()); return *this; }
+			usage_desc& preserve()							{ mDescriptions.emplace_back(usage_type::create_preserve()); return *this; }
 
 			usage_desc* operator->()						{ return this; }
-			usage_desc& operator+(usage_desc resolveAndMore);
+			usage_desc& operator+(usage_desc additionalUsages);
 
 		protected:
-			bool contains_unused() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::unused;			}) != mDescriptions.end(); }
-			bool contains_input() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::input;			}) != mDescriptions.end(); }
-			bool contains_color() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::color;			}) != mDescriptions.end(); }
-			bool contains_resolve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<std::optional<int>>(tpl).has_value();			}) != mDescriptions.end(); }
-			bool contains_depth_stencil() const	{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::depth_stencil;	}) != mDescriptions.end(); }
-			bool contains_preserve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const auto& tpl) { return std::get<usage_type>(tpl) == usage_type::preserve;		}) != mDescriptions.end(); }
+			bool contains_unused() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.as_unused(); }) != mDescriptions.end(); }
+			bool contains_input() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.as_input(); }) != mDescriptions.end(); }
+			bool contains_color() const			{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.as_color(); }) != mDescriptions.end(); }
+			bool contains_resolve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.has_resolve(); }) != mDescriptions.end(); }
+			bool contains_depth_stencil() const	{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.as_depth_stencil(); }) != mDescriptions.end(); }
+			bool contains_preserve() const		{ return std::find_if(mDescriptions.begin(), mDescriptions.end(), [](const usage_type& u) { return u.as_preserve(); }) != mDescriptions.end(); }
 
 			usage_type first_color_depth_input_usage() const
 			{
 				auto n = mDescriptions.size();
-				usage_type firstUt = usage_type::unused;
 				for (size_t i = 0; i < n; ++i) {
-					auto ut = std::get<usage_type>(mDescriptions[i]);
-					if (usage_type::color == ut || usage_type::depth_stencil == ut || usage_type::input == ut) {
-						return ut;
+					if (mDescriptions[i].mColor || mDescriptions[i].mDepthStencil || mDescriptions[i].mInput) {
+						return mDescriptions[i];
 					}
-					if (i > 0) { continue; }
-					firstUt = ut;
 				}
-				return firstUt;
+				return mDescriptions[0];
 			}
 
 			usage_type last_color_depth_input_usage() const
 			{
 				auto n = mDescriptions.size();
-				usage_type lastUt = usage_type::unused;
 				for (size_t i = n; i > 0; --i) {
-					auto ut = std::get<usage_type>(mDescriptions[i - 1]);
-					if (usage_type::color == ut || usage_type::depth_stencil == ut || usage_type::input == ut) {
-						return ut;
+					if (mDescriptions[i-1].mColor || mDescriptions[i-1].mDepthStencil || mDescriptions[i-1].mInput) {
+						return mDescriptions[i-1];
 					}
-					if (i < n) { continue; }
-					lastUt = ut;
 				}
-				return lastUt;
+				return mDescriptions[n-1];
 			}
 
 			auto num_subpasses() const { return mDescriptions.size(); }
-			auto get_subpass_usage(size_t subpassId) const { return std::get<usage_type>(mDescriptions[subpassId]); }
-			auto is_to_be_resolved_after_subpass(size_t subpassId) const { return std::get<std::optional<int>>(mDescriptions[subpassId]).has_value(); }
-			auto get_resolve_target_index(size_t subpassId) const { return std::get<std::optional<int>>(mDescriptions[subpassId]).value(); }
-			auto has_layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]) != -1; }
-			auto layout_at_subpass(size_t subpassId) const { return std::get<int>(mDescriptions[subpassId]); }
+			auto get_subpass_usage(size_t subpassId) const { return mDescriptions[subpassId]; }
+			//auto is_to_be_resolved_after_subpass(size_t subpassId) const { return mDescriptions[subpassId].has_resolve(); }
+			//auto get_resolve_target_index(size_t subpassId) const { return mDescriptions[subpassId].mResolveAttachmentIndex; }
+			//auto has_input_location_at_subpass(size_t subpassId) const { return mDescriptions[subpassId].as_input() && mDescriptions[subpassId].mInputLocation != -1; }
+			//auto input_location_at_subpass(size_t subpassId) const { return mDescriptions[subpassId].mInputLocation; }
+			//auto has_color_location_at_subpass(size_t subpassId) const { return mDescriptions[subpassId].as_color() && mDescriptions[subpassId].mColorLocation != -1; }
+			//auto color_location_at_subpass(size_t subpassId) const { return mDescriptions[subpassId].mColorLocation; }
 
 		protected:
 			usage_desc() = default;
-			std::vector<std::tuple<usage_type, std::optional<int>, int>> mDescriptions;
+			std::vector<usage_type> mDescriptions;
 		};
 
 		class unused : public usage_desc
 		{
 		public:
-			explicit unused()											{ mDescriptions.emplace_back(usage_type::unused,		std::optional<int>{}, -1); }
+			explicit unused()											{ mDescriptions.emplace_back(usage_type::create_unused()); }
 			unused(unused&&) noexcept = default;
 			unused(const unused&) = default;
 			unused& operator=(unused&&) noexcept = default;
@@ -117,7 +133,7 @@ namespace cgb
 		class input : public usage_desc
 		{
 		public:
-			explicit input(int location)								{ mDescriptions.emplace_back(usage_type::input,			std::optional<int>{}, location); }
+			explicit input(int location)								{ mDescriptions.emplace_back(usage_type::create_input(location)); }
 			input(input&&) noexcept = default;
 			input(const input&) = default;
 			input& operator=(input&&) noexcept = default;
@@ -127,7 +143,7 @@ namespace cgb
 		class color : public usage_desc
 		{
 		public:
-			explicit color(int location)								{ mDescriptions.emplace_back(usage_type::color,			std::optional<int>{}, location); }
+			explicit color(int location)								{ mDescriptions.emplace_back(usage_type::create_color(location)); }
 			color(color&&) noexcept = default;
 			color(const color&) = default;
 			color& operator=(color&&) noexcept = default;
@@ -141,7 +157,7 @@ namespace cgb
 			/**	Indicate that this attachment shall be resolved.
 			 *	@param targetLocation	The index of the attachment where to resolve this attachment into.
 			 */
-			explicit resolve_to(int targetLocation)						{ mDescriptions.emplace_back(usage_type::unused,		std::optional<int>{ targetLocation }, -1); }
+			explicit resolve_to(int targetLocation)						{ auto& r = mDescriptions.emplace_back(usage_type::create_unused()); r.mResolve = true; r.mResolveAttachmentIndex = targetLocation; }
 			resolve_to(resolve_to&&) noexcept = default;										// ^ usage_type not applicable here, but actually it *is* unused.
 			resolve_to(const resolve_to&) = default;
 			resolve_to& operator=(resolve_to&&) noexcept = default;
@@ -151,7 +167,7 @@ namespace cgb
 		class depth_stencil : public usage_desc
 		{
 		public:
-			explicit depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::depth_stencil,	std::optional<int>{}, location); }
+			explicit depth_stencil(int location = 0)					{ mDescriptions.emplace_back(usage_type::create_depth_stencil()); }
 			depth_stencil(depth_stencil&&) noexcept = default;
 			depth_stencil(const depth_stencil&) = default;
 			depth_stencil& operator=(depth_stencil&&) noexcept = default;
@@ -161,7 +177,7 @@ namespace cgb
 		class preserve : public usage_desc
 		{
 		public:
-			explicit preserve()											{ mDescriptions.emplace_back(usage_type::preserve,		std::optional<int>{}, -1); }
+			explicit preserve()											{ mDescriptions.emplace_back(usage_type::create_preserve()); }
 			preserve(preserve&&) noexcept = default;
 			preserve(const preserve&) = default;
 			preserve& operator=(preserve&&) noexcept = default;
@@ -203,9 +219,9 @@ namespace cgb
 		
 		auto shall_be_presentable() const { return att::on_store::store_in_presentable_format == mStoreOperation; }
 
-		auto get_first_usage_type() const { return mSubpassUsages.first_color_depth_input_usage(); }
+		auto get_first_color_depth_input() const { return mSubpassUsages.first_color_depth_input_usage(); }
 
-		auto get_last_usage_type() const { return mSubpassUsages.last_color_depth_input_usage(); }
+		auto get_last_color_depth_input() const { return mSubpassUsages.last_color_depth_input_usage(); }
 		
 		auto is_used_as_depth_stencil_attachment() const { return mSubpassUsages.contains_depth_stencil(); }
 

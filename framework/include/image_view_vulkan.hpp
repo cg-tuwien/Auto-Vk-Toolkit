@@ -68,11 +68,13 @@ namespace cgb
 		*	@return	Returns a newly created image.
 		*/
 		static owning_resource<image_view_t> create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
 
 		static owning_resource<image_view_t> create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat = std::nullopt);
 
 	private:
-		void finish_configuration(image_format _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation);
+		void finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation);
 
 		// The "wrapped" image:
 		std::variant<std::monostate, helper_t, cgb::image> mImage;

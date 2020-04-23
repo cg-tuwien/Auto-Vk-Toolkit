@@ -23,7 +23,41 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, std::move(aAlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, {}, std::move(aAlterConfigBeforeCreation));
+		
+		return result;
+	}
+
+	owning_resource<image_view_t> image_view_t::create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
+	{
+		image_view_t result;
+		
+		// Transfer ownership:
+		result.mImage = std::move(aImageToOwn);
+
+		// What's the format of the image view?
+		if (!aViewFormat) {
+			aViewFormat = image_format(result.get_image().format());
+		}
+
+		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eDepth, std::move(aAlterConfigBeforeCreation));
+		
+		return result;
+	}
+
+	owning_resource<image_view_t> image_view_t::create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
+	{
+		image_view_t result;
+		
+		// Transfer ownership:
+		result.mImage = std::move(aImageToOwn);
+
+		// What's the format of the image view?
+		if (!aViewFormat) {
+			aViewFormat = image_format(result.get_image().format());
+		}
+
+		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eStencil, std::move(aAlterConfigBeforeCreation));
 		
 		return result;
 	}
@@ -40,42 +74,42 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, nullptr);
+		result.finish_configuration(*aViewFormat, {}, nullptr);
 		
 		return result;
 	}
 
-	void image_view_t::finish_configuration(image_format _ViewFormat, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
+	void image_view_t::finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
 	{
-		// Config for the image view:
-		vk::ImageAspectFlags imageAspectFlags;
-		{
-			// Guess the vk::ImageAspectFlags:
-			auto imageFormat = image_format(get_image().config().format);
+		if (!aImageAspectFlags.has_value()) {
+			const auto imageFormat = image_format(get_image().config().format);
+			aImageAspectFlags = get_image().aspect_flags();
+			
 			if (is_depth_format(imageFormat)) {
-				imageAspectFlags |= vk::ImageAspectFlagBits::eDepth;
 				if (has_stencil_component(imageFormat)) {
-					imageAspectFlags |= vk::ImageAspectFlagBits::eStencil;
+					LOG_ERROR("Can infer whether the image view shall refer to the depth component or to the stencil component => State it explicitly by using image_view_t::create_depth or image_view_t::create_stencil");
 				}
+				aImageAspectFlags = vk::ImageAspectFlagBits::eDepth;
+				// TODO: use vk::ImageAspectFlagBits' underlying type and exclude eStencil rather than only setting eDepth!
 			}
-			else {
-				imageAspectFlags |= vk::ImageAspectFlagBits::eColor;
+			else if(has_stencil_component(imageFormat)) {
+				aImageAspectFlags = vk::ImageAspectFlagBits::eStencil;
+				// TODO: use vk::ImageAspectFlagBits' underlying type and exclude eDepth rather than only setting eStencil!
 			}
-			// vk::ImageAspectFlags handling is probably incomplete => Use _AlterConfigBeforeCreation to adapt the config to your requirements!
 		}
-
+		
 		// Proceed with config creation (and use the imageAspectFlags there):
 		mInfo = vk::ImageViewCreateInfo{}
 			.setImage(get_image().handle())
 			.setViewType(to_image_view_type(get_image().config()))
-			.setFormat(_ViewFormat.mFormat)
+			.setFormat(aViewFormat.mFormat)
 			.setComponents(vk::ComponentMapping() // The components field allows you to swizzle the color channels around. In our case we'll stick to the default mapping. [3]
 							  .setR(vk::ComponentSwizzle::eIdentity)
 							  .setG(vk::ComponentSwizzle::eIdentity)
 							  .setB(vk::ComponentSwizzle::eIdentity)
 							  .setA(vk::ComponentSwizzle::eIdentity))
 			.setSubresourceRange(vk::ImageSubresourceRange() // The subresourceRange field describes what the image's purpose is and which part of the image should be accessed. Our images will be used as color targets without any mipmapping levels or multiple layers. [3]
-				.setAspectMask(imageAspectFlags)
+				.setAspectMask(aImageAspectFlags.value())
 				.setBaseMipLevel(0u)
 				.setLevelCount(get_image().config().mipLevels)
 				.setBaseArrayLayer(0u)

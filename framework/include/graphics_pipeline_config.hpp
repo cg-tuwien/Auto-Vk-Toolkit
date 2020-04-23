@@ -118,6 +118,20 @@ namespace cgb
 			static viewport_depth_scissors_config from_window(window* aWindow = nullptr);
 			static viewport_depth_scissors_config from_framebuffer(const framebuffer_t& aFramebuffer);
 
+			/** Enables dynamic viewport and scissors. */
+			static viewport_depth_scissors_config dynamic(bool aDynamicViewport = true, bool aDynamicScissors = true)
+			{
+				return viewport_depth_scissors_config{ 
+					{0.0f, 0.0f},
+					{0.0f, 0.0f}, 
+					0.0f, 1.0f,
+					{0, 0},
+					{0, 0},
+					aDynamicViewport,
+					aDynamicScissors
+				}; 
+			}
+
 			viewport_depth_scissors_config& enable_dynamic_viewport() { mDynamicViewportEnabled = true; return *this; }
 			viewport_depth_scissors_config& disable_dynamic_viewport() { mDynamicViewportEnabled = false; return *this; }
 			viewport_depth_scissors_config& enable_dynamic_scissor() { mDynamicScissorEnabled = true; return *this; }
@@ -194,16 +208,21 @@ namespace cgb
 				return { polygon_drawing_mode::fill, 1.0f, false, 1.0f }; 
 			}
 			
-			static polygon_drawing config_for_lines(float pLineWidth = 1.0f, bool pDynamic = false) 
+			static polygon_drawing config_for_lines(float aLineWidth = 1.0f) 
 			{ 
-				return { polygon_drawing_mode::line, pLineWidth, pDynamic, 1.0f }; 
+				return { polygon_drawing_mode::line, aLineWidth, false, 1.0f }; 
 			}
 			
-			static polygon_drawing config_for_points(float pPointSize = 1.0f) 
+			static polygon_drawing config_for_points(float aPointSize = 1.0f) 
 			{ 
-				return { polygon_drawing_mode::point, 1.0f, false, pPointSize }; 
+				return { polygon_drawing_mode::point, 1.0f, false, aPointSize }; 
 			}
 
+			static polygon_drawing dynamic_for_lines()
+			{
+				return { polygon_drawing_mode::line, 1.0f, true, 1.0f }; 
+			}
+			
 			auto drawing_mode() const { return mDrawingMode; }
 			auto line_width() const { return mLineWidth; }
 			auto dynamic_line_width() const { return mDynamicLineWidth; }
@@ -228,9 +247,7 @@ namespace cgb
 			static depth_clamp_bias config_nothing_special() { return { false, false, 0.0f, 0.0f, 0.0f, false }; }
 			static depth_clamp_bias config_enable_depth_bias(float pConstantFactor, float pBiasClamp, float pSlopeFactor) { return { false, true, pConstantFactor, pBiasClamp, pSlopeFactor, false }; }
 			static depth_clamp_bias config_enable_clamp_and_depth_bias(float pConstantFactor, float pBiasClamp, float pSlopeFactor) { return { true, true, pConstantFactor, pBiasClamp, pSlopeFactor, false }; }
-
-			depth_clamp_bias& enable_dynamic_depth_bias() { mEnableDynamicDepthBias = true; return *this; }
-			depth_clamp_bias& disable_dynamic_depth_bias() { mEnableDynamicDepthBias = false; return *this; }
+			static depth_clamp_bias dynamic() { return { false, false, 0.0f, 0.0f, 0.0f, true }; }
 
 			auto is_clamp_to_frustum_enabled() const { return mClampDepthToFrustum; }
 			auto is_depth_bias_enabled() const { return mEnableDepthBias; }
@@ -250,17 +267,35 @@ namespace cgb
 		/** Settings to enable/disable depth bounds and for its range */
 		struct depth_bounds
 		{
-			static depth_bounds disable() { return {false, 0.0f, 1.0f}; }
-			static depth_bounds enable(float _RangeFrom, float _RangeTo) { return {true, _RangeFrom, _RangeTo}; }
+			static depth_bounds disable() { return {false, false, 0.0f, 1.0f}; }
+			static depth_bounds enable(float aRangeFrom, float aRangeTo) { return {true, false, aRangeFrom, aRangeTo}; }
+			static depth_bounds dynamic() { return {false, true, 0.0f, 1.0f}; }
 
 			auto is_enabled() const { return mEnabled; }
-			auto is_dynamic_depth_bounds_enabled() const { return mEnabled; }
+			auto is_dynamic_depth_bounds_enabled() const { return mDynamic; }
 			auto min_bounds() const { return mMinDeptBounds; }
 			auto max_bounds() const { return mMaxDepthBounds; }
 
 			bool mEnabled;
+			bool mDynamic;
 			float mMinDeptBounds;
 			float mMaxDepthBounds;
+		};
+
+		/** Settings to enable/disable and configure stencil tests */
+		struct stencil_test
+		{
+			static stencil_test disable() { return stencil_test{ false, false, {}, {} }; }
+			static stencil_test enable(VkStencilOpState aStencilTestActionsFrontAndBack) { return stencil_test{ true, false, aStencilTestActionsFrontAndBack, aStencilTestActionsFrontAndBack }; }
+			static stencil_test enable(VkStencilOpState aStencilTestActionsFront, VkStencilOpState aStencilTestActionsBack) { return stencil_test{ true, false, aStencilTestActionsFront, aStencilTestActionsBack }; }
+			static stencil_test dynamic() { return stencil_test{ true, true, {}, {} }; }
+
+			auto is_dynamic_enabled() const { return mDynamic; }
+			
+			bool mEnabled;
+			bool mDynamic;
+			VkStencilOpState mFrontStencilTestActions;
+			VkStencilOpState mBackStencilTestActions;
 		};
 
 		/** Reference the separate color channels */
@@ -585,6 +620,7 @@ namespace cgb
 		std::vector<push_constant_binding_data> mPushConstantsBindings;
 		std::optional<cfg::tessellation_patch_control_points> mTessellationPatchControlPoints;
 		std::optional<cfg::per_sample_shading_config> mPerSampleShading;
+		std::optional<cfg::stencil_test> mStencilTest;
 	};
 }
 

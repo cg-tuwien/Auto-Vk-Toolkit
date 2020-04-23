@@ -165,6 +165,14 @@ namespace cgb
 		add_config(_Config, _Attachments, _Func, std::move(args)...);
 	}
 
+	// Configure stencil test parameters
+	template <typename... Ts>
+	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, cfg::stencil_test aStencilTestConfig, Ts... args)
+	{
+		_Config.mStencilTest = aStencilTestConfig;
+		add_config(_Config, _Attachments, _Func, std::move(args)...);
+	}
+
 	// Add a resource binding to the pipeline config
 	template <typename... Ts>
 	void add_config(graphics_pipeline_config& _Config, std::vector<attachment>& _Attachments, context_specific_function<void(graphics_pipeline_t&)>& _Func, binding_data _ResourceBinding, Ts... args)
