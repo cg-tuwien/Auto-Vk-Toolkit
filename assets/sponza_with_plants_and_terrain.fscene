@@ -50,6 +50,30 @@
             ]
         },
         {
+            "file": "3rd_party/models/sponza/sponza_plants.obj",
+            "name": "sponza_plants",
+            "instances": [
+                {
+                    "name": "sponza_plants0",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        0.01,
+                        0.01,
+                        0.01
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            ]
+        },
+        {
             "file": "1st_party/models/sponza_debris.obj",
             "name": "sponza_debris",
             "instances": [
