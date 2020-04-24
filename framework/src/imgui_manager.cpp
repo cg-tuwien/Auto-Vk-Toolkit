@@ -129,16 +129,17 @@ namespace cgb
 	
 	void imgui_manager::update()
 	{
-		if (!mUserInteractionEnabled) {
-			return;
-		}
-		
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 		auto wndSize = cgb::context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 	    io.DeltaTime = cgb::time().delta_time();
+
+		if (!mUserInteractionEnabled) {
+			return;
+		}
+
 		// Mouse buttons and cursor position:
 		io.MouseDown[0] = input().mouse_button_down(0);
 		io.MouseDown[1] = input().mouse_button_down(1);
