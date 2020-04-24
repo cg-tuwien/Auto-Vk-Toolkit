@@ -51,7 +51,7 @@ namespace cgb
 		// and before physical device selection, because it can actually influence 
 		// the physical device selection.
 
-		mContextState = cgb::context_state::halfway_initialized;
+		mContextState = cgb::context_state::initialization_begun;
 
 		// NOTE: Vulkan-init is not finished yet!
 		// Initialization will continue after the first window (and it's surface) have been created.
@@ -83,7 +83,7 @@ namespace cgb
 			context().pick_physical_device(surface);
 
 			return true;
-		}, cgb::context_state::halfway_initialized);
+		}, cgb::context_state::initialization_begun);
 
 		mEventHandlers.emplace_back([]() -> bool {
 			LOG_DEBUG_VERBOSE("Running event handler to create logical device");
@@ -110,7 +110,7 @@ namespace cgb
 			context().create_and_assign_logical_device(surface);
 
 			return true;
-		}, cgb::context_state::halfway_initialized);
+		}, cgb::context_state::physical_device_selected);
 	}
 
 	vulkan::~vulkan()
@@ -218,7 +218,7 @@ namespace cgb
 		wnd->set_title(_Title);
 
 		// Wait for the window to receive a valid handle before creating its surface
-		context().add_event_handler(context_state::halfway_initialized | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
+		context().add_event_handler(context_state::initialization_begun | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
 			LOG_DEBUG_VERBOSE("Running window surface creator event handler");
 
 			// Make sure it is the right window
@@ -613,6 +613,7 @@ namespace cgb
 
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
+		mContextState = cgb::context_state::physical_device_selected;
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
@@ -703,6 +704,8 @@ namespace cgb
 		auto* computeQueue		= device_queue::prepare(vk::QueueFlagBits::eCompute,		settings::gQueueSelectionPreference, std::nullopt);
 		auto* transferQueue		= device_queue::prepare(vk::QueueFlagBits::eTransfer,		settings::gQueueSelectionPreference, std::nullopt);
 
+		context().mContextState = cgb::context_state::queues_prepared;
+		
 		// Defer pipeline creation to enable the user to request more queues
 
 		mEventHandlers.emplace_back([presentQueue, graphicsQueue, computeQueue, transferQueue]() -> bool {
@@ -796,10 +799,13 @@ namespace cgb
 			);
 
 			// Create the queues which have been prepared in the beginning of this method:
-			context().mPresentQueue		= device_queue::create(*presentQueue);
-			context().mGraphicsQueue	= device_queue::create(*graphicsQueue);
-			context().mComputeQueue		= device_queue::create(*computeQueue);
-			context().mTransferQueue	= device_queue::create(*transferQueue);
+			for (auto& q : device_queue::sPreparedQueues) {
+				device_queue::create(q);
+			}
+			context().mPresentQueue		= presentQueue;
+			context().mGraphicsQueue	= graphicsQueue;
+			context().mComputeQueue		= computeQueue;
+			context().mTransferQueue	= transferQueue;
 
 			// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
 			std::set<uint32_t> uniqueFamilyIndices;
@@ -819,7 +825,7 @@ namespace cgb
 			context().mContextState = cgb::context_state::fully_initialized;
 
 			return true; // This is just always true
-		}, cgb::context_state::halfway_initialized);
+		}, cgb::context_state::queues_prepared);
 	}
 
 	void vulkan::create_swap_chain_for_window(window* pWindow)
@@ -951,7 +957,7 @@ namespace cgb
 			const auto n = bb->image_views().size();
 			assert(n == pWindow->get_renderpass().attachment_descriptions().size());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout);
+				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout, sync::wait_idle(true));
 			}
 		}
 

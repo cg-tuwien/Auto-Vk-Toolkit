@@ -71,14 +71,12 @@ namespace cgb
 		return result;
 	}
 
-	device_queue device_queue::create(const device_queue& aPreparedQueue)
+	void device_queue::create(device_queue& aPreparedQueue)
 	{
-		device_queue result;
-		result.mQueueFamilyIndex = aPreparedQueue.family_index();
-		result.mQueueIndex = aPreparedQueue.queue_index();
-		result.mPriority = aPreparedQueue.mPriority; // default priority of 0.5f
-		result.mQueue = context().logical_device().getQueue(result.mQueueFamilyIndex, result.mQueueIndex);
-		return result;
+		aPreparedQueue.mQueueFamilyIndex = aPreparedQueue.family_index();
+		aPreparedQueue.mQueueIndex = aPreparedQueue.queue_index();
+		aPreparedQueue.mPriority = aPreparedQueue.mPriority; // default priority of 0.5f
+		aPreparedQueue.mQueue = context().logical_device().getQueue(aPreparedQueue.mQueueFamilyIndex, aPreparedQueue.mQueueIndex);
 	}
 
 	command_pool& device_queue::pool_for(vk::CommandPoolCreateFlags aFlags) const
@@ -145,7 +143,27 @@ namespace cgb
 			.get_command_buffers(aNumBuffers, flags);
 		return result;
 	}
-	
+
+	semaphore device_queue::submit_with_semaphore(command_buffer_t& aCommandBuffer)
+	{
+		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
+
+		auto sem = cgb::semaphore_t::create();
+		
+		const auto submitInfo = vk::SubmitInfo{}
+			.setCommandBufferCount(1u)
+			.setPCommandBuffers(aCommandBuffer.handle_addr())
+			.setSignalSemaphoreCount(1u)
+			.setPSignalSemaphores(sem->handle_addr());
+		
+		handle().submit({ submitInfo },  nullptr);
+		aCommandBuffer.invoke_post_execution_handler();
+
+		aCommandBuffer.mState = command_buffer_state::submitted;
+
+		return sem;
+	}
+
 	void device_queue::submit(command_buffer_t& aCommandBuffer)
 	{
 		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);

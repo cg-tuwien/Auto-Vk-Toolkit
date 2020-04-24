@@ -172,6 +172,12 @@ namespace cgb
 
 		// Returns the current context state
 		auto state() const { return mContextState; }
+
+		template <typename F>
+		void add_event_handler(F action, cgb::context_state when)
+		{
+			mEventHandlers.emplace_back(std::move(action), when);
+		}
 		
 	protected:
 		static void glfw_error_callback(int error, const char* description);

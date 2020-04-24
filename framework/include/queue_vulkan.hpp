@@ -23,7 +23,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		/** Create a new queue on the logical device. */
 		static device_queue create(uint32_t aQueueFamilyIndex, uint32_t aQueueIndex);
 		/** Create a new queue on the logical device. */
-		static device_queue create(const device_queue& aPreparedQueue);
+		static void create(device_queue& aPreparedQueue);
 
 		/** Gets the queue family index of this queue */
 		auto family_index() const { return mQueueFamilyIndex; }
@@ -73,6 +73,9 @@ namespace cgb // ========================== TODO/WIP ===========================
 		 */
 		std::vector<command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false) const;
 
+		/** TODO */
+		semaphore submit_with_semaphore(command_buffer_t& aCommandBuffer);
+		
 		/** TODO */
 		void submit(command_buffer_t& aCommandBuffer);
 		

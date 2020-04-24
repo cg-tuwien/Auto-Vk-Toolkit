@@ -67,12 +67,12 @@ namespace cgb
 		vk::PhysicalDevice& physical_device() { return mPhysicalDevice; }
 		vk::Device& logical_device() { return mLogicalDevice; }
 		vk::DispatchLoaderDynamic& dynamic_dispatch() { return mDynamicDispatch; }
-		uint32_t graphics_queue_index() const { return mGraphicsQueue.queue_index(); }
-		uint32_t presentation_queue_index() const { return mPresentQueue.queue_index(); }
-		uint32_t transfer_queue_index() const { return mTransferQueue.queue_index(); }
-		device_queue& graphics_queue() { return mGraphicsQueue; }
-		device_queue& presentation_queue() { return mPresentQueue; }
-		device_queue& transfer_queue() { return mTransferQueue; }
+		uint32_t graphics_queue_index() const { return mGraphicsQueue->queue_index(); }
+		uint32_t presentation_queue_index() const { return mPresentQueue->queue_index(); }
+		uint32_t transfer_queue_index() const { return mTransferQueue->queue_index(); }
+		device_queue& graphics_queue() { return *mGraphicsQueue; }
+		device_queue& presentation_queue() { return *mPresentQueue; }
+		device_queue& transfer_queue() { return *mTransferQueue; }
 		const std::vector<uint32_t>& all_queue_family_indices() { return mDistinctQueueFamilies; }
 
 		/**	Creates a new window, but doesn't open it. Set the window's parameters
@@ -247,10 +247,10 @@ namespace cgb
 		vk::Device mLogicalDevice;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
 
-		device_queue mPresentQueue;
-		device_queue mGraphicsQueue;
-		device_queue mComputeQueue;
-		device_queue mTransferQueue;
+		device_queue* mPresentQueue;
+		device_queue* mGraphicsQueue;
+		device_queue* mComputeQueue;
+		device_queue* mTransferQueue;
 		// Vector of queue family indices
 		std::vector<uint32_t> mDistinctQueueFamilies;
 		// Vector of pairs of queue family indices and queue indices

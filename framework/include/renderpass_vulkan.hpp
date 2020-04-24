@@ -42,8 +42,13 @@ namespace cgb
 		~renderpass_t() = default;
 
 		/** Create a renderpass from a given set of attachments.
-		 *	Also, create default subpass dependencies 
-		 *	(which are overly cautious and potentially sync more as required.)
+		 *	Also, create default subpass dependencies (which are overly cautious and potentially sync more than required.)
+		 *	To specify custom subpass dependencies, pass a callback to the second parameter!
+		 *	@param	aAttachments				Attachments of the renderpass to be created
+		 *	@param	aSync						Callback of type void(renderpass_sync&) that is invoked for external subpass dependencies (before and after),
+		 *										and also between each of the subpasses. Modify the passed `renderpass_sync&` in order to set custom
+		 *										synchronization parameters.
+		 *	@param	aAlterConfigBeforeCreation	Use it to alter the renderpass_t configuration before it is actually being created.
 		 */
 		static owning_resource<renderpass_t> create(std::vector<attachment> aAttachments, std::function<void(renderpass_sync&)> aSync = {}, cgb::context_specific_function<void(renderpass_t&)> aAlterConfigBeforeCreation = {});
 
