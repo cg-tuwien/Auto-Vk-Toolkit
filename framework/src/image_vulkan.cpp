@@ -1030,8 +1030,8 @@ namespace cgb
 				handle(), vk::ImageLayout::eTransferSrcOptimal,
 				handle(), vk::ImageLayout::eTransferDstOptimal,
 				{ vk::ImageBlit{
-					vk::ImageSubresourceLayers{ mAspectFlags, i-1, 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ w  , h  , 1 } },
-					vk::ImageSubresourceLayers{ mAspectFlags, i  , 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ w/2, h/2, 1 } }
+					vk::ImageSubresourceLayers{ mAspectFlags, i-1, 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ w      , h      , 1 } },
+					vk::ImageSubresourceLayers{ mAspectFlags, i  , 0u, 1u }, { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ (w+1)/2, (h+1)/2, 1 } }
 				  }
 				},
 				vk::Filter::eLinear
@@ -1064,8 +1064,8 @@ namespace cgb
 				numBarriersRequired, layoutTransitions.data()
 			);
 
-			w /= 2;
-			h /= 2;
+			w = (w+1) / 2;
+			h = (h+1) / 2;
 		}
 		
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{ memory_access::transfer_write_access });

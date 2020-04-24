@@ -91,7 +91,7 @@ namespace cgb
 		return n == h; // if true => all checks have passed, if false => checks failed
 	}
 
-	std::vector<vk::UniqueDescriptorSet> descriptor_pool::allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
+	std::vector<vk::DescriptorSet> descriptor_pool::allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
 		std::vector<vk::DescriptorSetLayout> setLayouts;
 		setLayouts.reserve(aLayouts.size());
@@ -107,6 +107,6 @@ namespace cgb
 		// Update the pool's stats:
 		mNumRemainingSets -= static_cast<int>(aLayouts.size());
 
-		return cgb::context().logical_device().allocateDescriptorSetsUnique(allocInfo);
+		return cgb::context().logical_device().allocateDescriptorSets(allocInfo);
 	}
 }

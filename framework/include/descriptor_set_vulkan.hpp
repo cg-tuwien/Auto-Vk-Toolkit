@@ -146,7 +146,7 @@ namespace cgb
 		auto number_of_writes() const { return mOrderedDescriptorDataWrites.size(); }
 		const auto& write_at(size_t i) const { return mOrderedDescriptorDataWrites[i]; }
 		const auto* pool() const { return static_cast<bool>(mPool) ? mPool.get() : nullptr; }
-		const auto handle() const { return mDescriptorSet.get(); }
+		const auto handle() const { return mDescriptorSet; }
 		const auto set_id() const { return mSetId; }
 
 		const auto* store_image_infos(uint32_t aBindingId, std::vector<vk::DescriptorImageInfo> aStoredImageInfos)
@@ -209,7 +209,7 @@ namespace cgb
 			return result;
 		}
 
-		void link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool);
+		void link_to_handle_and_pool(vk::DescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool);
 		void write_descriptors();
 		
 		static std::vector<const descriptor_set*> get_or_create(std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aCache = nullptr);
@@ -217,7 +217,8 @@ namespace cgb
 	private:
 		std::vector<vk::WriteDescriptorSet> mOrderedDescriptorDataWrites;
 		std::shared_ptr<descriptor_pool> mPool;
-		vk::UniqueDescriptorSet mDescriptorSet;
+		vk::DescriptorSet mDescriptorSet;
+		// TODO: Are there cases where vk::UniqueDescriptorSet would be beneficial? Right now, the pool cleans up all the descriptor sets.
 		uint32_t mSetId;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorImageInfo>>> mStoredImageInfos;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorBufferInfo>>> mStoredBufferInfos;

@@ -42,7 +42,8 @@ namespace cgb
 		const auto& handle() const { return mDescriptorPool.get(); }
 
 		bool has_capacity_for(const descriptor_alloc_request& pRequest) const;
-		std::vector<vk::UniqueDescriptorSet> allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
+		std::vector<vk::DescriptorSet> allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
+		// TODO: IF required, implement a std::vector<vk::DescriptorSet> allocate_unique method!
 		
 		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, int numSets);
 		

@@ -138,11 +138,11 @@ namespace cgb
 		}
 	}
 	
-	void descriptor_set::link_to_handle_and_pool(vk::UniqueDescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool)
+	void descriptor_set::link_to_handle_and_pool(vk::DescriptorSet aHandle, std::shared_ptr<descriptor_pool> aPool)
 	{
 		mDescriptorSet = std::move(aHandle);
 		for (auto& w : mOrderedDescriptorDataWrites) {
-			w.setDstSet(mDescriptorSet.get());
+			w.setDstSet(handle());
 		}
 		mPool = std::move(aPool);
 	}
