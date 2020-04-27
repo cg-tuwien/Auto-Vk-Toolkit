@@ -40,12 +40,14 @@ namespace cgb
 		// So it begins
 		create_instance();
 
+#ifdef _DEBUG
 		// Setup debug callback and enable all validation layers configured in global settings 
 		setup_vk_debug_callback();
 
 		if (std::find(std::begin(settings::gRequiredInstanceExtensions), std::end(settings::gRequiredInstanceExtensions), VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != settings::gRequiredInstanceExtensions.end()) {
 			setup_vk_debug_report_callback();
 		}
+#endif
 
 		// The window surface needs to be created right after the instance creation 
 		// and before physical device selection, because it can actually influence 
