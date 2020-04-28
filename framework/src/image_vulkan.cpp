@@ -312,6 +312,11 @@ namespace cgb
 		return it != int32Format.end();
 	}
 
+	bool is_float_format(const image_format& pImageFormat)
+	{
+		return is_float16_format(pImageFormat) || is_float32_format(pImageFormat) || is_float64_format(pImageFormat);
+	}
+
 	bool is_float16_format(const image_format& pImageFormat)
 	{
 		// Note: Currently, the compressed sRGB-formats are ignored => could/should be added in the future, maybe
@@ -497,6 +502,7 @@ namespace cgb
 	bool has_stencil_component(const image_format& pImageFormat)
 	{
 		static std::set<vk::Format> stencilFormats = {
+			vk::Format::eD16UnormS8Uint,
 			vk::Format::eD32SfloatS8Uint,
 			vk::Format::eD24UnormS8Uint,
 		};
@@ -682,7 +688,48 @@ namespace cgb
 		return it != fourCompFormats.end();
 	}
 
-
+	bool is_unorm_format(const image_format& pImageFormat)
+	{
+		static std::set<vk::Format> unormFormats = {
+			vk::Format::eR8Unorm,
+			vk::Format::eR8G8Unorm,
+			vk::Format::eR8G8B8Unorm,
+			vk::Format::eB8G8R8Unorm,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::Format::eB8G8R8A8Unorm,
+			vk::Format::eA8B8G8R8UnormPack32,
+			vk::Format::eR16Unorm,
+			vk::Format::eR16G16Unorm,
+			vk::Format::eR16G16B16Unorm,
+			vk::Format::eR16G16B16A16Unorm
+		};
+		auto it = std::find(std::begin(unormFormats), std::end(unormFormats), pImageFormat.mFormat);
+		return it != unormFormats.end();
+	}
+	
+	bool is_snorm_format(const image_format& pImageFormat)
+	{
+		static std::set<vk::Format> snormFormats = {
+			vk::Format::eR8Snorm,
+			vk::Format::eR8G8Snorm,
+			vk::Format::eR8G8B8Snorm,
+			vk::Format::eB8G8R8Snorm,
+			vk::Format::eR8G8B8A8Snorm,
+			vk::Format::eB8G8R8A8Snorm,
+			vk::Format::eA8B8G8R8SnormPack32,
+			vk::Format::eR16Snorm,
+			vk::Format::eR16G16Snorm,
+			vk::Format::eR16G16B16Snorm,
+			vk::Format::eR16G16B16A16Snorm
+		};
+		auto it = std::find(std::begin(snormFormats), std::end(snormFormats), pImageFormat.mFormat);
+		return it != snormFormats.end();
+	}
+	
+	bool is_norm_format(const image_format& pImageFormat)
+	{
+		return is_unorm_format(pImageFormat) || is_snorm_format(pImageFormat);
+	}
 
 
 
@@ -790,7 +837,7 @@ namespace cgb
 	{
 		// Determine image usage flags, image layout, and memory usage flags:
 		auto [imageUsage, targetLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageUsage);
-
+		
 		vk::MemoryPropertyFlags memoryFlags{};
 		switch (aMemoryUsage) {
 		case cgb::memory_usage::host_visible:
@@ -824,6 +871,13 @@ namespace cgb
 		const auto format = std::get<image_format>(pFormatAndSamples);
 		const auto samples = std::get<int>(pFormatAndSamples);
 		const auto samplesVk = to_vk_sample_count(samples);
+
+		if (cgb::has_flag(imageUsage, vk::ImageUsageFlagBits::eDepthStencilAttachment) && vk::ImageTiling::eOptimal == imageTiling) { // only for AMD |-(
+			auto formatProps = cgb::context().physical_device().getFormatProperties(format.mFormat);
+			if (!has_flag(formatProps.optimalTilingFeatures, vk::FormatFeatureFlagBits::eDepthStencilAttachment)) {
+				imageTiling = vk::ImageTiling::eLinear;
+			}
+		}
 		
 		vk::ImageAspectFlags aspectFlags = {};
 		if (is_depth_format(format)) {
@@ -902,7 +956,7 @@ namespace cgb
 
 		// Create the image (by default only on the device which should be sufficient for a depth buffer => see pMemoryUsage's default value):
 		auto result = image_t::create(pWidth, pHeight, *pFormat, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
-		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth;
+		result->mAspectFlags |= vk::ImageAspectFlagBits::eDepth;
 		return result;
 	}
 
@@ -924,7 +978,7 @@ namespace cgb
 
 		// Create the image (by default only on the device which should be sufficient for a depth+stencil buffer => see pMemoryUsage's default value):
 		auto result = image_t::create_depth(pWidth, pHeight, *pFormat, pNumLayers, pMemoryUsage, pImageUsage, std::move(pAlterConfigBeforeCreation));
-		result->mAspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+		result->mAspectFlags |= vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
 		return result;
 	}
 

@@ -53,6 +53,9 @@ namespace cgb
 	/** Returns true if the given image format stores the color channels in int32-type storage
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_int32_format(const image_format& pImageFormat);
+	/** Returns true if the given image format stores the color channels in float-type storage
+	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
+	extern bool is_float_format(const image_format& pImageFormat);
 	/** Returns true if the given image format stores the color channels in float16-type storage
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_float16_format(const image_format& pImageFormat);
@@ -95,6 +98,10 @@ namespace cgb
 	/** Returns true if the given image format is a format which has four color components (or three color components + one alpha component, more precisely).
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
 	extern bool is_4component_format(const image_format& pImageFormat);
+
+	extern bool is_unorm_format(const image_format& pImageFormat);
+	extern bool is_snorm_format(const image_format& pImageFormat);
+	extern bool is_norm_format(const image_format& pImageFormat);
 	
 	/** Returns true if the given image format is a depth/depth-stencil format and has a stencil component.
 	*	Please note: This function does not guarantee completeness for all formats, i.e. false negatives must be expected. */
