@@ -728,7 +728,7 @@ namespace cgb
 	
 	bool is_norm_format(const image_format& pImageFormat)
 	{
-		return is_unorm_format(pImageFormat) || is_snorm_format(pImageFormat);
+		return is_unorm_format(pImageFormat) || is_snorm_format(pImageFormat) || is_srgb_format(pImageFormat);
 	}
 
 
