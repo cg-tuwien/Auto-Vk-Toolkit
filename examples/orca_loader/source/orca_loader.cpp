@@ -58,7 +58,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 			auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
-				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
+				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 
 				cgb::sync::with_semaphore_to_backbuffer_dependency()
 			);
 			newElement.mPositionsBuffer = std::move(positionsBuffer);
@@ -66,13 +66,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Get a buffer containing all texture coordinates for all submeshes with this material
 			newElement.mTexCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
-				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 0,
+				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 0,
 				cgb::sync::with_semaphore_to_backbuffer_dependency()
 			);
 
 			// Get a buffer containing all normals for all submeshes with this material
 			newElement.mNormalsBuffer = cgb::create_normals_buffer(
-				{ cgb::make_tuple_model_and_indices(sponza, pair.second) }, 
+				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 
 				cgb::sync::with_semaphore_to_backbuffer_dependency()
 			);
 		}
@@ -106,7 +106,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
-					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					cgb::sync::with_semaphore_to_backbuffer_dependency()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
@@ -114,14 +114,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
 				auto texCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
-					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
+					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
 					cgb::sync::with_semaphore_to_backbuffer_dependency()
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
 				auto normalsBuffer = cgb::create_normals_buffer(
-					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
 					cgb::sync::with_semaphore_to_backbuffer_dependency()
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
@@ -141,8 +141,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
 			allMatConfigs, 
-			cgb::image_usage::read_only_sampled_image,
-			cgb::filter_mode::bilinear,
+			cgb::image_usage::general_texture,
+			cgb::filter_mode::anisotropic_16x,
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_semaphore_to_backbuffer_dependency()
 		);

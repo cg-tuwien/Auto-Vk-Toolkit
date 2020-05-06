@@ -294,6 +294,14 @@ namespace cgb
 		add_tuple_or_indices(aResult, rest...);
 	}
 	
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>>& aResult, std::vector<size_t> aMeshIndices, const Rest&... rest)
+	{
+		auto& idxes = std::get<std::vector<size_t>>(aResult.back());
+		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
+		add_tuple_or_indices(aResult, rest...);
+	}
+	
 	template <typename... Args>
 	std::vector<std::tuple<std::reference_wrapper<const cgb::model_t>, std::vector<size_t>>> make_models_and_meshes_selection(const Args&... args)
 	{

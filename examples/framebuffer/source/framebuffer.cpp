@@ -66,8 +66,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		using namespace cgb::att;
 		
 		const auto r = cgb::context().main_window()->resolution();
-		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_color_attachment));
-		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_depth_stencil_attachment));
+		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), 1, cgb::memory_usage::device, cgb::image_usage::general_color_attachment));
+		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), 1, cgb::memory_usage::device, cgb::image_usage::general_depth_stencil_attachment));
 		auto colorAttachmentDescription = cgb::attachment::declare_for(colorAttachment, on_load::clear, color(0),			on_store::store);
 		auto depthAttachmentDescription = cgb::attachment::declare_for(depthAttachment, on_load::clear, depth_stencil(),	on_store::store);
 		mOneFramebuffer = cgb::framebuffer_t::create(

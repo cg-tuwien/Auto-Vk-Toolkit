@@ -94,7 +94,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// via samplers; It all happens in `cgb::convert_for_gpu_usage`:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
 			allMatConfigs, 
-			cgb::image_usage::read_only_sampled_image,
+			cgb::image_usage::read_only_image,
 			cgb::filter_mode::bilinear,
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()

@@ -68,7 +68,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = cgb::image_sampler_t::create(
-			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png")),
+			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png", false, true, 4, cgb::memory_usage::device, cgb::image_usage::general_storage_image)), // TODO: Is it not possible to use this image without the "storage" flag given that it is used as a "readonly image" in the compute shader only?
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
 		const auto wdth = mInputImageAndSampler->width();
@@ -79,8 +79,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
 			cgb::image_view_t::create(
 				cgb::image_t::create( // Create an image and set some properties:
-					wdth, hght, frmt, false /* no mip-maps */, 1 /* one layer */, cgb::memory_usage::device, /* in GPU memory */
-					cgb::image_usage::versatile_image // This flag means (among other usages) that the image can be written to
+					wdth, hght, frmt, 1 /* one layer */, cgb::memory_usage::device, /* in GPU memory */
+					cgb::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to
 				)
 			),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
@@ -227,7 +227,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		if (cgb::input().key_down(cgb::key_code::num1) || cgb::input().key_pressed(cgb::key_code::num2) || cgb::input().key_pressed(cgb::key_code::num3)) {
 			// [1], [2], or [3] => Use a compute shader to modify the image
 
-			// Use a fence to ensure that compute command buffer has finished executin before using it again
+			// Use a fence to ensure that compute command buffer has finished execution before using it again
 			mComputeFence->wait_until_signalled();
 			mComputeFence->reset();
 
