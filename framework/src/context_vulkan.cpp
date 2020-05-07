@@ -1044,7 +1044,12 @@ namespace cgb
 
 		// We weren't lucky => create a new pool:
 		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name['{}'/{}]", pId.mThreadId, fourcc_to_string(pId.mName), pId.mName));
-		auto newPool = descriptor_pool::create(aAllocRequest.accumulated_pool_sizes(), aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor);
+		
+		// TODO: On AMD, it seems that all the entries have to be multiplied as well, while on NVIDIA, only multiplying the number of sets seems to be sufficient
+		//       => How to handle this? Overallocation is as bad as underallocation. Shall we make use of exceptions? Shall we 'if' on the vendor?
+		auto allocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
+
+		auto newPool = descriptor_pool::create(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets() * settings::gDescriptorPoolSizeFactor);
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}

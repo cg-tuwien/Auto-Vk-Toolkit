@@ -10,14 +10,17 @@ namespace cgb
 	public:
 		descriptor_alloc_request() = default;
 		descriptor_alloc_request(descriptor_alloc_request&&) noexcept = default;
-		descriptor_alloc_request& operator=(const descriptor_alloc_request&) = delete;
+		descriptor_alloc_request(const descriptor_alloc_request&) = default;
 		descriptor_alloc_request& operator=(descriptor_alloc_request&&) noexcept = default;
+		descriptor_alloc_request& operator=(const descriptor_alloc_request&) = default;
 		~descriptor_alloc_request() = default;
 
 		void add_size_requirements(vk::DescriptorPoolSize aToAdd);
 		const auto& accumulated_pool_sizes() const { return mAccumulatedSizes; }
 		void set_num_sets(uint32_t aNumSets) { mNumSets = aNumSets; }
 		auto num_sets() const { return mNumSets; }
+
+		descriptor_alloc_request multiply_size_requirements(uint32_t mFactor) const;
 
 		/**	Gather information about the required alloc size of given layouts
 		 */

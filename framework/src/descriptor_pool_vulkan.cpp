@@ -18,6 +18,15 @@ namespace cgb
 		}
 	}
 
+	descriptor_alloc_request descriptor_alloc_request::multiply_size_requirements(uint32_t mFactor) const
+	{
+		auto copy = descriptor_alloc_request{*this};
+		for (auto& sr : copy.mAccumulatedSizes) {
+			sr.descriptorCount *= mFactor;
+		}
+		return copy;
+	}
+	
 	descriptor_alloc_request descriptor_alloc_request::create(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts)
 	{
 		descriptor_alloc_request result;
