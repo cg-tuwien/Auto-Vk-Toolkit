@@ -238,6 +238,9 @@
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
       <Filter>Source Files\application_structure_and_general_stuff</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\acceleration_structure_size_requirements.cpp">
+      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\context.hpp">
@@ -578,6 +581,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
       <Filter>Header Files\application_structure_and_general_stuff</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\acceleration_structure_size_requirements.hpp">
+      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

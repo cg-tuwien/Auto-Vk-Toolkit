@@ -1,5 +1,5 @@
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
@@ -67,11 +67,11 @@ layout(set = 0, binding = 1) buffer Material
 layout(set = 0, binding = 2) uniform usamplerBuffer indexBuffers[];
 layout(set = 0, binding = 3) uniform samplerBuffer vertexDataBuffers[];
 
-layout(set = 2, binding = 0) uniform accelerationStructureNV topLevelAS;
+layout(set = 2, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
-layout(location = 0) rayPayloadInNV vec3 hitValue;
-hitAttributeNV vec3 attribs;
-layout(location = 2) rayPayloadNV float secondaryRayHitValue;
+layout(location = 0) rayPayloadInEXT vec3 hitValue;
+hitAttributeEXT vec3 attribs;
+layout(location = 2) rayPayloadEXT float secondaryRayHitValue;
 
 layout(push_constant) uniform PushConstants {
 	mat4 viewMatrix;
@@ -81,25 +81,25 @@ layout(push_constant) uniform PushConstants {
 void main()
 {
     const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
-	const int instanceIndex = nonuniformEXT(gl_InstanceCustomIndexNV);
+	const int instanceIndex = nonuniformEXT(gl_InstanceCustomIndexEXT);
 	const ivec3 indices = ivec3(texelFetch(indexBuffers[instanceIndex], gl_PrimitiveID).rgb);
 	const vec2 uv0 = texelFetch(vertexDataBuffers[instanceIndex], indices.x).rg;
 	const vec2 uv1 = texelFetch(vertexDataBuffers[instanceIndex], indices.y).rg;
 	const vec2 uv2 = texelFetch(vertexDataBuffers[instanceIndex], indices.z).rg;
 	const vec2 uv = (barycentrics.x * uv0 + barycentrics.y * uv1 + barycentrics.z * uv2);
 
-    vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
+    vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     vec3 direction = normalize(pushConstants.lightDir.xyz);
-    uint rayFlags = gl_RayFlagsOpaqueNV | gl_RayFlagsTerminateOnFirstHitNV;
+    uint rayFlags = gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
     uint cullMask = 0xff;
     float tmin = 0.001;
     float tmax = 100.0;
 
-    traceNV(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
+    traceRayEXT(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
 
 //	 gl_InstanceCustomIndex = VkGeometryInstance::instanceId
 //    hitValue = (barycentrics * 0.5 + vec3(0.5, 0.5, 0.5))
-//		* uniformBuffers[nonuniformEXT(gl_InstanceCustomIndexNV)].color.rgb
+//		* uniformBuffers[nonuniformEXT(gl_InstanceCustomIndexEXT)].color.rgb
 //		* ( secondaryRayHitValue < tmax ? 0.25 : 1.0 );
 //	hitValue = barycentrics * 0.5 + vec3(0.5, 0.5, 0.5);
 	hitValue = vec3(clamp(uv,0,1), 0) * (secondaryRayHitValue < tmax ? 0.25 : 1.0);

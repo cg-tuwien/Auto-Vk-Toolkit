@@ -6,7 +6,7 @@ namespace cgb
 
 	max_recursion_depth max_recursion_depth::set_to_max()
 	{
-		vk::PhysicalDeviceRayTracingPropertiesNV rtProps;
+		vk::PhysicalDeviceRayTracingPropertiesKHR rtProps;
 		vk::PhysicalDeviceProperties2 props2;
 		props2.pNext = &rtProps;
 		context().physical_device().getProperties2(&props2);

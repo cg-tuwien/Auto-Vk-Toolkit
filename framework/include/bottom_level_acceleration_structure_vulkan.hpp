@@ -15,27 +15,26 @@ namespace cgb
 		bottom_level_acceleration_structure_t& operator=(const bottom_level_acceleration_structure_t&) = delete;
 		~bottom_level_acceleration_structure_t() = default;
 
-		const auto& config() const { return mAccStructureInfo; }
+		const auto& config() const { return mCreateInfo; }
 		const auto& acceleration_structure_handle() const { return mAccStructure.get(); }
 		const auto* acceleration_structure_handle_addr() const { return &mAccStructure.get(); }
 		const auto& memory_handle() const { return mMemory.get(); }
 		const auto* memory_handle_addr() const { return &mMemory.get(); }
-		auto device_handle() const { return mDeviceHandle; }
+		auto device_address() const { return mDeviceAddress; }
 
 		size_t required_acceleration_structure_size() const { return static_cast<size_t>(mMemoryRequirementsForAccelerationStructure.memoryRequirements.size); }
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
 		size_t required_scratch_buffer_update_size() const { return static_cast<size_t>(mMemoryRequirementsForScratchBufferUpdate.memoryRequirements.size); }
 
-		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<std::tuple<vertex_buffer, index_buffer>> aGeometryDescriptions, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
-		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
-		static owning_resource<bottom_level_acceleration_structure_t> create(vertex_buffer aVertexBuffer, index_buffer aIndexBuffer, bool aAllowUpdates = true, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
+		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::acceleration_structure_size_requirements> aGeometryDescriptions, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
+		//static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 
-		void build(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
-		void update(sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void build(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void update(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		
 	private:
 		enum struct blas_action { build, update };
-		std::optional<command_buffer> build_or_update(sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
+		std::optional<command_buffer> build_or_update(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;
@@ -44,12 +43,11 @@ namespace cgb
 		vk::MemoryAllocateInfo mMemoryAllocateInfo;
 		vk::UniqueDeviceMemory mMemory;
 
-		std::vector<vertex_buffer> mVertexBuffers;
-		std::vector<index_buffer> mIndexBuffers;
-		std::vector<vk::GeometryNV> mGeometries;
-		vk::AccelerationStructureInfoNV mAccStructureInfo;
+		std::vector<vk::AccelerationStructureCreateGeometryTypeInfoKHR> mGeometryInfos;
+		//std::vector<vk::GeometryKHR> mGeometries;
+		vk::AccelerationStructureCreateInfoKHR mCreateInfo;
 		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
-		uint64_t mDeviceHandle;
+		vk::DeviceAddress mDeviceAddress;
 
 		std::optional<generic_buffer> mScratchBuffer;
 

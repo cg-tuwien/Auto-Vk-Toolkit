@@ -226,7 +226,7 @@ namespace cgb
 
 		bool is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures);
 
-		vk::PhysicalDeviceRayTracingPropertiesNV get_ray_tracing_properties();
+		vk::PhysicalDeviceRayTracingPropertiesKHR get_ray_tracing_properties();
 
 		descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
 		

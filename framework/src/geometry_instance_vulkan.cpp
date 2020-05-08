@@ -17,7 +17,7 @@ namespace cgb
 			0xff,
 			0,
 			vk::GeometryInstanceFlagsNV(),
-			_Blas.device_handle()
+			_Blas.device_address()
 		};
 	}
 
@@ -75,26 +75,26 @@ namespace cgb
 		return *this;
 	}
 
-	VkGeometryInstanceNV convert_for_gpu_usage(const geometry_instance& _GeomInst)
+	VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& _GeomInst)
 	{
-		VkGeometryInstanceNV element;
+		VkAccelerationStructureInstanceKHR element;
 		auto matrix = glm::transpose(_GeomInst.mTransform);
-		memcpy(element.transform, glm::value_ptr(matrix), sizeof(element.transform));
+		memcpy(&element.transform, glm::value_ptr(matrix), sizeof(element.transform));
 		element.instanceCustomIndex = _GeomInst.mInstanceCustomIndex;
 		element.mask = _GeomInst.mMask;
-		element.instanceOffset = _GeomInst.mInstanceOffset;
+		element.instanceShaderBindingTableRecordOffset = _GeomInst.mInstanceOffset;
 		element.flags = static_cast<uint32_t>(_GeomInst.mFlags);
-		element.accelerationStructureHandle = _GeomInst.mAccelerationStructureDeviceHandle;
+		element.accelerationStructureReference = _GeomInst.mAccelerationStructureDeviceHandle;
 		return element;
 	}
 
-	std::vector<VkGeometryInstanceNV> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances)
+	std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances)
 	{
 		if (_GeomInstances.size() == 0) {
 			LOG_WARNING("Empty vector of `geometry_instance`s");
 		}
 
-		std::vector<VkGeometryInstanceNV> instancesNv;
+		std::vector<VkAccelerationStructureInstanceKHR> instancesNv;
 		instancesNv.reserve(_GeomInstances.size());
 		for (auto& data : _GeomInstances) {
 			instancesNv.emplace_back(convert_for_gpu_usage(data));

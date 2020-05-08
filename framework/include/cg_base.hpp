@@ -56,6 +56,7 @@
 // GLM: 
 #if defined(USE_VULKAN_CONTEXT)
 // DEFINES:
+#define VK_ENABLE_BETA_EXTENSIONS
 #define GLFW_INCLUDE_VULKAN
 #define VK_USE_PLATFORM_WIN32_KHR
 
@@ -169,6 +170,7 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater tha
 #include "window_vulkan.hpp"
 #include "context_generic_glfw.hpp"
 #include "geometry_instance_vulkan.hpp"
+#include "acceleration_structure_size_requirements.hpp"
 #include "bottom_level_acceleration_structure_vulkan.hpp"
 #include "top_level_acceleration_structure_vulkan.hpp"
 #include "shader_vulkan.hpp"

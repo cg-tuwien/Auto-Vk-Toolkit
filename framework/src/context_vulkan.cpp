@@ -1157,9 +1157,9 @@ namespace cgb
 	}
 
 
-	vk::PhysicalDeviceRayTracingPropertiesNV vulkan::get_ray_tracing_properties()
+	vk::PhysicalDeviceRayTracingPropertiesKHR vulkan::get_ray_tracing_properties()
 	{
-		vk::PhysicalDeviceRayTracingPropertiesNV rtProps;
+		vk::PhysicalDeviceRayTracingPropertiesKHR rtProps;
 		vk::PhysicalDeviceProperties2 props2;
 		props2.pNext = &rtProps;
 		mPhysicalDevice.getProperties2(&props2);

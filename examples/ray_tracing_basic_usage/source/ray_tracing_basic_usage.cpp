@@ -20,8 +20,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
 				auto [vtxBfr, idxBfr] = cgb::create_vertex_and_index_buffers({ cgb::make_models_and_meshes_selection(model, meshIndices) });
-				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(vtxBfr), std::move(idxBfr));
-				blas->build();
+				auto blas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_buffers(vtxBfr, idxBfr) }, false);
+				std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> schass;
+				schass.emplace_back(std::cref(*vtxBfr), std::cref(*idxBfr));
+				blas->build(schass);
 				mGeometryInstances.push_back(
 					cgb::geometry_instance::create(blas)
 						.set_transform(cgb::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling))
@@ -142,7 +144,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mQuakeCam.view_matrix(),
 			glm::vec4{mLightDir, 0.0f}
 		};
-		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV | vk::ShaderStageFlagBits::eClosestHitNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
 		cmdbfr->handle().traceRaysNV(
@@ -183,9 +185,12 @@ int main() // <== Starting point ==
 		// What's the name of our application
 		cgb::settings::gApplicationName = "cg_base::ray_tracing_basic_usage";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
-		//cgb::settings::gRequiredDeviceExtensions.push_back("VK_KHR_ray_tracing");
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it

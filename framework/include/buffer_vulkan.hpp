@@ -28,6 +28,13 @@ namespace cgb
 		const auto& buffer_usage_flags() const	{ return mBufferUsageFlags; }
 		const auto& buffer_handle() const		{ return mBuffer.get(); }
 		const auto* buffer_handle_addr() const	{ return &mBuffer.get(); }
+
+		auto buffer_device_address() const
+		{
+			auto bufferAddressInfo = vk::BufferDeviceAddressInfoKHR{ buffer_handle() };
+		    return cgb::context().logical_device().getBufferAddressKHR(bufferAddressInfo);
+		}
+		
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		auto has_descriptor_type() const		{ return mDescriptorType.has_value(); }
 		auto descriptor_type() const			{ return mDescriptorType.value(); } //< might throw

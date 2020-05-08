@@ -2,34 +2,39 @@
 
 namespace cgb
 {
-	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(uint32_t _InstanceCount, bool _AllowUpdates, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc)
+	owning_resource<top_level_acceleration_structure_t> top_level_acceleration_structure_t::create(uint32_t aInstanceCount, bool aAllowUpdates, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> aAlterConfigBeforeCreation, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc)
 	{
 		top_level_acceleration_structure_t result;
 
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry
-		result.mAccStructureInfo = vk::AccelerationStructureInfoNV{}
+		auto geometryTypeInfo = vk::AccelerationStructureCreateGeometryTypeInfoKHR{}
+			.setGeometryType(vk::GeometryTypeKHR::eInstances)
+			.setMaxPrimitiveCount(aInstanceCount)
+			.setIndexType(vk::IndexType::eNoneKHR)
+			.setMaxVertexCount(0u)
+			.setVertexFormat(vk::Format::eUndefined)
+			.setAllowsTransforms(VK_FALSE);
+		
+		result.mCreateInfo = vk::AccelerationStructureCreateInfoKHR{}
+			.setCompactedSize(0) // If compactedSize is 0 then maxGeometryCount must not be 0
 			.setType(vk::AccelerationStructureTypeNV::eTopLevel)
-			.setFlags(_AllowUpdates 
-					  ? vk::BuildAccelerationStructureFlagBitsNV::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsNV::ePreferFastBuild 
-					  : vk::BuildAccelerationStructureFlagBitsNV::ePreferFastTrace) // TODO: Support flags
-			.setInstanceCount(_InstanceCount)
-			.setGeometryCount(0u)
-			.setPGeometries(nullptr);
-
+			.setFlags(aAllowUpdates 
+					  ? vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastBuild
+					  : vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace) // TODO: Support flags
+			.setMaxGeometryCount(1u) // If type is VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR and compactedSize is 0, maxGeometryCount must be 1
+			.setPGeometryInfos(&geometryTypeInfo)
+			.setDeviceAddress(VK_NULL_HANDLE);
+		
 		// 3. Maybe alter the config?
-		if (_AlterConfigBeforeCreation.mFunction) {
-			_AlterConfigBeforeCreation.mFunction(result);
+		if (aAlterConfigBeforeCreation.mFunction) {
+			aAlterConfigBeforeCreation.mFunction(result);
 		}
 
-		// 4. Create the create info
-		auto createInfo = vk::AccelerationStructureCreateInfoNV{}
-			.setCompactedSize(0)
-			.setInfo(result.mAccStructureInfo);
-		// 5. Create it
-		result.mAccStructure = context().logical_device().createAccelerationStructureNVUnique(createInfo, nullptr, context().dynamic_dispatch());
+		// 4. Create it
+		result.mAccStructure = context().logical_device().createAccelerationStructureKHRUnique(result.mCreateInfo, nullptr, context().dynamic_dispatch());
 
-		// Steps 6. to 11. in here:
-		finish_acceleration_structure_creation(result, std::move(_AlterConfigBeforeMemoryAlloc));
+		// Steps 5. to 10. in here:
+		finish_acceleration_structure_creation(result, std::move(aAlterConfigBeforeMemoryAlloc));
 
 		result.mTracker.setTrackee(result);
 		return result;
@@ -60,6 +65,34 @@ namespace cgb
 			scratchBuffer = &get_and_possibly_create_scratch_buffer();
 		}
 
+		std::vector<vk::AccelerationStructureGeometryKHR> accStructureGeometries;
+		accStructureGeometries.reserve(aGeometryInstances.size());
+		std::vector<vk::AccelerationStructureGeometryKHR*> accStructureGeometryPtrs;
+		accStructureGeometryPtrs.reserve(aGeometryInstances.size());
+		
+		std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> buildGeometryInfos;
+		buildGeometryInfos.reserve(aGeometryInstances.size()); 
+		
+		std::vector<vk::AccelerationStructureBuildOffsetInfoKHR> buildOffsetInfos;
+		buildOffsetInfos.reserve(aGeometryInstances.size());
+		std::vector<vk::AccelerationStructureBuildOffsetInfoKHR*> buildOffsetInfoPtrs; // Points to elements inside buildOffsetInfos... just... because!
+		buildOffsetInfoPtrs.reserve(aGeometryInstances.size());
+
+		for (auto& gi : aGeometryInstances) {
+
+
+			// TODO: Proceed here: fill those VkAccelerationStructureBuildGeometryInfoKHR* and VkAccelerationStructureBuildOffsetInfoKHR* members
+			
+//    VkResult vkBuildAccelerationStructureKHR(
+ //   VkDevice                                    device,
+ //   uint32_t                                    infoCount,
+ //   const VkAccelerationStructureBuildGeometryInfoKHR* pInfos,
+ //   const VkAccelerationStructureBuildOffsetInfoKHR* const* ppOffsetInfos);
+			
+		}
+
+		
+
 		std::vector<cgb::VkGeometryInstanceNV> geomInstances = convert_for_gpu_usage(aGeometryInstances);
 		
 		// TODO: Retain this buffer, don't always create a new one
@@ -76,7 +109,7 @@ namespace cgb
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, read_memory_access{memory_access::acceleration_structure_read_access});
 
 		// Operation:
-		commandBuffer.handle().buildAccelerationStructureNV(
+		commandBuffer.handle().buildAccelerationStructureKHR(
 			config(),
 			geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
 			aBuildAction == tlas_action::build

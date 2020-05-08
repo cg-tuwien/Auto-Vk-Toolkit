@@ -20,7 +20,7 @@ namespace cgb
 		const auto* acceleration_structure_handle_addr() const { return &mAccStructure.get(); }
 		const auto& memory_handle() const { return mMemory.get(); }
 		const auto* memory_handle_addr() const { return &mMemory.get(); }
-		auto device_handle() const { return mDeviceHandle; }
+		auto device_address() const { return mDeviceAddress; }
 
 		size_t required_acceleration_structure_size() const { return static_cast<size_t>(mMemoryRequirementsForAccelerationStructure.memoryRequirements.size); }
 		size_t required_scratch_buffer_build_size() const { return static_cast<size_t>(mMemoryRequirementsForBuildScratchBuffer.memoryRequirements.size); }
@@ -52,13 +52,13 @@ namespace cgb
 		vk::MemoryAllocateInfo mMemoryAllocateInfo;
 		vk::UniqueDeviceMemory mMemory;
 
-		vk::AccelerationStructureInfoNV mAccStructureInfo;
+		vk::AccelerationStructureCreateInfoKHR mCreateInfo;
 		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
-		uint64_t mDeviceHandle;
+		vk::DeviceAddress mDeviceAddress;
 
 		std::optional<generic_buffer> mScratchBuffer;
 		
-		mutable vk::WriteDescriptorSetAccelerationStructureNV mDescriptorInfo;
+		mutable vk::WriteDescriptorSetAccelerationStructureKHR mDescriptorInfo;
 
 		context_tracker<top_level_acceleration_structure_t> mTracker;
 	};

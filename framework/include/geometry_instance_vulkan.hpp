@@ -34,21 +34,11 @@ namespace cgb
 		uint32_t mInstanceCustomIndex;
 		uint32_t mMask;
 		size_t mInstanceOffset;
-		vk::GeometryInstanceFlagsNV mFlags;
-		uint64_t mAccelerationStructureDeviceHandle;
+		vk::GeometryInstanceFlagsKHR mFlags;
+		vk::DeviceAddress mAccelerationStructureDeviceHandle;
 	};
 
-	struct VkGeometryInstanceNV
-	{
-		float		transform[12];
-		uint32_t	instanceCustomIndex : 24;
-		uint32_t	mask : 8;
-		uint32_t	instanceOffset : 24;
-		uint32_t	flags : 8;
-		uint64_t	accelerationStructureHandle;
-	};
-
-	extern VkGeometryInstanceNV convert_for_gpu_usage(const geometry_instance& _GeomInst);
-	extern std::vector<VkGeometryInstanceNV> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances);
+	extern VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& _GeomInst);
+	extern std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances);
 
 }

@@ -145,7 +145,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
 			mOffscreenImageViews.emplace_back(
 				cgb::image_view_t::create(
-					cgb::image_t::create(wdth, hght, frmt, false, 1, cgb::memory_usage::device, cgb::image_usage::versatile_image)
+					cgb::image_t::create(wdth, hght, frmt, 1, cgb::memory_usage::device, cgb::image_usage::general_storage_image)
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));
@@ -294,7 +294,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mQuakeCam.view_matrix(),
 			glm::vec4{mLightDir, 0.0f}
 		};
-		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV | vk::ShaderStageFlagBits::eClosestHitNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
+		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
 		cmdbfr->handle().traceRaysNV(

@@ -1,5 +1,5 @@
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : require
 
 //In the intersection language, built-in variables are declared as follows
 //
@@ -30,15 +30,15 @@
 // Attention (citing the posts from https://devtalk.nvidia.com/default/topic/1048039/vulkan/vk_nv_raytracing-with-procedural-geometries/?offset=5#5415670): 
 //  -) I think I've found the issue. The intersection shader does not seem to behave correctly if it does not declare a hitAttribute at global scope.
 //  -) Yes, you need in fact specify a hitAttributeNV, which is required to match your anyhit or closest hit shader ones if they use it.
-hitAttributeNV vec3 attribs;
+hitAttributeEXT vec3 attribs;
 
 void main()
 {
     // Parameter 1) float hitT:
-    //   Do not change the value of gl_RayTmaxNV but retain its current value,
+    //   Do not change the value of gl_RayTmaxEXT but retain its current value,
     // Parameter 2) uint hitKind:
     //   An unsigned integer that identifies the type of hit that occurred. This 
     //   is a user-specified value in the range of 0-127. The value can be read 
     //   by any hit or closest hit shaders with the HitKind intrinsic.
-    reportIntersectionNV(1.0, 0);
+    reportIntersectionEXT(1.0, 0);
 }
