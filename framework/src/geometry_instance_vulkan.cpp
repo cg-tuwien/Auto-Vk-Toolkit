@@ -8,7 +8,7 @@ namespace cgb
 		// uint32_t mInstanceCustomIndex;
 		// uint32_t mMask;
 		// size_t mInstanceOffset;
-		// vk::GeometryInstanceFlagsNV mFlags;
+		// vk::GeometryInstanceFlagsKHR mFlags;
 		// uint64_t mAccelerationStructureDeviceHandle;
 		return geometry_instance
 		{
@@ -16,7 +16,7 @@ namespace cgb
 			0,
 			0xff,
 			0,
-			vk::GeometryInstanceFlagsNV(),
+			vk::GeometryInstanceFlagsKHR(),
 			_Blas.device_address()
 		};
 	}
@@ -47,59 +47,59 @@ namespace cgb
 
 	geometry_instance& geometry_instance::disable_culling()
 	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eTriangleCullDisable;
+		mFlags |= vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable;
 		return *this;
 	}
 
 	geometry_instance& geometry_instance::define_front_faces_to_be_counter_clockwise()
 	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eTriangleFrontCounterclockwise;
+		mFlags |= vk::GeometryInstanceFlagBitsKHR::eTriangleFrontCounterclockwise;
 		return *this;
 	}
 
 	geometry_instance& geometry_instance::force_opaque()
 	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eForceOpaque;
+		mFlags |= vk::GeometryInstanceFlagBitsKHR::eForceOpaque;
 		return *this;
 	}
 
 	geometry_instance& geometry_instance::force_non_opaque()
 	{
-		mFlags |= vk::GeometryInstanceFlagBitsNV::eForceNoOpaque;
+		mFlags |= vk::GeometryInstanceFlagBitsKHR::eForceNoOpaque;
 		return *this;
 	}
 
 	geometry_instance& geometry_instance::reset_flags()
 	{
-		mFlags = vk::GeometryInstanceFlagsNV();
+		mFlags = vk::GeometryInstanceFlagsKHR();
 		return *this;
 	}
 
-	VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& _GeomInst)
+	VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& aGeomInst)
 	{
 		VkAccelerationStructureInstanceKHR element;
-		auto matrix = glm::transpose(_GeomInst.mTransform);
+		auto matrix = glm::transpose(aGeomInst.mTransform);
 		memcpy(&element.transform, glm::value_ptr(matrix), sizeof(element.transform));
-		element.instanceCustomIndex = _GeomInst.mInstanceCustomIndex;
-		element.mask = _GeomInst.mMask;
-		element.instanceShaderBindingTableRecordOffset = _GeomInst.mInstanceOffset;
-		element.flags = static_cast<uint32_t>(_GeomInst.mFlags);
-		element.accelerationStructureReference = _GeomInst.mAccelerationStructureDeviceHandle;
+		element.instanceCustomIndex = aGeomInst.mInstanceCustomIndex;
+		element.mask = aGeomInst.mMask;
+		element.instanceShaderBindingTableRecordOffset = aGeomInst.mInstanceOffset;
+		element.flags = static_cast<uint32_t>(aGeomInst.mFlags);
+		element.accelerationStructureReference = aGeomInst.mAccelerationStructureDeviceHandle;
 		return element;
 	}
 
-	std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances)
+	std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& aGeomInstances)
 	{
-		if (_GeomInstances.size() == 0) {
+		if (aGeomInstances.size() == 0) {
 			LOG_WARNING("Empty vector of `geometry_instance`s");
 		}
 
-		std::vector<VkAccelerationStructureInstanceKHR> instancesNv;
-		instancesNv.reserve(_GeomInstances.size());
-		for (auto& data : _GeomInstances) {
-			instancesNv.emplace_back(convert_for_gpu_usage(data));
+		std::vector<VkAccelerationStructureInstanceKHR> instancesGpu;
+		instancesGpu.reserve(aGeomInstances.size());
+		for (auto& data : aGeomInstances) {
+			instancesGpu.emplace_back(convert_for_gpu_usage(data));
 		}
-		return instancesNv;
+		return instancesGpu;
 	}
 
 }

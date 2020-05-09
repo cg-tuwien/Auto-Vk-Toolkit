@@ -773,19 +773,41 @@ namespace cgb
 				)
 				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
 
-			//Require variable descriptor count
-			auto descriptorIndexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{}
-				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
-				.setRuntimeDescriptorArray(VK_TRUE)
-				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
-				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
-				.setPNext(&deviceFeatures);
+			////Require variable descriptor count
+			//auto descriptorIndexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{}
+			//	.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
+			//	.setRuntimeDescriptorArray(VK_TRUE)
+			//	.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
+			//	.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
+			//	.setPNext(&deviceFeatures);
+
+
+
+
+			// TODO: make this dependent on the extensions requested:
+
+    VkPhysicalDeviceRayTracingFeaturesKHR deviceRayTracingFeatures = {};
+    deviceRayTracingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR;
+    deviceRayTracingFeatures.pNext = &deviceFeatures;
+    deviceRayTracingFeatures.rayTracing = VK_TRUE;
+
+    VkPhysicalDeviceVulkan12Features deviceVulkan12Features = {};
+    deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    deviceVulkan12Features.pNext = &deviceRayTracingFeatures;
+    deviceVulkan12Features.bufferDeviceAddress = VK_TRUE;
+
+
+
+
+
+
+			
 
 			auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 			auto deviceCreateInfo = vk::DeviceCreateInfo()
 				.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
 				.setPQueueCreateInfos(queueCreateInfos.data())
-				.setPNext(&descriptorIndexingFeatures) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
+				.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
 				// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
 				// TODO: Are these the correct extensions to set here?
 				.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
@@ -1055,92 +1077,6 @@ namespace cgb
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}
-
-	//vk::DescriptorPool vulkan::get_descriptor_pool()
-	//{
-	//	if (!mWorkaroundDescriptorPool) {
-
-	//		std::array poolSizes = {
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformBuffer)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eCombinedImageSampler)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageImage)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eAccelerationStructureNV)
-	//				.setDescriptorCount(1024u) // TODO: is that a good pool size? and what to do beyond that number?
-	//			,
-	//			// Added because of IMGUI:
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eSampler)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eSampledImage)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformTexelBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageTexelBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageBuffer)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eUniformBufferDynamic)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eStorageBufferDynamic)
-	//				.setDescriptorCount(1024u)
-	//			,
-	//			vk::DescriptorPoolSize()
-	//				.setType(vk::DescriptorType::eInputAttachment)
-	//				.setDescriptorCount(1024u)
-	//		};
-
-	//		auto poolInfo = vk::DescriptorPoolCreateInfo()
-	//			.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
-	//			.setPPoolSizes(poolSizes.data())
-	//			.setMaxSets(128u) // TODO: is that a good max sets-number? and what to do beyond that number?
-	//			.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet); // The structure has an optional flag similar to command pools that determines if individual descriptor sets can be freed or not: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT. We're not going to touch the descriptor set after creating it, so we don't need this flag. [10]
-	//		// TODO: WTF, why do we need the eFreeDescriptorSet flag ^ here? What does it mean?
-	//		mWorkaroundDescriptorPool = logical_device().createDescriptorPoolUnique(poolInfo);
-	//	}
-	//	return mWorkaroundDescriptorPool.get();
-
-	//		//descriptor_pool result;
-	//		//return result;
-	//}
-
-	//std::vector<vk::UniqueDescriptorSet> vulkan::create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData)
-	//{
-
-	//	auto allocInfo = vk::DescriptorSetAllocateInfo()
-	//		.setDescriptorPool(get_descriptor_pool()) // TODO: set a valid descriptor pool
-	//		.setDescriptorSetCount(static_cast<uint32_t>(pData.size()))
-	//		.setPSetLayouts(pData.data());
-	//	auto descriptorSets = logical_device().allocateDescriptorSetsUnique(allocInfo); // The call to vkAllocateDescriptorSets will allocate descriptor sets, each with one uniform buffer descriptor. [10]
-	//	std::vector<vk::UniqueDescriptorSet> result;
-	//	std::transform(std::begin(descriptorSets), std::end(descriptorSets),
-	//				   std::back_inserter(result),
-	//				   [](auto& vkDescSet) {
-	//					   return std::move(vkDescSet);
-	//				   });
-	//	return result;
-	//}
 
 	bool vulkan::is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures)
 	{

@@ -15,7 +15,7 @@ namespace cgb
 
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> layout() const { return std::make_tuple(this, layout_handle(), &mPushConstantRanges); }
-		const auto& handle() const { return mPipeline.get(); }
+		const auto& handle() const { return mPipeline; }
 		auto table_entry_size() const { return mShaderGroupHandleSize; }
 		const auto& shader_binding_table_handle() const { return mShaderBindingTable->buffer_handle(); }
 
@@ -30,7 +30,7 @@ namespace cgb
 		std::vector<vk::PipelineShaderStageCreateInfo> mShaderStageCreateInfos;
 
 		// Shader table a.k.a. shader groups:
-		std::vector<vk::RayTracingShaderGroupCreateInfoNV> mShaderGroupCreateInfos;
+		std::vector<vk::RayTracingShaderGroupCreateInfoKHR> mShaderGroupCreateInfos;
 
 		// Maximum recursion depth:
 		uint32_t mMaxRecursionDepth;
@@ -45,7 +45,8 @@ namespace cgb
 
 		// Handles:
 		vk::UniquePipelineLayout mPipelineLayout;
-		vk::ResultValueType<vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>>::type mPipeline;
+		//vk::ResultValueType<vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>>::type mPipeline;
+		vk::Pipeline mPipeline;
 
 		size_t mShaderGroupHandleSize;
 		cgb::generic_buffer mShaderBindingTable; // TODO: support more than one shader binding table
@@ -58,7 +59,7 @@ namespace cgb
 	template <>
 	inline void command_buffer_t::bind_pipeline<ray_tracing_pipeline_t>(const ray_tracing_pipeline_t& aPipeline)
 	{
-		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingNV, aPipeline.handle());
+		handle().bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, aPipeline.handle());
 	}
 
 	template <>
@@ -71,7 +72,7 @@ namespace cgb
 	inline void command_buffer_t::bind_descriptors<std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*>>
 		(std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> aPipelineLayout, std::initializer_list<binding_data> aBindings, descriptor_cache_interface* aDescriptorCache)
 	{
-		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingNV, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
+		command_buffer_t::bind_descriptors(vk::PipelineBindPoint::eRayTracingKHR, std::get<const ray_tracing_pipeline_t*>(aPipelineLayout)->layout_handle(), std::move(aBindings), aDescriptorCache);
 	}
 
 }

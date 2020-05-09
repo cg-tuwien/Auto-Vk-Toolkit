@@ -236,6 +236,11 @@ namespace cgb
 			break;
 		}
 
+		// TODO: If buffer was created with the VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR bit set, memory must have been allocated
+		// with the VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR bit set. The Vulkan spec states: If the VkPhysicalDeviceBufferDeviceAddressFeatures::bufferDeviceAddress
+		// feature is enabled and buffer was created with the VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT bit set, memory must have been allocated with the
+		// VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT bit set 
+
 		// TODO: generic_buffer_meta not supported
 		if constexpr (std::is_same_v<Meta, cgb::uniform_buffer_meta>) {
 			pUsage |= vk::BufferUsageFlagBits::eUniformBuffer;

@@ -22,7 +22,7 @@ void main()
     float tmin = 0.001;
     float tmax = 100.0;
 
-//    traceNV(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
+//    traceRayEXT(topLevelAS, rayFlags, cullMask, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, origin, tmin, direction, tmax, 2 /*payload location*/);
 
 	hitValue = vec3(0.5, 0.5, 0.5); // * (secondaryRayHitValue < tmax ? 0.25 : 1.0);
 }

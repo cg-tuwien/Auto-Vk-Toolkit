@@ -89,41 +89,41 @@ namespace cgb
 				result.mShaderGroupCreateInfos.emplace_back()
 					.setType(vk::RayTracingShaderGroupTypeNV::eGeneral)
 					.setGeneralShader(generalShaderIndex)
-					.setIntersectionShader(VK_SHADER_UNUSED_NV)
-					.setAnyHitShader(VK_SHADER_UNUSED_NV)
-					.setClosestHitShader(VK_SHADER_UNUSED_NV);
+					.setIntersectionShader(VK_SHADER_UNUSED_KHR)
+					.setAnyHitShader(VK_SHADER_UNUSED_KHR)
+					.setClosestHitShader(VK_SHADER_UNUSED_KHR);
 			}
 			else if (std::holds_alternative<triangles_hit_group>(tableEntry)) {
 				const auto& hitGroup = std::get<triangles_hit_group>(tableEntry);
-				uint32_t rahitShaderIndex = VK_SHADER_UNUSED_NV;
+				uint32_t rahitShaderIndex = VK_SHADER_UNUSED_KHR;
 				if (hitGroup.mAnyHitShader.has_value()) {
 					rahitShaderIndex = static_cast<uint32_t>(index_of(orderedUniqueShaderInfos, hitGroup.mAnyHitShader.value()));
 				}
-				uint32_t rchitShaderIndex = VK_SHADER_UNUSED_NV;
+				uint32_t rchitShaderIndex = VK_SHADER_UNUSED_KHR;
 				if (hitGroup.mClosestHitShader.has_value()) {
 					rchitShaderIndex = static_cast<uint32_t>(index_of(orderedUniqueShaderInfos, hitGroup.mClosestHitShader.value()));
 				}
 				result.mShaderGroupCreateInfos.emplace_back()
 					.setType(vk::RayTracingShaderGroupTypeNV::eTrianglesHitGroup)
-					.setGeneralShader(VK_SHADER_UNUSED_NV)
-					.setIntersectionShader(VK_SHADER_UNUSED_NV)
+					.setGeneralShader(VK_SHADER_UNUSED_KHR)
+					.setIntersectionShader(VK_SHADER_UNUSED_KHR)
 					.setAnyHitShader(rahitShaderIndex)
 					.setClosestHitShader(rchitShaderIndex);
 			}
 			else if (std::holds_alternative<procedural_hit_group>(tableEntry)) {
 				const auto& hitGroup = std::get<procedural_hit_group>(tableEntry);
 				uint32_t rintShaderIndex = static_cast<uint32_t>(index_of(orderedUniqueShaderInfos, hitGroup.mIntersectionShader));
-				uint32_t rahitShaderIndex = VK_SHADER_UNUSED_NV;
+				uint32_t rahitShaderIndex = VK_SHADER_UNUSED_KHR;
 				if (hitGroup.mAnyHitShader.has_value()) {
 					rahitShaderIndex = static_cast<uint32_t>(index_of(orderedUniqueShaderInfos, hitGroup.mAnyHitShader.value()));
 				}
-				uint32_t rchitShaderIndex = VK_SHADER_UNUSED_NV;
+				uint32_t rchitShaderIndex = VK_SHADER_UNUSED_KHR;
 				if (hitGroup.mClosestHitShader.has_value()) {
 					rchitShaderIndex = static_cast<uint32_t>(index_of(orderedUniqueShaderInfos, hitGroup.mClosestHitShader.value()));
 				}
 				result.mShaderGroupCreateInfos.emplace_back()
 					.setType(vk::RayTracingShaderGroupTypeNV::eProceduralHitGroup)
-					.setGeneralShader(VK_SHADER_UNUSED_NV)
+					.setGeneralShader(VK_SHADER_UNUSED_KHR)
 					.setIntersectionShader(rintShaderIndex)
 					.setAnyHitShader(rahitShaderIndex)
 					.setClosestHitShader(rchitShaderIndex);
@@ -166,23 +166,27 @@ namespace cgb
 		assert(nullptr != result.layout_handle());
 
 		// 9. Build the Ray Tracing Pipeline
-		auto pipelineCreateInfo = vk::RayTracingPipelineCreateInfoNV{}
+		auto pipelineCreateInfo = vk::RayTracingPipelineCreateInfoKHR{}
+			.setFlags(vk::PipelineCreateFlagBits{}) // TODO: Support flags
 			.setStageCount(static_cast<uint32_t>(result.mShaderStageCreateInfos.size()))
 			.setPStages(result.mShaderStageCreateInfos.data())
 			.setGroupCount(static_cast<uint32_t>(result.mShaderGroupCreateInfos.size()))
 			.setPGroups(result.mShaderGroupCreateInfos.data())
+			.setLibraries(vk::PipelineLibraryCreateInfoKHR{0u, nullptr}) // TODO: Support libraries
+			.setPLibraryInterface(nullptr)
 			.setMaxRecursionDepth(result.mMaxRecursionDepth)
 			.setLayout(result.layout_handle());
-		result.mPipeline = context().logical_device().createRayTracingPipelineNVUnique(
+		auto pipeCreationResult = context().logical_device().createRayTracingPipelineKHR(
 			nullptr,
 			pipelineCreateInfo,
 			nullptr,
 			context().dynamic_dispatch());
-
+		result.mPipeline = pipeCreationResult.value;
+		//result.mPipeline = std::move(pipeCreationResult.value);
 
 		// 10. Build the shader binding table
 		{
-			vk::PhysicalDeviceRayTracingPropertiesNV rtProps;
+			vk::PhysicalDeviceRayTracingPropertiesKHR rtProps;
 			vk::PhysicalDeviceProperties2 props2;
 			props2.pNext = &rtProps;
 			context().physical_device().getProperties2(&props2);
@@ -190,15 +194,15 @@ namespace cgb
 			result.mShaderGroupHandleSize = static_cast<size_t>(rtProps.shaderGroupHandleSize);
 			size_t shaderBindingTableSize = result.mShaderGroupHandleSize * result.mShaderGroupCreateInfos.size();
 
-			// TODO: All of this SBT-stuf probably needs some refactoring
+			// TODO: All of this SBT-stuff probably needs some refactoring
 			result.mShaderBindingTable = cgb::create(
 				generic_buffer_meta::create_from_size(shaderBindingTableSize),
 				memory_usage::host_coherent,
-				vk::BufferUsageFlagBits::eRayTracingNV
+				vk::BufferUsageFlagBits::eRayTracingKHR
 			); 
 			void* mapped = context().logical_device().mapMemory(result.mShaderBindingTable->memory_handle(), 0, result.mShaderBindingTable->meta_data().total_size());
 			// Transfer something into the buffer's memory...
-			context().logical_device().getRayTracingShaderGroupHandlesNV(
+			context().logical_device().getRayTracingShaderGroupHandlesKHR(
 				result.handle(), 
 				0, static_cast<uint32_t>(result.mShaderGroupCreateInfos.size()), 
 				result.mShaderBindingTable->meta_data().total_size(), 

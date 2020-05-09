@@ -17,7 +17,7 @@ namespace cgb
 		
 		result.mCreateInfo = vk::AccelerationStructureCreateInfoKHR{}
 			.setCompactedSize(0) // If compactedSize is 0 then maxGeometryCount must not be 0
-			.setType(vk::AccelerationStructureTypeNV::eTopLevel)
+			.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
 			.setFlags(aAllowUpdates 
 					  ? vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastBuild
 					  : vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace) // TODO: Support flags
@@ -45,8 +45,8 @@ namespace cgb
 		if (!mScratchBuffer.has_value()) {
 			mScratchBuffer = cgb::create(
 				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
-				cgb::memory_usage::device,
-				vk::BufferUsageFlagBits::eRayTracingNV
+				cgb::memory_usage::device, 
+				vk::BufferUsageFlagBits::eRayTracingKHR
 			);
 		}
 		return mScratchBuffer.value();
@@ -77,23 +77,8 @@ namespace cgb
 		buildOffsetInfos.reserve(aGeometryInstances.size());
 		std::vector<vk::AccelerationStructureBuildOffsetInfoKHR*> buildOffsetInfoPtrs; // Points to elements inside buildOffsetInfos... just... because!
 		buildOffsetInfoPtrs.reserve(aGeometryInstances.size());
-
-		for (auto& gi : aGeometryInstances) {
-
-
-			// TODO: Proceed here: fill those VkAccelerationStructureBuildGeometryInfoKHR* and VkAccelerationStructureBuildOffsetInfoKHR* members
-			
-//    VkResult vkBuildAccelerationStructureKHR(
- //   VkDevice                                    device,
- //   uint32_t                                    infoCount,
- //   const VkAccelerationStructureBuildGeometryInfoKHR* pInfos,
- //   const VkAccelerationStructureBuildOffsetInfoKHR* const* ppOffsetInfos);
-			
-		}
-
 		
-
-		std::vector<cgb::VkGeometryInstanceNV> geomInstances = convert_for_gpu_usage(aGeometryInstances);
+		auto geomInstances = convert_for_gpu_usage(aGeometryInstances);
 		
 		// TODO: Retain this buffer, don't always create a new one
 		auto geomInstBuffer = cgb::create_and_fill(
@@ -101,26 +86,56 @@ namespace cgb
 				cgb::memory_usage::host_coherent,
 				geomInstances.data(),
 				sync::not_required(),
-				vk::BufferUsageFlagBits::eRayTracingNV
+				vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR // <--- TODO: Which eShaderDeviceAddress*  flag??
 			);
-		
+
+		for (auto& gi : aGeometryInstances) {
+
+			auto& asg = accStructureGeometries.emplace_back()
+				.setGeometryType(vk::GeometryTypeKHR::eInstances)
+				.setGeometry(vk::AccelerationStructureGeometryInstancesDataKHR{}
+					.setArrayOfPointers(VK_FALSE) // arrayOfPointers specifies whether data is used as an array of addresses or just an array.
+					// TODO: Is this ^ relevant? Probably only for host-builds if the data is structured in "array of pointers"-style?!
+					.setData(vk::DeviceOrHostAddressConstKHR{ geomInstBuffer->memory_handle() })
+				)
+				.setFlags(vk::GeometryFlagsKHR{}); // TODO: Support flags
+			
+			auto& pAsg = accStructureGeometryPtrs.emplace_back(&asg);
+			
+			buildGeometryInfos.emplace_back()
+				.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
+				.setFlags(mCreateInfo.flags)
+				.setUpdate(aBuildAction == tlas_action::build ? VK_FALSE : VK_TRUE)
+				.setSrcAccelerationStructure(mAccStructure.get()) // TODO: support different src acceleration structure?!
+				.setDstAccelerationStructure(mAccStructure.get())
+				.setGeometryArrayOfPointers(VK_FALSE)
+				.setGeometryCount(1u) // TODO: Correct?
+				.setPpGeometries(&pAsg)
+				.setScratchData(vk::DeviceOrHostAddressKHR{ scratchBuffer->memory_handle() });
+
+			auto& boi = buildOffsetInfos.emplace_back()
+				// For geometries of type VK_GEOMETRY_TYPE_INSTANCES_KHR, primitiveCount is the number of acceleration
+				// structures. primitiveCount VkAccelerationStructureInstanceKHR structures are consumed from
+				// VkAccelerationStructureGeometryInstancesDataKHR::data, starting at an offset of primitiveOffset.
+				.setPrimitiveCount(static_cast<uint32_t>(aGeometryInstances.size())) 
+				.setPrimitiveOffset(0u)
+				.setFirstVertex(0u)
+				.setTransformOffset(0u); // TODO: Support different values for all these parameters?!
+
+			buildOffsetInfoPtrs.emplace_back(&boi);
+		}
+
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, read_memory_access{memory_access::acceleration_structure_read_access});
 
 		// Operation:
 		commandBuffer.handle().buildAccelerationStructureKHR(
-			config(),
-			geomInstBuffer->buffer_handle(), 0,	    // buffer containing the instance data (only one)
-			aBuildAction == tlas_action::build
-				? VK_FALSE 
-				: VK_TRUE,							// update <=> VK_TRUE
-			acceleration_structure_handle(),		// destination AS
-			aBuildAction == tlas_action::build		// source AS
-				? nullptr 
-				: acceleration_structure_handle(),
-			scratchBuffer->buffer_handle(), 0,		// scratch buffer + offset
-			cgb::context().dynamic_dispatch());
+			static_cast<uint32_t>(buildGeometryInfos.size()), 
+			buildGeometryInfos.data(),
+			buildOffsetInfoPtrs.data(),
+			cgb::context().dynamic_dispatch()
+		);
 
 		// Sync after:
 		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::acceleration_structure_build, write_memory_access{memory_access::acceleration_structure_write_access});

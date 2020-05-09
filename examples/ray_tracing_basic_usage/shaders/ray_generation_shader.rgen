@@ -9,7 +9,7 @@ layout(push_constant) uniform PushConstants {
 layout(set = 0, binding = 0, rgba8) uniform image2D image;
 layout(set = 1, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
-layout(location = 0) rayPayloadEXT vec3 hitValue; // payload to traceNV
+layout(location = 0) rayPayloadEXT vec3 hitValue; // payload to traceRayEXT
 
 void main() 
 {

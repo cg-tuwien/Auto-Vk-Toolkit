@@ -281,9 +281,9 @@ namespace cgb
 			}
 			if (nullptr != left.mOrderedDescriptorDataWrites[i].pNext) {
 				if (nullptr == right.mOrderedDescriptorDataWrites[i].pNext)																		{ return false; }
-				if (left.mOrderedDescriptorDataWrites[i].descriptorType == vk::DescriptorType::eAccelerationStructureNV) {
-					const auto* asInfoLeft = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(left.mOrderedDescriptorDataWrites[i].pNext);
-					const auto* asInfoRight = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(right.mOrderedDescriptorDataWrites[i].pNext);
+				if (left.mOrderedDescriptorDataWrites[i].descriptorType == vk::DescriptorType::eAccelerationStructureKHR) {
+					const auto* asInfoLeft = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureKHR*>(left.mOrderedDescriptorDataWrites[i].pNext);
+					const auto* asInfoRight = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureKHR*>(right.mOrderedDescriptorDataWrites[i].pNext);
 					if (asInfoLeft->accelerationStructureCount != asInfoRight->accelerationStructureCount)										{ return false; }
 					for (size_t j = 0; j < asInfoLeft->accelerationStructureCount; ++j) {
 						if (asInfoLeft->pAccelerationStructures[j] != asInfoRight->pAccelerationStructures[j])									{ return false; }
@@ -333,11 +333,11 @@ namespace std
 					cgb::hash_combine(h, static_cast<VkBufferView>(w.pTexelBufferView[0]));
 				}
 				if (nullptr != w.pNext) {
-					if (w.descriptorType == vk::DescriptorType::eAccelerationStructureNV) {
-						const auto* asInfo = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureNV*>(w.pNext);
+					if (w.descriptorType == vk::DescriptorType::eAccelerationStructureKHR) {
+						const auto* asInfo = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureKHR*>(w.pNext);
 						cgb::hash_combine(h, asInfo->accelerationStructureCount);
 						if (asInfo->accelerationStructureCount > 0) {
-							cgb::hash_combine(h, static_cast<VkAccelerationStructureNV>(asInfo->pAccelerationStructures[0]));
+							cgb::hash_combine(h, static_cast<VkAccelerationStructureKHR>(asInfo->pAccelerationStructures[0]));
 						}
 					}
 					else {

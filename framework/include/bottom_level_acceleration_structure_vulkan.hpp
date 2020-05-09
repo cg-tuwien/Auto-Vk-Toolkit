@@ -46,7 +46,7 @@ namespace cgb
 		std::vector<vk::AccelerationStructureCreateGeometryTypeInfoKHR> mGeometryInfos;
 		//std::vector<vk::GeometryKHR> mGeometries;
 		vk::AccelerationStructureCreateInfoKHR mCreateInfo;
-		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
+		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureKHR, vk::DispatchLoaderDynamic>>::type mAccStructure;
 		vk::DeviceAddress mDeviceAddress;
 
 		std::optional<generic_buffer> mScratchBuffer;

@@ -147,13 +147,15 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
-		cmdbfr->handle().traceRaysNV(
-			mPipeline->shader_binding_table_handle(), 0,
-			mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			nullptr, 0, 0,
+		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_entry_size()};
+		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_entry_size()};
+		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_entry_size()};
+		auto callable= vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0, 0, 0};
+		cmdbfr->handle().traceRaysKHR(
+			&raygen, &raymiss, &rayhit, &callable, 
 			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-			cgb::context().dynamic_dispatch());
+			cgb::context().dynamic_dispatch()
+		);
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));

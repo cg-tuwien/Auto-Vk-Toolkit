@@ -110,7 +110,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 			//											Make use of the discarding behavior of the comma operator ^, see: https://stackoverflow.com/a/61098748/387023
 
 			// TODO: I have no idea why cgb::to_vk_index_type can not be found during compilation time
-			vk::IndexType indexType = vk::IndexType::eNoneNV;
+			vk::IndexType indexType = vk::IndexType::eNoneKHR;
 			switch (aIndexBuffer.meta_data().sizeof_one_element()) {
 				case sizeof(uint16_t): indexType = vk::IndexType::eUint16; break;
 				case sizeof(uint32_t): indexType = vk::IndexType::eUint32; break;

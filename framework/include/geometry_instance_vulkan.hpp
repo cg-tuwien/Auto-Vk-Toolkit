@@ -38,7 +38,7 @@ namespace cgb
 		vk::DeviceAddress mAccelerationStructureDeviceHandle;
 	};
 
-	extern VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& _GeomInst);
-	extern std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& _GeomInstances);
+	extern VkAccelerationStructureInstanceKHR convert_for_gpu_usage(const geometry_instance& aGeomInst);
+	extern std::vector<VkAccelerationStructureInstanceKHR> convert_for_gpu_usage(const std::vector<geometry_instance>& aGeomInstances);
 
 }

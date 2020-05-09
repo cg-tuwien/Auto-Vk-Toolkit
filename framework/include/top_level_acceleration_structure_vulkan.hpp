@@ -15,7 +15,7 @@ namespace cgb
 		top_level_acceleration_structure_t& operator=(const top_level_acceleration_structure_t&) = delete;
 		~top_level_acceleration_structure_t() = default;
 
-		const auto& config() const { return mAccStructureInfo; }
+		const auto& config() const { return mCreateInfo; }
 		const auto& acceleration_structure_handle() const { return mAccStructure.get(); }
 		const auto* acceleration_structure_handle_addr() const { return &mAccStructure.get(); }
 		const auto& memory_handle() const { return mMemory.get(); }
@@ -28,13 +28,13 @@ namespace cgb
 
 		const auto& descriptor_info() const
 		{
-			mDescriptorInfo = vk::WriteDescriptorSetAccelerationStructureNV{}
+			mDescriptorInfo = vk::WriteDescriptorSetAccelerationStructureKHR{}
 				.setAccelerationStructureCount(1u)
 				.setPAccelerationStructures(acceleration_structure_handle_addr());
 			return mDescriptorInfo;
 		}
 
-		auto descriptor_type() const			{ return vk::DescriptorType::eAccelerationStructureNV; } 
+		auto descriptor_type() const			{ return vk::DescriptorType::eAccelerationStructureKHR; } 
 
 		static owning_resource<top_level_acceleration_structure_t> create(uint32_t _InstanceCount, bool _AllowUpdates = true, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeCreation = {}, cgb::context_specific_function<void(top_level_acceleration_structure_t&)> _AlterConfigBeforeMemoryAlloc = {});
 
@@ -53,7 +53,7 @@ namespace cgb
 		vk::UniqueDeviceMemory mMemory;
 
 		vk::AccelerationStructureCreateInfoKHR mCreateInfo;
-		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureNV, vk::DispatchLoaderDynamic>>::type mAccStructure;
+		vk::ResultValueType<vk::UniqueHandle<vk::AccelerationStructureKHR, vk::DispatchLoaderDynamic>>::type mAccStructure;
 		vk::DeviceAddress mDeviceAddress;
 
 		std::optional<generic_buffer> mScratchBuffer;

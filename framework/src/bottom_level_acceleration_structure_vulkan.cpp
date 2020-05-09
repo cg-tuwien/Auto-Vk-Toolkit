@@ -21,7 +21,7 @@ namespace cgb
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry
 		result.mCreateInfo = vk::AccelerationStructureCreateInfoKHR{}
 			.setCompactedSize(0) // If compactedSize is 0 then maxGeometryCount must not be 0
-			.setType(vk::AccelerationStructureTypeNV::eBottomLevel)
+			.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
 			.setFlags(aAllowUpdates 
 					  ? vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate | vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastBuild
 					  : vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace) // TODO: Support flags
@@ -56,7 +56,7 @@ namespace cgb
 	//		vk::BufferUsageFlagBits::eRayTracingKHR // TODO: Abstract flags
 	//	);
 	//	
-	//	// 1. Gather all geometry descriptions and create vk::GeometryTypeNV entries:
+	//	// 1. Gather all geometry descriptions and create vk::GeometryTypeKHR entries:
 	//	for (auto& tpl : aBoundingBoxes) {
 	//		result.mGeometries.emplace_back()
 	//			.setGeometryType(vk::GeometryTypeNV::eAabbs)
@@ -106,7 +106,7 @@ namespace cgb
 			mScratchBuffer = cgb::create(
 				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
 				cgb::memory_usage::device,
-				vk::BufferUsageFlagBits::eRayTracingNV
+				vk::BufferUsageFlagBits::eRayTracingKHR
 			);
 		}
 		return mScratchBuffer.value();
@@ -189,8 +189,7 @@ namespace cgb
 
 			buildOffsetInfoPtrs.emplace_back(&boi);
 		}
-
-				
+		
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, read_memory_access{memory_access::acceleration_structure_read_access});

@@ -13,7 +13,7 @@ namespace cgb
 			return vk::IndexType::eUint32;
 		}
 		LOG_ERROR(fmt::format("The given size[{}] does not correspond to a valid vk::IndexType", aSize));
-		return vk::IndexType::eNoneNV;
+		return vk::IndexType::eNoneKHR;
 	}
 
 	vk::ImageViewType to_image_view_type(const vk::ImageCreateInfo& info)
@@ -61,17 +61,17 @@ namespace cgb
 		case cgb::shader_type::compute:
 			return vk::ShaderStageFlagBits::eCompute;
 		case cgb::shader_type::ray_generation:
-			return vk::ShaderStageFlagBits::eRaygenNV;
+			return vk::ShaderStageFlagBits::eRaygenKHR;
 		case cgb::shader_type::any_hit:
-			return vk::ShaderStageFlagBits::eAnyHitNV;
+			return vk::ShaderStageFlagBits::eAnyHitKHR;
 		case cgb::shader_type::closest_hit:
-			return vk::ShaderStageFlagBits::eClosestHitNV;
+			return vk::ShaderStageFlagBits::eClosestHitKHR;
 		case cgb::shader_type::miss:
-			return vk::ShaderStageFlagBits::eMissNV;
+			return vk::ShaderStageFlagBits::eMissKHR;
 		case cgb::shader_type::intersection:
-			return vk::ShaderStageFlagBits::eIntersectionNV;
+			return vk::ShaderStageFlagBits::eIntersectionKHR;
 		case cgb::shader_type::callable:
-			return vk::ShaderStageFlagBits::eCallableNV;
+			return vk::ShaderStageFlagBits::eCallableKHR;
 		case cgb::shader_type::task:
 			return vk::ShaderStageFlagBits::eTaskNV;
 		case cgb::shader_type::mesh:
@@ -103,22 +103,22 @@ namespace cgb
 			result |= vk::ShaderStageFlagBits::eCompute;
 		}
 		if ((aType & cgb::shader_type::ray_generation) == cgb::shader_type::ray_generation) {
-			result |= vk::ShaderStageFlagBits::eRaygenNV;
+			result |= vk::ShaderStageFlagBits::eRaygenKHR;
 		}
 		if ((aType & cgb::shader_type::any_hit) == cgb::shader_type::any_hit) {
-			result |= vk::ShaderStageFlagBits::eAnyHitNV;
+			result |= vk::ShaderStageFlagBits::eAnyHitKHR;
 		}
 		if ((aType & cgb::shader_type::closest_hit) == cgb::shader_type::closest_hit) {
-			result |= vk::ShaderStageFlagBits::eClosestHitNV;
+			result |= vk::ShaderStageFlagBits::eClosestHitKHR;
 		}
 		if ((aType & cgb::shader_type::miss) == cgb::shader_type::miss) {
-			result |= vk::ShaderStageFlagBits::eMissNV;
+			result |= vk::ShaderStageFlagBits::eMissKHR;
 		}
 		if ((aType & cgb::shader_type::intersection) == cgb::shader_type::intersection) {
-			result |= vk::ShaderStageFlagBits::eIntersectionNV;
+			result |= vk::ShaderStageFlagBits::eIntersectionKHR;
 		}
 		if ((aType & cgb::shader_type::callable) == cgb::shader_type::callable) {
-			result |= vk::ShaderStageFlagBits::eCallableNV;
+			result |= vk::ShaderStageFlagBits::eCallableKHR;
 		}
 		if ((aType & cgb::shader_type::task) == cgb::shader_type::task) {
 			result |= vk::ShaderStageFlagBits::eTaskNV;
@@ -465,8 +465,8 @@ namespace cgb
 		if (cgb::is_included(aValue, cgb::pipeline_stage::command_preprocess			)) { result |= vk::PipelineStageFlagBits::eCommandProcessNVX			; }
 #endif
 		if (cgb::is_included(aValue, cgb::pipeline_stage::shading_rate_image			)) { result |= vk::PipelineStageFlagBits::eShadingRateImageNV			; }
-		if (cgb::is_included(aValue, cgb::pipeline_stage::ray_tracing_shaders			)) { result |= vk::PipelineStageFlagBits::eRayTracingShaderNV			; }
-		if (cgb::is_included(aValue, cgb::pipeline_stage::acceleration_structure_build	)) { result |= vk::PipelineStageFlagBits::eAccelerationStructureBuildNV	; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::ray_tracing_shaders			)) { result |= vk::PipelineStageFlagBits::eRayTracingShaderKHR			; }
+		if (cgb::is_included(aValue, cgb::pipeline_stage::acceleration_structure_build	)) { result |= vk::PipelineStageFlagBits::eAccelerationStructureBuildKHR; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::task_shader					)) { result |= vk::PipelineStageFlagBits::eTaskShaderNV					; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::mesh_shader					)) { result |= vk::PipelineStageFlagBits::eMeshShaderNV					; }
 		if (cgb::is_included(aValue, cgb::pipeline_stage::fragment_density_process		)) { result |= vk::PipelineStageFlagBits::eFragmentDensityProcessEXT	; }
@@ -515,8 +515,8 @@ namespace cgb
 #endif
 		if (cgb::is_included(aValue, cgb::memory_access::color_attachment_noncoherent_read_access	)) { result |= vk::AccessFlagBits::eColorAttachmentReadNoncoherentEXT; }
 		if (cgb::is_included(aValue, cgb::memory_access::shading_rate_image_read_access				)) { result |= vk::AccessFlagBits::eShadingRateImageReadNV; }
-		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_read_access			)) { result |= vk::AccessFlagBits::eAccelerationStructureReadNV; }
-		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_write_access		)) { result |= vk::AccessFlagBits::eAccelerationStructureWriteNV; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_read_access			)) { result |= vk::AccessFlagBits::eAccelerationStructureReadKHR; }
+		if (cgb::is_included(aValue, cgb::memory_access::acceleration_structure_write_access		)) { result |= vk::AccessFlagBits::eAccelerationStructureWriteKHR; }
 		if (cgb::is_included(aValue, cgb::memory_access::fragment_density_map_attachment_read_access)) { result |= vk::AccessFlagBits::eFragmentDensityMapReadEXT; }
 
 		return result;

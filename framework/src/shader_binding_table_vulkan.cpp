@@ -32,7 +32,7 @@ namespace cgb
 
 		//void* mapped = context().logical_device().mapMemory(b.mMemory, 0, b.mSize);
 		//// Transfer something into the buffer's memory...
-		//context().logical_device().getRayTracingShaderGroupHandlesNV(pRtPipeline.mPipeline, 0, numGroups, b.mSize, mapped, context().dynamic_dispatch());
+		//context().logical_device().getRayTracingShaderGroupHandlesKHR(pRtPipeline.mPipeline, 0, numGroups, b.mSize, mapped, context().dynamic_dispatch());
 		//context().logical_device().unmapMemory(b.mMemory);
 
 		auto sbt = shader_binding_table();
