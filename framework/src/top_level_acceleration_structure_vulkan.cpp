@@ -46,7 +46,7 @@ namespace cgb
 			mScratchBuffer = cgb::create(
 				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
 				cgb::memory_usage::device, 
-				vk::BufferUsageFlagBits::eRayTracingKHR
+				vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
 			);
 		}
 		return mScratchBuffer.value();
@@ -67,8 +67,6 @@ namespace cgb
 
 		std::vector<vk::AccelerationStructureGeometryKHR> accStructureGeometries;
 		accStructureGeometries.reserve(aGeometryInstances.size());
-		std::vector<vk::AccelerationStructureGeometryKHR*> accStructureGeometryPtrs;
-		accStructureGeometryPtrs.reserve(aGeometryInstances.size());
 		
 		std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> buildGeometryInfos;
 		buildGeometryInfos.reserve(aGeometryInstances.size()); 
@@ -91,28 +89,15 @@ namespace cgb
 
 		for (auto& gi : aGeometryInstances) {
 
-			auto& asg = accStructureGeometries.emplace_back()
+			accStructureGeometries.emplace_back()
 				.setGeometryType(vk::GeometryTypeKHR::eInstances)
 				.setGeometry(vk::AccelerationStructureGeometryInstancesDataKHR{}
 					.setArrayOfPointers(VK_FALSE) // arrayOfPointers specifies whether data is used as an array of addresses or just an array.
 					// TODO: Is this ^ relevant? Probably only for host-builds if the data is structured in "array of pointers"-style?!
-					.setData(vk::DeviceOrHostAddressConstKHR{ geomInstBuffer->memory_handle() })
+					.setData(vk::DeviceOrHostAddressConstKHR{ geomInstBuffer->buffer_address() })
 				)
 				.setFlags(vk::GeometryFlagsKHR{}); // TODO: Support flags
 			
-			auto& pAsg = accStructureGeometryPtrs.emplace_back(&asg);
-			
-			buildGeometryInfos.emplace_back()
-				.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
-				.setFlags(mCreateInfo.flags)
-				.setUpdate(aBuildAction == tlas_action::build ? VK_FALSE : VK_TRUE)
-				.setSrcAccelerationStructure(mAccStructure.get()) // TODO: support different src acceleration structure?!
-				.setDstAccelerationStructure(mAccStructure.get())
-				.setGeometryArrayOfPointers(VK_FALSE)
-				.setGeometryCount(1u) // TODO: Correct?
-				.setPpGeometries(&pAsg)
-				.setScratchData(vk::DeviceOrHostAddressKHR{ scratchBuffer->memory_handle() });
-
 			auto& boi = buildOffsetInfos.emplace_back()
 				// For geometries of type VK_GEOMETRY_TYPE_INSTANCES_KHR, primitiveCount is the number of acceleration
 				// structures. primitiveCount VkAccelerationStructureInstanceKHR structures are consumed from
@@ -124,6 +109,19 @@ namespace cgb
 
 			buildOffsetInfoPtrs.emplace_back(&boi);
 		}
+
+		const auto* pointerToAnArray = accStructureGeometries.data();
+
+		buildGeometryInfos.emplace_back()
+			.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
+			.setFlags(mCreateInfo.flags)
+			.setUpdate(aBuildAction == tlas_action::build ? VK_FALSE : VK_TRUE)
+			.setSrcAccelerationStructure(nullptr) // TODO: support different src acceleration structure?!
+			.setDstAccelerationStructure(mAccStructure.get())
+			.setGeometryArrayOfPointers(VK_FALSE)
+			.setGeometryCount(1u) // TODO: Correct?
+			.setPpGeometries(&pointerToAnArray)
+			.setScratchData(vk::DeviceOrHostAddressKHR{ scratchBuffer->buffer_address() });
 
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:

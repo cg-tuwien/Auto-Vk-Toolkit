@@ -87,7 +87,7 @@ namespace cgb
 		
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
-			.setPCommandBuffers(aCommandBuffer.handle_addr())
+			.setPCommandBuffers(aCommandBuffer.handle_ptr())
 			.setSignalSemaphoreCount(1u)
 			.setPSignalSemaphores(sem->handle_addr());
 		
@@ -105,7 +105,7 @@ namespace cgb
 
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
-			.setPCommandBuffers(aCommandBuffer.handle_addr());
+			.setPCommandBuffers(aCommandBuffer.handle_ptr());
 		
 		handle().submit({ submitInfo },  nullptr);
 		aCommandBuffer.invoke_post_execution_handler();
@@ -146,7 +146,7 @@ namespace cgb
 			// Optimized route for 0 _WaitSemaphores
 			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(aCommandBuffer.handle_addr())
+				.setPCommandBuffers(aCommandBuffer.handle_ptr())
 				.setWaitSemaphoreCount(0u)
 				.setPWaitSemaphores(nullptr)
 				.setPWaitDstStageMask(nullptr)
@@ -172,7 +172,7 @@ namespace cgb
 			
 			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(aCommandBuffer.handle_addr())
+				.setPCommandBuffers(aCommandBuffer.handle_ptr())
 				.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphoreHandles.size()))
 				.setPWaitSemaphores(waitSemaphoreHandles.data())
 				.setPWaitDstStageMask(waitDstStageMasks.data())
@@ -270,7 +270,7 @@ namespace cgb
 			// Optimized route for 0 _WaitSemaphores
 			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(aCommandBuffer->handle_addr())
+				.setPCommandBuffers(aCommandBuffer->handle_ptr())
 				.setWaitSemaphoreCount(0u)
 				.setPWaitSemaphores(nullptr)
 				.setPWaitDstStageMask(nullptr)
@@ -300,7 +300,7 @@ namespace cgb
 			
 			const auto submitInfo = vk::SubmitInfo{}
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(aCommandBuffer->handle_addr())
+				.setPCommandBuffers(aCommandBuffer->handle_ptr())
 				.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphoreHandles.size()))
 				.setPWaitSemaphores(waitSemaphoreHandles.data())
 				.setPWaitDstStageMask(waitDstStageMasks.data())

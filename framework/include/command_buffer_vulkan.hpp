@@ -129,7 +129,7 @@ namespace cgb // ========================== TODO/WIP ===========================
 		
 		auto& begin_info() const { return mBeginInfo; }
 		auto& handle() const { return mCommandBuffer.get(); }
-		auto* handle_addr() const { return &mCommandBuffer.get(); }
+		auto* handle_ptr() const { return &mCommandBuffer.get(); }
 		auto state() const { return mState; }
 
 		// Template specializations are implemented in the respective pipeline's header files

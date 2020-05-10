@@ -24,17 +24,15 @@ namespace cgb
 		auto& config() const					{ return mCreateInfo; }
 		const auto& memory_properties() const	{ return mMemoryPropertyFlags; }
 		const auto& memory_handle() const		{ return mMemory.get(); }
-		const auto* memory_handle_addr() const	{ return &mMemory.get(); }
+		const auto* memory_handle_ptr() const	{ return &mMemory.get(); }
 		const auto& buffer_usage_flags() const	{ return mBufferUsageFlags; }
 		const auto& buffer_handle() const		{ return mBuffer.get(); }
-		const auto* buffer_handle_addr() const	{ return &mBuffer.get(); }
-
-		auto buffer_device_address() const
+		const auto* buffer_handle_ptr() const	{ return &mBuffer.get(); }
+		vk::DeviceAddress buffer_address() const
 		{
-			auto bufferAddressInfo = vk::BufferDeviceAddressInfoKHR{ buffer_handle() };
-		    return cgb::context().logical_device().getBufferAddressKHR(bufferAddressInfo);
+			return cgb::context().get_buffer_address(buffer_handle());
 		}
-		
+
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 		auto has_descriptor_type() const		{ return mDescriptorType.has_value(); }
 		auto descriptor_type() const			{ return mDescriptorType.value(); } //< might throw
@@ -56,14 +54,14 @@ namespace cgb
 	*	If different queues are being used, ownership has to be transferred explicitely.
 	*/
 	template <typename Meta>
-	cgb::owning_resource<buffer_t<Meta>> create(Meta pConfig, vk::BufferUsageFlags pBufferUsage, vk::MemoryPropertyFlags pMemoryProperties, std::optional<vk::DescriptorType> pDescriptorType = {})
+	cgb::owning_resource<buffer_t<Meta>> create(Meta aConfig, vk::BufferUsageFlags aBufferUsage, vk::MemoryPropertyFlags aMemoryProperties, vk::MemoryAllocateFlags aMemoryAllocateFlags = {}, std::optional<vk::DescriptorType> aDescriptorType = {})
 	{
-		auto bufferSize = pConfig.total_size();
+		auto bufferSize = aConfig.total_size();
 
 		// Create (possibly multiple) buffer(s):
 		auto bufferCreateInfo = vk::BufferCreateInfo()
 			.setSize(static_cast<vk::DeviceSize>(bufferSize))
-			.setUsage(pBufferUsage)
+			.setUsage(aBufferUsage)
 			// Always grant exclusive ownership to the queue.
 			.setSharingMode(vk::SharingMode::eExclusive)
 			// The flags parameter is used to configure sparse buffer memory, which is not relevant right now. We'll leave it at the default value of 0. [2]
@@ -80,7 +78,13 @@ namespace cgb
 			.setAllocationSize(memRequirements.size)
 			.setMemoryTypeIndex(cgb::context().find_memory_type_index(
 				memRequirements.memoryTypeBits, 
-				pMemoryProperties));
+				aMemoryProperties));
+
+		auto allocateFlagsInfo = vk::MemoryAllocateFlagsInfo{};
+		if (aMemoryAllocateFlags) {
+			allocateFlagsInfo.setFlags(aMemoryAllocateFlags);
+			allocInfo.setPNext(&allocateFlagsInfo);
+		}
 
 		// Allocate the memory for the buffer:
 		auto vkMemory = cgb::context().logical_device().allocateMemoryUnique(allocInfo);
@@ -90,17 +94,17 @@ namespace cgb
 		// TODO: if(!succeeded) { throw cgb::runtime_error("Binding memory to buffer failed."); }
 
 		cgb::buffer_t<Meta> b;
-		b.mMetaData = pConfig;
+		b.mMetaData = aConfig;
 		b.mCreateInfo = bufferCreateInfo;
-		b.mMemoryPropertyFlags = pMemoryProperties;
+		b.mMemoryPropertyFlags = aMemoryProperties;
 		b.mMemory = std::move(vkMemory);
-		b.mBufferUsageFlags = pBufferUsage;
+		b.mBufferUsageFlags = aBufferUsage;
 		b.mBuffer = std::move(vkBuffer);
 		b.mDescriptorInfo = vk::DescriptorBufferInfo()
 			.setBuffer(b.buffer_handle())
 			.setOffset(0)
 			.setRange(b.size());
-		b.mDescriptorType = pDescriptorType;
+		b.mDescriptorType = aDescriptorType;
 		b.mTracker.setTrackee(b);
 		return std::move(b);
 	}
@@ -207,6 +211,7 @@ namespace cgb
 		auto bufferSize = pConfig.total_size();
 		std::optional<vk::DescriptorType> descriptorType = {};
 		vk::MemoryPropertyFlags memoryFlags;
+		vk::MemoryAllocateFlags memoryAllocateFlags;
 
 		// We've got two major branches here: 
 		// 1) Memory will stay on the host and there will be no dedicated memory on the device
@@ -236,10 +241,13 @@ namespace cgb
 			break;
 		}
 
-		// TODO: If buffer was created with the VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR bit set, memory must have been allocated
-		// with the VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR bit set. The Vulkan spec states: If the VkPhysicalDeviceBufferDeviceAddressFeatures::bufferDeviceAddress
+		// If buffer was created with the VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR bit set, memory must have been allocated with the 
+		// VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR bit set. The Vulkan spec states: If the VkPhysicalDeviceBufferDeviceAddressFeatures::bufferDeviceAddress
 		// feature is enabled and buffer was created with the VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT bit set, memory must have been allocated with the
-		// VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT bit set 
+		// VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT bit set
+		if (cgb::has_flag(pUsage, vk::BufferUsageFlagBits::eShaderDeviceAddress) || cgb::has_flag(pUsage, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR) || cgb::has_flag(pUsage, vk::BufferUsageFlagBits::eShaderDeviceAddressEXT)) {
+			memoryAllocateFlags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
+		}
 
 		// TODO: generic_buffer_meta not supported
 		if constexpr (std::is_same_v<Meta, cgb::uniform_buffer_meta>) {
@@ -269,7 +277,7 @@ namespace cgb
 
 		// Create buffer here to make use of named return value optimization.
 		// How it will be filled depends on where the memory is located at.
-		return cgb::create(pConfig, pUsage, memoryFlags, descriptorType);
+		return cgb::create(pConfig, pUsage, memoryFlags, memoryAllocateFlags, descriptorType);
 	}
 
 	///** Create multiple buffers */

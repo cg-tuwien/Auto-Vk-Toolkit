@@ -31,7 +31,7 @@ namespace cgb
 		auto queue_index() const { return mQueueIndex; }
 		auto priority() const { return mPriority; }
 		const auto& handle() const { return mQueue; }
-		const auto* handle_addr() const { return &mQueue; }
+		const auto* handle_ptr() const { return &mQueue; }
 
 		/** TODO */
 		semaphore submit_with_semaphore(command_buffer_t& aCommandBuffer);

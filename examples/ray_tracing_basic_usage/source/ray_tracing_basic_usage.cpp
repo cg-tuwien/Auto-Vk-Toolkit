@@ -21,9 +21,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				auto meshIndices = model->select_all_meshes();
 				auto [vtxBfr, idxBfr] = cgb::create_vertex_and_index_buffers({ cgb::make_models_and_meshes_selection(model, meshIndices) });
 				auto blas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_buffers(vtxBfr, idxBfr) }, false);
-				std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> schass;
-				schass.emplace_back(std::cref(*vtxBfr), std::cref(*idxBfr));
-				blas->build(schass);
+				blas->build({ std::forward_as_tuple(std::cref(*vtxBfr), std::cref(*idxBfr)) });
 				mGeometryInstances.push_back(
 					cgb::geometry_instance::create(blas)
 						.set_transform(cgb::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling))
@@ -147,10 +145,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
-		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_entry_size()};
-		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_entry_size()};
-		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_entry_size()};
-		auto callable= vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0, 0, 0};
+		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
 		cmdbfr->handle().traceRaysKHR(
 			&raygen, &raymiss, &rayhit, &callable, 
 			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
@@ -159,7 +157,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, true));
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, false)); // UI still comes after
 	}
 
 private: // v== Member variables ==v
@@ -208,6 +206,10 @@ int main() // <== Starting point ==
 
 		auto rtBasic = cgb::setup(app, ui);
 		rtBasic.start();
+
+		cgb::context().work_off_event_handlers();
+		cgb::context().work_off_all_pending_main_thread_actions();
+		cgb::context().work_off_event_handlers();
 	}
 	catch (cgb::logic_error&) {}
 	catch (cgb::runtime_error&) {}

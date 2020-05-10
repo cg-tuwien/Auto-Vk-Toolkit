@@ -1,12 +1,12 @@
 #version 460
-#extension GL_EXT_ray_tracing : require
+#extension GL_EXT_ray_tracing : enable
 
 layout(push_constant) uniform PushConstants {
 	mat4 viewMatrix;
     vec4 lightDir;
 } pushConstants;
 
-layout(set = 0, binding = 0, rgba8) uniform image2D image;
+layout(set = 0, binding = 0, rgba8) uniform image2D img;
 layout(set = 1, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout(location = 0) rayPayloadEXT vec3 hitValue; // payload to traceRayEXT
@@ -29,7 +29,7 @@ void main()
 	origin = vec3(vp1);
 	direction = vec3(normalize(vp2 - vp1));
 	
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(0.0, 0.0, 0.0, 0.0));
+    imageStore(img, ivec2(gl_LaunchIDEXT.xy), vec4(0.0, 0.0, 0.0, 0.0));
 
     uint rayFlags = gl_RayFlagsOpaqueEXT;
     uint cullMask = 0xff;
@@ -37,5 +37,34 @@ void main()
     float tmax = 100.0;
     traceRayEXT(topLevelAS, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 0 /*sbtRecordStride*/, 0 /*missIndex*/, origin, tmin, direction, tmax, 0 /*payload*/);
 
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 0.0));
+    imageStore(img, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 0.0));
 }
+
+//layout(location = 0) rayPayloadEXT vec4 payload;
+//
+//void main() {
+//
+//  vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+//  vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+//
+//  vec2 d = uv * 2.0 - 1.0;
+//  float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
+//
+//  vec3 rayOrigin = vec3(0, 0, -1.5);
+//  vec3 rayDir = normalize(vec3(d.x * aspectRatio, d.y, 1));
+//
+//  uint sbtOffset = 0;
+//  uint sbtStride = 0;
+//  uint missIndex = 0;
+//
+//  payload = vec4(0);
+//  traceRayEXT(
+//    topLevelAS, gl_RayFlagsOpaqueEXT, 0xff,
+//    sbtOffset, sbtStride, missIndex,
+//    rayOrigin, 0.001, rayDir, 100.0,
+//    0
+//  );
+//
+//  imageStore(img, ivec2(gl_LaunchIDEXT), payload);
+//}
+//

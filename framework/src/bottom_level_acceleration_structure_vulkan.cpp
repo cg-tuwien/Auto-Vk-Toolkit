@@ -106,7 +106,7 @@ namespace cgb
 			mScratchBuffer = cgb::create(
 				cgb::generic_buffer_meta::create_from_size(std::max(required_scratch_buffer_build_size(), required_scratch_buffer_update_size())),
 				cgb::memory_usage::device,
-				vk::BufferUsageFlagBits::eRayTracingKHR
+				vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
 			);
 		}
 		return mScratchBuffer.value();
@@ -127,8 +127,6 @@ namespace cgb
 
 		std::vector<vk::AccelerationStructureGeometryKHR> accStructureGeometries;
 		accStructureGeometries.reserve(aGeometries.size());
-		std::vector<vk::AccelerationStructureGeometryKHR*> accStructureGeometryPtrs;
-		accStructureGeometryPtrs.reserve(aGeometries.size());
 		
 		std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> buildGeometryInfos;
 		buildGeometryInfos.reserve(aGeometries.size()); 
@@ -156,30 +154,18 @@ namespace cgb
 			if (posMember == std::end(vertexBuffer.meta_data().member_descriptions())) {
 				throw cgb::runtime_error("cgb::vertex_buffers passed to acceleration_structure_size_requirements::from_buffers has no member which represents positions.");
 			}
-
-			auto& asg = accStructureGeometries.emplace_back()
+	
+			accStructureGeometries.emplace_back()
 				.setGeometryType(vk::GeometryTypeKHR::eTriangles)
 				.setGeometry(vk::AccelerationStructureGeometryTrianglesDataKHR{}
 					.setVertexFormat(posMember->mFormat.mFormat)
-					.setVertexData(vk::DeviceOrHostAddressConstKHR{ vertexBuffer.memory_handle() }) // TODO: Support host addresses
+					.setVertexData(vk::DeviceOrHostAddressConstKHR{ vertexBuffer.buffer_address() }) // TODO: Support host addresses
 					.setVertexStride(static_cast<vk::DeviceSize>(vertexBuffer.meta_data().sizeof_one_element()))
-					.setIndexData(vk::DeviceOrHostAddressConstKHR{ indexBuffer.memory_handle() }) // TODO: Support host addresses
+					.setIndexType(cgb::to_vk_index_type( indexBuffer.meta_data().sizeof_one_element()))
+					.setIndexData(vk::DeviceOrHostAddressConstKHR{ indexBuffer.buffer_address() }) // TODO: Support host addresses
 					.setTransformData(nullptr)
 				)
 				.setFlags(vk::GeometryFlagsKHR{}); // TODO: Support flags
-
-			auto& pAsg = accStructureGeometryPtrs.emplace_back(&asg);
-			
-			buildGeometryInfos.emplace_back()
-				.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
-				.setFlags(mCreateInfo.flags) // TODO: support individual flags per geometry?
-				.setUpdate(aBuildAction == blas_action::build ? VK_FALSE : VK_TRUE)
-				.setSrcAccelerationStructure(mAccStructure.get()) // TODO: support different src acceleration structure?!
-				.setDstAccelerationStructure(mAccStructure.get())
-				.setGeometryArrayOfPointers(VK_FALSE)
-				.setGeometryCount(1u) // TODO: Correct?
-				.setPpGeometries(&pAsg)
-				.setScratchData(vk::DeviceOrHostAddressKHR{ scratchBuffer->memory_handle() });
 
 			auto& boi = buildOffsetInfos.emplace_back()
 				.setPrimitiveCount(static_cast<uint32_t>(indexBuffer.meta_data().num_elements()) / 3u)
@@ -190,6 +176,19 @@ namespace cgb
 			buildOffsetInfoPtrs.emplace_back(&boi);
 		}
 		
+		const auto* pointerToAnArray = accStructureGeometries.data();
+		
+		buildGeometryInfos.emplace_back()
+			.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
+			.setFlags(mCreateInfo.flags) // TODO: support individual flags per geometry?
+			.setUpdate(aBuildAction == blas_action::build ? VK_FALSE : VK_TRUE)
+			.setSrcAccelerationStructure(nullptr) // TODO: support different src acceleration structure?!
+			.setDstAccelerationStructure(mAccStructure.get())
+			.setGeometryArrayOfPointers(VK_FALSE)
+			.setGeometryCount(static_cast<uint32_t>(accStructureGeometries.size()))
+			.setPpGeometries(&pointerToAnArray)
+			.setScratchData(vk::DeviceOrHostAddressKHR{ scratchBuffer->buffer_address() });
+
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before:
 		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::acceleration_structure_build, read_memory_access{memory_access::acceleration_structure_read_access});

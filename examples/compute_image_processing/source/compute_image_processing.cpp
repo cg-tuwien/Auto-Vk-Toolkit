@@ -254,7 +254,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands; // Just set to all commands. Don't know if this could be optimized somehow?!
 			auto submitInfo = vk::SubmitInfo()
 				.setCommandBufferCount(1u)
-				.setPCommandBuffers(cmdbfr->handle_addr());
+				.setPCommandBuffers(cmdbfr->handle_ptr());
 
 			cgb::context().graphics_queue().handle().submit({ submitInfo }, mComputeFence->handle());
 			cmdbfr->invoke_post_execution_handler();

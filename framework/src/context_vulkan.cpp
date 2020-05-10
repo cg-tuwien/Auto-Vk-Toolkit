@@ -1102,6 +1102,17 @@ namespace cgb
 		return rtProps;
 	}
 
+	vk::DeviceAddress vulkan::get_buffer_address(vk::Buffer aBufferHandle) const
+	{
+		PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddress = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(cgb::context().logical_device(), "vkGetBufferDeviceAddressKHR"));
+
+	    VkBufferDeviceAddressInfo bufferAddressInfo;
+		bufferAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		bufferAddressInfo.pNext = nullptr;
+		bufferAddressInfo.buffer = aBufferHandle;
+
+	    return vkGetBufferDeviceAddress(cgb::context().logical_device(), &bufferAddressInfo);
+	}
 
 	// REFERENCES:
 	// [1] Vulkan Tutorial, Logical device and queues, https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Logical_device_and_queues

@@ -22,12 +22,12 @@ namespace cgb
 
 	void fence_t::wait_until_signalled() const
 	{
-		cgb::context().logical_device().waitForFences(1u, handle_addr(), VK_TRUE, UINT64_MAX);
+		cgb::context().logical_device().waitForFences(1u, handle_ptr(), VK_TRUE, UINT64_MAX);
 	}
 
 	void fence_t::reset()
 	{
-		cgb::context().logical_device().resetFences(1u, handle_addr());
+		cgb::context().logical_device().resetFences(1u, handle_ptr());
 		if (mCustomDeleter.has_value() && *mCustomDeleter) {
 			// If there is a custom deleter => call it now
 			(*mCustomDeleter)();

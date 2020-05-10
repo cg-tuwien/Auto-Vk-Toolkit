@@ -229,6 +229,8 @@ namespace cgb
 		vk::PhysicalDeviceRayTracingPropertiesKHR get_ray_tracing_properties();
 
 		descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
+
+		vk::DeviceAddress get_buffer_address(vk::Buffer aBufferHandle) const;
 		
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;

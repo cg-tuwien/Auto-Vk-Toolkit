@@ -37,7 +37,7 @@ namespace cgb
 
 		const auto& create_info() const { return mCreateInfo; }
 		const auto& handle() const { return mFence.get(); }
-		const auto* handle_addr() const { return &mFence.get(); }
+		const auto* handle_ptr() const { return &mFence.get(); }
 		auto has_designated_queue() const { return nullptr != mQueue; }
 		auto* designated_queue() const { return mQueue; }
 

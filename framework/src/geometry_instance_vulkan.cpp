@@ -97,7 +97,7 @@ namespace cgb
 		std::vector<VkAccelerationStructureInstanceKHR> instancesGpu;
 		instancesGpu.reserve(aGeomInstances.size());
 		for (auto& data : aGeomInstances) {
-			instancesGpu.emplace_back(convert_for_gpu_usage(data));
+			instancesGpu.emplace_back(convert_for_gpu_usage(data));			
 		}
 		return instancesGpu;
 	}

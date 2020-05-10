@@ -17,9 +17,9 @@ namespace cgb
 
 		const auto& config() const { return mCreateInfo; }
 		const auto& acceleration_structure_handle() const { return mAccStructure.get(); }
-		const auto* acceleration_structure_handle_addr() const { return &mAccStructure.get(); }
+		const auto* acceleration_structure_handle_ptr() const { return &mAccStructure.get(); }
 		const auto& memory_handle() const { return mMemory.get(); }
-		const auto* memory_handle_addr() const { return &mMemory.get(); }
+		const auto* memory_handle_ptr() const { return &mMemory.get(); }
 		auto device_address() const { return mDeviceAddress; }
 
 		size_t required_acceleration_structure_size() const { return static_cast<size_t>(mMemoryRequirementsForAccelerationStructure.memoryRequirements.size); }
@@ -30,7 +30,7 @@ namespace cgb
 		{
 			mDescriptorInfo = vk::WriteDescriptorSetAccelerationStructureKHR{}
 				.setAccelerationStructureCount(1u)
-				.setPAccelerationStructures(acceleration_structure_handle_addr());
+				.setPAccelerationStructures(acceleration_structure_handle_ptr());
 			return mDescriptorInfo;
 		}
 

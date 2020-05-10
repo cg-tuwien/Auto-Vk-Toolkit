@@ -57,6 +57,7 @@ namespace cgb
 		// 10. Get an "opaque" handle which can be used on the device
 		auto addressInfo = vk::AccelerationStructureDeviceAddressInfoKHR{}
 			.setAccelerationStructure(result.acceleration_structure_handle());
+		
 		result.mDeviceAddress = cgb::context().logical_device().getAccelerationStructureAddressKHR(&addressInfo, cgb::context().dynamic_dispatch());
 	}
 }
