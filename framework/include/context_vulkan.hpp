@@ -144,6 +144,7 @@ namespace cgb
 		static bool supports_shading_rate_image(const vk::PhysicalDevice& device);
 
 		static bool shading_rate_image_extension_requested();
+		static bool ray_tracing_extension_requested();
 		
 		/** Checks whether the given physical device supports all the required extensions,
 		 *	namely those stored in @ref settings::gRequiredDeviceExtensions. 

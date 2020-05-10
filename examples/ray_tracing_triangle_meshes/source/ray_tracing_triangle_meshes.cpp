@@ -69,7 +69,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mIndexBufferViews.push_back( cgb::buffer_view_t::create(std::move(indexTexelBuffer)) );
 
 				// Create one bottom level acceleration structure per model
-				auto blas = cgb::bottom_level_acceleration_structure_t::create(std::move(positionsBuffer), std::move(indicesBuffer));
+				auto blas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_buffers(positionsBuffer, indicesBuffer) }, false);
 				// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
 				// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
 				blas.enable_shared_ownership();
@@ -88,7 +88,15 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//   The idea of this is that multiple BLAS can be built
 				//   in parallel, we only have to make sure to synchronize
 				//   before we start building the TLAS.
-				mBLASs.back()->build(cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler(), {}, {}));
+				positionsBuffer.enable_shared_ownership();
+				indicesBuffer.enable_shared_ownership();
+				mBLASs.back()->build({ std::forward_as_tuple(std::cref(*positionsBuffer), std::cref(*indicesBuffer)) },
+					cgb::sync::with_barriers(
+						[posBfr = positionsBuffer, idxBfr = indicesBuffer](cgb::command_buffer cb) {
+							cb->set_custom_deleter([lPosBfr = std::move(posBfr), lIdxBfr = std::move(idxBfr)](){});
+							cgb::context().main_window()->handle_single_use_command_buffer_lifetime(std::move(cb));
+						}, {}, {})
+				);
 			}
 		}
 
@@ -297,17 +305,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
-		cmdbfr->handle().traceRaysNV(
-			mPipeline->shader_binding_table_handle(), 0,
-			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			nullptr, 0, 0,
+		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
+		cmdbfr->handle().traceRaysKHR(
+			&raygen, &raymiss, &rayhit, &callable, 
 			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-			cgb::context().dynamic_dispatch());
+			cgb::context().dynamic_dispatch()
+		);
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, true));
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, false));
 	}
 
 private: // v== Member variables ==v
@@ -343,8 +353,12 @@ int main() // <== Starting point ==
 		// What's the name of our application
 		cgb::settings::gApplicationName = "cg_base::real_time_ray_tracing";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it

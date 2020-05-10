@@ -23,7 +23,8 @@ namespace cgb
 		}
 		
 		return acceleration_structure_size_requirements{
-			static_cast<uint32_t>(aIndexBuffer.meta_data().num_elements()) / 3u,
+			vk::GeometryTypeKHR::eTriangles,
+			static_cast<uint32_t>(aIndexBuffer.meta_data().num_elements()) / 3,
 			aIndexBuffer.meta_data().sizeof_one_element(),
 			static_cast<uint32_t>(aVertexBuffer.meta_data().num_elements()),
 			posMember->mFormat

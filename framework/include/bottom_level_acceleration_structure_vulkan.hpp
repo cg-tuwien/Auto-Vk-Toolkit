@@ -27,14 +27,16 @@ namespace cgb
 		size_t required_scratch_buffer_update_size() const { return static_cast<size_t>(mMemoryRequirementsForScratchBufferUpdate.memoryRequirements.size); }
 
 		static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::acceleration_structure_size_requirements> aGeometryDescriptions, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
-		//static owning_resource<bottom_level_acceleration_structure_t> create(std::vector<cgb::aabb> aBoundingBoxes, bool aAllowUpdates, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeCreation = {}, cgb::context_specific_function<void(bottom_level_acceleration_structure_t&)> aAlterConfigBeforeMemoryAlloc = {});
 
 		void build(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		void update(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void build(cgb::generic_buffer aBuffer, std::vector<cgb::aabb> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
+		void update(cgb::generic_buffer aBuffer, std::vector<cgb::aabb> aGeometries, sync aSyncHandler = sync::wait_idle(), std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer = {});
 		
 	private:
 		enum struct blas_action { build, update };
 		std::optional<command_buffer> build_or_update(std::vector<std::tuple<std::reference_wrapper<const cgb::vertex_buffer_t>, std::reference_wrapper<const cgb::index_buffer_t>>> aGeometries, sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
+		std::optional<command_buffer> build_or_update(cgb::generic_buffer aBuffer, std::vector<cgb::aabb> aGeometries, sync aSyncHandler, std::optional<std::reference_wrapper<const generic_buffer_t>> aScratchBuffer, blas_action aBuildAction);
 		const generic_buffer_t& get_and_possibly_create_scratch_buffer();
 		
 		vk::MemoryRequirements2KHR mMemoryRequirementsForAccelerationStructure;

@@ -48,17 +48,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto pyrVert = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(mVertexData).describe_member(&Vertex::pos, 0, cgb::content_description::position),
 			cgb::memory_usage::host_coherent,
-			mVertexData.data()
+			mVertexData.data(),
+			cgb::sync::wait_idle(),
+			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
 		);
 		auto pyrIndex = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	
 			cgb::memory_usage::host_coherent,
-			mIndices.data()
+			mIndices.data(),
+			cgb::sync::wait_idle(),
+			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
 		);
-		auto pyrBlas = cgb::bottom_level_acceleration_structure_t::create(std::move(pyrVert), std::move(pyrIndex));
+		auto pyrBlas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_buffers(pyrVert, pyrIndex) }, false);
 		pyrBlas.enable_shared_ownership();
 		mBLASs.push_back(pyrBlas);
-		mBLASs.back()->build();
+		mBLASs.back()->build({ std::forward_as_tuple(std::cref(*pyrVert), std::cref(*pyrIndex)) });
 
 		mGeometryInstances.push_back(
 			cgb::geometry_instance::create(pyrBlas)
@@ -69,12 +73,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } },
 			{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } },
 		};
-		auto blas = cgb::bottom_level_acceleration_structure_t::create(aabbs, true);
+
+		auto aabbBuffer = cgb::create_and_fill(cgb::generic_buffer_meta::create_from_data(aabbs),
+			cgb::memory_usage::device,
+			aabbs.data(),
+			cgb::sync::wait_idle(),
+			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
+		);
+		aabbBuffer.enable_shared_ownership();
+		
+		auto blas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_aabbs(aabbs) }, true);
 		// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
 		// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
 		blas.enable_shared_ownership();
 		mBLASs.push_back(blas); // No need to move, because a BLAS is now represented by a shared pointer internally. We could, though.
-		mBLASs.back()->build();
+		mBLASs.back()->build(aabbBuffer, aabbs);
 
 		mGeometryInstances.push_back(
 			cgb::geometry_instance::create(blas)
@@ -250,17 +263,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenNV, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// TRACE. THA. RAYZ.
-		cmdbfr->handle().traceRaysNV(
-			mPipeline->shader_binding_table_handle(), 0,
-			mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(),
-			nullptr, 0, 0,
+		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 3 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
+		auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
+		cmdbfr->handle().traceRaysKHR(
+			&raygen, &raymiss, &rayhit, &callable, 
 			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-			cgb::context().dynamic_dispatch());
+			cgb::context().dynamic_dispatch()
+		);
 
 		cmdbfr->end_recording();
 		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, true));
+		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, false));
 	}
 
 	void finalize() override
@@ -291,8 +306,12 @@ int main() // <== Starting point ==
 		// What's the name of our application
 		cgb::settings::gApplicationName = "cg_base::real_time_ray_tracing";
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it

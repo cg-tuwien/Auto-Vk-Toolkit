@@ -515,6 +515,12 @@ namespace cgb
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}
 
+	bool vulkan::ray_tracing_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+
 	bool vulkan::supports_all_required_extensions(const vk::PhysicalDevice& device)
 	{
 		bool allExtensionsSupported = true;
@@ -773,36 +779,24 @@ namespace cgb
 				)
 				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
 
-			////Require variable descriptor count
-			//auto descriptorIndexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{}
-			//	.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
-			//	.setRuntimeDescriptorArray(VK_TRUE)
-			//	.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
-			//	.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE) // TODO: Make configurable?
-			//	.setPNext(&deviceFeatures);
+		    auto deviceVulkan12Features = vk::PhysicalDeviceVulkan12Features{}
+				.setPNext(&deviceFeatures)
+				.setBufferDeviceAddress(VK_TRUE)
+				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
+				.setRuntimeDescriptorArray(VK_TRUE)
+				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setDescriptorIndexing(VK_TRUE);
 
-
-
-
-			// TODO: make this dependent on the extensions requested:
-
-    VkPhysicalDeviceRayTracingFeaturesKHR deviceRayTracingFeatures = {};
-    deviceRayTracingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR;
-    deviceRayTracingFeatures.pNext = &deviceFeatures;
-    deviceRayTracingFeatures.rayTracing = VK_TRUE;
-
-    VkPhysicalDeviceVulkan12Features deviceVulkan12Features = {};
-    deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    deviceVulkan12Features.pNext = &deviceRayTracingFeatures;
-    deviceVulkan12Features.bufferDeviceAddress = VK_TRUE;
-
-
-
-
-
-
+		    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
+			if (ray_tracing_extension_requested()) {
+				deviceRayTracingFeatures
+					.setPNext(&deviceFeatures)
+					.setRayTracing(VK_TRUE);
+				
+				deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
+			}
 			
-
 			auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 			auto deviceCreateInfo = vk::DeviceCreateInfo()
 				.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))

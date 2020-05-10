@@ -184,6 +184,8 @@ namespace cgb
 		result.mPipeline = pipeCreationResult.value;
 		//result.mPipeline = std::move(pipeCreationResult.value);
 
+		// TODO: This ^ will be fixed with vulkan headers v 136
+		
 		// 10. Build the shader binding table
 		{
 			vk::PhysicalDeviceRayTracingPropertiesKHR rtProps;

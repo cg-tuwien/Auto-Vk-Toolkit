@@ -39,32 +39,3 @@ void main()
 
     imageStore(img, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 0.0));
 }
-
-//layout(location = 0) rayPayloadEXT vec4 payload;
-//
-//void main() {
-//
-//  vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-//  vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
-//
-//  vec2 d = uv * 2.0 - 1.0;
-//  float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
-//
-//  vec3 rayOrigin = vec3(0, 0, -1.5);
-//  vec3 rayDir = normalize(vec3(d.x * aspectRatio, d.y, 1));
-//
-//  uint sbtOffset = 0;
-//  uint sbtStride = 0;
-//  uint missIndex = 0;
-//
-//  payload = vec4(0);
-//  traceRayEXT(
-//    topLevelAS, gl_RayFlagsOpaqueEXT, 0xff,
-//    sbtOffset, sbtStride, missIndex,
-//    rayOrigin, 0.001, rayDir, 100.0,
-//    0
-//  );
-//
-//  imageStore(img, ivec2(gl_LaunchIDEXT), payload);
-//}
-//
