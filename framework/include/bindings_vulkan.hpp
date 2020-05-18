@@ -27,22 +27,10 @@ namespace cgb
 	inline vk::DescriptorType descriptor_type_of<storage_texel_buffer>(const storage_texel_buffer*) { return vk::DescriptorType::eStorageTexelBuffer; }
 
 	template<>
-	inline vk::DescriptorType descriptor_type_of<image_view_t>(const image_view_t* aImageView)
-	{
-		//if (nullptr == aImageView) {
-			return vk::DescriptorType::eStorageImage;
-		//}
-		//return has_flag(aImageView->get_image().usage_config(), cgb::image_usage::shader_storage) ? vk::DescriptorType::eStorageImage : vk::DescriptorType::eSampledImage;
-	}
+	inline vk::DescriptorType descriptor_type_of<image_view_t>(const image_view_t* aImageView) { return vk::DescriptorType::eSampledImage; }
 
 	template<>
-	inline vk::DescriptorType descriptor_type_of<image_view>(const image_view* aImageView)
-	{
-		//if (nullptr == aImageView) {
-			return vk::DescriptorType::eStorageImage;
-		//}
-		//return has_flag((*aImageView)->get_image().usage_config(), cgb::image_usage::shader_storage) ? vk::DescriptorType::eStorageImage : vk::DescriptorType::eSampledImage;
-	}
+	inline vk::DescriptorType descriptor_type_of<image_view>(const image_view* aImageView) { return vk::DescriptorType::eSampledImage; }
 
 	template<>
 	inline vk::DescriptorType descriptor_type_of<image_sampler_t>(const image_sampler_t*) { return vk::DescriptorType::eCombinedImageSampler; }
@@ -65,12 +53,10 @@ namespace cgb
 	inline vk::DescriptorType descriptor_type_of<sampler>(const sampler*) { return vk::DescriptorType::eSampler; }
 
 	template<>
-	inline vk::DescriptorType descriptor_type_of<image_t>(const image_t*) { return vk::DescriptorType::eSampledImage; }
-	template<>
-	inline vk::DescriptorType descriptor_type_of<image>(const image*) { return vk::DescriptorType::eSampledImage; }
+	inline vk::DescriptorType descriptor_type_of<image_view_as_input_attachment>(const image_view_as_input_attachment*) { return vk::DescriptorType::eInputAttachment; }
 
 	template<>
-	inline vk::DescriptorType descriptor_type_of<image_view_as_input_attachment>(const image_view_as_input_attachment*) { return vk::DescriptorType::eInputAttachment; }
+	inline vk::DescriptorType descriptor_type_of<image_view_as_storage_image>(const image_view_as_storage_image*) { return vk::DescriptorType::eStorageImage; }
 
 
 	template<typename T> 

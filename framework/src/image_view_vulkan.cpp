@@ -10,6 +10,15 @@ namespace cgb
 			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal); // TODO: This SHOULD be the most common layout for input attachments... but can it also not be?
 		return result;
 	}
+
+	image_view_as_storage_image image_view_t::as_storage_image() const
+	{
+		image_view_as_storage_image result;
+		result.mDescriptorInfo = vk::DescriptorImageInfo{}
+			.setImageView(handle())
+			.setImageLayout(get_image().target_layout()); // TODO: Can it also be desired NOT to use the image's target_layout? 
+		return result;
+	}
 	
 	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
@@ -122,9 +131,8 @@ namespace cgb
 
 		mImageView = context().logical_device().createImageViewUnique(mInfo);
 		mDescriptorInfo = vk::DescriptorImageInfo{}
-			.setImageView(handle());
-
-		mDescriptorInfo.setImageLayout(get_image().target_layout()); // Note: The image's current layout might be different to its target layout.
+			.setImageView(handle())
+			.setImageLayout(get_image().target_layout()); // TODO: Better use the image's current layout or its target layout? 
 
 		mTracker.setTrackee(*this);
 	}

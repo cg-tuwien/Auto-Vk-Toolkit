@@ -5,7 +5,7 @@ namespace cgb
 	/** A convenience funtion which invokes a callback function (in-flight-index)-number of times,
 	 *	passing the appropriate in-flight-index to the callback.
 	 *	
-	 *	@type	F		Function signature: void(int64_t inFlightIndex)
+	 *	@type	F		void(int64_t inFlightIndex)
 	 */
 	template <typename F>
 	void invoke_for_all_in_flight_frames(window* aWindow, F aCallback)

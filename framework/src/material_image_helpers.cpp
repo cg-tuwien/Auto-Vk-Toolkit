@@ -29,9 +29,9 @@ namespace cgb
 
 		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
 		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
-		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal
-									|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
-									|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
+		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal;
+									//|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
+									//|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableDstLayout) {
 			// Just make sure that is really is in target layout:
 			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
@@ -107,9 +107,9 @@ namespace cgb
 
 		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
 		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
-		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal
-									|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
-									|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
+		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal;
+									//|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
+									//|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
 		if (suitableDstLayout) {
 			// Just make sure that is really is in target layout:
 			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 

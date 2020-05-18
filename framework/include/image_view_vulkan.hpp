@@ -11,6 +11,16 @@ namespace cgb
 	private:
 		vk::DescriptorImageInfo mDescriptorInfo;
 	};
+
+	class image_view_as_storage_image
+	{
+		friend class image_view_t;
+	public:
+		const auto& descriptor_info() const { return mDescriptorInfo; }
+
+	private:
+		vk::DescriptorImageInfo mDescriptorInfo;
+	};
 	
 	/** Class representing an image view. */
 	class image_view_t
@@ -60,6 +70,8 @@ namespace cgb
 		const auto& descriptor_info() const		{ return mDescriptorInfo; }
 
 		image_view_as_input_attachment as_input_attachment() const;
+		
+		image_view_as_storage_image as_storage_image() const;
 
 		/** Creates a new image view upon a given image
 		*	@param	aImageToOwn					The image which to create an image view for
