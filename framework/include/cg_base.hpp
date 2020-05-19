@@ -93,6 +93,7 @@
 #include "string_utils.hpp"
 #include "log.hpp"
 #include "essential_utils.hpp"
+#include "various_utils.hpp"
 #include "memory_usage.hpp"
 #include "image_usage.hpp"
 #include "context_state.hpp"
@@ -201,7 +202,6 @@ static_assert( VK_HEADER_VERSION >= 130 , "VK_HEADER_VERSION must be greater tha
 #include "command_buffer_convenience_functions.hpp"
 
 #include "image.hpp"
-#include "various_utils.hpp"
 #include "math_utils.hpp"
 #include "key_code.hpp"
 #include "key_state.hpp"

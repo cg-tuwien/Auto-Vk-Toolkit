@@ -116,10 +116,20 @@ namespace cgb
 			if (std::holds_alternative<index_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return nullptr; }
-			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return &std::get<image_view_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return &std::get<image_view_as_input_attachment*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return &std::get<sampler_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return &std::get<image_sampler_t*>(mResourcePtr)->descriptor_info(); }
+			
+			if (std::holds_alternative<image_view_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_view_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { 
+				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_view_as_input_attachment*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<sampler_t*>(mResourcePtr)) {  
+				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<sampler_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { 
+				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_sampler_t*>(mResourcePtr)->descriptor_info());
+			}
+
 			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return nullptr; }
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return nullptr; }
@@ -152,14 +162,31 @@ namespace cgb
 
 		const vk::DescriptorBufferInfo* descriptor_buffer_info(descriptor_set& aDescriptorSet) const
 		{
-			if (std::holds_alternative<generic_buffer_t*>(mResourcePtr)) { return &std::get<generic_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<uniform_buffer_t*>(mResourcePtr)) { return &std::get<uniform_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<uniform_texel_buffer_t*>(mResourcePtr)) { return &std::get<uniform_texel_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<storage_buffer_t*>(mResourcePtr)) { return &std::get<storage_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<storage_texel_buffer_t*>(mResourcePtr)) { return &std::get<storage_texel_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<vertex_buffer_t*>(mResourcePtr)) { return &std::get<vertex_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<index_buffer_t*>(mResourcePtr)) { return &std::get<index_buffer_t*>(mResourcePtr)->descriptor_info(); }
-			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return &std::get<instance_buffer_t*>(mResourcePtr)->descriptor_info(); }
+			if (std::holds_alternative<generic_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<generic_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<uniform_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<uniform_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<uniform_texel_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<uniform_texel_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<storage_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<storage_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<storage_texel_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<storage_texel_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<vertex_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<vertex_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<index_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<index_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_info(mLayoutBinding.binding, std::get<instance_buffer_t*>(mResourcePtr)->descriptor_info());
+			}
+			
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
@@ -212,7 +239,11 @@ namespace cgb
 			if (std::holds_alternative<vertex_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<index_buffer_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
-			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) { return &std::get<top_level_acceleration_structure_t*>(mResourcePtr)->descriptor_info(); }
+			
+			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_next_pointer(mLayoutBinding.binding, const_cast<void*>(static_cast<const void*>(&std::get<top_level_acceleration_structure_t*>(mResourcePtr)->descriptor_info())));
+			}
+			
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
@@ -256,7 +287,10 @@ namespace cgb
 			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<image_sampler_t*>(mResourcePtr)) { return nullptr; }
-			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) { return &std::get<buffer_view_t*>(mResourcePtr)->view_handle(); }
+			
+			if (std::holds_alternative<buffer_view_t*>(mResourcePtr)) {
+				return aDescriptorSet.store_buffer_view(mLayoutBinding.binding, std::get<buffer_view_t*>(mResourcePtr)->view_handle());
+			}
 
 			if (std::holds_alternative<std::vector<generic_buffer_t*>>(mResourcePtr)) { return nullptr; }
 			if (std::holds_alternative<std::vector<uniform_buffer_t*>>(mResourcePtr)) { return nullptr; }

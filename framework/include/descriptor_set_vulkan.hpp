@@ -173,6 +173,30 @@ namespace cgb
 			return std::get<std::vector<vk::BufferView>>(back).data();
 		}
 
+		const auto* store_image_info(uint32_t aBindingId, const vk::DescriptorImageInfo& aStoredImageInfo)
+		{
+			auto back = mStoredImageInfos.emplace_back(aBindingId, cgb::make_vector( aStoredImageInfo ));
+			return std::get<std::vector<vk::DescriptorImageInfo>>(back).data();
+		}
+		
+		const auto* store_buffer_info(uint32_t aBindingId, const vk::DescriptorBufferInfo& aStoredBufferInfo)
+		{
+			auto back = mStoredBufferInfos.emplace_back(aBindingId, cgb::make_vector( aStoredBufferInfo ));
+			return std::get<std::vector<vk::DescriptorBufferInfo>>(back).data();
+		}
+		
+		const auto* store_next_pointer(uint32_t aBindingId, void* aStoredNextPointer)
+		{
+			auto back = mStoredNextPointers.emplace_back(aBindingId, cgb::make_vector( aStoredNextPointer ));
+			return std::get<std::vector<void*>>(back).data();
+		}
+
+		const auto* store_buffer_view(uint32_t aBindingId, const vk::BufferView& aStoredBufferView)
+		{
+			auto back = mStoredBufferViews.emplace_back(aBindingId, cgb::make_vector( aStoredBufferView ));
+			return std::get<std::vector<vk::BufferView>>(back).data();
+		}
+
 		void update_data_pointers();
 		
 		template <typename It>

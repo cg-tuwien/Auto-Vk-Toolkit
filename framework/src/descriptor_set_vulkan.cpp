@@ -97,42 +97,40 @@ namespace cgb
 	{
 		for (auto& w : mOrderedDescriptorDataWrites) {
 			assert(w.dstSet == mOrderedDescriptorDataWrites[0].dstSet);
-			if (w.descriptorCount > 1) {
-				{
-					auto it = std::find_if(std::begin(mStoredImageInfos), std::end(mStoredImageInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
-					if (it != std::end(mStoredImageInfos)) {
-						w.pImageInfo = std::get<std::vector<vk::DescriptorImageInfo>>(*it).data();
-					}
-					else {
-						w.pImageInfo = nullptr;
-					}
+			{
+				auto it = std::find_if(std::begin(mStoredImageInfos), std::end(mStoredImageInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+				if (it != std::end(mStoredImageInfos)) {
+					w.pImageInfo = std::get<std::vector<vk::DescriptorImageInfo>>(*it).data();
 				}
-				{
-					auto it = std::find_if(std::begin(mStoredBufferInfos), std::end(mStoredBufferInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
-					if (it != std::end(mStoredBufferInfos)) {
-						w.pBufferInfo = std::get<std::vector<vk::DescriptorBufferInfo>>(*it).data();
-					}
-					else {
-						w.pBufferInfo = nullptr;
-					}
+				else {
+					w.pImageInfo = nullptr;
 				}
-				{
-					auto it = std::find_if(std::begin(mStoredNextPointers), std::end(mStoredNextPointers), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
-					if (it != std::end(mStoredNextPointers)) {
-						w.pNext = std::get<std::vector<void*>>(*it).data();
-					}
-					else {
-						w.pNext = nullptr;
-					}
+			}
+			{
+				auto it = std::find_if(std::begin(mStoredBufferInfos), std::end(mStoredBufferInfos), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+				if (it != std::end(mStoredBufferInfos)) {
+					w.pBufferInfo = std::get<std::vector<vk::DescriptorBufferInfo>>(*it).data();
 				}
-				{
-					auto it = std::find_if(std::begin(mStoredBufferViews), std::end(mStoredBufferViews), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
-					if (it != std::end(mStoredBufferViews)) {
-						w.pTexelBufferView = std::get<std::vector<vk::BufferView>>(*it).data();
-					}
-					else {
-						w.pTexelBufferView = nullptr;
-					}
+				else {
+					w.pBufferInfo = nullptr;
+				}
+			}
+			{
+				auto it = std::find_if(std::begin(mStoredNextPointers), std::end(mStoredNextPointers), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+				if (it != std::end(mStoredNextPointers)) {
+					w.pNext = std::get<std::vector<void*>>(*it).data();
+				}
+				else {
+					w.pNext = nullptr;
+				}
+			}
+			{
+				auto it = std::find_if(std::begin(mStoredBufferViews), std::end(mStoredBufferViews), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+				if (it != std::end(mStoredBufferViews)) {
+					w.pTexelBufferView = std::get<std::vector<vk::BufferView>>(*it).data();
+				}
+				else {
+					w.pTexelBufferView = nullptr;
 				}
 			}
 		}
@@ -213,46 +211,5 @@ namespace cgb
 			cachedSets[indexMapping[i]] = nowAlsoInCache[i];
 		}
 		return cachedSets;
-
-		// Old, deprecated code:
-		//
-		// TODO: Delete when done with DescriptorSets new!
-		//
-		//
-		//
-		//auto setOfLayouts = set_of_descriptor_set_layouts::prepare(aBindings);
-		//auto nSets = setOfLayouts.number_of_sets();
-		//for (decltype(nSets) i = 0; i < nSets; ++i) {
-
-		//	
-		//	
-		//}
-
-		//result.mDescriptorSetOwners = cgb::context().create_descriptor_set(result.mSetOfLayouts.layout_handles());
-		//result.mDescriptorSets.reserve(result.mDescriptorSetOwners.size());
-		//for (auto& uniqueDesc : result.mDescriptorSetOwners) { // TODO: Is the second array really neccessary?
-		//	result.mDescriptorSets.push_back(uniqueDesc.get());
-		//}
-
-
-		//std::vector<vk::WriteDescriptorSet> descriptorWrites;
-		//for (auto& b : pBindings) {
-		//	descriptorWrites.push_back(vk::WriteDescriptorSet{}
-		//		// descriptor sets are perfectly aligned with layouts (I hope so, at least)
-		//		.setDstSet(result.mDescriptorSets[result.mSetOfLayouts.set_index_for_set_id(b.mSetId)])
-		//		.setDstBinding(b.mLayoutBinding.binding)
-		//		.setDstArrayElement(0u) // TODO: support more
-		//		.setDescriptorType(b.mLayoutBinding.descriptorType) // TODO: Okay or use that one stored in the mResourcePtr??
-		//		.setDescriptorCount(b.descriptor_count()) // TODO: Okay?
-		//		.setPBufferInfo(b.descriptor_buffer_info())
-		//		.setPImageInfo(b.descriptor_image_info())
-		//		.setPTexelBufferView(b.texel_buffer_view_info())
-		//		.setPNext(b.next_pointer())
-		//	);
-		//	// TODO: Handle array types!
-		//}
-
-		//return result;
-		//// Hmm... kann das funktionieren? k.A. Es wäre einmal eine (eigentlich vollständige) Implementierung (denke ich)
 	}
 }
