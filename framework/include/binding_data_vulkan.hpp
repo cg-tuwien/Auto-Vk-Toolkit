@@ -126,8 +126,8 @@ namespace cgb
 			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) {
 				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_view_as_input_attachment*>(mResourcePtr)->descriptor_info());
 			}
-			if (std::holds_alternative<image_view_as_input_attachment*>(mResourcePtr)) { 
-				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_view_as_input_attachment*>(mResourcePtr)->descriptor_info());
+			if (std::holds_alternative<image_view_as_storage_image*>(mResourcePtr)) { 
+				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<image_view_as_storage_image*>(mResourcePtr)->descriptor_info());
 			}
 			if (std::holds_alternative<sampler_t*>(mResourcePtr)) {  
 				return aDescriptorSet.store_image_info(mLayoutBinding.binding, std::get<sampler_t*>(mResourcePtr)->descriptor_info());
