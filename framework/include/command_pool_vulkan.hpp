@@ -29,8 +29,8 @@ namespace cgb
 
 		static command_pool create(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aCreateFlags = vk::CommandPoolCreateFlags());
 
-		std::vector<command_buffer> get_command_buffers(uint32_t aCount, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
-		command_buffer get_command_buffer(vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
+		std::vector<command_buffer> get_command_buffers(uint32_t aCount, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags(), bool aPrimary = true);
+		command_buffer get_command_buffer(vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags(), bool aPrimary = true);
 
 		/** Creates a "standard" command buffer which is not necessarily short-lived
 		 *	and can be re-submitted, but not necessarily re-recorded.
@@ -41,7 +41,7 @@ namespace cgb
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
 		 */
-		static command_buffer create_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false);
+		static command_buffer create_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 		/** Creates a "standard" command buffer which is not necessarily short-lived
 		 *	and can be re-submitted, but not necessarily re-recorded.
@@ -53,18 +53,18 @@ namespace cgb
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
 		 */
-		static std::vector<command_buffer> create_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false);
+		static std::vector<command_buffer> create_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 		/** Creates a command buffer which is intended to be used as a one time submit command buffer
 		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
 		 */
-		static command_buffer create_single_use_command_buffer(cgb::device_queue& aTargetQueue);
+		static command_buffer create_single_use_command_buffer(cgb::device_queue& aTargetQueue, bool aPrimary = true);
 
 		/** Creates a command buffer which is intended to be used as a one time submit command buffer
 		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
 		 *	@param	aNumBuffers					How many command buffers to be created.
 		 */
-		static std::vector<command_buffer> create_single_use_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers);
+		static std::vector<command_buffer> create_single_use_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aPrimary = true);
 
 		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
 		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
@@ -73,7 +73,7 @@ namespace cgb
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
 		 */
-		static command_buffer create_resettable_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false);
+		static command_buffer create_resettable_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
 		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
@@ -83,7 +83,7 @@ namespace cgb
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
 		 */
-		static std::vector<command_buffer> create_resettable_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false);
+		static std::vector<command_buffer> create_resettable_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 
 	private:

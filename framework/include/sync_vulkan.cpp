@@ -369,6 +369,9 @@ namespace cgb
 			mCommandBuffer.reset();
 			return std::move(tmp);
 		}
+		case sync_type::by_existing_command_buffer:
+			// All good, everything's handled outside.
+			return {};
 		default:
 			assert(false);
 			throw cgb::logic_error("unknown syncType");

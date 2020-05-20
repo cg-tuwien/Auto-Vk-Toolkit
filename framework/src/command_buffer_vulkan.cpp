@@ -21,11 +21,11 @@ namespace cgb
 		}
 	}
 	
-	std::vector<owning_resource<command_buffer_t>> command_buffer_t::create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags)
+	std::vector<owning_resource<command_buffer_t>> command_buffer_t::create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags, vk::CommandBufferLevel aLevel)
 	{
 		auto bufferAllocInfo = vk::CommandBufferAllocateInfo()
 			.setCommandPool(aPool.handle())
-			.setLevel(vk::CommandBufferLevel::ePrimary) // Those, allocated from a pool, are primary command buffers; secondary command buffers can be allocated from command buffers.
+			.setLevel(aLevel) 
 			.setCommandBufferCount(aCount);
 
 		auto tmp = context().logical_device().allocateCommandBuffersUnique(bufferAllocInfo);
@@ -47,9 +47,9 @@ namespace cgb
 		return buffers;
 	}
 
-	owning_resource<command_buffer_t> command_buffer_t::create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags)
+	owning_resource<command_buffer_t> command_buffer_t::create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags, vk::CommandBufferLevel aLevel)
 	{
-		auto result = std::move(command_buffer_t::create_many(1, aPool, aUsageFlags)[0]);
+		auto result = std::move(command_buffer_t::create_many(1, aPool, aUsageFlags, aLevel)[0]);
 		return result;
 	}
 

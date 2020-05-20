@@ -47,7 +47,7 @@ namespace cgb
 			};
 		};
 		
-		enum struct sync_type { not_required, by_return, via_wait_idle, via_wait_idle_deliberately, via_semaphore, via_barrier };
+		enum struct sync_type { not_required, by_return, by_existing_command_buffer, via_wait_idle, via_wait_idle_deliberately, via_semaphore, via_barrier };
 		enum struct commandbuffer_request { not_specified, single_use, reusable };
 		using steal_before_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<read_memory_access>);
 		using steal_after_handler_t = void(*)(command_buffer_t&, pipeline_stage, std::optional<write_memory_access>);
@@ -116,7 +116,6 @@ namespace cgb
 		 *	Note: Not all operations support this type of synchronization. You can notice them by a method
 		 *	      signature that does NOT return `std::optional<command_buffer>`.
 		 *	
-		 *	@tparam F									void(command_buffer)
 		 *	@param	aCommandBufferLifetimeHandler		A function to handle the lifetime of a command buffer.
 		 *	
 		 *	@param	aEstablishBarrierBeforeOperation	Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::read_memory_access>)
@@ -133,6 +132,34 @@ namespace cgb
 		{
 			sync result;
 			result.mSpecialSync = sync_type::by_return;
+			result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
+			result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
+			return result;
+		}
+
+		/**	Establish barrier-based synchronization and record all the commands into an existing command buffer (instead of creating a new one).
+		 *	Note: Not all operations support this type of synchronization. You can notice them by a method
+		 *	      signature that does NOT return `std::optional<command_buffer>`.
+		 *	
+		 *	@param	aExistingCommandBuffer				An already existing command buffer, which the commands will be recorded into.
+		 *												The command buffer must already be in recording state, i.e. after `begin_recording()` has been invoked on it.
+		 *	
+		 *	@param	aEstablishBarrierBeforeOperation	Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::read_memory_access>)
+		 *												Callback which gets called at the beginning of the operation, in order to sync with whatever comes before.
+		 *												This handler is generally considered to be optional an hence, set to {} by default --- i.e. not used.
+		 *												
+		 *	@param	aEstablishBarrierAfterOperation		Function signature: void(cgb::command_buffer_t&, cgb::pipeline_stage, std::optional<cgb::write_memory_access>)
+		 *												Callback which gets called at the end of the operation, in order to sync with whatever comes after.
+		 *												This handler is generally considered to be neccessary and hence, set to a default handler by default.
+		 */
+		static sync with_barriers_into_existing_command_buffer(
+			command_buffer_t& aExistingCommandBuffer,
+			unique_function<void(command_buffer_t&, pipeline_stage /* destination stage */, std::optional<read_memory_access> /* destination access */)> aEstablishBarrierBeforeOperation = {},
+			unique_function<void(command_buffer_t&, pipeline_stage /* source stage */,	  std::optional<write_memory_access> /* source access */)> aEstablishBarrierAfterOperation = presets::default_handler_after_operation)
+		{
+			sync result;
+			result.mSpecialSync = sync_type::by_existing_command_buffer;
+			result.mCommandBufferRefOrLifetimeHandler = std::ref(aExistingCommandBuffer);
 			result.mEstablishBarrierAfterOperationCallback = std::move(aEstablishBarrierAfterOperation);
 			result.mEstablishBarrierBeforeOperationCallback = std::move(aEstablishBarrierBeforeOperation);
 			return result;

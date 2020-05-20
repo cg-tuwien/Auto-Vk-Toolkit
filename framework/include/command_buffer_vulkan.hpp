@@ -151,8 +151,8 @@ namespace cgb // ========================== TODO/WIP ===========================
 			throw cgb::logic_error("No suitable bind_descriptors overload found for the given pipeline/layout.");
 		}
 		
-		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
-		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags);
+		static std::vector<owning_resource<command_buffer_t>> create_many(uint32_t aCount, command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags, vk::CommandBufferLevel aLevel = vk::CommandBufferLevel::ePrimary);
+		static owning_resource<command_buffer_t> create(command_pool& aPool, vk::CommandBufferUsageFlags aUsageFlags, vk::CommandBufferLevel aLevel = vk::CommandBufferLevel::ePrimary);
 
 		// Template specializations are implemented in the respective pipeline's header files
 		template <typename T, typename D> 
