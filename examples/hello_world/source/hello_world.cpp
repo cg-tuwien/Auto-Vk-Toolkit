@@ -19,7 +19,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), cgb::context().graphics_queue(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
 			commandBuffer.begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame(inFlightIndex)); // TODO: only because #concurrent == #present
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			commandBuffer.handle().draw(3u, 1u, 0u, 0u);

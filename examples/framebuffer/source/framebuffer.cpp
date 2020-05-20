@@ -87,7 +87,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			depthAttachmentDescription
 		);
 
-		mCmdBfrIntoFramebuffer = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+		mCmdBfrIntoFramebuffer = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), cgb::context().graphics_queue(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
 			commandBuffer.begin_render_pass_for_framebuffer(mPipelineIntoFramebuffer->get_renderpass(), mOneFramebuffer);
 			commandBuffer.bind_pipeline(mPipelineIntoFramebuffer);
 			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);

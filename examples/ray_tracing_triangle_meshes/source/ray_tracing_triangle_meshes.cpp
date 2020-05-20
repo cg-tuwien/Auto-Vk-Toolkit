@@ -41,13 +41,13 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
-					{ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) },
+					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) },
 					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
 				
 				// Get a buffer containing all texture coordinates for all submeshes with this material
 				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
-				auto texCoordsData = cgb::get_2d_texture_coordinates({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
+				auto texCoordsData = cgb::get_2d_texture_coordinates({ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
 				auto texCoordsTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(texCoordsData)
 						.describe_only_member(texCoordsData[0]),
@@ -58,7 +58,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				mTexCoordBufferViews.push_back( cgb::buffer_view_t::create(std::move(texCoordsTexelBuffer)) );
 
 				// The following call is quite redundant => TODO: optimize!
-				auto [positionsData, indicesData] = cgb::get_vertices_and_indices({ cgb::make_tuple_model_and_indices(modelData.mLoadedModel, indices.mMeshIndices) });
+				auto [positionsData, indicesData] = cgb::get_vertices_and_indices({ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) });
 				auto indexTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(indicesData)
 						.set_format<glm::uvec3>(), // Combine 3 consecutive elements to one unit
@@ -95,8 +95,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
 			allMatConfigs,
-			cgb::image_usage::read_only_sampled_image,
-			cgb::filter_mode::bilinear,
+			cgb::image_usage::general_texture,
+			cgb::filter_mode::trilinear,
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
@@ -276,7 +276,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto mainWnd = cgb::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
-		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 

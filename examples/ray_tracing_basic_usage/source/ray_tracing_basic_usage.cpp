@@ -128,7 +128,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto mainWnd = cgb::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
-		auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 

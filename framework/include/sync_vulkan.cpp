@@ -266,10 +266,10 @@ namespace cgb
 		if (!mCommandBuffer.has_value()) {
 			switch (mCommandbufferRequest) {
 			case commandbuffer_request::reusable:
-				mCommandBuffer = queue_to_use().get().create_command_buffer();;
+				mCommandBuffer = cgb::command_pool::create_command_buffer(queue_to_use().get());
 				break;
 			default:
-				mCommandBuffer = queue_to_use().get().create_single_use_command_buffer();
+				mCommandBuffer = cgb::command_pool::create_single_use_command_buffer(queue_to_use().get());
 				break;
 			}
 			mCommandBuffer.value()->begin_recording(); // Immediately start recording

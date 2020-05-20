@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb // ========================== TODO/WIP =================================
+namespace cgb
 {
 
 	/** Represents a Vulkan command pool, holds the native handle and takes
@@ -31,6 +31,60 @@ namespace cgb // ========================== TODO/WIP ===========================
 
 		std::vector<command_buffer> get_command_buffers(uint32_t aCount, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
 		command_buffer get_command_buffer(vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlags());
+
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		static command_buffer create_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false);
+
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		static std::vector<command_buffer> create_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false);
+
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 */
+		static command_buffer create_single_use_command_buffer(cgb::device_queue& aTargetQueue);
+
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		static std::vector<command_buffer> create_single_use_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers);
+
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		static command_buffer create_resettable_command_buffer(cgb::device_queue& aTargetQueue, bool aSimultaneousUseEnabled = false);
+
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aTargetQueue				The queue, the created command buffer shall be submitted to.
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		static std::vector<command_buffer> create_resettable_command_buffers(cgb::device_queue& aTargetQueue, uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false);
+
 
 	private:
 		uint32_t mQueueFamilyIndex;

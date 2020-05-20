@@ -133,7 +133,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto w = cgb::context().main_window()->swap_chain_extent().width;
 		auto halfW = w * 0.5f;
 		auto h = cgb::context().main_window()->swap_chain_extent().height;
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), cgb::context().graphics_queue(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
 
 			// Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
 			commandBuffer.establish_image_memory_barrier_rw(
@@ -236,7 +236,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			if (cgb::input().key_pressed(cgb::key_code::num3)) { computeIndex = 2; }
 
 			// [1] => Apply the first compute shader on the input image
-			auto cmdbfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+			auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 			cmdbfr->begin_recording();
 
 			// Bind the pipeline

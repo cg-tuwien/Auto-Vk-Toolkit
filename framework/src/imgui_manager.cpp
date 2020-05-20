@@ -117,7 +117,7 @@ namespace cgb
 #endif		
 
 		// Upload fonts:
-		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer(); // TODO: Graphics queue?
+		auto cmdBfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue()); // TODO: Graphics queue?
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
@@ -270,7 +270,7 @@ namespace cgb
 		
 		auto mainWnd = cgb::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
-		auto cmdBfr = cgb::context().graphics_queue().create_single_use_command_buffer();
+		auto cmdBfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
 		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->backbufer_for_frame());

@@ -76,7 +76,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.
-		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
+		mCmdBfrs = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), cgb::context().graphics_queue(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
 			commandBuffer.begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), cgb::context().main_window()->backbufer_for_frame(inFlightIndex)); // TODO: only works because #concurrent == #present
 			commandBuffer.handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
