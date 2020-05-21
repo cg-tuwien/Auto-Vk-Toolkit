@@ -176,7 +176,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::binding(0, 1, mMaterialBuffer),
 			cgb::binding(0, 2, mIndexBufferViews),
 			cgb::binding(0, 3, mTexCoordBufferViews),
-			cgb::binding(1, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout; could also state it like follows: cgb::binding<cgb::image_view>(1, 0)
+			cgb::binding(1, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout; could also state it like follows: cgb::binding<cgb::image_view>(1, 0)
 			cgb::binding(2, 0, mTLAS[0])				 // Just take any, this is just to define the layout; could also state it like follows: cgb::binding<cgb::top_level_acceleration_structure>(2, 0)
 		);
 
@@ -292,7 +292,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				cgb::binding(0, 1, mMaterialBuffer),
 				cgb::binding(0, 2, mIndexBufferViews),
 				cgb::binding(0, 3, mTexCoordBufferViews),
-				cgb::binding(1, 0, mOffscreenImageViews[inFlightIndex]),
+				cgb::binding(1, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
 				cgb::binding(2, 0, mTLAS[inFlightIndex])
 			}
 		);

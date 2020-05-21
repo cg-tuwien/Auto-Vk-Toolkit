@@ -161,10 +161,21 @@ namespace cgb
 			return std::get<std::vector<vk::DescriptorBufferInfo>>(back).data();
 		}
 		
-		const auto* store_next_pointers(uint32_t aBindingId, std::vector<void*> aStoredNextPointers)
+		const vk::WriteDescriptorSetAccelerationStructureKHR* store_acceleration_structure_infos(uint32_t aBindingId, std::vector<vk::WriteDescriptorSetAccelerationStructureKHR> aWriteAccelerationStructureInfos)
 		{
-			auto back = mStoredNextPointers.emplace_back(aBindingId, std::move(aStoredNextPointers));
-			return std::get<std::vector<void*>>(back).data();
+			// Accumulate all into ONE! (At least I think "This is the way.")
+			std::tuple<vk::WriteDescriptorSetAccelerationStructureKHR, std::vector<vk::AccelerationStructureKHR>> oneAndOnlyWrite;
+
+			for (auto& wasi : aWriteAccelerationStructureInfos) {
+				for (uint32_t i = 0u; i < wasi.accelerationStructureCount; ++i) {
+					std::get<std::vector<vk::AccelerationStructureKHR>>(oneAndOnlyWrite).push_back(wasi.pAccelerationStructures[i]);
+				}
+			}
+
+			std::get<vk::WriteDescriptorSetAccelerationStructureKHR>(oneAndOnlyWrite).accelerationStructureCount = static_cast<uint32_t>(std::get<std::vector<vk::AccelerationStructureKHR>>(oneAndOnlyWrite).size());
+			
+			auto back = mStoredAccelerationStructureWrites.emplace_back(aBindingId, std::move(oneAndOnlyWrite));
+			return &std::get<vk::WriteDescriptorSetAccelerationStructureKHR>(std::get<1>(back));
 		}
 
 		const auto* store_buffer_views(uint32_t aBindingId, std::vector<vk::BufferView> aStoredBufferViews)
@@ -185,10 +196,19 @@ namespace cgb
 			return std::get<std::vector<vk::DescriptorBufferInfo>>(back).data();
 		}
 		
-		const auto* store_next_pointer(uint32_t aBindingId, void* aStoredNextPointer)
+		const vk::WriteDescriptorSetAccelerationStructureKHR* store_acceleration_structure_info(uint32_t aBindingId, const vk::WriteDescriptorSetAccelerationStructureKHR& aWriteAccelerationStructureInfo)
 		{
-			auto back = mStoredNextPointers.emplace_back(aBindingId, cgb::make_vector( aStoredNextPointer ));
-			return std::get<std::vector<void*>>(back).data();
+			std::vector<vk::AccelerationStructureKHR> accStructureHandles;
+			for (uint32_t i = 0u; i < aWriteAccelerationStructureInfo.accelerationStructureCount; ++i) {
+				accStructureHandles.push_back(aWriteAccelerationStructureInfo.pAccelerationStructures[i]);
+			}
+
+			auto theWrite = std::make_tuple<vk::WriteDescriptorSetAccelerationStructureKHR, std::vector<vk::AccelerationStructureKHR>>(
+				vk::WriteDescriptorSetAccelerationStructureKHR{aWriteAccelerationStructureInfo}, std::move(accStructureHandles)
+			);
+			
+			auto back = mStoredAccelerationStructureWrites.emplace_back(aBindingId, std::move(theWrite));
+			return &std::get<vk::WriteDescriptorSetAccelerationStructureKHR>(std::get<1>(back));
 		}
 
 		const auto* store_buffer_view(uint32_t aBindingId, const vk::BufferView& aStoredBufferView)
@@ -246,8 +266,8 @@ namespace cgb
 		uint32_t mSetId;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorImageInfo>>> mStoredImageInfos;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorBufferInfo>>> mStoredBufferInfos;
-		std::vector<std::tuple<uint32_t, std::vector<void*>>> mStoredNextPointers;
 		std::vector<std::tuple<uint32_t, std::vector<vk::BufferView>>> mStoredBufferViews;
+		std::vector<std::tuple<uint32_t, std::tuple<vk::WriteDescriptorSetAccelerationStructureKHR, std::vector<vk::AccelerationStructureKHR>>>> mStoredAccelerationStructureWrites;
 		//cgb::context_tracker<descriptor_set> mTracker;
 	};
 

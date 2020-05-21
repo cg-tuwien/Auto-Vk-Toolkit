@@ -78,7 +78,11 @@ namespace cgb
 		for (size_t i = 0; i < n; ++i) {
 			auto& setToBeCompleted = aPreparedSets[i];
 			setToBeCompleted.link_to_handle_and_pool(std::move(setHandles[i]), pool);
+			const auto* asdf = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureKHR*>(setToBeCompleted.write_at(0).pNext);
+			setToBeCompleted.update_data_pointers();
+			const auto* asdf2 = reinterpret_cast<const VkWriteDescriptorSetAccelerationStructureKHR*>(setToBeCompleted.write_at(0).pNext);
 			setToBeCompleted.write_descriptors();
+			
 			// Your soul... is mine:
 			const auto cachedSet = mSets.insert(std::move(setToBeCompleted));
 			assert(cachedSet.second); // TODO: Maybe remove this because the application should not really fail in that case.

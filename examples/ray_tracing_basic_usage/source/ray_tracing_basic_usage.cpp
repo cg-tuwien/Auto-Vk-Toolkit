@@ -61,7 +61,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::max_recursion_depth::set_to_max(),
 			// Define push constants and descriptor bindings:
 			cgb::push_constant_binding_data { cgb::shader_type::ray_generation | cgb::shader_type::closest_hit, 0, sizeof(push_const_data) },
-			cgb::binding(0, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
+			cgb::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
 			cgb::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
@@ -132,7 +132,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
-				cgb::binding(0, 0, mOffscreenImageViews[inFlightIndex]),
+				cgb::binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
 				cgb::binding(1, 0, mTLAS[inFlightIndex])
 			}
 		);

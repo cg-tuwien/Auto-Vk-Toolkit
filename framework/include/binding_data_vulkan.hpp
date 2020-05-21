@@ -48,7 +48,6 @@ namespace cgb
 		std::vector<vk::DescriptorImageInfo> gather_image_infos(const std::vector<T*>& vec) const
 		{
 			std::vector<vk::DescriptorImageInfo> dataForImageInfos;
-			dataForImageInfos.clear();
 			for (auto& v : vec) {
 				dataForImageInfos.push_back(v->descriptor_info());
 			}
@@ -59,7 +58,6 @@ namespace cgb
 		std::vector<vk::DescriptorBufferInfo> gather_buffer_infos(const std::vector<T*>& vec) const
 		{
 			std::vector<vk::DescriptorBufferInfo> dataForBufferInfos;
-			dataForBufferInfos.clear();
 			for (auto& v : vec) {
 				dataForBufferInfos.push_back(v->descriptor_info());
 			}
@@ -67,21 +65,19 @@ namespace cgb
 		}
 
 		template <typename T>
-		std::vector<void*> gather_pnexts(const std::vector<T*>& vec) const
+		std::vector<vk::WriteDescriptorSetAccelerationStructureKHR> gather_acceleration_structure_infos(const std::vector<T*>& vec) const
 		{
-			std::vector<void*> dataForPNexts;
-			dataForPNexts.clear();
+			std::vector<vk::WriteDescriptorSetAccelerationStructureKHR> dataForAccStructures;
 			for (auto& v : vec) {
-				dataForPNexts.push_back(const_cast<void*>(static_cast<const void*>(&v->descriptor_info())));
+				dataForAccStructures.push_back(v->descriptor_info());
 			}
-			return dataForPNexts;
+			return dataForAccStructures;
 		}
 
 		template <typename T>
 		std::vector<vk::BufferView> gather_buffer_views(const std::vector<T*>& vec) const
 		{
 			std::vector<vk::BufferView> dataForBufferViews;
-			dataForBufferViews.clear();
 			for (auto& v : vec) {
 				dataForBufferViews.push_back(v->view_handle());
 			}
@@ -98,7 +94,8 @@ namespace cgb
 			if (std::holds_alternative<std::vector<vertex_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<vertex_buffer_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<index_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<index_buffer_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<instance_buffer_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<instance_buffer_t*>>(mResourcePtr).size()); }
-			if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr).size()); }
+			// vvv NOPE vvv There can only be ONE pNext (at least I think so)
+			//if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_t*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_view_as_input_attachment*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_as_input_attachment*>>(mResourcePtr).size()); }
 			if (std::holds_alternative<std::vector<image_view_as_storage_image*>>(mResourcePtr)) { return static_cast<uint32_t>(std::get<std::vector<image_view_as_storage_image*>>(mResourcePtr).size()); }
@@ -252,7 +249,7 @@ namespace cgb
 			if (std::holds_alternative<instance_buffer_t*>(mResourcePtr)) { return nullptr; }
 			
 			if (std::holds_alternative<top_level_acceleration_structure_t*>(mResourcePtr)) {
-				return aDescriptorSet.store_next_pointer(mLayoutBinding.binding, const_cast<void*>(static_cast<const void*>(&std::get<top_level_acceleration_structure_t*>(mResourcePtr)->descriptor_info())));
+				return aDescriptorSet.store_acceleration_structure_info(mLayoutBinding.binding, std::get<top_level_acceleration_structure_t*>(mResourcePtr)->descriptor_info());
 			}
 			
 			if (std::holds_alternative<image_view_t*>(mResourcePtr)) { return nullptr; }
@@ -272,7 +269,7 @@ namespace cgb
 			if (std::holds_alternative<std::vector<instance_buffer_t*>>(mResourcePtr)) { return nullptr; }
 
 			if (std::holds_alternative<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)) {
-				return aDescriptorSet.store_next_pointers(mLayoutBinding.binding, gather_pnexts(std::get<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)));
+				return aDescriptorSet.store_acceleration_structure_infos(mLayoutBinding.binding, gather_acceleration_structure_infos(std::get<std::vector<top_level_acceleration_structure_t*>>(mResourcePtr)));
 			}
 
 			if (std::holds_alternative<std::vector<image_view_t*>>(mResourcePtr)) { return nullptr; }

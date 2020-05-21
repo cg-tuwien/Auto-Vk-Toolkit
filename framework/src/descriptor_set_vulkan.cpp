@@ -116,9 +116,12 @@ namespace cgb
 				}
 			}
 			{
-				auto it = std::find_if(std::begin(mStoredNextPointers), std::end(mStoredNextPointers), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
-				if (it != std::end(mStoredNextPointers)) {
-					w.pNext = std::get<std::vector<void*>>(*it).data();
+				auto it = std::find_if(std::begin(mStoredAccelerationStructureWrites), std::end(mStoredAccelerationStructureWrites), [binding = w.dstBinding](const auto& element) { return std::get<uint32_t>(element) == binding; });
+				if (it != std::end(mStoredAccelerationStructureWrites)) {
+					auto& tpl = std::get<1>(*it);
+					w.pNext = &std::get<vk::WriteDescriptorSetAccelerationStructureKHR>(tpl);
+					// Also update the pointer WITHIN the vk::WriteDescriptorSetAccelerationStructureKHR... OMG!
+					std::get<vk::WriteDescriptorSetAccelerationStructureKHR>(tpl).pAccelerationStructures = std::get<1>(tpl).data();
 				}
 				else {
 					w.pNext = nullptr;
@@ -165,7 +168,7 @@ namespace cgb
 			auto it = std::lower_bound(std::begin(orderedBindings), std::end(orderedBindings), b); // use operator<
 			orderedBindings.insert(it, b);
 		}
-
+		
 		std::vector<std::reference_wrapper<const descriptor_set_layout>> layouts;
 		std::vector<descriptor_set> preparedSets;
 		std::vector<const descriptor_set*> cachedSets;
