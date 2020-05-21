@@ -42,12 +42,39 @@ namespace cgb
 		}
 #endif
 		
-		const auto allocRequest = descriptor_alloc_request::create(aLayouts);
-		auto pool = cgb::context().get_descriptor_pool_for_layouts(allocRequest, 'stch');
-		assert(pool->has_capacity_for(allocRequest));
-		// Alloc the whole thing:
-		auto setHandles = pool->allocate(aLayouts);
-		assert(setHandles.size() == aPreparedSets.size());
+		auto allocRequest = descriptor_alloc_request::create(aLayouts);
+
+		std::shared_ptr<descriptor_pool> pool = nullptr;
+		std::vector<vk::DescriptorSet> setHandles;
+		
+		auto poolToTry = cgb::context().get_descriptor_pool_for_layouts(allocRequest, 'stch');
+		int maxTries = 3;
+		while (!pool && maxTries-- > 0) {
+			try {
+				assert(poolToTry->has_capacity_for(allocRequest));
+				// Alloc the whole thing:
+				setHandles = poolToTry->allocate(aLayouts);
+				assert(setHandles.size() == aPreparedSets.size());
+				// Success
+				pool = poolToTry;
+			}
+			catch (vk::OutOfPoolMemoryError& fail) {
+				LOG_ERROR(fmt::format("Failed to allocate descriptor sets from pool. Failed with code[{}] and message[{}]", fail.code(), fail.what()));
+				switch (maxTries) {
+				case 1:
+					LOG_INFO("Trying again with doubled size requirements...");
+					allocRequest = allocRequest.multiply_size_requirements(2u);
+					poolToTry = cgb::context().get_descriptor_pool_for_layouts(allocRequest, 'stch');
+				default:
+					LOG_INFO("Trying again with new pool..."); // and possibly doubled size requirements, depending on whether maxTries is 2 or 0
+					poolToTry = cgb::context().get_descriptor_pool_for_layouts(allocRequest, 'stch', true);
+				}
+			}
+		}
+
+		assert(pool);
+		assert(setHandles.size() > 0);
+			
 		for (size_t i = 0; i < n; ++i) {
 			auto& setToBeCompleted = aPreparedSets[i];
 			setToBeCompleted.link_to_handle_and_pool(std::move(setHandles[i]), pool);

@@ -113,9 +113,11 @@ namespace cgb
 			.setDescriptorSetCount(static_cast<uint32_t>(setLayouts.size()))
 			.setPSetLayouts(setLayouts.data());
 
+		auto result = cgb::context().logical_device().allocateDescriptorSets(allocInfo);
+
 		// Update the pool's stats:
 		mNumRemainingSets -= static_cast<int>(aLayouts.size());
 
-		return cgb::context().logical_device().allocateDescriptorSets(allocInfo);
+		return result;
 	}
 }
