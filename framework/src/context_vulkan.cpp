@@ -1022,7 +1022,7 @@ namespace cgb
 		throw cgb::runtime_error("failed to find suitable memory type!");
 	}
 
-	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName)
+	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName, bool aRequestNewPool)
 	{
 		// We'll allocate the pools per (thread and name)
 		auto pId = pool_id{std::this_thread::get_id(), aPoolName};
@@ -1034,15 +1034,17 @@ namespace cgb
 		}), std::end(pools));
 
 		// Find a pool which is capable of allocating this:
-		for (auto& pool : pools) {
-			if (auto sptr = pool.lock()) {
-				if (sptr->has_capacity_for(aAllocRequest)) {
-					return sptr;
+		if (!aRequestNewPool) {
+			for (auto& pool : pools) {
+				if (auto sptr = pool.lock()) {
+					if (sptr->has_capacity_for(aAllocRequest)) {
+						return sptr;
+					}
 				}
 			}
 		}
-
-		// We weren't lucky => create a new pool:
+		
+		// We weren't lucky (or new pool has been requested) => create a new pool:
 		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name['{}'/{}]", pId.mThreadId, fourcc_to_string(pId.mName), pId.mName));
 		
 		// TODO: On AMD, it seems that all the entries have to be multiplied as well, while on NVIDIA, only multiplying the number of sets seems to be sufficient
