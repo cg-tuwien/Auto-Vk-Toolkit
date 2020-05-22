@@ -428,7 +428,7 @@ namespace cgb
 			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
 			// It is fine to let positionsData go out of scope, since its data has been copied to a
 			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
+			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR // TODO: Abstract this somehow!
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
@@ -438,7 +438,7 @@ namespace cgb
 			std::move(aSyncHandler)
 			// It is fine to let indicesData go out of scope, since its data has been copied to a
 			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
+			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR // TODO: Abstract this somehow!
 		);
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
