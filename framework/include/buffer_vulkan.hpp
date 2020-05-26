@@ -392,8 +392,20 @@ namespace cgb
 	inline void read(const index_buffer_t& target, void* pData,			sync aSyncHandler)	{ read<index_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
 	inline void read(const instance_buffer_t& target, void* pData,		sync aSyncHandler)	{ read<instance_buffer_meta>(target, pData,			std::move(aSyncHandler)); }
 
-	// Convenience overload:
-	// TODO: Support collection types and resize them according to memory requirements!
+	/**
+	 * Read back data from a buffer.
+	 *
+	 * This is a convenience overload to cgb::read.
+	 *
+	 * Example usage:
+	 * uint32_t readData = cgb::read<uint32_t>(mMySsbo, cgb::sync::not_required());
+	 * // ^ given that mMySsbo is a host-coherent buffer. If it is not, sync is required.
+	 *
+	 * @tparam	Meta		Refers to a certain type of buffer (e.g. `uniform_buffer_meta`, `storage_buffer_meta`, etc.)
+	 *						Can usually be deduced automatically.
+	 * @tparam	Ret			Specify the type of data that shall be read from the buffer (this is `uint32_t` in the example above).
+	 * @returns				A value of type `Ret` which is returned by value.
+	 */
 	template <typename Meta, typename Ret>
 	Ret read(
 		const cgb::buffer_t<Meta>& _Source,
