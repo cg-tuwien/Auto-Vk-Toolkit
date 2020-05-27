@@ -22,12 +22,14 @@ namespace cgb
 
 		std::vector<const char*> gRequiredDeviceExtensions;
 
-		device_queue_selection_strategy gQueueSelectionPreference = device_queue_selection_strategy::prefer_separate_queues;
+		device_queue_selection_strategy gQueueSelectionPreference = device_queue_selection_strategy::prefer_everything_on_single_queue;
 
 		bool gPreferSameQueueForGraphicsAndPresent = true;
 
 		uint32_t gDescriptorPoolSizeFactor = 3u;
 
 		bool gLoadImagesInSrgbFormatByDefault = false;
+
+		bool gEnableBufferDeviceAddress = false;
 	}
 }

@@ -55,6 +55,11 @@ namespace cgb
 		 *	Default = false.
 		 */
 		extern bool gLoadImagesInSrgbFormatByDefault;
+
+		/** Enables/disables the buffer device address feature.
+		 *  Default = false.
+		 */
+		extern bool gEnableBufferDeviceAddress; 
 	}
 
 #if defined(USE_OPENGL_CONTEXT)

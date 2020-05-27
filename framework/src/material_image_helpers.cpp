@@ -419,6 +419,11 @@ namespace cgb
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto [positionsData, indicesData] = get_vertices_and_indices(std::move(aModelsAndSelectedMeshes));
+
+		vk::BufferUsageFlags usageFlags{};
+		if (cgb::settings::gEnableBufferDeviceAddress) {
+			usageFlags = vk::BufferUsageFlagBits::eShaderDeviceAddressKHR; // TODO: Abstract this better/in a different way! Global setting affecting ALL buffers can't be the right way.
+		}
 		
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positionsData)
@@ -428,7 +433,7 @@ namespace cgb
 			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
 			// It is fine to let positionsData go out of scope, since its data has been copied to a
 			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR // TODO: Abstract this somehow!
+			, usageFlags
 		);
 
 		index_buffer indexBuffer = cgb::create_and_fill(
@@ -438,7 +443,7 @@ namespace cgb
 			std::move(aSyncHandler)
 			// It is fine to let indicesData go out of scope, since its data has been copied to a
 			// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-			, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR // TODO: Abstract this somehow!
+			, usageFlags
 		);
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));

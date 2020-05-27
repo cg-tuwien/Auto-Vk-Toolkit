@@ -781,12 +781,15 @@ namespace cgb
 
 		    auto deviceVulkan12Features = vk::PhysicalDeviceVulkan12Features{}
 				.setPNext(&deviceFeatures)
-				.setBufferDeviceAddress(VK_TRUE)
 				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
 				.setRuntimeDescriptorArray(VK_TRUE)
 				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
 				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
 				.setDescriptorIndexing(VK_TRUE);
+
+			if (cgb::settings::gEnableBufferDeviceAddress) {
+				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+			}
 
 		    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
 			if (ray_tracing_extension_requested()) {
