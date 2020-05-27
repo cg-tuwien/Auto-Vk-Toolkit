@@ -11,7 +11,7 @@ namespace cgb
 		ray_tracing_pipeline_t(const ray_tracing_pipeline_t&) = delete;
 		ray_tracing_pipeline_t& operator=(ray_tracing_pipeline_t&&) noexcept = default;
 		ray_tracing_pipeline_t& operator=(const ray_tracing_pipeline_t&) = delete;
-		~ray_tracing_pipeline_t() = default;
+		~ray_tracing_pipeline_t();
 
 		const auto& layout_handle() const { return mPipelineLayout.get(); }
 		std::tuple<const ray_tracing_pipeline_t*, const vk::PipelineLayout, const std::vector<vk::PushConstantRange>*> layout() const { return std::make_tuple(this, layout_handle(), &mPushConstantRanges); }

@@ -217,4 +217,11 @@ namespace cgb
 		result.mTracker.setTrackee(result);
 		return result;
 	}
+
+	ray_tracing_pipeline_t::~ray_tracing_pipeline_t()
+	{
+		if (mPipelineLayout) {
+			context().logical_device().destroy(mPipeline);
+		}
+	}
 }
