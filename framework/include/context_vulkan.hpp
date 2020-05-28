@@ -232,6 +232,11 @@ namespace cgb
 		descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
 
 		vk::DeviceAddress get_buffer_address(vk::Buffer aBufferHandle) const;
+
+		auto requested_physical_device_features() const { return mRequestedPhysicalDeviceFeatures; }
+		void set_requested_physical_device_features(vk::PhysicalDeviceFeatures aNewValue) { mRequestedPhysicalDeviceFeatures = aNewValue; }
+		auto requested_vulkan12_device_features() const { return mRequestedVulkan12DeviceFeatures; }
+		void set_requested_vulkan12_device_features(vk::PhysicalDeviceVulkan12Features aNewValue) { mRequestedVulkan12DeviceFeatures = aNewValue; }
 		
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;
@@ -270,6 +275,9 @@ namespace cgb
 		std::unordered_map<pool_id, std::vector<std::weak_ptr<descriptor_pool>>> mDescriptorPools;
 
 		standard_descriptor_cache mStandardDescriptorCache;
+
+		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
+		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
 	};
 
 	template <>

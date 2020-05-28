@@ -59,7 +59,7 @@ namespace cgb
 		/** Enables/disables the buffer device address feature.
 		 *  Default = false.
 		 */
-		extern bool gEnableBufferDeviceAddress; 
+		extern bool gEnableBufferDeviceAddress;
 	}
 
 #if defined(USE_OPENGL_CONTEXT)

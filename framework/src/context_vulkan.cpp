@@ -35,7 +35,28 @@ namespace cgb
 		return supportedValidationLayers;
 	}
 
-	vulkan::vulkan() : generic_glfw()
+	vulkan::vulkan()
+		: generic_glfw()
+		// Set a default for the requested physical device features:
+		, mRequestedPhysicalDeviceFeatures { 
+			vk::PhysicalDeviceFeatures()
+				.setGeometryShader(VK_TRUE)
+				.setTessellationShader(VK_TRUE)
+				.setSamplerAnisotropy(VK_TRUE)
+				.setVertexPipelineStoresAndAtomics(VK_TRUE)
+				.setFragmentStoresAndAtomics(VK_TRUE)
+				.setShaderStorageImageExtendedFormats(VK_TRUE)
+				.setSampleRateShading(VK_TRUE)
+		}
+		// Set a default for the requested Vulkan 1.2 device features:
+		, mRequestedVulkan12DeviceFeatures { 
+			vk::PhysicalDeviceVulkan12Features()
+				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
+				.setRuntimeDescriptorArray(VK_TRUE)
+				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setDescriptorIndexing(VK_TRUE)
+		}
 	{
 		// So it begins
 		create_instance();
@@ -768,24 +789,11 @@ namespace cgb
 			// (Build a pNext chain for further supported extensions)
 
 			auto deviceFeatures = vk::PhysicalDeviceFeatures2()
-				.setFeatures(vk::PhysicalDeviceFeatures()
-					.setGeometryShader(VK_TRUE)
-					.setTessellationShader(VK_TRUE)
-					.setSamplerAnisotropy(VK_TRUE)
-					.setVertexPipelineStoresAndAtomics(VK_TRUE)
-					.setFragmentStoresAndAtomics(VK_TRUE)
-					.setShaderStorageImageExtendedFormats(VK_TRUE)
-					.setSampleRateShading(VK_TRUE)
-				)
+				.setFeatures(context().mRequestedPhysicalDeviceFeatures)
 				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
 
-		    auto deviceVulkan12Features = vk::PhysicalDeviceVulkan12Features{}
-				.setPNext(&deviceFeatures)
-				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
-				.setRuntimeDescriptorArray(VK_TRUE)
-				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setDescriptorIndexing(VK_TRUE);
+		    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
+			deviceVulkan12Features.setPNext(&deviceFeatures);
 
 			if (cgb::settings::gEnableBufferDeviceAddress) {
 				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
@@ -793,10 +801,10 @@ namespace cgb
 
 		    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
 			if (ray_tracing_extension_requested()) {
+				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
 				deviceRayTracingFeatures
 					.setPNext(&deviceFeatures)
 					.setRayTracing(VK_TRUE);
-				
 				deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
 			}
 			
@@ -1068,9 +1076,20 @@ namespace cgb
 		
 		// TODO: On AMD, it seems that all the entries have to be multiplied as well, while on NVIDIA, only multiplying the number of sets seems to be sufficient
 		//       => How to handle this? Overallocation is as bad as underallocation. Shall we make use of exceptions? Shall we 'if' on the vendor?
-		auto allocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
+
+		const bool isNvidia = 0x12d2 == physical_device().getProperties().vendorID;
+		auto allocRequest = aAllocRequest;
+		if (!isNvidia) { // Let's 'if' on the vendor and see what happens...
+			allocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
+		}
 
 		auto newPool = descriptor_pool::create(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets() * settings::gDescriptorPoolSizeFactor);
+
+		if (!isNvidia) {
+			//  However, reset the stored capacities to the non-multiplied version, to not mess up our internal "has_capacity_for-logic":
+			newPool->mCapacities = aAllocRequest.accumulated_pool_sizes();
+		}
+		
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
 	}

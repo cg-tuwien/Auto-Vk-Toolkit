@@ -35,6 +35,7 @@ namespace cgb
 	 */
 	class descriptor_pool
 	{
+		friend class vulkan;
 	public:
 		descriptor_pool() = default;
 		descriptor_pool(descriptor_pool&&) noexcept = default;

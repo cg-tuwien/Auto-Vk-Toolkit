@@ -11,7 +11,7 @@ namespace cgb
 		result.mDescriptorInfo = vk::DescriptorImageInfo{}
 			.setImageView(result.view_handle())
 			.setSampler(result.sampler_handle());
-		result.mDescriptorInfo.setImageLayout(pImageView->get_image().target_layout());
+		result.mDescriptorInfo.setImageLayout(result.mImageView->get_image().target_layout());
 		
 		result.mDescriptorType = vk::DescriptorType::eCombinedImageSampler;
 		return result;
