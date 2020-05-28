@@ -20,7 +20,7 @@ namespace cgb
 		return result;
 	}
 	
-	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, std::optional<image_usage> aImageViewUsage, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
 		
@@ -32,12 +32,12 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, {}, std::move(aAlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, {}, aImageViewUsage, std::move(aAlterConfigBeforeCreation));
 		
 		return result;
 	}
 
-	owning_resource<image_view_t> image_view_t::create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, std::optional<image_usage> aImageViewUsage, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
 		
@@ -49,12 +49,12 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eDepth, std::move(aAlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eDepth, aImageViewUsage, std::move(aAlterConfigBeforeCreation));
 		
 		return result;
 	}
 
-	owning_resource<image_view_t> image_view_t::create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
+	owning_resource<image_view_t> image_view_t::create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat, std::optional<image_usage> aImageViewUsage, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation)
 	{
 		image_view_t result;
 		
@@ -66,12 +66,12 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eStencil, std::move(aAlterConfigBeforeCreation));
+		result.finish_configuration(*aViewFormat, vk::ImageAspectFlagBits::eStencil, aImageViewUsage, std::move(aAlterConfigBeforeCreation));
 		
 		return result;
 	}
 
-	owning_resource<image_view_t> image_view_t::create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat)
+	owning_resource<image_view_t> image_view_t::create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat, std::optional<image_usage> aImageViewUsage)
 	{
 		image_view_t result;
 		
@@ -83,12 +83,12 @@ namespace cgb
 			aViewFormat = image_format(result.get_image().format());
 		}
 
-		result.finish_configuration(*aViewFormat, {}, nullptr);
+		result.finish_configuration(*aViewFormat, {}, aImageViewUsage, nullptr);
 		
 		return result;
 	}
 
-	void image_view_t::finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
+	void image_view_t::finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, std::optional<image_usage> aImageViewUsage, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation)
 	{
 		if (!aImageAspectFlags.has_value()) {
 			const auto imageFormat = image_format(get_image().config().format);
@@ -123,6 +123,13 @@ namespace cgb
 				.setLevelCount(get_image().config().mipLevels)
 				.setBaseArrayLayer(0u)
 				.setLayerCount(get_image().config().arrayLayers));
+
+		if (aImageViewUsage.has_value()) {
+			auto [imageUsage, imageLayout, imageTiling, imageCreateFlags] = determine_usage_layout_tiling_flags_based_on_image_usage(aImageViewUsage.value());
+			mUsageInfo = vk::ImageViewUsageCreateInfo()
+				.setUsage(imageUsage);
+			mInfo.setPNext(&mUsageInfo);
+		}
 
 		// Maybe alter the config?!
 		if (_AlterConfigBeforeCreation.mFunction) {

@@ -79,19 +79,20 @@ namespace cgb
 		*	@param	aAlterConfigBeforeCreation	A context-specific function which allows to modify the `vk::ImageViewCreateInfo` just before the image view will be created. Use `.config()` to access the configuration structure!
 		*	@return	Returns a newly created image.
 		*/
-		static owning_resource<image_view_t> create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
-		static owning_resource<image_view_t> create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
-		static owning_resource<image_view_t> create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, std::optional<image_usage> aImageViewUsage = {}, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create_depth(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, std::optional<image_usage> aImageViewUsage = {}, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
+		static owning_resource<image_view_t> create_stencil(cgb::image aImageToOwn, std::optional<image_format> aViewFormat = std::nullopt, std::optional<image_usage> aImageViewUsage = {}, context_specific_function<void(image_view_t&)> aAlterConfigBeforeCreation = {});
 
-		static owning_resource<image_view_t> create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat = std::nullopt);
+		static owning_resource<image_view_t> create(cgb::image_t aImageToWrap, std::optional<image_format> aViewFormat = std::nullopt, std::optional<image_usage> aImageViewUsage = {});
 
 	private:
-		void finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation);
+		void finish_configuration(image_format aViewFormat, std::optional<vk::ImageAspectFlags> aImageAspectFlags, std::optional<image_usage> aImageViewUsage, context_specific_function<void(image_view_t&)> _AlterConfigBeforeCreation);
 
 		// The "wrapped" image:
 		std::variant<std::monostate, helper_t, cgb::image> mImage;
 		// Config which is passed to the create call and contains all the parameters for image view creation.
 		vk::ImageViewCreateInfo mInfo;
+		vk::ImageViewUsageCreateInfo mUsageInfo;
 		// The image view's handle. This member will contain a valid handle only after successful image view creation.
 		vk::UniqueImageView mImageView;
 		vk::DescriptorImageInfo mDescriptorInfo;
