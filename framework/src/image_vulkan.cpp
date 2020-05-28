@@ -808,6 +808,9 @@ namespace cgb
 		if (cgb::has_flag(aImageUsageFlags, image_usage::is_protected)) {
 			imageCreateFlags |= vk::ImageCreateFlagBits::eProtected;
 		}
+		if (cgb::has_flag(aImageUsageFlags, image_usage::mutable_format)) {
+			imageCreateFlags |= vk::ImageCreateFlagBits::eMutableFormat;
+		}
 		if (cgb::has_flag(aImageUsageFlags, image_usage::shader_storage)) { 
 			imageUsage |= vk::ImageUsageFlagBits::eStorage;	
 			// Can not be Shader Read Only Layout

@@ -54,6 +54,9 @@ namespace cgb
 
 		/** Used as a texture with mip mapping enabled */
 		mip_mapped								= 0x010000,
+
+		/** Configure to support mutable formats */
+		mutable_format							= 0x020000,
 		
 		// v== Some convenience-predefines ==v
 
