@@ -281,134 +281,134 @@ namespace cgb
 	};
 
 	template <>
-	inline void vulkan::track_creation<generic_buffer_t>(generic_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement generic_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<generic_buffer_t>(generic_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement generic_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<uniform_buffer_t>(uniform_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<uniform_buffer_t>(uniform_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<storage_buffer_t>(storage_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement storage_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<storage_buffer_t>(storage_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<storage_texel_buffer_t>(storage_texel_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<storage_texel_buffer_t>(storage_texel_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<vertex_buffer_t>(vertex_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<vertex_buffer_t>(vertex_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<index_buffer_t>(index_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement index_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<index_buffer_t>(index_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement index_buffer_t handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_creation<instance_buffer_t>(instance_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement instance_buffer_t handling in context::track_creation."); }
+	inline void vulkan::track_creation<instance_buffer_t>(instance_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement instance_buffer_t handling in context::track_creation."); }
 
 	template <>
-	inline void vulkan::track_move<generic_buffer_t>(generic_buffer_t* thing, generic_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement generic_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<generic_buffer_t>(generic_buffer_t* thing, generic_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement generic_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<uniform_buffer_t>(uniform_buffer_t* thing, uniform_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<uniform_buffer_t>(uniform_buffer_t* thing, uniform_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing, uniform_texel_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing, uniform_texel_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<storage_buffer_t>(storage_buffer_t* thing, storage_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement storage_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<storage_buffer_t>(storage_buffer_t* thing, storage_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<storage_texel_buffer_t>(storage_texel_buffer_t* thing, storage_texel_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<storage_texel_buffer_t>(storage_texel_buffer_t* thing, storage_texel_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<vertex_buffer_t>(vertex_buffer_t* thing, vertex_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<vertex_buffer_t>(vertex_buffer_t* thing, vertex_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<index_buffer_t>(index_buffer_t* thing, index_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement index_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<index_buffer_t>(index_buffer_t* thing, index_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement index_buffer_t handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_move<instance_buffer_t>(instance_buffer_t* thing, instance_buffer_t* other) { LOG_DEBUG_VERBOSE("TODO: implement instance_buffer_t handling in context::track_move."); }
+	inline void vulkan::track_move<instance_buffer_t>(instance_buffer_t* thing, instance_buffer_t* other) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement instance_buffer_t handling in context::track_move."); }
 
 	template <>
 	inline void vulkan::track_destruction<generic_buffer_t>(generic_buffer_t* thing) {
-		LOG_DEBUG_VERBOSE("TODO: implement generic_buffer_t handling in context::track_destruction."); 
+		LOG_DEBUG_MEGA_VERBOSE("TODO: implement generic_buffer_t handling in context::track_destruction."); 
 	}
 	template <>
-	inline void vulkan::track_destruction<uniform_buffer_t>(uniform_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<uniform_buffer_t>(uniform_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_buffer_t handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<uniform_texel_buffer_t>(uniform_texel_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement uniform_texel_buffer_t handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<storage_buffer_t>(storage_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement storage_buffer_t handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<storage_buffer_t>(storage_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_buffer_t handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<storage_texel_buffer_t>(storage_texel_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<storage_texel_buffer_t>(storage_texel_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement storage_texel_buffer_t handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<vertex_buffer_t>(vertex_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<vertex_buffer_t>(vertex_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement vertex_buffer_t handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<index_buffer_t>(index_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement buffer_t<index_buffer_data> handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<index_buffer_t>(index_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement buffer_t<index_buffer_data> handling in context::track_destruction."); }
 	template <>
-	inline void vulkan::track_destruction<instance_buffer_t>(instance_buffer_t* thing) { LOG_DEBUG_VERBOSE("TODO: implement buffer_t<instance_buffer_t> handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<instance_buffer_t>(instance_buffer_t* thing) { LOG_DEBUG_MEGA_VERBOSE("TODO: implement buffer_t<instance_buffer_t> handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<shader>(shader* thing)				{ LOG_DEBUG_VERBOSE("TODO: implement 'shader' handling in context::track_creation."); }
+	inline void vulkan::track_creation<shader>(shader* thing)				{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'shader' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<shader>(shader* thing, shader* other)	{ LOG_DEBUG_VERBOSE("TODO: implement 'shader' handling in context::track_move."); }
+	inline void vulkan::track_move<shader>(shader* thing, shader* other)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'shader' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<shader>(shader* thing)			{ LOG_DEBUG_VERBOSE("TODO: implement 'shader' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<shader>(shader* thing)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'shader' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing, bottom_level_acceleration_structure_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_move."); }
+	inline void vulkan::track_move<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing, bottom_level_acceleration_structure_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<bottom_level_acceleration_structure_t>(bottom_level_acceleration_structure_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'bottom_level_acceleration_structure_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing, top_level_acceleration_structure_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_move."); }
+	inline void vulkan::track_move<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing, top_level_acceleration_structure_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<top_level_acceleration_structure_t>(top_level_acceleration_structure_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'top_level_acceleration_structure_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<sampler_t>(sampler_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'sampler_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<sampler_t>(sampler_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'sampler_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<sampler_t>(sampler_t* thing, sampler_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'sampler_t' handling in context::track_move."); }
+	inline void vulkan::track_move<sampler_t>(sampler_t* thing, sampler_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'sampler_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<sampler_t>(sampler_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'sampler_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<sampler_t>(sampler_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'sampler_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<image_view_t>(image_view_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'image_view_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<image_view_t>(image_view_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'image_view_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<image_view_t>(image_view_t* thing, image_view_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'image_view_t' handling in context::track_move."); }
+	inline void vulkan::track_move<image_view_t>(image_view_t* thing, image_view_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'image_view_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<image_view_t>(image_view_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'image_view_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<image_view_t>(image_view_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'image_view_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<renderpass_t>(renderpass_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<renderpass_t>(renderpass_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<renderpass_t>(renderpass_t* thing, renderpass_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_move."); }
+	inline void vulkan::track_move<renderpass_t>(renderpass_t* thing, renderpass_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<renderpass_t>(renderpass_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<renderpass_t>(renderpass_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'renderpass_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<graphics_pipeline_t>(graphics_pipeline_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<graphics_pipeline_t>(graphics_pipeline_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<graphics_pipeline_t>(graphics_pipeline_t* thing, graphics_pipeline_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_move."); }
+	inline void vulkan::track_move<graphics_pipeline_t>(graphics_pipeline_t* thing, graphics_pipeline_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<graphics_pipeline_t>(graphics_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<graphics_pipeline_t>(graphics_pipeline_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'graphics_pipeline_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<compute_pipeline_t>(compute_pipeline_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<compute_pipeline_t>(compute_pipeline_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<compute_pipeline_t>(compute_pipeline_t* thing, compute_pipeline_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_move."); }
+	inline void vulkan::track_move<compute_pipeline_t>(compute_pipeline_t* thing, compute_pipeline_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<compute_pipeline_t>(compute_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<compute_pipeline_t>(compute_pipeline_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'compute_pipeline_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing, ray_tracing_pipeline_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_move."); }
+	inline void vulkan::track_move<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing, ray_tracing_pipeline_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<ray_tracing_pipeline_t>(ray_tracing_pipeline_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'ray_tracing_pipeline_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<framebuffer_t>(framebuffer_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<framebuffer_t>(framebuffer_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<framebuffer_t>(framebuffer_t* thing, framebuffer_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_move."); }
+	inline void vulkan::track_move<framebuffer_t>(framebuffer_t* thing, framebuffer_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<framebuffer_t>(framebuffer_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<framebuffer_t>(framebuffer_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'framebuffer_t' handling in context::track_destruction."); }
 
 	template <>
-	inline void vulkan::track_creation<buffer_view_t>(buffer_view_t* thing)		{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_creation."); }
+	inline void vulkan::track_creation<buffer_view_t>(buffer_view_t* thing)		{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_creation."); }
 	template <>
-	inline void vulkan::track_move<buffer_view_t>(buffer_view_t* thing, buffer_view_t* other)			{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_move."); }
+	inline void vulkan::track_move<buffer_view_t>(buffer_view_t* thing, buffer_view_t* other)			{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_move."); }
 	template <>
-	inline void vulkan::track_destruction<buffer_view_t>(buffer_view_t* thing)	{ LOG_DEBUG_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_destruction."); }
+	inline void vulkan::track_destruction<buffer_view_t>(buffer_view_t* thing)	{ LOG_DEBUG_MEGA_VERBOSE("TODO: implement 'buffer_view_t_t' handling in context::track_destruction."); }
 
 	template <>
 	inline void vulkan::track_creation<descriptor_set>(descriptor_set* thing) { }

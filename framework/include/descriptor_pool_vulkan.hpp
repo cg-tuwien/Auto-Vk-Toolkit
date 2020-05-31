@@ -49,11 +49,12 @@ namespace cgb
 		std::vector<vk::DescriptorSet> allocate(const std::vector<std::reference_wrapper<const descriptor_set_layout>>& aLayouts);
 		// TODO: IF required, implement a std::vector<vk::DescriptorSet> allocate_unique method!
 		
-		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& pSizeRequirements, int numSets);
+		static std::shared_ptr<descriptor_pool> create(const std::vector<vk::DescriptorPoolSize>& aSizeRequirements, int aNumSets);
 		
 	private:
 		vk::UniqueDescriptorPool mDescriptorPool;
-		std::vector<vk::DescriptorPoolSize> mCapacities;
+		std::vector<vk::DescriptorPoolSize> mInitialCapacities;
+		std::vector<vk::DescriptorPoolSize> mRemainingCapacities;
 		int mNumInitialSets;
 		int mNumRemainingSets;
 	};

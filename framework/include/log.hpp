@@ -17,9 +17,10 @@ namespace cgb
 	// 1 ... error messages only
 	// 2 ... errors and warnings
 	// 3 ... errors, warnings and infos
-	// 4 ... everything
+	// 4 ... errors, warnings, infos, and verbose
+	// 5 ... errors, warnings, infos, verbose, and mega-verbose
 	#if !defined(LOG_LEVEL)
-	#define LOG_LEVEL 3
+	#define LOG_LEVEL 4
 	#endif
 
 	enum struct log_type
@@ -100,6 +101,18 @@ namespace cgb
 	#define LOG_VERBOSE_EM__(msg)
 	#endif
 
+	#if LOG_LEVEL > 4
+	#define LOG_MEGA_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::important })
+	#define LOG_MEGA_VERBOSE__(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), cgb::log_type::verbose, cgb::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), cgb::log_type::verbose, cgb::log_importance::important })
+	#else 
+	#define LOG_MEGA_VERBOSE(msg)
+	#define LOG_MEGA_VERBOSE_EM(msg)
+	#define LOG_MEGA_VERBOSE__(msg)
+	#define LOG_MEGA_VERBOSE_EM__(msg)
+	#endif
+
 	#ifdef _DEBUG
 	#define LOG_DEBUG(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug, cgb::log_importance::normal })
 	#define LOG_DEBUG_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug, cgb::log_importance::important })
@@ -122,6 +135,18 @@ namespace cgb
 	#define LOG_DEBUG_VERBOSE_EM(msg)   
 	#define LOG_DEBUG_VERBOSE__(msg)
 	#define LOG_DEBUG_VERBOSE_EM__(msg)
+	#endif
+
+	#if defined(_DEBUG) && LOG_LEVEL > 4
+	#define LOG_DEBUG_MEGA_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), cgb::log_type::debug_verbose, cgb::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), cgb::log_type::debug_verbose, cgb::log_importance::important })
+	#else
+	#define LOG_DEBUG_MEGA_VERBOSE(msg)
+	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)   
+	#define LOG_DEBUG_MEGA_VERBOSE__(msg)
+	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)
 	#endif
 
 	std::string to_string(const glm::mat4&);

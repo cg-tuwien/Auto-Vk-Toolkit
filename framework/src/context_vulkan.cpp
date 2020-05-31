@@ -1078,17 +1078,23 @@ namespace cgb
 		//       => How to handle this? Overallocation is as bad as underallocation. Shall we make use of exceptions? Shall we 'if' on the vendor?
 
 		const bool isNvidia = 0x12d2 == physical_device().getProperties().vendorID;
-		auto allocRequest = aAllocRequest;
-		if (!isNvidia) { // Let's 'if' on the vendor and see what happens...
-			allocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
-		}
+		auto amplifiedAllocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
+		//if (!isNvidia) { // Let's 'if' on the vendor and see what happens...
+		//}
 
-		auto newPool = descriptor_pool::create(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets() * settings::gDescriptorPoolSizeFactor);
+		auto newPool = descriptor_pool::create(
+			isNvidia 
+			  ? aAllocRequest.accumulated_pool_sizes()
+			  : amplifiedAllocRequest.accumulated_pool_sizes(),
+			isNvidia
+			  ? aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor
+			  : aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor * 2 // the last factor is a "magic number"/"educated guess"/"preemtive strike"
+		);
 
-		if (!isNvidia) {
-			//  However, reset the stored capacities to the non-multiplied version, to not mess up our internal "has_capacity_for-logic":
-			newPool->mCapacities = aAllocRequest.accumulated_pool_sizes();
-		}
+		//  However, set the stored capacities to the amplified version, to not mess up our internal "has_capacity_for-logic":
+		newPool->mRemainingCapacities = amplifiedAllocRequest.accumulated_pool_sizes();
+		//if (!isNvidia) {
+		//}
 		
 		pools.emplace_back(newPool); // Store as a weak_ptr
 		return newPool;
