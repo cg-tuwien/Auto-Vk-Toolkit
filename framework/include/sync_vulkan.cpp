@@ -228,13 +228,13 @@ namespace cgb
 	
 	std::reference_wrapper<device_queue> sync::queue_to_use() const
 	{
-#ifdef _DEBUG
+#if defined(_DEBUG) && LOG_LEVEL > 4
 		if (!mQueueToUse.has_value()) {
 			if (mQueueRecommendation.has_value()) {
-				LOG_DEBUG_VERBOSE(fmt::format("No queue specified => will submit to queue {} which was recommended by the operation. HTH.", mQueueRecommendation.value().get().queue_index()));
+				LOG_DEBUG_MEGA_VERBOSE(fmt::format("No queue specified => will submit to queue {} which was recommended by the operation. HTH.", mQueueRecommendation.value().get().queue_index()));
 			}
 			else {
-				LOG_DEBUG("No queue specified => will submit to the graphics queue. HTH.");
+				LOG_DEBUG_MEGA_VERBOSE("No queue specified => will submit to the graphics queue. HTH.");
 			}
 		}
 #endif
