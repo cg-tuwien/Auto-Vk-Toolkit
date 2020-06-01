@@ -191,6 +191,7 @@ int main() // <== Starting point ==
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+		cgb::settings::gEnableBufferDeviceAddress = true;
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it

@@ -9,13 +9,16 @@ namespace cgb
 		
 		// 1. Gather all geometry descriptions and create vk::AccelerationStructureCreateGeometryTypeInfoKHR entries:
 		for (auto& gd : aGeometryDescriptions) {
-			result.mGeometryInfos.emplace_back()
+			auto& back = result.mGeometryInfos.emplace_back()
 				.setGeometryType(gd.mGeometryType)
 				.setMaxPrimitiveCount(gd.mNumPrimitives)
-				.setIndexType(cgb::to_vk_index_type(gd.mIndexTypeSize))
 				.setMaxVertexCount(gd.mNumVertices)
 				.setVertexFormat(gd.mVertexFormat.mFormat)
 				.setAllowsTransforms(VK_FALSE); // TODO: Add support for transforms (allowsTransforms indicates whether transform data can be used by this acceleration structure or not, when geometryType is VK_GEOMETRY_TYPE_TRIANGLES_KHR.)
+			if (vk::GeometryTypeKHR::eTriangles == gd.mGeometryType) {
+				back.setIndexType(cgb::to_vk_index_type(gd.mIndexTypeSize));
+				// TODO: Support non-indexed geometry
+			}
 		} // for each geometry description
 		
 		// 2. Assemble info about the BOTTOM LEVEL acceleration structure and the set its geometry

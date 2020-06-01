@@ -128,8 +128,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::max_recursion_depth::set_to_max(),
 			// Define push constants and descriptor bindings:
 			cgb::push_constant_binding_data { cgb::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
-			cgb::binding(0, 0, mOffscreenImageViews[0]), // Just take any, this is just to define the layout
-			cgb::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
+			cgb::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
+			cgb::binding(1, 0, mTLAS[0])                                     // Just take any, this is just to define the layout
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
@@ -251,7 +251,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), {
-				cgb::binding(0, 0, mOffscreenImageViews[inFlightIndex]),
+				cgb::binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
 				cgb::binding(1, 0, mTLAS[inFlightIndex])
 			}
 		);
@@ -312,6 +312,7 @@ int main() // <== Starting point ==
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+		cgb::settings::gEnableBufferDeviceAddress = true;
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it

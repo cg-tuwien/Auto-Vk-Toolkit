@@ -136,9 +136,6 @@
     <ClCompile Include="..\..\framework\src\attachment.cpp">
       <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\binding_data_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\fence_vulkan.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>

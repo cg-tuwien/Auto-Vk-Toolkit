@@ -60,8 +60,8 @@ namespace cgb
 
 
 	template<typename T> 
-	typename std::enable_if<has_size_and_iterators<T>::value, std::vector<typename T::value_type::value_type*>>::type gather_one_or_multiple_element_pointers(T& t) {
-		std::vector<typename T::value_type::value_type*> results;
+	typename std::enable_if<has_size_and_iterators<T>::value, std::vector<const typename T::value_type::value_type*>>::type gather_one_or_multiple_element_pointers(const T& t) {
+		std::vector<const typename T::value_type::value_type*> results;
 		for (size_t i = 0; i < t.size(); ++i) {
 			results.push_back(&(*t[i]));
 		}
@@ -69,12 +69,12 @@ namespace cgb
 	}
 
 	template<typename T> 
-	typename std::enable_if<!has_size_and_iterators<T>::value && is_dereferenceable<T>::value, typename T::value_type*>::type gather_one_or_multiple_element_pointers(T& t) {
+	typename std::enable_if<!has_size_and_iterators<T>::value && is_dereferenceable<T>::value, const typename T::value_type*>::type gather_one_or_multiple_element_pointers(const T& t) {
 		return &*t;
 	}
 
 	template<typename T> 
-	typename std::enable_if<!has_size_and_iterators<T>::value && !is_dereferenceable<T>::value, T*>::type gather_one_or_multiple_element_pointers(T& t) {
+	typename std::enable_if<!has_size_and_iterators<T>::value && !is_dereferenceable<T>::value, const T*>::type gather_one_or_multiple_element_pointers(const T& t) {
 		return &t;
 	}
 
@@ -89,7 +89,7 @@ namespace cgb
 				.setDescriptorType(descriptor_type_of(&first_or_only_element(aResource)))
 				.setStageFlags(to_vk_shader_stages(aShaderStages))
 				.setPImmutableSamplers(nullptr), // The pImmutableSamplers field is only relevant for image sampling related descriptors [3]
-			gather_one_or_multiple_element_pointers(const_cast<T&>(aResource))
+			gather_one_or_multiple_element_pointers(aResource)
 		};
 		return data;
 	}

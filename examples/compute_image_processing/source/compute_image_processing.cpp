@@ -112,18 +112,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mComputePipelines.resize(3);
 		mComputePipelines[0] = cgb::compute_pipeline_for(
 			"shaders/emboss.comp",
-			cgb::binding(0, mInputImageAndSampler->get_image_view()),
-			cgb::binding(1, mTargetImageAndSampler->get_image_view())
+			cgb::binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			cgb::binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 		mComputePipelines[1] = cgb::compute_pipeline_for(
 			"shaders/edgedetect.comp",
-			cgb::binding(0, mInputImageAndSampler->get_image_view()),
-			cgb::binding(1, mTargetImageAndSampler->get_image_view())
+			cgb::binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			cgb::binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 		mComputePipelines[2] = cgb::compute_pipeline_for(
 			"shaders/sharpen.comp",
-			cgb::binding(0, mInputImageAndSampler->get_image_view()),
-			cgb::binding(1, mTargetImageAndSampler->get_image_view())
+			cgb::binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			cgb::binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
@@ -244,8 +244,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// Set the descriptors of the uniform buffer
 			cmdbfr->bind_pipeline(mComputePipelines[computeIndex]);
 			cmdbfr->bind_descriptors(mComputePipelines[computeIndex]->layout(), {
-				cgb::binding(0, mInputImageAndSampler->get_image_view()),
-				cgb::binding(1, mTargetImageAndSampler->get_image_view())
+				cgb::binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+				cgb::binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 			});
 			cmdbfr->handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
 
