@@ -218,14 +218,29 @@ namespace cgb
 		{
 			handles.push_back(dset->handle());
 		}
-		
-		handle().bindDescriptorSets(
-			aBindingPoint, 
-			aLayoutHandle, 
-			dsets.front()->set_id(),
-			static_cast<uint32_t>(handles.size()),
-			handles.data(), 
-			0, // TODO: Dynamic offset count
-			nullptr); // TODO: Dynamic offset
+
+		if (dsets.empty()) {
+			return;
+		}
+
+		// Issue one or multiple bindDescriptorSets commands. We can only bind CONSECUTIVELY NUMBERED sets.
+		size_t descIdx = 0;
+		while (descIdx < dsets.size()) {
+			const uint32_t setId = dsets[descIdx]->set_id();
+			uint32_t count = 1u;
+			while ((descIdx + count) < dsets.size() && dsets[descIdx + count]->set_id() == (setId + count)) {
+				++count;
+			}
+
+			handle().bindDescriptorSets(
+				aBindingPoint, 
+				aLayoutHandle, 
+				setId, count,
+				&handles[descIdx], 
+				0, // TODO: Dynamic offset count
+				nullptr); // TODO: Dynamic offset
+
+			descIdx += count;
+		}
 	}
 }

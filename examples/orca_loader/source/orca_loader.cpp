@@ -16,7 +16,6 @@ class orca_loader_app : public cgb::cg_element
 
 	struct transformation_matrices {
 		glm::mat4 mModelMatrix;
-		glm::mat4 mProjViewMatrix;
 		int mMaterialIndex;
 	};
 
@@ -146,6 +145,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_semaphore_to_backbuffer_dependency()
 		);
+
+		mViewProjBuffer = cgb::create(
+			cgb::uniform_buffer_meta::create_from_data(glm::mat4()),
+			cgb::memory_usage::host_coherent
+		);
 		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
@@ -178,8 +182,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(1, 0, mMaterialBuffer) 
+			cgb::binding(0, 5, mViewProjBuffer),
+			cgb::binding(4, 4, mImageSamplers),
+			cgb::binding(7, 9, mMaterialBuffer) 
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
@@ -207,14 +212,18 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void render() override
 	{
 		auto mainWnd = cgb::context().main_window();
+
+		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		cgb::fill(mViewProjBuffer, glm::value_ptr(viewProjMat), cgb::sync::not_required());
 		
 		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 		cmdbfr->begin_recording();
 		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mainWnd->backbufer_for_frame());
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(mPipeline->layout(), { 
-				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer)
+		cmdbfr->bind_descriptors(mPipeline->layout(), {
+				cgb::binding(0, 5, mViewProjBuffer),
+				cgb::binding(4, 4, mImageSamplers),
+				cgb::binding(7, 9, mMaterialBuffer)
 			}
 		);
 
@@ -227,9 +236,10 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			}, { 0, 0, 0 });
 
 			// Set the push constants:
-			auto pushConstantsForThisDrawCall = transformation_matrices { 
-				glm::mat4{glm::orientate3(mRotateScene)} * drawCall.mModelMatrix * glm::mat4{glm::orientate3(mRotateObjects)},	// <-- mModelMatrix
-				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),														// <-- mProjViewMatrix
+			auto pushConstantsForThisDrawCall = transformation_matrices {
+				// Set model matrix for this mesh:
+				glm::mat4{glm::orientate3(mRotateScene)} * drawCall.mModelMatrix * glm::mat4{glm::orientate3(mRotateObjects)},
+				// Set material index for this mesh:
 				drawCall.mMaterialIndex
 			};
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
@@ -288,6 +298,7 @@ private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
+	cgb::uniform_buffer mViewProjBuffer;
 	cgb::storage_buffer mMaterialBuffer;
 	std::vector<cgb::image_sampler> mImageSamplers;
 
@@ -305,6 +316,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// What's the name of our application
+		//cgb::settings::gPhysicalDeviceSelectionHint = "radeon";
 		cgb::settings::gApplicationName = "cg_base::orca_loader";
 		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;

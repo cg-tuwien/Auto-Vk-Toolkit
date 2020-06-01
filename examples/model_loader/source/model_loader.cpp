@@ -20,7 +20,6 @@ class model_loader_app : public cgb::cg_element
 
 	struct transformation_matrices {
 		glm::mat4 mModelMatrix;
-		glm::mat4 mProjViewMatrix;
 		int mMaterialIndex;
 	};
 
@@ -99,6 +98,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()
 		);
+
+		mViewProjBuffer = cgb::create(
+			cgb::uniform_buffer_meta::create_from_data(glm::mat4()),
+			cgb::memory_usage::host_coherent
+		);
 		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
@@ -133,6 +137,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
 			cgb::binding(0, 0, mImageSamplers),
+			cgb::binding(0, 1, mViewProjBuffer),
 			cgb::binding(1, 0, mMaterialBuffer)
 		);
 
@@ -160,16 +165,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void render() override
 	{
 		auto mainWnd = cgb::context().main_window();
+
+		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		cgb::fill(mViewProjBuffer, glm::value_ptr(viewProjMat), cgb::sync::not_required());
 		
 		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
 		cmdbfr->begin_recording();
 		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mainWnd->backbufer_for_frame());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), { 
-				cgb::binding(0, 0, mImageSamplers),
-				cgb::binding(1, 0, mMaterialBuffer)
-			}
-		);
+			cgb::binding(0, 0, mImageSamplers),
+			cgb::binding(0, 1, mViewProjBuffer),
+			cgb::binding(1, 0, mMaterialBuffer)
+		});
 
 		for (auto& drawCall : mDrawCalls) {
 			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
@@ -181,8 +189,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// Set the push constants:
 			auto pushConstantsForThisDrawCall = transformation_matrices { 
-				glm::scale(glm::vec3(0.01f) * mScale),					// <-- mModelMatrix
-				mQuakeCam.projection_matrix() * mQuakeCam.view_matrix(),// <-- mProjViewMatrix
+				// Set model matrix for this mesh:
+				glm::scale(glm::vec3(0.01f) * mScale),
+				// Set material index for this mesh:
 				drawCall.mMaterialIndex
 			};
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
@@ -245,6 +254,7 @@ private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
+	cgb::uniform_buffer mViewProjBuffer;
 	cgb::storage_buffer mMaterialBuffer;
 	std::vector<cgb::image_sampler> mImageSamplers;
 

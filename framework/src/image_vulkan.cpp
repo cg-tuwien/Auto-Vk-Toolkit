@@ -87,7 +87,7 @@ namespace cgb
 		);
 
 		if (cgb::context().state() < context_state::fully_initialized) {
-			return formatCandidates[1];
+			return formatCandidates[0];
 		}
 
 		auto candidateScores = cgb::make_array<uint32_t>(0u, 0u, 0u, 0u, 0u);

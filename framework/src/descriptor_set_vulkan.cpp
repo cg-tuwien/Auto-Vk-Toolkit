@@ -39,8 +39,8 @@ namespace cgb
 
 		// Step 2: assemble the separate sets
 		result.mFirstSetId = minSetId;
-		result.mLayouts.reserve(maxSetId - minSetId + 1);
-		for (uint32_t setId = minSetId; setId <= maxSetId; ++setId) {
+		result.mLayouts.reserve(maxSetId); // Also create layouts for sets that have no bindings, i.e. ALWAYS prepare ALL sets for EACH set-id from 0 to maxSetId
+		for (uint32_t setId = 0u; setId <= maxSetId; ++setId) {
 			auto lb = std::lower_bound(std::begin(orderedBindings), std::end(orderedBindings), binding_data{ setId },
 				[](const binding_data& first, const binding_data& second) -> bool {
 					return first.mSetId < second.mSetId;
@@ -49,6 +49,7 @@ namespace cgb
 				[](const binding_data& first, const binding_data& second) -> bool {
 					return first.mSetId < second.mSetId;
 				});
+			// For empty sets, lb==ub, which means no descriptors will be regarded. This should be fine.
 			result.mLayouts.push_back(descriptor_set_layout::prepare(lb, ub));
 		}
 
@@ -184,6 +185,11 @@ namespace cgb
 					return first.mSetId < second.mSetId;
 				});
 
+			// Handle empty sets:
+			if (lb == ub) {
+				continue;
+			}
+
 			const auto& layout = aCache->get_or_alloc_layout(descriptor_set_layout::prepare(lb, ub));
 			layouts.emplace_back(layout);
 			auto preparedSet = descriptor_set::prepare(lb, ub);
@@ -194,7 +200,7 @@ namespace cgb
 		}
 
 		// Everything is cached; we're done.
-		if (cachedSets.size() == numCached) {
+		if (static_cast<int>(cachedSets.size()) == numCached) {
 			return cachedSets;
 		}
 
