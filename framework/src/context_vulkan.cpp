@@ -597,20 +597,22 @@ namespace cgb
 				(computeBitSet ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
+
+			auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
 			
 			if (!settings::gPhysicalDeviceSelectionHint.empty()) {
-				score += find_case_insensitive(properties.deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
+				score += find_case_insensitive(deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
 			}
 
 			// Check if extensions are required
 			if (!supports_all_required_extensions(device)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all required extensions.", properties.deviceName));
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all required extensions.", deviceName));
 				score = 0;
 			}
 
 			// Check if anisotropy is supported
 			if (!supportedFeatures.samplerAnisotropy) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not sampler anisotropy.", properties.deviceName));
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not sampler anisotropy.", deviceName));
 				score = 0;
 			}
 

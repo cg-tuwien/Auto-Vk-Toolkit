@@ -113,8 +113,11 @@
 #include "image_opengl.hpp"
 #include "image_view_opengl.hpp"
 #elif defined(USE_VULKAN_CONTEXT)
+
+#define VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL 0
 #include <vulkan/vulkan.hpp>
 static_assert( VK_HEADER_VERSION >= 131 , "VK_HEADER_VERSION must be greater than or equal 131 (SDK 1.1.131.1 or newer)." );
+
 #include "buffer_member_format_vulkan.hpp"
 #include "semaphore_vulkan.hpp"
 #include "fence_vulkan.hpp"
