@@ -197,6 +197,9 @@ namespace cgb
 			cachedSets.emplace_back(cachedSet);
 			numCached += nullptr != cachedSet ? 1 : 0;
 			preparedSets.emplace_back(std::move(preparedSet));
+			if (nullptr != cachedSet) {
+				cachedSet->mSetId = preparedSet.mSetId;
+			}
 		}
 
 		// Everything is cached; we're done.

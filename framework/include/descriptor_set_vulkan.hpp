@@ -263,7 +263,7 @@ namespace cgb
 		std::shared_ptr<descriptor_pool> mPool;
 		vk::DescriptorSet mDescriptorSet;
 		// TODO: Are there cases where vk::UniqueDescriptorSet would be beneficial? Right now, the pool cleans up all the descriptor sets.
-		uint32_t mSetId;
+		mutable uint32_t mSetId;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorImageInfo>>> mStoredImageInfos;
 		std::vector<std::tuple<uint32_t, std::vector<vk::DescriptorBufferInfo>>> mStoredBufferInfos;
 		std::vector<std::tuple<uint32_t, std::vector<vk::BufferView>>> mStoredBufferViews;
