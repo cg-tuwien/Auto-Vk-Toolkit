@@ -165,7 +165,7 @@ namespace cgb
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
 		std::vector<cgb::material_config> aMaterialConfigs, 
-		cgb::image_usage aImageUsage,
+		xv::image_usage aImageUsage,
 		cgb::filter_mode aTextureFilterMode, 
 		cgb::border_handling_mode aBorderHandlingMode,
 		sync aSyncHandler)
@@ -348,7 +348,7 @@ namespace cgb
 			imageSamplers.push_back(
 				image_sampler_t::create(
 					image_view_t::create(
-						create_1px_texture({ 255, 255, 255, 255 }, cgb::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 255, 255, 255, 255 }, xv::memory_usage::device, aImageUsage, getSync())
 					),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
@@ -364,7 +364,7 @@ namespace cgb
 			imageSamplers.push_back(
 				image_sampler_t::create(
 					image_view_t::create(
-						create_1px_texture({ 127, 127, 255, 0 }, cgb::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 127, 127, 255, 0 }, xv::memory_usage::device, aImageUsage, getSync())
 					),
 					sampler_t::create(filter_mode::nearest_neighbor, border_handling_mode::repeat)
 				)
@@ -383,7 +383,7 @@ namespace cgb
 			
 			imageSamplers.push_back(
 				image_sampler_t::create(
-					image_view_t::create(create_image_from_file(pair.first, true, potentiallySrgb, 4, cgb::memory_usage::device, aImageUsage, getSync())),
+					image_view_t::create(create_image_from_file(pair.first, true, potentiallySrgb, 4, xv::memory_usage::device, aImageUsage, getSync())),
 					sampler_t::create(aTextureFilterMode, aBorderHandlingMode)
 				)
 			);
@@ -428,7 +428,7 @@ namespace cgb
 		vertex_buffer positionsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(positionsData)
 				.describe_only_member(positionsData[0], 0, content_description::position),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			positionsData.data(),
 			sync::auxiliary_with_barriers(aSyncHandler, sync::steal_before_handler_on_demand, {})
 			// It is fine to let positionsData go out of scope, since its data has been copied to a
@@ -438,7 +438,7 @@ namespace cgb
 
 		index_buffer indexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(indicesData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			indicesData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let indicesData go out of scope, since its data has been copied to a
@@ -470,7 +470,7 @@ namespace cgb
 		
 		vertex_buffer normalsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(normalsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			normalsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let normalsData go out of scope, since its data has been copied to a
@@ -501,7 +501,7 @@ namespace cgb
 		
 		vertex_buffer tangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(tangentsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			tangentsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let tangentsData go out of scope, since its data has been copied to a
@@ -532,7 +532,7 @@ namespace cgb
 		
 		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			bitangentsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let bitangentsData go out of scope, since its data has been copied to a
@@ -563,7 +563,7 @@ namespace cgb
 		
 		vertex_buffer colorsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(colorsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			colorsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let colorsData go out of scope, since its data has been copied to a
@@ -594,7 +594,7 @@ namespace cgb
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let texCoordsData go out of scope, since its data has been copied to a
@@ -625,7 +625,7 @@ namespace cgb
 		
 		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)
 			// It is fine to let texCoordsData go out of scope, since its data has been copied to a

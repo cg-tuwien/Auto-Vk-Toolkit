@@ -47,14 +47,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Add a pyramid:
 		auto pyrVert = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(mVertexData).describe_member(&Vertex::pos, 0, cgb::content_description::position),
-			cgb::memory_usage::host_coherent,
+			xv::memory_usage::host_coherent,
 			mVertexData.data(),
 			cgb::sync::wait_idle(),
 			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
 		);
 		auto pyrIndex = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	
-			cgb::memory_usage::host_coherent,
+			xv::memory_usage::host_coherent,
 			mIndices.data(),
 			cgb::sync::wait_idle(),
 			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
@@ -75,7 +75,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		};
 
 		auto aabbBuffer = cgb::create_and_fill(cgb::generic_buffer_meta::create_from_data(aabbs),
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			aabbs.data(),
 			cgb::sync::wait_idle(),
 			vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR
@@ -109,7 +109,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
 			mOffscreenImageViews.emplace_back(
 				cgb::image_view_t::create(
-					cgb::image_t::create(wdth, hght, frmt, 1, cgb::memory_usage::device, cgb::image_usage::general_storage_image)
+					cgb::image_t::create(wdth, hght, frmt, 1, xv::memory_usage::device, xv::image_usage::general_storage_image)
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));

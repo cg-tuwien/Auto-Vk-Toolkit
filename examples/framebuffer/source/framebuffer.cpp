@@ -49,7 +49,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mVertexBuffers.push_back(
 				cgb::create(
 					cgb::vertex_buffer_meta::create_from_data(mVertexData),	// Pass/create meta data about the vertex data
-					cgb::memory_usage::device								// We want our buffer to "live" in GPU memory
+					xv::memory_usage::device								// We want our buffer to "live" in GPU memory
 				)
 			);
 		});
@@ -58,16 +58,14 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// (hence the usage of cgb::create_and_fill instead of just cgb::create)
 		mIndexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	// Pass/create meta data about the indices
-			cgb::memory_usage::device,							// Also this buffer should "live" in GPU memory
+			xv::memory_usage::device,							// Also this buffer should "live" in GPU memory
 			mIndices.data(),									// Since we also want to upload the data => pass a data pointer
 			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
 		);
-
-		using namespace cgb::att;
 		
 		const auto r = cgb::context().main_window()->resolution();
-		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), 1, cgb::memory_usage::device, cgb::image_usage::general_color_attachment));
-		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), 1, cgb::memory_usage::device, cgb::image_usage::general_depth_stencil_attachment));
+		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), 1, xv::memory_usage::device, xv::image_usage::general_color_attachment));
+		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), 1, xv::memory_usage::device, xv::image_usage::general_depth_stencil_attachment));
 		auto colorAttachmentDescription = cgb::attachment::declare_for(colorAttachment, on_load::clear, color(0),			on_store::store);
 		auto depthAttachmentDescription = cgb::attachment::declare_for(depthAttachment, on_load::clear, depth_stencil(),	on_store::store);
 		mOneFramebuffer = cgb::framebuffer_t::create(

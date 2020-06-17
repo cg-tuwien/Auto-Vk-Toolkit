@@ -145,7 +145,7 @@ namespace std
 		std::size_t operator()(cgb::lightsource const& o) const noexcept
 		{
 			std::size_t h = 0;
-			cgb::hash_combine(h, 
+			ak::hash_combine(h, 
 				o.mAngleInnerCone,
 				o.mAngleOuterCone,
 				o.mAttenuationConstant,

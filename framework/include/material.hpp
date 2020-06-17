@@ -108,7 +108,7 @@ namespace std // Inject hash for `cgb::material` into std::
 			auto& config = o.mMaterialConfig;
 
 			std::size_t h = 0;
-			cgb::hash_combine(h,
+			ak::hash_combine(h,
 				config.mDiffuseReflectivity,
 				config.mAmbientReflectivity,
 				config.mSpecularReflectivity,
@@ -156,7 +156,7 @@ namespace std // Inject hash for `cgb::material` into std::
 				config.mExtraTexOffsetTiling
 			);
 			if (!config.mIgnoreCpuOnlyDataForEquality) {
-				cgb::hash_combine(h,
+				ak::hash_combine(h,
 					config.mShadingModel,
 					config.mWireframeMode,
 					config.mTwosided,

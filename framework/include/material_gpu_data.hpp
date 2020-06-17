@@ -133,7 +133,7 @@ namespace std // Inject hash for `cgb::material_gpu_data` into std::
 		std::size_t operator()(cgb::material_gpu_data const& o) const noexcept
 		{
 			std::size_t h = 0;
-			cgb::hash_combine(h,
+			ak::hash_combine(h,
 				o.mDiffuseReflectivity,
 				o.mAmbientReflectivity,
 				o.mSpecularReflectivity,

@@ -1,24 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug_OpenGL|x64">
-      <Configuration>Debug_OpenGL</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug_Vulkan|x64">
       <Configuration>Debug_Vulkan</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Publish_OpenGL|x64">
-      <Configuration>Publish_OpenGL</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Publish_Vulkan|x64">
       <Configuration>Publish_Vulkan</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release_OpenGL|x64">
-      <Configuration>Release_OpenGL</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release_Vulkan|x64">
@@ -27,134 +15,41 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\auto_vulkan\include\ak\sync.cpp" />
+    <ClCompile Include="..\..\auto_vulkan\src\ak.cpp" />
+    <ClCompile Include="..\..\auto_vulkan\src\vulkan_helper_functions.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_impl_opengl3.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\framework\include\sync_vulkan.cpp" />
+    <ClCompile Include="..\..\framework\include\sync.cpp" />
     <ClCompile Include="..\..\framework\src\acceleration_structure_size_requirements.cpp" />
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
-    <ClCompile Include="..\..\framework\src\attachment.cpp" />
-    <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure_vulkan.cpp" />
-    <ClCompile Include="..\..\framework\src\buffer_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\buffer_view_vulkan.cpp" />
-    <ClCompile Include="..\..\framework\src\buffer_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure.cpp" />
+    <ClCompile Include="..\..\framework\src\buffer_view.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
     <ClCompile Include="..\..\framework\src\cg_element.cpp" />
-    <ClCompile Include="..\..\framework\src\command_buffer_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\command_pool_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />
-    <ClCompile Include="..\..\framework\src\compute_pipeline_config.cpp" />
-    <ClCompile Include="..\..\framework\src\compute_pipeline_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\context.cpp" />
     <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp" />
-    <ClCompile Include="..\..\framework\src\context_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\descriptor_pool_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\descriptor_set_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\descriptor_pool.cpp" />
+    <ClCompile Include="..\..\framework\src\descriptor_set.cpp" />
     <ClCompile Include="..\..\framework\src\essential_utils.cpp" />
-    <ClCompile Include="..\..\framework\src\fence_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\fence_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\fence.cpp" />
     <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp" />
-    <ClCompile Include="..\..\framework\src\framebuffer_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\framebuffer_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\geometry_instance_vulkan.cpp" />
+    <ClCompile Include="..\..\framework\src\framebuffer.cpp" />
+    <ClCompile Include="..\..\framework\src\geometry_instance.cpp" />
     <ClCompile Include="..\..\framework\src\graphics_pipeline_config.cpp" />
-    <ClCompile Include="..\..\framework\src\image_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\image_sampler_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\image_sampler_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\image_view_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\image_view_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\image_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\input_buffer.cpp" />
     <ClCompile Include="..\..\framework\src\input_description.cpp" />
     <ClCompile Include="..\..\framework\src\log.cpp" />
@@ -163,278 +58,126 @@
     <ClCompile Include="..\..\framework\src\memory_access.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
-    <ClCompile Include="..\..\framework\src\pipeline_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\graphics_pipeline_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\graphics_pipeline.cpp" />
     <ClCompile Include="..\..\framework\src\quake_camera.cpp" />
-    <ClCompile Include="..\..\framework\src\queue_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\queue_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_config.cpp" />
-    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_vulkan.cpp" />
-    <ClCompile Include="..\..\framework\src\renderpass_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\renderpass_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\sampler_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\sampler_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\semaphore_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\semaphore_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\shader_binding_table_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline.cpp" />
+    <ClCompile Include="..\..\framework\src\renderpass.cpp" />
+    <ClCompile Include="..\..\framework\src\semaphore.cpp" />
+    <ClCompile Include="..\..\framework\src\shader_binding_table.cpp" />
     <ClCompile Include="..\..\framework\src\shader_info.cpp" />
-    <ClCompile Include="..\..\framework\src\shader_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\shader_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\standard_descriptor_cache_vulkan.cpp" />
-    <ClCompile Include="..\..\framework\src\top_level_acceleration_structure_vulkan.cpp" />
+    <ClCompile Include="..\..\framework\src\shader.cpp" />
+    <ClCompile Include="..\..\framework\src\standard_descriptor_cache.cpp" />
+    <ClCompile Include="..\..\framework\src\top_level_acceleration_structure.cpp" />
     <ClCompile Include="..\..\framework\src\transform.cpp" />
     <ClCompile Include="..\..\framework\src\varying_update_timer.cpp" />
-    <ClCompile Include="..\..\framework\src\vulkan_convenience_functions.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\vulkan_helper_functions.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp" />
+    <ClCompile Include="..\..\framework\src\vulkan_convenience_functions.cpp" />
     <ClCompile Include="..\..\framework\src\window_base.cpp" />
-    <ClCompile Include="..\..\framework\src\window_opengl.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\window_vulkan.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
+    <ClCompile Include="..\..\framework\src\window.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="cg_stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\aabb.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\acceleration_structure_size_requirements.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ak.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ak_error.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ak_log.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\attachment.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\bindings.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\binding_data.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\border_handling_mode.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\bottom_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_declaration.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_meta.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_view.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\commands.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\command_buffer.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\command_pool.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\cpp_utils.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_alloc_request.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache_interface.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_pool.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set_layout.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\fence.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\filter_mode.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\framebuffer.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\geometry_instance.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config_convenience_functions.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_format.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_order.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image_sampler.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image_usage.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\image_view.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\input_description.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\memory_access.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\memory_usage.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config_convenience_functions.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\sampler.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\semaphore.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_info.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\standard_descriptor_cache.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\sync.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\top_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\usage_desc.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\aabb.hpp" />
-    <ClInclude Include="..\..\framework\include\acceleration_structure_helper_functions.hpp" />
-    <ClInclude Include="..\..\framework\include\acceleration_structure_size_requirements.hpp" />
-    <ClInclude Include="..\..\framework\include\attachment.hpp" />
-    <ClInclude Include="..\..\framework\include\bindings_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\binding_data_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\binding_data_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\border_handling_mode.hpp" />
-    <ClInclude Include="..\..\framework\include\bottom_level_acceleration_structure_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\buffer.hpp" />
     <ClInclude Include="..\..\framework\include\buffer_data.hpp" />
-    <ClInclude Include="..\..\framework\include\buffer_member_format_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\buffer_member_format_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\buffer_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\buffer_view_vulkan.hpp" />
-    <ClInclude Include="..\..\framework\include\buffer_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
     <ClInclude Include="..\..\framework\include\cg_base.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cg_element.hpp" />
-    <ClInclude Include="..\..\framework\include\command_buffer_convenience_functions.hpp" />
-    <ClInclude Include="..\..\framework\include\command_buffer_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\command_buffer_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\command_pool_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\composition.hpp" />
     <ClInclude Include="..\..\framework\include\composition_interface.hpp" />
-    <ClInclude Include="..\..\framework\include\compute_pipeline_config.hpp" />
-    <ClInclude Include="..\..\framework\include\compute_pipeline_config_convenience_functions.hpp" />
-    <ClInclude Include="..\..\framework\include\compute_pipeline_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\context.hpp" />
     <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp" />
     <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp" />
-    <ClInclude Include="..\..\framework\include\context_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\context_state.hpp" />
     <ClInclude Include="..\..\framework\include\context_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\bindings_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\cursor.hpp" />
-    <ClInclude Include="..\..\framework\include\descriptor_cache_interface.hpp" />
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp" />
-    <ClInclude Include="..\..\framework\include\renderpass_sync.hpp" />
-    <ClInclude Include="..\..\framework\include\standard_descriptor_cache_vulkan.hpp" />
-    <ClInclude Include="..\..\framework\include\descriptor_pool_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\descriptor_set_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\device_queue_selection_strategy.hpp" />
-    <ClInclude Include="..\..\framework\include\essential_utils.hpp" />
-    <ClInclude Include="..\..\framework\include\fence_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\fence_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\filter_mode.hpp" />
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp" />
-    <ClInclude Include="..\..\framework\include\framebuffer_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\framebuffer_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image.hpp" />
-    <ClInclude Include="..\..\framework\include\image_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image_sampler_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image_sampler_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image_usage.hpp" />
-    <ClInclude Include="..\..\framework\include\image_view_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image_view_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\image_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\input_description.hpp" />
     <ClInclude Include="..\..\framework\include\input_buffer.hpp" />
     <ClInclude Include="..\..\framework\include\key_code.hpp" />
     <ClInclude Include="..\..\framework\include\key_state.hpp" />
@@ -445,123 +188,27 @@
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
     <ClInclude Include="..\..\framework\include\memory_access.hpp" />
-    <ClInclude Include="..\..\framework\include\memory_usage.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
-    <ClInclude Include="..\..\framework\include\graphics_pipeline_config.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
-    <ClInclude Include="..\..\framework\include\pipeline_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\graphics_pipeline_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\pipeline_stage.hpp" />
-    <ClInclude Include="..\..\framework\include\push_constants.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
-    <ClInclude Include="..\..\framework\include\queue_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_config.hpp" />
-    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_config_convenience_functions.hpp" />
-    <ClInclude Include="..\..\framework\include\ray_tracing_pipeline_vulkan.hpp" />
-    <ClInclude Include="..\..\framework\include\renderpass_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\renderpass_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\sampler_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\sampler_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\semaphore_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\semaphore_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\setup.hpp" />
-    <ClInclude Include="..\..\framework\include\shader_binding_table_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\shader_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\shader_type.hpp" />
-    <ClInclude Include="..\..\framework\include\shader_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\string_utils.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp" />
-    <ClInclude Include="..\..\framework\include\shader_info.hpp" />
-    <ClInclude Include="..\..\framework\include\sync_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />
     <ClInclude Include="..\..\framework\include\timer_interface.hpp" />
-    <ClInclude Include="..\..\framework\include\context_tracker.hpp" />
-    <ClInclude Include="..\..\framework\include\top_level_acceleration_structure_vulkan.hpp" />
     <ClInclude Include="..\..\framework\include\transform.hpp" />
-    <ClInclude Include="..\..\framework\include\various_utils.hpp" />
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp" />
-    <ClInclude Include="..\..\framework\include\graphics_pipeline_config_convenience_functions.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\vulkan_helper_functions.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp" />
     <ClInclude Include="..\..\framework\include\window_base.hpp" />
-    <ClInclude Include="..\..\framework\include\window_opengl.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\window_vulkan.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">true</ExcludedFromBuild>
+    <ClInclude Include="..\..\framework\include\window.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
     <ClInclude Include="..\..\framework\include\lightsource.hpp" />
     <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\framework\include\geometry_instance_vulkan.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -572,30 +219,10 @@
     <ProjectName>cg_base</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="Configuration">
@@ -616,14 +243,6 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared" />
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\solution_directories.props" />
-    <Import Project="..\props\external_dependencies.props" />
-    <Import Project="..\props\extra_debug_dependencies.props" />
-    <Import Project="..\props\linked_libs_debug.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\rendering_api_vulkan.props" />
@@ -631,20 +250,6 @@
     <Import Project="..\props\external_dependencies.props" />
     <Import Project="..\props\extra_debug_dependencies.props" />
     <Import Project="..\props\linked_libs_debug.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\solution_directories.props" />
-    <Import Project="..\props\external_dependencies.props" />
-    <Import Project="..\props\linked_libs_release.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\rendering_api_opengl.props" />
-    <Import Project="..\props\solution_directories.props" />
-    <Import Project="..\props\external_dependencies.props" />
-    <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -661,26 +266,8 @@
     <Import Project="..\props\linked_libs_release.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
-    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>cg_base</TargetName>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
-    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>cg_base</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
-    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>cg_base</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">
-    <LinkIncremental>false</LinkIncremental>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
@@ -697,28 +284,6 @@
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
     <TargetName>cg_base</TargetName>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_OpenGL|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
-      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <DisableSpecificWarnings>
-      </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -738,58 +303,6 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_OpenGL|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
-      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <DisableSpecificWarnings>
-      </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Publish_OpenGL|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
-      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <DisableSpecificWarnings>
-      </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>

@@ -47,7 +47,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Create and upload vertex data for a quad
 		mVertexBuffer = cgb::create_and_fill(
 			cgb::vertex_buffer_meta::create_from_data(mVertexData), 
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			mVertexData.data(),
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
@@ -55,7 +55,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Create and upload incides for drawing the quad
 		mIndexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	
-			cgb::memory_usage::device,
+			xv::memory_usage::device,
 			mIndices.data(),
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
@@ -63,12 +63,12 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Create a host-coherent buffer for the matrices
 		mUbo = cgb::create(
 			cgb::uniform_buffer_meta::create_from_data(MatricesForUbo{}),
-			cgb::memory_usage::host_coherent
+			xv::memory_usage::host_coherent
 		);
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = cgb::image_sampler_t::create(
-			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png", false, true, 4, cgb::memory_usage::device, cgb::image_usage::general_storage_image)), // TODO: Is it not possible to use this image without the "storage" flag given that it is used as a "readonly image" in the compute shader only?
+			cgb::image_view_t::create(cgb::create_image_from_file("assets/lion.png", false, true, 4, xv::memory_usage::device, xv::image_usage::general_storage_image)), // TODO: Is it not possible to use this image without the "storage" flag given that it is used as a "readonly image" in the compute shader only?
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
 		);
 		const auto wdth = mInputImageAndSampler->width();
@@ -79,8 +79,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		mTargetImageAndSampler = cgb::image_sampler_t::create(
 			cgb::image_view_t::create(
 				cgb::image_t::create( // Create an image and set some properties:
-					wdth, hght, frmt, 1 /* one layer */, cgb::memory_usage::device, /* in GPU memory */
-					cgb::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to
+					wdth, hght, frmt, 1 /* one layer */, xv::memory_usage::device, /* in GPU memory */
+					xv::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to
 				)
 			),
 			cgb::sampler_t::create(cgb::filter_mode::bilinear, cgb::border_handling_mode::clamp_to_edge)
@@ -92,8 +92,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
 
-		using namespace cgb::att;
-		
 		// Create our rasterization graphics pipeline with the required configuration:
 		mGraphicsPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),
@@ -103,7 +101,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::culling_mode::disabled,
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()).enable_dynamic_viewport(),
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
+			xv::attachment::declare(cgb::image_format::from_window_color_buffer(), xv::on_load::clear, xv::color(0), xv::on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
 			cgb::binding(0, mUbo),
 			cgb::binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);

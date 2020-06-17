@@ -45,7 +45,7 @@ namespace cgb
 		std::shared_ptr<cgb::descriptor_pool> mDescriptorPool;
 		std::optional<renderpass> mRenderpass;
 		int mMouseCursorPreviousValue;
-		std::vector<unique_function<void()>> mCallback;
+		std::vector<ak::unique_function<void()>> mCallback;
 		bool mUserInteractionEnabled;
 	};
 }

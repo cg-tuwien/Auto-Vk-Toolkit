@@ -133,7 +133,7 @@ namespace cgb
 		 */
 		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> distinct_material_configs_for_all_models(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials = false);
 
-		static owning_resource<orca_scene_t> load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		static ak::owning_resource<orca_scene_t> load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
 	private:
 		std::string mLoadPath;
@@ -146,7 +146,7 @@ namespace cgb
 		std::vector<path_data> mPathsData;
 	};
 
-	using orca_scene = cgb::owning_resource<orca_scene_t>;
+	using orca_scene = ak::owning_resource<orca_scene_t>;
 
 	// JSON helper functions:
 	static glm::vec3 convert_json_to_vec3(nlohmann::json& j);

@@ -9,6 +9,7 @@
     <ToolsRoot>$(MSBuildThisFileDirectory)..\tools\</ToolsRoot>
     <ToolsBin>$(MSBuildThisFileDirectory)..\tools\executables\</ToolsBin>
     <PropsDirectory>$(MSBuildThisFileDirectory)</PropsDirectory>
+    <AutoVulkanRoot>$(MSBuildThisFileDirectory)..\..\auto_vulkan\</AutoVulkanRoot>
   </PropertyGroup>
   <ItemGroup>
     <BuildMacro Include="FrameworkRoot">
@@ -31,6 +32,9 @@
     </BuildMacro>
     <BuildMacro Include="PropsDirectory">
       <Value>$(PropsDirectory)</Value>
+    </BuildMacro>
+    <BuildMacro Include="AutoVulkanRoot">
+      <Value>$(AutoVulkanRoot)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

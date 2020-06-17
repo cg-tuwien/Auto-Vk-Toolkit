@@ -64,11 +64,11 @@ namespace cgb
 	    init_info.CheckVkResultFn = cgb::context().check_vk_result;
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
-			std::vector<cgb::attachment> attachments;
-			attachments.push_back(cgb::attachment::declare(image_format::from_window_color_buffer(wnd), att::on_load::load, att::color(0), att::on_store::store_in_presentable_format));
+			std::vector<xv::attachment> attachments;
+			attachments.push_back(xv::attachment::declare(image_format::from_window_color_buffer(wnd).mFormat, xv::on_load::load, xv::color(0), xv::on_store::store_in_presentable_format));
 			for (auto a : wnd->get_additional_back_buffer_attachments()) {
-				a.mLoadOperation = att::on_load::dont_care;
-				a.mStoreOperation = att::on_store::dont_care;
+				a.mLoadOperation = xv::on_load::dont_care;
+				a.mStoreOperation = xv::on_store::dont_care;
 				attachments.push_back(a);
 			}
 			mRenderpass = renderpass_t::create(attachments);

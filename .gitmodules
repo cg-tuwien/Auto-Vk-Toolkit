@@ -1,0 +1,3 @@
+[submodule "auto_vulkan"]
+	path = auto_vulkan
+	url = https://github.com/cg-tuwien/auto_vulkan.git

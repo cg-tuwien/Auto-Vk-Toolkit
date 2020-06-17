@@ -89,22 +89,17 @@
 #include <windows.h>
 #endif
 
+#include <ak/ak.hpp>
+
 // -------------------- CG-Base includes --------------------
 #include "cgb_exceptions.hpp"
 #include "string_utils.hpp"
 #include "log.hpp"
 #include "essential_utils.hpp"
 #include "various_utils.hpp"
-#include "memory_usage.hpp"
-#include "image_usage.hpp"
 #include "context_state.hpp"
-#include "context_tracker.hpp"
 #include "device_queue_selection_strategy.hpp"
-#include "shader_type.hpp"
-#include "shader_info.hpp"
-#include "aabb.hpp"
-#include "pipeline_stage.hpp"
-#include "memory_access.hpp"
+
 #include "cursor.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
@@ -115,23 +110,9 @@
 #elif defined(USE_VULKAN_CONTEXT)
 #include <vulkan/vulkan.hpp>
 static_assert( VK_HEADER_VERSION >= 131 , "VK_HEADER_VERSION must be greater than or equal 131 (SDK 1.1.131.1 or newer)." );
-#include "buffer_member_format_vulkan.hpp"
-#include "semaphore_vulkan.hpp"
-#include "fence_vulkan.hpp"
-#include "descriptor_cache_interface.hpp"
-#include "command_buffer_vulkan.hpp"
-#include "sync_vulkan.hpp"
-#include "image_vulkan.hpp"
-#include "image_view_vulkan.hpp"
+
 #endif
 
-#include "attachment.hpp"
-#include "buffer_data.hpp"
-#include "buffer.hpp"
-#include "input_description.hpp"
-#include "push_constants.hpp"
-#include "filter_mode.hpp"
-#include "border_handling_mode.hpp"
 
 #if defined(USE_OPENGL_CONTEXT)
 #include "context_generic_glfw_types.hpp"
@@ -157,53 +138,27 @@ static_assert( VK_HEADER_VERSION >= 131 , "VK_HEADER_VERSION must be greater tha
 #elif defined(USE_VULKAN_CONTEXT)
 #include "context_generic_glfw_types.hpp"
 #include "window_base.hpp"
-#include "sampler_vulkan.hpp"
-#include "image_sampler_vulkan.hpp"
-#include "command_pool_vulkan.hpp"
 
-#include "buffer_vulkan.hpp"
-#include "buffer_view_vulkan.hpp"
-#include "queue_vulkan.hpp"
-#include "renderpass_sync.hpp"
-#include "renderpass_vulkan.hpp"
-#include "framebuffer_vulkan.hpp"
-#include "window_vulkan.hpp"
+#include "window.hpp"
 #include "context_generic_glfw.hpp"
-#include "geometry_instance_vulkan.hpp"
-#include "acceleration_structure_size_requirements.hpp"
-#include "bottom_level_acceleration_structure_vulkan.hpp"
-#include "top_level_acceleration_structure_vulkan.hpp"
-#include "shader_vulkan.hpp"
-#include "descriptor_pool_vulkan.hpp"
-#include "descriptor_set_vulkan.hpp"
-#include "standard_descriptor_cache_vulkan.hpp"
-#include "binding_data_vulkan.hpp"
-#include "graphics_pipeline_config.hpp"
-#include "compute_pipeline_config.hpp"
-#include "ray_tracing_pipeline_config.hpp"
-#include "graphics_pipeline_vulkan.hpp"
-#include "compute_pipeline_vulkan.hpp"
-#include "ray_tracing_pipeline_vulkan.hpp"
-#include "shader_binding_table_vulkan.hpp"
+
 #include "vulkan_helper_functions.hpp"
-#include "bindings_vulkan.hpp"
+
+
+#include "vk_convenience_functions.hpp"
 
 #include "context_vulkan.hpp"
 #include "context.hpp"
 
-#include "acceleration_structure_helper_functions.hpp"
+
 // [1] Vulkan Tutorial, Rendering and presentation, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
 // [2] Vulkan Tutorial, Vertex buffer creation, https://vulkan-tutorial.com/Vertex_buffers/Vertex_buffer_creation
 // [3] Vulkan Tutorial, Images, https://vulkan-tutorial.com/Texture_mapping/Images
 // [4] Vulkan Tutorial, Image view and sampler, https://vulkan-tutorial.com/Texture_mapping/Image_view_and_sampler
 #endif
 
-#include "graphics_pipeline_config_convenience_functions.hpp"
-#include "compute_pipeline_config_convenience_functions.hpp"
-#include "ray_tracing_pipeline_config_convenience_functions.hpp"
-#include "command_buffer_convenience_functions.hpp"
 
-#include "image.hpp"
+
 #include "math_utils.hpp"
 #include "key_code.hpp"
 #include "key_state.hpp"
@@ -265,3 +220,66 @@ namespace cgb
 #include "imgui_manager.hpp"
 
 // ReSharper restore CppUnusedIncludeDirective
+
+
+
+	// f32
+	template <>	inline vk::Format format_for<glm::vec<4, glm::f32, glm::defaultp>>()	{ return vk::Format::eR32G32B32A32Sfloat; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::f32, glm::defaultp>>()	{ return vk::Format::eR32G32B32Sfloat(); }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::f32, glm::defaultp>>()	{ return vk::Format::eR32G32Sfloat(); }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::f32, glm::defaultp>>()	{ return vk::Format::eR32Sfloat(); }
+	template <>	inline vk::Format format_for<float>()									{ return vk::Format::eR32Sfloat(); }
+	// f64
+	template <>	inline vk::Format format_for<glm::vec<4, glm::f64, glm::defaultp>>()	{ return vk::Format::eR64G64B64A64Sfloat; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::f64, glm::defaultp>>()	{ return vk::Format::eR64G64B64Sfloat; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::f64, glm::defaultp>>()	{ return vk::Format::eR64G64Sfloat; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::f64, glm::defaultp>>()	{ return vk::Format::eR64Sfloat; }
+	template <>	inline vk::Format format_for<double>()									{ return vk::Format::eR64Sfloat; }
+	// i8
+	template <>	inline vk::Format format_for<glm::vec<4, glm::i8, glm::defaultp>>()		{ return vk::Format::eR8G8B8A8Sint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::i8, glm::defaultp>>()		{ return vk::Format::eR8G8B8Sint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::i8, glm::defaultp>>()		{ return vk::Format::eR8G8Sint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::i8, glm::defaultp>>()		{ return vk::Format::eR8Sint; }
+	template <>	inline vk::Format format_for<int8_t>()									{ return vk::Format::eR8Sint; }
+	// i16
+	template <>	inline vk::Format format_for<glm::vec<4, glm::i16, glm::defaultp>>()	{ return vk::Format::eR16G16B16A16Sint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::i16, glm::defaultp>>()	{ return vk::Format::eR16G16B16Sint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::i16, glm::defaultp>>()	{ return vk::Format::eR16G16Sint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::i16, glm::defaultp>>()	{ return vk::Format::eR16Sint; }
+	template <>	inline vk::Format format_for<int16_t>()									{ return vk::Format::eR16Sint; }
+	// i32
+	template <>	inline vk::Format format_for<glm::vec<4, glm::i32, glm::defaultp>>()	{ return vk::Format::eR32G32B32A32Sint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::i32, glm::defaultp>>()	{ return vk::Format::eR32G32B32Sint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::i32, glm::defaultp>>()	{ return vk::Format::eR32G32Sint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::i32, glm::defaultp>>()	{ return vk::Format::eR32Sint; }
+	template <>	inline vk::Format format_for<int32_t>()									{ return vk::Format::eR32Sint; }
+	// i64
+	template <>	inline vk::Format format_for<glm::vec<4, glm::i64, glm::defaultp>>()	{ return vk::Format::eR64G64B64A64Sint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::i64, glm::defaultp>>()	{ return vk::Format::eR64G64B64Sint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::i64, glm::defaultp>>()	{ return vk::Format::eR64G64Sint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::i64, glm::defaultp>>()	{ return vk::Format::eR64Sint; }
+	template <>	inline vk::Format format_for<int64_t>()									{ return vk::Format::eR64Sint; }
+	// u8
+	template <> inline vk::Format format_for<glm::vec<4, glm::u8, glm::defaultp>>()		{ return vk::Format::eR8G8B8A8Uint; }
+	template <> inline vk::Format format_for<glm::vec<3, glm::u8, glm::defaultp>>()		{ return vk::Format::eR8G8B8Uint; }
+	template <> inline vk::Format format_for<glm::vec<2, glm::u8, glm::defaultp>>()		{ return vk::Format::eR8G8Uint; }
+	template <> inline vk::Format format_for<glm::vec<1, glm::u8, glm::defaultp>>()		{ return vk::Format::eR8Uint; }
+	template <> inline vk::Format format_for<uint8_t>()									{ return vk::Format::eR8Uint; }
+	// u16
+	template <>	inline vk::Format format_for<glm::vec<4, glm::u16, glm::defaultp>>()	{ return vk::Format::eR16G16B16A16Uint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::u16, glm::defaultp>>()	{ return vk::Format::eR16G16B16Uint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::u16, glm::defaultp>>()	{ return vk::Format::eR16G16Uint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::u16, glm::defaultp>>()	{ return vk::Format::eR16Uint; }
+	template <>	inline vk::Format format_for<uint16_t>()								{ return vk::Format::eR16Uint; }
+	// u32
+	template <>	inline vk::Format format_for<glm::vec<4, glm::u32, glm::defaultp>>()	{ return vk::Format::eR32G32B32A32Uint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::u32, glm::defaultp>>()	{ return vk::Format::eR32G32B32Uint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::u32, glm::defaultp>>()	{ return vk::Format::eR32G32Uint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::u32, glm::defaultp>>()	{ return vk::Format::eR32Uint; }
+	template <>	inline vk::Format format_for<uint32_t>()								{ return vk::Format::eR32Uint; }
+	// u64
+	template <>	inline vk::Format format_for<glm::vec<4, glm::u64, glm::defaultp>>()	{ return vk::Format::eR64G64B64A64Uint; }
+	template <>	inline vk::Format format_for<glm::vec<3, glm::u64, glm::defaultp>>()	{ return vk::Format::eR64G64B64Uint; }
+	template <>	inline vk::Format format_for<glm::vec<2, glm::u64, glm::defaultp>>()	{ return vk::Format::eR64G64Uint; }
+	template <>	inline vk::Format format_for<glm::vec<1, glm::u64, glm::defaultp>>()	{ return vk::Format::eR64Uint; }
+	template <>	inline vk::Format format_for<uint64_t>()								{ return vk::Format::eR64Uint; }

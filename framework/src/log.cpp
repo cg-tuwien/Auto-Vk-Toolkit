@@ -351,25 +351,6 @@ namespace cgb
 		return buf;
 	}
 
-	std::string fourcc_to_string(unsigned int fourcc)
-	{
-		char fourccBuf[8];
-		fourccBuf[3] = static_cast<char>(0x000000FF & fourcc);
-		fourccBuf[2] = static_cast<char>(0x000000FF & (fourcc >> 8));
-		fourccBuf[1] = static_cast<char>(0x000000FF & (fourcc >> 16));
-		fourccBuf[0] = static_cast<char>(0x000000FF & (fourcc >> 24));
-
-		// convert 000000000 to spaces
-		for (int i = 0; i < 4; i++)
-		{
-			if (0 == fourccBuf[i])
-				fourccBuf[i] = ' ';
-		}
-
-		fourccBuf[4] = 0;
-		return std::string(fourccBuf);
-	}
-
 	std::string get_current_callstack()
 	{
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)

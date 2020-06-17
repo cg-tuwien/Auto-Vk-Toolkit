@@ -131,7 +131,7 @@ namespace std
 		std::size_t operator()(cgb::lightsource_gpu_data const& o) const noexcept
 		{
 			std::size_t h = 0;
-			cgb::hash_combine(h, 
+			ak::hash_combine(h, 
 				o.mColor,
 				o.mDirection,
 				o.mPosition,

@@ -140,7 +140,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
 			allMatConfigs, 
-			cgb::image_usage::general_texture,
+			xv::image_usage::general_texture,
 			cgb::filter_mode::anisotropic_16x,
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_semaphore_to_backbuffer_dependency()
@@ -148,19 +148,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		mViewProjBuffer = cgb::create(
 			cgb::uniform_buffer_meta::create_from_data(glm::mat4()),
-			cgb::memory_usage::host_coherent
+			xv::memory_usage::host_coherent
 		);
 		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
-			cgb::memory_usage::host_coherent,
+			xv::memory_usage::host_coherent,
 			gpuMaterials.data(),
 			cgb::sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
 
-		using namespace cgb::att;
-		
 		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
 		mPipeline = cgb::graphics_pipeline_for(
@@ -177,8 +175,8 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(),	on_load::clear, color(0),		 on_store::store),		 // But not in presentable format, because ImGui comes after
-			cgb::attachment::declare(cgb::image_format::from_window_depth_buffer(),	on_load::clear, depth_stencil(), on_store::dont_care),
+			xv::attachment::declare(cgb::image_format::from_window_color_buffer(),	xv::on_load::clear, xv::color(0),		 xv::on_store::store),		 // But not in presentable format, because ImGui comes after
+			xv::attachment::declare(cgb::image_format::from_window_depth_buffer(),	xv::on_load::clear, xv::depth_stencil(), xv::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
@@ -326,7 +324,7 @@ int main() // <== Starting point ==
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
 		mainWnd->set_additional_back_buffer_attachments({ 
-			cgb::attachment::declare(cgb::image_format::default_depth_format(), cgb::att::on_load::clear, cgb::att::depth_stencil(), cgb::att::on_store::dont_care)
+			cgb::attachment::declare(cgb::image_format::default_depth_format(), cgb::xv::on_load::clear, cgb::xv::depth_stencil(), cgb::xv::on_store::dont_care)
 		});
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->open(); 

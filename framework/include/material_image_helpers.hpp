@@ -41,7 +41,7 @@ namespace cgb
 		return aSyncHandler.submit_and_sync();
 	}
 
-	static image create_1px_texture(std::array<uint8_t, 4> aColor, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static ak::image create_1px_texture(std::array<uint8_t, 4> aColor, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
@@ -49,14 +49,14 @@ namespace cgb
 		
 		auto stagingBuffer = cgb::create_and_fill(
 			cgb::generic_buffer_meta::create_from_size(sizeof(aColor)),
-			cgb::memory_usage::host_coherent,
+			ak::memory_usage::host_coherent,
 			aColor.data(),
 			sync::not_required(),
 			vk::BufferUsageFlagBits::eTransferSrc);
 
 		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
-		auto img = cgb::image_t::create(1, 1, cgb::image_format(selectedFormat), 1, aMemoryUsage, aImageUsage);
+		auto img = ak::image_t::create(1, 1, selectedFormat, 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
@@ -93,26 +93,26 @@ namespace cgb
 		return img;
 	}
 
-	static image create_image_from_file(const std::string& aPath, cgb::image_format aFormat, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static ak::image create_image_from_file(const std::string& aPath, vk::Format aFormat, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		generic_buffer stagingBuffer;
 		int width = 0;
 		int height = 0;
 
 		// ============ RGB 8-bit formats ==========
-		if (is_uint8_format(aFormat) || is_int8_format(aFormat)) {
+		if (ak::is_uint8_format(aFormat) || ak::is_int8_format(aFormat)) {
 
 			stbi_set_flip_vertically_on_load(true);
 			int desiredColorChannels = STBI_rgb_alpha;
 			
-			if (!is_4component_format(aFormat)) { 
-				if (is_3component_format(aFormat)) {
+			if (!ak::is_4component_format(aFormat)) { 
+				if (ak::is_3component_format(aFormat)) {
 					desiredColorChannels = STBI_rgb;
 				}
-				else if (is_2component_format(aFormat)) {
+				else if (ak::is_2component_format(aFormat)) {
 					desiredColorChannels = STBI_grey_alpha;
 				}
-				else if (is_1component_format(aFormat)) {
+				else if (ak::is_1component_format(aFormat)) {
 					desiredColorChannels = STBI_grey;
 				}
 			}
@@ -127,7 +127,7 @@ namespace cgb
 
 			stagingBuffer = cgb::create_and_fill(
 				cgb::generic_buffer_meta::create_from_size(imageSize),
-				cgb::memory_usage::host_coherent,
+				ak::memory_usage::host_coherent,
 				pixels,
 				sync::not_required(),
 				vk::BufferUsageFlagBits::eTransferSrc);
@@ -162,7 +162,7 @@ namespace cgb
 
 			stagingBuffer = cgb::create_and_fill(
 				cgb::generic_buffer_meta::create_from_size(imageSize),
-				cgb::memory_usage::host_coherent,
+				ak::memory_usage::host_coherent,
 				pixels,
 				sync::not_required(),
 				vk::BufferUsageFlagBits::eTransferSrc);
@@ -201,7 +201,7 @@ namespace cgb
 		return img;
 	}
 	
-	static image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, cgb::memory_usage aMemoryUsage = cgb::memory_usage::device, cgb::image_usage aImageUsage = cgb::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
 	{
 		cgb::image_format imFmt;
 		if (aLoadHdrIfPossible) {
@@ -230,50 +230,50 @@ namespace cgb
 		if (aLoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
 			switch (aPreferredNumberOfTextureComponents) {
 			case 4:
-				imFmt = image_format::default_srgb_4comp_format();
+				imFmt = cgb::default_srgb_4comp_format();
 				break;
 			// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
 			case 3:
-				imFmt = image_format::default_srgb_3comp_format();
+				imFmt = cgb::default_srgb_3comp_format();
 				break;
 			case 2:
-				imFmt = image_format::default_srgb_2comp_format();
+				imFmt = cgb::default_srgb_2comp_format();
 				break;
 			case 1:
-				imFmt = image_format::default_srgb_1comp_format();
+				imFmt = cgb::default_srgb_1comp_format();
 				break;
 			default:
-				imFmt = image_format::default_srgb_4comp_format();
+				imFmt = cgb::default_srgb_4comp_format();
 				break;
 			}
 			return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 		}
 		switch (aPreferredNumberOfTextureComponents) {
 		case 4:
-			imFmt = image_format::default_rgb8_4comp_format();
+			imFmt = cgb::default_rgb8_4comp_format();
 			break;
 		// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
 		case 3:
-			imFmt = image_format::default_rgb8_3comp_format();
+			imFmt = cgb::default_rgb8_3comp_format();
 			break;
 		case 2:
-			imFmt = image_format::default_rgb8_2comp_format();
+			imFmt = cgb::default_rgb8_2comp_format();
 			break;
 		case 1:
-			imFmt = image_format::default_rgb8_1comp_format();
+			imFmt = cgb::default_rgb8_1comp_format();
 			break;
 		default:
-			imFmt = image_format::default_rgb8_4comp_format();
+			imFmt = cgb::default_rgb8_4comp_format();
 			break;
 		}
 		return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 	
-	extern std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
+	extern std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
 		std::vector<cgb::material_config> aMaterialConfigs, 
-		cgb::image_usage aImageUsage = cgb::image_usage::general_texture,
-		cgb::filter_mode aTextureFilterMode = cgb::filter_mode::bilinear,
-		cgb::border_handling_mode aBorderHandlingMode = cgb::border_handling_mode::repeat,
+		ak::image_usage aImageUsage = ak::image_usage::general_texture,
+		ak::filter_mode aTextureFilterMode = ak::filter_mode::bilinear,
+		ak::border_handling_mode aBorderHandlingMode = ak::border_handling_mode::repeat,
 		sync aSyncHandler = sync::wait_idle());
 
 	template <typename... Rest>

@@ -874,7 +874,7 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
-		const image_usage swapChainImageUsage =				image_usage::color_attachment			 | image_usage::transfer_destination		| image_usage::presentable;
+		const xv::image_usage swapChainImageUsage = xv::image_usage::color_attachment			 | xv::image_usage::transfer_destination		| xv::image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
@@ -950,8 +950,8 @@ namespace cgb
 		}
 
 		// Create a renderpass for the back buffers
-		std::vector<attachment> renderpassAttachments = {
-			attachment::declare_for(pWindow->mSwapChainImageViews[0], att::on_load::clear, att::color(0), att::on_store::dont_care)
+		std::vector<xv::attachment> renderpassAttachments = {
+			xv::attachment::declare_for(pWindow->mSwapChainImageViews[0], xv::on_load::clear, xv::color(0), xv::on_store::dont_care)
 		};
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
@@ -969,11 +969,11 @@ namespace cgb
 			imageViews.push_back(imView); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = image_view_t::create_depth(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, cgb::memory_usage::device, cgb::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
+					auto depthView = image_view_t::create_depth(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, xv::memory_usage::device, xv::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
 					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, memory_usage::device, cgb::image_usage::general_color_attachment)));
+					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, memory_usage::device, xv::image_usage::general_color_attachment)));
 				}
 			}
 
@@ -1100,41 +1100,7 @@ namespace cgb
 		return newPool;
 	}
 
-	bool vulkan::is_format_supported(vk::Format pFormat, vk::ImageTiling pTiling, vk::FormatFeatureFlags pFormatFeatures)
-	{
-		auto formatProps = mPhysicalDevice.getFormatProperties(pFormat);
-		if (pTiling == vk::ImageTiling::eLinear 
-			&& (formatProps.linearTilingFeatures & pFormatFeatures) == pFormatFeatures) {
-			return true;
-		}
-		else if (pTiling == vk::ImageTiling::eOptimal 
-				 && (formatProps.optimalTilingFeatures & pFormatFeatures) == pFormatFeatures) {
-			return true;
-		} 
-		return false;
-	}
 
-
-	vk::PhysicalDeviceRayTracingPropertiesKHR vulkan::get_ray_tracing_properties()
-	{
-		vk::PhysicalDeviceRayTracingPropertiesKHR rtProps;
-		vk::PhysicalDeviceProperties2 props2;
-		props2.pNext = &rtProps;
-		mPhysicalDevice.getProperties2(&props2);
-		return rtProps;
-	}
-
-	vk::DeviceAddress vulkan::get_buffer_address(vk::Buffer aBufferHandle) const
-	{
-		PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddress = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(cgb::context().logical_device(), "vkGetBufferDeviceAddressKHR"));
-
-	    VkBufferDeviceAddressInfo bufferAddressInfo;
-		bufferAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-		bufferAddressInfo.pNext = nullptr;
-		bufferAddressInfo.buffer = aBufferHandle;
-
-	    return vkGetBufferDeviceAddress(cgb::context().logical_device(), &bufferAddressInfo);
-	}
 
 	// REFERENCES:
 	// [1] Vulkan Tutorial, Logical device and queues, https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Logical_device_and_queues

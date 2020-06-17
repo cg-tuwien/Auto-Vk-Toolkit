@@ -48,7 +48,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			mVertexBuffers.push_back(
 				cgb::create(
 					cgb::vertex_buffer_meta::create_from_data(mVertexData),	// Pass/create meta data about the vertex data
-					cgb::memory_usage::device								// We want our buffer to "live" in GPU memory
+					xv::memory_usage::device								// We want our buffer to "live" in GPU memory
 				)
 			);
 		});
@@ -57,13 +57,11 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// (hence the usage of cgb::create_and_fill instead of just cgb::create)
 		mIndexBuffer = cgb::create_and_fill(
 			cgb::index_buffer_meta::create_from_data(mIndices),	// Pass/create meta data about the indices
-			cgb::memory_usage::device,							// Also this buffer should "live" in GPU memory
+			xv::memory_usage::device,							// Also this buffer should "live" in GPU memory
 			mIndices.data(),									// Since we also want to upload the data => pass a data pointer
 			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
 		);
 
-		using namespace cgb::att;
-		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = cgb::graphics_pipeline_for(
 			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
@@ -72,7 +70,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
 			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store) // But not in presentable format, because ImGui comes after
+			xv::attachment::declare(cgb::image_format::from_window_color_buffer(), xv::on_load::clear, xv::color(0), xv::on_store::store) // But not in presentable format, because ImGui comes after
 		);
 
 		// Create and record command buffers for drawing the pyramid. Create one for each in-flight-frame.

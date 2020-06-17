@@ -15,7 +15,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cgb::fragment_shader("shaders/a_triangle.frag"),
 			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),
 			cgb::cfg::viewport_depth_scissors_config::from_window(),
-			cgb::attachment::declare(cgb::image_format::from_window_color_buffer(), on_load::clear, color(0), on_store::store) // But not in presentable format, because ImGui comes after
+			xv::attachment::declare(cgb::image_format::from_window_color_buffer(), xv::on_load::clear, xv::color(0), xv::on_store::store) // But not in presentable format, because ImGui comes after
 		);
 
 		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:

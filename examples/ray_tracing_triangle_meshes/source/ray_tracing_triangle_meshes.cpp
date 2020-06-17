@@ -51,7 +51,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				auto texCoordsTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(texCoordsData)
 						.describe_only_member(texCoordsData[0]),
-					cgb::memory_usage::device,
+					xv::memory_usage::device,
 					texCoordsData.data(),
 					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
@@ -62,7 +62,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				auto indexTexelBuffer = cgb::create_and_fill(
 					cgb::uniform_texel_buffer_meta::create_from_data(indicesData)
 						.set_format<glm::uvec3>(), // Combine 3 consecutive elements to one unit
-					cgb::memory_usage::device,
+					xv::memory_usage::device,
 					indicesData.data(),
 					cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 				);
@@ -103,7 +103,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
 			allMatConfigs,
-			cgb::image_usage::general_texture,
+			xv::image_usage::general_texture,
 			cgb::filter_mode::trilinear,
 			cgb::border_handling_mode::repeat,
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
@@ -111,7 +111,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		
 		mMaterialBuffer = cgb::create_and_fill(
 			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
-			cgb::memory_usage::host_coherent,
+			xv::memory_usage::host_coherent,
 			gpuMaterials.data(),
 			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
 		);
@@ -153,7 +153,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
 			mOffscreenImageViews.emplace_back(
 				cgb::image_view_t::create(
-					cgb::image_t::create(wdth, hght, frmt, 1, cgb::memory_usage::device, cgb::image_usage::general_storage_image)
+					cgb::image_t::create(wdth, hght, frmt, 1, xv::memory_usage::device, xv::image_usage::general_storage_image)
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));

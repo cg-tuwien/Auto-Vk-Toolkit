@@ -16,7 +16,7 @@ namespace cgb
 		return result;
 	}
 
-	owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
+	ak::owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
 	{
 		std::ifstream stream(aPath, std::ifstream::in);
 		if (!stream.good() || !stream || stream.fail())
