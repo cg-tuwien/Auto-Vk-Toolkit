@@ -124,9 +124,6 @@
     <ClCompile Include="..\..\framework\src\descriptor_set.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\fence.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\framebuffer.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
@@ -327,9 +324,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config_convenience_functions.hpp">
       <Filter>ak</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config_convenience_functions.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\framebuffer.hpp">
       <Filter>ak</Filter>
     </ClInclude>
@@ -505,6 +499,12 @@
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils2.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_settings.hpp">
       <Filter>ak</Filter>
     </ClInclude>
   </ItemGroup>

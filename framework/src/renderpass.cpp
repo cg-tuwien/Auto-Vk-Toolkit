@@ -2,8 +2,6 @@
 
 namespace cgb
 {
-	using namespace cpplinq;
-
 	struct subpass_desc_helper
 	{
 		size_t mSubpassId;

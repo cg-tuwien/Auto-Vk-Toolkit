@@ -45,7 +45,6 @@
     <ClCompile Include="..\..\framework\src\descriptor_pool.cpp" />
     <ClCompile Include="..\..\framework\src\descriptor_set.cpp" />
     <ClCompile Include="..\..\framework\src\essential_utils.cpp" />
-    <ClCompile Include="..\..\framework\src\fence.cpp" />
     <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp" />
     <ClCompile Include="..\..\framework\src\framebuffer.cpp" />
     <ClCompile Include="..\..\framework\src\geometry_instance.cpp" />
@@ -118,7 +117,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\geometry_instance.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config_convenience_functions.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_format.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_order.hpp" />
@@ -130,6 +128,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\memory_usage.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_settings.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp" />
@@ -151,6 +150,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_desc.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils2.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\aabb.hpp" />
     <ClInclude Include="..\..\framework\include\buffer.hpp" />
