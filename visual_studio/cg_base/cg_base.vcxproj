@@ -116,6 +116,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\memory_usage.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_settings.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\push_constant_binding_data.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp" />
@@ -137,6 +138,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils2.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
