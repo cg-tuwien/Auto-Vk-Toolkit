@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	namespace settings
 	{
@@ -10,7 +10,7 @@ namespace cgb
 
 		std::string gApplicationName = "cg_base Application";
 
-		uint32_t gApplicationVersion = cgb::make_version(1u, 0u, 0u);
+		uint32_t gApplicationVersion = xk::make_version(1u, 0u, 0u);
 
 		std::vector<const char*> gRequiredInstanceExtensions;
 

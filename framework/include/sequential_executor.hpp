@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	@brief Handle all @ref cg_element sequentially!
 	 *

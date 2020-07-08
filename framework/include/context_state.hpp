@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	enum struct context_state
 	{

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	// Define LOGGING_ON_SEPARATE_THREAD to have all the logging being transmitted and performed by a separate thread
 	#if !defined(NO_SEPARATE_LOGGING_THREAD)
@@ -48,16 +48,16 @@ namespace cgb
 		std::string mStacktrace;
 	};
 	
-	extern void set_console_output_color(cgb::log_type level, cgb::log_importance importance);
-	extern void set_console_output_color_for_stacktrace(cgb::log_type level, cgb::log_importance importance);
+	extern void set_console_output_color(xk::log_type level, xk::log_importance importance);
+	extern void set_console_output_color_for_stacktrace(xk::log_type level, xk::log_importance importance);
 	extern void reset_console_output_color();
-	extern void dispatch_log(cgb::log_pack pToBeLogged);
+	extern void dispatch_log(xk::log_pack pToBeLogged);
 	
 	#if LOG_LEVEL > 0
-	#define LOG_ERROR(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::error, cgb::log_importance::normal })
-	#define LOG_ERROR_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::error, cgb::log_importance::important})
-	#define LOG_ERROR__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), cgb::log_type::error, cgb::log_importance::normal })
-	#define LOG_ERROR_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), cgb::log_type::error, cgb::log_importance::important })
+	#define LOG_ERROR(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::error, xk::log_importance::normal })
+	#define LOG_ERROR_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::error, xk::log_importance::important})
+	#define LOG_ERROR__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), xk::log_type::error, xk::log_importance::normal })
+	#define LOG_ERROR_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), xk::log_type::error, xk::log_importance::important })
 	#else
 	#define LOG_ERROR(msg)
 	#define LOG_ERROR_EM(msg)
@@ -66,10 +66,10 @@ namespace cgb
 	#endif
 
 	#if LOG_LEVEL > 1
-	#define LOG_WARNING(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::warning, cgb::log_importance::normal })
-	#define LOG_WARNING_EM(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::warning, cgb::log_importance::important })
-	#define LOG_WARNING__(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), cgb::log_type::warning, cgb::log_importance::normal })
-	#define LOG_WARNING_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), cgb::log_type::warning, cgb::log_importance::important })
+	#define LOG_WARNING(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::warning, xk::log_importance::normal })
+	#define LOG_WARNING_EM(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::warning, xk::log_importance::important })
+	#define LOG_WARNING__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), xk::log_type::warning, xk::log_importance::normal })
+	#define LOG_WARNING_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), xk::log_type::warning, xk::log_importance::important })
 	#else 
 	#define LOG_WARNING(msg)
 	#define LOG_WARNING_EM(msg)
@@ -78,10 +78,10 @@ namespace cgb
 	#endif
 
 	#if LOG_LEVEL > 2
-	#define LOG_INFO(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::info, cgb::log_importance::normal })
-	#define LOG_INFO_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::info, cgb::log_importance::important })
-	#define LOG_INFO__(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), cgb::log_type::info, cgb::log_importance::normal })
-	#define LOG_INFO_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), cgb::log_type::info, cgb::log_importance::important })
+	#define LOG_INFO(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::info, xk::log_importance::normal })
+	#define LOG_INFO_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::info, xk::log_importance::important })
+	#define LOG_INFO__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), xk::log_type::info, xk::log_importance::normal })
+	#define LOG_INFO_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), xk::log_type::info, xk::log_importance::important })
 	#else
 	#define LOG_INFO(msg)
 	#define LOG_INFO_EM(msg)
@@ -90,10 +90,10 @@ namespace cgb
 	#endif
 
 	#if LOG_LEVEL > 3
-	#define LOG_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::normal })
-	#define LOG_VERBOSE_EM(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::important })
-	#define LOG_VERBOSE__(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), cgb::log_type::verbose, cgb::log_importance::normal })
-	#define LOG_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), cgb::log_type::verbose, cgb::log_importance::important })
+	#define LOG_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::normal })
+	#define LOG_VERBOSE_EM(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::important })
+	#define LOG_VERBOSE__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), xk::log_type::verbose, xk::log_importance::normal })
+	#define LOG_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), xk::log_type::verbose, xk::log_importance::important })
 	#else 
 	#define LOG_VERBOSE(msg)
 	#define LOG_VERBOSE_EM(msg)
@@ -102,10 +102,10 @@ namespace cgb
 	#endif
 
 	#if LOG_LEVEL > 4
-	#define LOG_MEGA_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::verbose, cgb::log_importance::important })
-	#define LOG_MEGA_VERBOSE__(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), cgb::log_type::verbose, cgb::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), cgb::log_type::verbose, cgb::log_importance::important })
+	#define LOG_MEGA_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::important })
+	#define LOG_MEGA_VERBOSE__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), xk::log_type::verbose, xk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), xk::log_type::verbose, xk::log_importance::important })
 	#else 
 	#define LOG_MEGA_VERBOSE(msg)
 	#define LOG_MEGA_VERBOSE_EM(msg)
@@ -114,10 +114,10 @@ namespace cgb
 	#endif
 
 	#ifdef _DEBUG
-	#define LOG_DEBUG(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug, cgb::log_importance::normal })
-	#define LOG_DEBUG_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug, cgb::log_importance::important })
-	#define LOG_DEBUG__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), cgb::log_type::debug, cgb::log_importance::normal })
-	#define LOG_DEBUG_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), cgb::log_type::debug, cgb::log_importance::important })
+	#define LOG_DEBUG(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug, xk::log_importance::normal })
+	#define LOG_DEBUG_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug, xk::log_importance::important })
+	#define LOG_DEBUG__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), xk::log_type::debug, xk::log_importance::normal })
+	#define LOG_DEBUG_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), xk::log_type::debug, xk::log_importance::important })
 	#else
 	#define LOG_DEBUG(msg)
 	#define LOG_DEBUG_EM(msg)
@@ -126,10 +126,10 @@ namespace cgb
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 3
-	#define LOG_DEBUG_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::important })
-	#define LOG_DEBUG_VERBOSE__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), cgb::log_type::debug_verbose, cgb::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), cgb::log_type::debug_verbose, cgb::log_importance::important })
+	#define LOG_DEBUG_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::important })
+	#define LOG_DEBUG_VERBOSE__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), xk::log_type::debug_verbose, xk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), xk::log_type::debug_verbose, xk::log_importance::important })
 	#else
 	#define LOG_DEBUG_VERBOSE(msg)
 	#define LOG_DEBUG_VERBOSE_EM(msg)   
@@ -138,10 +138,10 @@ namespace cgb
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 4
-	#define LOG_DEBUG_MEGA_VERBOSE(msg)		cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", cgb::extract_file_name(std::string(__FILE__)), __LINE__)), cgb::log_type::debug_verbose, cgb::log_importance::important })
-	#define LOG_DEBUG_MEGA_VERBOSE__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), cgb::log_type::debug_verbose, cgb::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)	cgb::dispatch_log(cgb::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), cgb::log_type::debug_verbose, cgb::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), xk::log_type::debug_verbose, xk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), xk::log_type::debug_verbose, xk::log_importance::important })
 	#else
 	#define LOG_DEBUG_MEGA_VERBOSE(msg)
 	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)   

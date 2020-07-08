@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** @brief Represents the state(s) of a button
 	 */

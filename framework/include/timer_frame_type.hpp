@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	The update type for timers
 	*/

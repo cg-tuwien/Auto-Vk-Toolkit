@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	std::deque<device_queue> device_queue::sPreparedQueues;
 
@@ -11,7 +11,7 @@ namespace cgb
 	{
 		auto families = context().find_best_queue_family_for(aFlagsRequired, aSelectionStrategy, aSupportForSurface);
 		if (families.size() == 0) {
-			throw cgb::runtime_error("Couldn't find queue families satisfying the given criteria.");
+			throw xk::runtime_error("Couldn't find queue families satisfying the given criteria.");
 		}
 
 		// Default to the first ones, each
@@ -32,7 +32,7 @@ namespace cgb
 				// Pay attention to different selection strategies:
 				switch (aSelectionStrategy)
 				{
-				case cgb::device_queue_selection_strategy::prefer_separate_queues:
+				case xk::device_queue_selection_strategy::prefer_separate_queues:
 					if (sPreparedQueues.end() == alreadyInUse) {
 						// didn't find combination, that's good
 						familyIndex = std::get<0>(family);
@@ -40,7 +40,7 @@ namespace cgb
 						goto found_indices;
 					}
 					break;
-				case cgb::device_queue_selection_strategy::prefer_everything_on_single_queue:
+				case xk::device_queue_selection_strategy::prefer_everything_on_single_queue:
 					if (sPreparedQueues.end() != alreadyInUse) {
 						// find combination, that's good in this case
 						familyIndex = std::get<0>(family);
@@ -83,7 +83,7 @@ namespace cgb
 	{
 		assert(aCommandBuffer.state() >= command_buffer_state::finished_recording);
 
-		auto sem = cgb::semaphore_t::create();
+		auto sem = xk::semaphore_t::create();
 		
 		const auto submitInfo = vk::SubmitInfo{}
 			.setCommandBufferCount(1u)
@@ -396,7 +396,7 @@ namespace cgb
 	semaphore device_queue::submit_and_handle_with_semaphore(std::optional<command_buffer> aCommandBuffer, std::vector<semaphore> aWaitSemaphores)
 	{
 		if (!aCommandBuffer.has_value()) {
-			throw cgb::runtime_error("std::optional<command_buffer> submitted and it has no value.");
+			throw xk::runtime_error("std::optional<command_buffer> submitted and it has no value.");
 		}
 		return submit_and_handle_with_semaphore(std::move(aCommandBuffer.value()), std::move(aWaitSemaphores));
 	}

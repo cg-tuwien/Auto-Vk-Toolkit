@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Base class (actually an "interface") which all concrete timer_interface 
 	 *	implementations have to implement in order to be usable with @ref run.

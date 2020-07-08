@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	std::mutex window::sSubmitMutex;
 
@@ -31,13 +31,13 @@ namespace cgb
 			if (!(srfFrmts.size() == 1 && srfFrmts[0].format == vk::Format::eUndefined)) {
 				for (const auto& e : srfFrmts) {
 					if (lSrgbFormatRequested) {
-						if (is_srgb_format(cgb::image_format(e))) {
+						if (is_srgb_format(xk::image_format(e))) {
 							selSurfaceFormat = e;
 							break;
 						}
 					}
 					else {
-						if (!is_srgb_format(cgb::image_format(e))) {
+						if (!is_srgb_format(xk::image_format(e))) {
 							selSurfaceFormat = e;
 							break;
 						}
@@ -54,7 +54,7 @@ namespace cgb
 		}
 	}
 
-	void window::set_presentaton_mode(cgb::presentation_mode aMode)
+	void window::set_presentaton_mode(xk::presentation_mode aMode)
 	{
 		mPresentationModeSelector = [lPresMode = aMode](const vk::SurfaceKHR& surface) {
 			// Supported presentation modes must be queried from a device:
@@ -63,20 +63,20 @@ namespace cgb
 			// Select a presentation mode:
 			auto selPresModeItr = presModes.end();
 			switch (lPresMode) {
-			case cgb::presentation_mode::immediate:
+			case xk::presentation_mode::immediate:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eImmediate);
 				break;
-			case cgb::presentation_mode::relaxed_fifo:
+			case xk::presentation_mode::relaxed_fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifoRelaxed);
 				break;
-			case cgb::presentation_mode::fifo:
+			case xk::presentation_mode::fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifo);
 				break;
-			case cgb::presentation_mode::mailbox:
+			case xk::presentation_mode::mailbox:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eMailbox);
 				break;
 			default:
-				throw cgb::runtime_error("should not get here");
+				throw xk::runtime_error("should not get here");
 			}
 			if (selPresModeItr == presModes.end()) {
 				LOG_WARNING_EM("No presentation mode specified or desired presentation mode not available => will select any presentation mode");
@@ -164,7 +164,7 @@ namespace cgb
 				sharedContex);
 			if (nullptr == handle) {
 				// No point in continuing
-				throw new cgb::runtime_error("Failed to create window with the title '" + mTitle + "'");
+				throw new xk::runtime_error("Failed to create window with the title '" + mTitle + "'");
 			}
 			mHandle = window_handle{ handle };
 			initialize_after_open();
@@ -195,7 +195,7 @@ namespace cgb
 	{
 		if (!mPresentationModeSelector) {
 			// Set the default:
-			set_presentaton_mode(cgb::presentation_mode::mailbox);
+			set_presentaton_mode(xk::presentation_mode::mailbox);
 		}
 		// Determine the presentation mode:
 		return mPresentationModeSelector(aSurface);
@@ -362,9 +362,9 @@ namespace cgb
 		return removedBuffers;
 	}
 
-	std::vector<std::reference_wrapper<const cgb::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
+	std::vector<std::reference_wrapper<const xk::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
 	{
-		std::vector<std::reference_wrapper<const cgb::command_buffer_t>> result;
+		std::vector<std::reference_wrapper<const xk::command_buffer_t>> result;
 		for (const auto& [cbFrameId, ref] : mCommandBufferRefs) {
 			if (cbFrameId == aFrameId) {
 				result.push_back(ref);
@@ -403,8 +403,8 @@ namespace cgb
 		
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
-		cgb::context().logical_device().waitForFences(1u, fence.handle_ptr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
-		result = cgb::context().logical_device().resetFences(1u, fence.handle_ptr());
+		xk::context().logical_device().waitForFences(1u, fence.handle_ptr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
+		result = xk::context().logical_device().resetFences(1u, fence.handle_ptr());
 		assert (vk::Result::eSuccess == result);
 
 		// At this point we are certain that frame which used the current fence before is done.
@@ -440,7 +440,7 @@ namespace cgb
 			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 			uint32_t imageIndex;
 			const auto& imgAvailableSem = image_available_semaphore_for_frame();
-			cgb::context().logical_device().acquireNextImageKHR(
+			xk::context().logical_device().acquireNextImageKHR(
 				swap_chain(), // the swap chain from which we wish to acquire an image 
 				// At this point, I have to rant about the `timeout` parameter:
 				// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
@@ -482,7 +482,7 @@ namespace cgb
 				.setPSignalSemaphores(toSignalAfterExecute.data());
 			// Finally, submit to the graphics queue.
 			// Also provide a fence for GPU -> CPU sync which will be waited on next time we need this frame (top of this method).
-			cgb::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
+			xk::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
 			// Attention: Do not invoke post execution handlers here, they have already been invoked in submit_for_backbuffer/submit_for_backbuffer_ref
 
 			// Present as soon as the render finished semaphore has been signalled:
@@ -493,7 +493,7 @@ namespace cgb
 				.setPSwapchains(&swap_chain())
 				.setPImageIndices(&imageIndex)
 				.setPResults(nullptr);
-			cgb::context().presentation_queue().handle().presentKHR(presentInfo);
+			xk::context().presentation_queue().handle().presentKHR(presentInfo);
 			
 			// increment frame counter
 			++mCurrentFrame;
@@ -503,28 +503,28 @@ namespace cgb
 		}
 	}
 	
-	std::optional<command_buffer> window::copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
+	std::optional<command_buffer> window::copy_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
 		auto& destinationImage = image_for_frame(aDestinationFrameId);
-		return copy_image_to_another(aSourceImage, destinationImage, cgb::sync::with_barriers_by_return(
-				cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		return copy_image_to_another(aSourceImage, destinationImage, xk::sync::with_barriers_by_return(
+				xk::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
 				aShallBePresentedDirectlyAfterwards 
-					? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
-					: cgb::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+					? xk::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+					: xk::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
 			),
 			true, // Restore layout of source image
 			false // Don't restore layout of destination => this is handled by the after-handler in any case
 		);
 	}
 	
-	std::optional<command_buffer> window::blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
+	std::optional<command_buffer> window::blit_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
 		auto& destinationImage = image_for_frame(aDestinationFrameId);
-		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), cgb::sync::with_barriers_by_return(
-			cgb::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), xk::sync::with_barriers_by_return(
+			xk::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
 			aShallBePresentedDirectlyAfterwards 
-				? cgb::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
-				: cgb::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+				? xk::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+				: xk::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
 			),	
 			true, // Restore layout of source image
 			false // Don't restore layout of destination => this is handled by the after-handler in any case

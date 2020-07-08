@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	namespace settings
 	{
@@ -26,13 +26,6 @@ namespace cgb
 
 		/** Fill this vector with required device extensions, if required */
 		extern std::vector<const char*> gRequiredDeviceExtensions;
-
-		/** Configure how the queues should be selected.
-		 *	Shall there be one queue for everything or rather
-		 *	separate queues for everything? 
-		 *  The default is `prefer_separate_queues`
-		 */
-		extern device_queue_selection_strategy gQueueSelectionPreference;
 
 		/** Regardless of the `gQueueSelectionPreference` setting,
 		 *	state that the same queue is preferred for graphics and present.
@@ -62,18 +55,10 @@ namespace cgb
 		extern bool gEnableBufferDeviceAddress;
 	}
 
-#if defined(USE_OPENGL_CONTEXT)
-	inline opengl& context()
-	{
-		static opengl instance;
-		return instance;
-	}
-#elif defined(USE_VULKAN_CONTEXT)
 	inline vulkan& context()
 	{
 		static vulkan instance;
 		return instance;
 	}
-#endif
 
 }

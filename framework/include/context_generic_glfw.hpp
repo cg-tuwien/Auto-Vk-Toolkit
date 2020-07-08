@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	// ============================= forward declarations ===========================
 	class input_buffer;
@@ -174,7 +174,7 @@ namespace cgb
 		auto state() const { return mContextState; }
 
 		template <typename F>
-		void add_event_handler(F action, cgb::context_state when)
+		void add_event_handler(F action, xk::context_state when)
 		{
 			mEventHandlers.emplace_back(std::move(action), when);
 		}
@@ -209,10 +209,10 @@ namespace cgb
 		*
 		*	Event handlers are always executed on the main thread.
 		*/
-		std::list<std::tuple<event_handler_func, cgb::context_state>> mEventHandlers;
+		std::list<std::tuple<event_handler_func, xk::context_state>> mEventHandlers;
 
 		// Which state the context is currently in
-		cgb::context_state mContextState;
+		xk::context_state mContextState;
 
 		GLFWcursor* mArrowCursor;
 		GLFWcursor* mIbeamCursor;

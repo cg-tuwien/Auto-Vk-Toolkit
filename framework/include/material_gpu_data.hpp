@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Material data in the right format to be uploaded to the GPU
 	 *	and to be used in a GPU buffer like a UBO or an SSBO.
@@ -128,9 +128,9 @@ namespace cgb
 
 namespace std // Inject hash for `cgb::material_gpu_data` into std::
 {
-	template<> struct hash<cgb::material_gpu_data>
+	template<> struct hash<xk::material_gpu_data>
 	{
-		std::size_t operator()(cgb::material_gpu_data const& o) const noexcept
+		std::size_t operator()(xk::material_gpu_data const& o) const noexcept
 		{
 			std::size_t h = 0;
 			ak::hash_combine(h,

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Light data in the right format to be uploaded to the GPU
 	 *	and to be used in a GPU buffer like a UBO or an SSBO
@@ -102,7 +102,7 @@ namespace cgb
 	 *									to a size of `aNumElements`. Example usage: `auto result = cgb::convert_for_gpu_usage<std::vector<cgb::lightsource_gpu_data>>(...)`
 	 */
 	template <typename Out, typename In>
-	typename std::enable_if<cgb::has_resize<Out>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	typename std::enable_if<xk::has_resize<Out>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		Out gpuLights{};
 		gpuLights.resize(aNumElements);
@@ -116,7 +116,7 @@ namespace cgb
 	 *	@tparam Out						May be a type that has a `.resize()` member or that doesn't. Either is fine and the respective overload will be invoked.
 	 */
 	template <typename Out, typename In>
-	typename std::enable_if<cgb::has_size_and_iterators<In>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	typename std::enable_if<xk::has_size_and_iterators<In>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		return convert_for_gpu_usage<Out, In>(aLightsourceData, aLightsourceData.size(), aTransformationMatrix);
 	}
@@ -126,9 +126,9 @@ namespace cgb
 
 namespace std
 {
-	template<> struct hash<cgb::lightsource_gpu_data>
+	template<> struct hash<xk::lightsource_gpu_data>
 	{
-		std::size_t operator()(cgb::lightsource_gpu_data const& o) const noexcept
+		std::size_t operator()(xk::lightsource_gpu_data const& o) const noexcept
 		{
 			std::size_t h = 0;
 			ak::hash_combine(h, 

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	enum struct projection_type
 	{
@@ -93,7 +93,7 @@ namespace cgb
 
 		glm::mat4 mProjectionMatrix;
 
-		cgb::projection_type mProjectionType;
+		xk::projection_type mProjectionType;
 		float mNear;
 		float mFar;
 		float mFov;		// perspective only

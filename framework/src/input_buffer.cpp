@@ -1,4 +1,4 @@
-namespace cgb
+namespace xk
 {
 	void input_buffer::reset(std::optional<window> pWindow) // TODO: Where is this used??
 	{

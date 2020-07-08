@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	@brief Override this base class for objects to update and/or render
 	 * 
@@ -52,7 +52,7 @@ namespace cgb
 		virtual ~cg_element()
 		{
 			// Make sure, this element gets removed from the composition
-			cgb::current_composition().remove_element_immediately(*this, true);
+			xk::current_composition().remove_element_immediately(*this, true);
 		}
 
 		/** Returns the name of this cg_element */

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	class window : public window_base
 	{
@@ -24,7 +24,7 @@ namespace cgb
 		void request_srgb_framebuffer(bool aRequestSrgb);
 
 		/** Sets the presentation mode for this window's swap chain. */
-		void set_presentaton_mode(cgb::presentation_mode aMode);
+		void set_presentaton_mode(xk::presentation_mode aMode);
 
 		/** Sets the number of samples for MSAA */
 		void set_number_of_samples(int aNumSamples);
@@ -93,6 +93,10 @@ namespace cgb
 		/** Gets this window's swap chain's image format */
 		const auto& swap_chain_image_format() const { 
 			return mSwapChainImageFormat; 
+		}
+		/** Gets this window's swap chain's color space */
+		const auto& swap_chain_color_space() const { 
+			return mSwapChainColorSpace; 
 		}
 		/** Gets this window's swap chain's dimensions */
 		auto swap_chain_extent() const {
@@ -256,7 +260,7 @@ namespace cgb
 		 */
 		std::vector<command_buffer> clean_up_command_buffers_for_frame(int64_t aPresentFrameId);
 
-		std::vector<std::reference_wrapper<const cgb::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
+		std::vector<std::reference_wrapper<const xk::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
 		
 		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
 
@@ -282,7 +286,7 @@ namespace cgb
 
 		/** Gets a const reference to the backbuffer's render pass
 		 */
-		const cgb::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
+		const xk::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
 		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
@@ -303,7 +307,7 @@ namespace cgb
 		 *		);
 		 *		
 		 */
-		std::optional<command_buffer> copy_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
+		std::optional<command_buffer> copy_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
 		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
 		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
@@ -324,7 +328,7 @@ namespace cgb
 		 *		);
 		 *	
 		 */
-		std::optional<command_buffer> blit_to_swapchain_image(cgb::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
+		std::optional<command_buffer> blit_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -379,9 +383,11 @@ namespace cgb
 		// The window's surface
 		vk::UniqueSurfaceKHR mSurface;
 		// The swap chain for this surface
-		vk::UniqueSwapchainKHR mSwapChain; 
+		vk::UniqueSwapchainKHR mSwapChain;
 		// The swap chain's image format
 		vk::Format mSwapChainImageFormat;
+		// The swap chain's color space
+		vk::ColorSpaceKHR mSwapChainColorSpace;
 		// The swap chain's extent
 		vk::Extent2D mSwapChainExtent;
 		// Queue family indices which have shared ownership of the swap chain images
@@ -394,11 +400,11 @@ namespace cgb
 
 #pragma region indispensable sync elements
 		// Fences to synchronize between frames (CPU-GPU synchronization)
-		std::vector<fence> mFences; 
+		std::vector<ak::fence> mFences; 
 		// Semaphores to wait for an image to become available (GPU-GPU synchronization) // TODO: true?
-		std::vector<semaphore> mImageAvailableSemaphores; 
+		std::vector<ak::semaphore> mImageAvailableSemaphores; 
 		// Semaphores to wait for rendering to finish (GPU-GPU synchronization) // TODO: true?
-		std::vector<semaphore> mRenderFinishedSemaphores; 
+		std::vector<ak::semaphore> mRenderFinishedSemaphores; 
 #pragma endregion
 
 #pragma region extra sync elements, i.e. exta semaphores
@@ -406,7 +412,7 @@ namespace cgb
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
 		// Extra dependency semaphores will be waited on along with the mImageAvailableSemaphores
-		std::vector<std::tuple<int64_t, semaphore>> mExtraSemaphoreDependencies;
+		std::vector<std::tuple<int64_t, ak::semaphore>> mExtraSemaphoreDependencies;
 		 
 		// Number of extra semaphores to generate per frame upon fininshing the rendering of a frame
 		uint32_t mNumExtraRenderFinishedSemaphoresPerFrame;
@@ -414,7 +420,7 @@ namespace cgb
 		// Contains the extra semaphores to be signalled per frame
 		// The length of this vector will be: number_of_concurrent_frames() * mNumExtraSemaphoresPerFrame
 		// These semaphores will be signalled together with the mRenderFinishedSemaphores
-		std::vector<semaphore> mExtraRenderFinishedSemaphores;
+		std::vector<ak::semaphore> mExtraRenderFinishedSemaphores;
 #pragma endregion
 
 		// The renderpass used for the back buffers
@@ -435,6 +441,6 @@ namespace cgb
 		// Comand buffers which are submitted via `window::submit_for_backbuffer` or `window::submit_for_backbuffer_ref`
 		// are stored within this container. In the former case, they are moved into `mSingleUseCommandBuffers` first,
 		// and a reference into `mSingleUseCommandBuffers` ist pushed to the back of `mCommandBufferRefs` afterwards.
-		std::vector<std::tuple<int64_t, std::reference_wrapper<const cgb::command_buffer_t>>> mCommandBufferRefs;
+		std::vector<std::tuple<int64_t, std::reference_wrapper<const xk::command_buffer_t>>> mCommandBufferRefs;
 	};
 }

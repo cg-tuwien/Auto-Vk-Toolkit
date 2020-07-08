@@ -1,8 +1,8 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
 #include <sstream>
 
-namespace cgb
+namespace xk
 {
 	owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
 	{
@@ -11,7 +11,7 @@ namespace cgb
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw cgb::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+			throw xk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
 		}
 		result.initialize_materials();
 		return result;
@@ -24,7 +24,7 @@ namespace cgb
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw cgb::runtime_error("Loading model from memory failed.");
+			throw xk::runtime_error("Loading model from memory failed.");
 		}
 		result.initialize_materials();
 		return result;
@@ -538,13 +538,13 @@ namespace cgb
 		return result;
 	}
 
-	std::vector<cgb::camera> model_t::cameras() const
+	std::vector<xk::camera> model_t::cameras() const
 	{
-		std::vector<cgb::camera> result;
+		std::vector<xk::camera> result;
 		result.reserve(mScene->mNumCameras);
 		for (int i = 0; i < mScene->mNumCameras; ++i) {
 			aiCamera* aiCam = mScene->mCameras[i];
-			auto cgbCam = cgb::camera();
+			auto cgbCam = xk::camera();
 			cgbCam.set_aspect_ratio(aiCam->mAspect);
 			cgbCam.set_far_plane_distance(aiCam->mClipPlaneFar);
 			cgbCam.set_near_plane_distance(aiCam->mClipPlaneNear);

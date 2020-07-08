@@ -1,4 +1,4 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -6,14 +6,14 @@
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
 #include <imgui_internal.h>
 
-namespace cgb
+namespace xk
 {
 	void imgui_manager::initialize()
 	{
 		LOG_DEBUG_VERBOSE("Setting up IMGUI...");
 
 		// Get the main window's handle:
-		auto* wnd = cgb::context().main_window();
+		auto* wnd = xk::context().main_window();
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -50,7 +50,7 @@ namespace cgb
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
 		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
-		mDescriptorPool = cgb::context().get_descriptor_pool_for_layouts(allocRequest, 'imgu');
+		mDescriptorPool = xk::context().get_descriptor_pool_for_layouts(allocRequest, 'imgu');
 		
 	    init_info.DescriptorPool = mDescriptorPool->handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
@@ -61,7 +61,7 @@ namespace cgb
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
 	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_in_flight_frames()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
 	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
-	    init_info.CheckVkResultFn = cgb::context().check_vk_result;
+	    init_info.CheckVkResultFn = xk::context().check_vk_result;
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
 			std::vector<xv::attachment> attachments;
@@ -111,18 +111,18 @@ namespace cgb
 	    //io.ClipboardUserData = g_Window;
 
 #if defined(_WIN32)
-		cgb::context().dispatch_to_main_thread([](){
-		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(cgb::context().main_window()->handle()->mHandle);
+		xk::context().dispatch_to_main_thread([](){
+		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(xk::context().main_window()->handle()->mHandle);
 		});
 #endif		
 
 		// Upload fonts:
-		auto cmdBfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue()); // TODO: Graphics queue?
+		auto cmdBfr = xk::command_pool::create_single_use_command_buffer(xk::context().graphics_queue()); // TODO: Graphics queue?
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = cgb::context().graphics_queue().submit_and_handle_with_semaphore(std::move(cmdBfr));
+		auto semaph = xk::context().graphics_queue().submit_and_handle_with_semaphore(std::move(cmdBfr));
 		wnd->set_extra_semaphore_dependency(std::move(semaph));
 	}
 
@@ -131,10 +131,10 @@ namespace cgb
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
-		auto wndSize = cgb::context().main_window()->resolution(); // TODO: What about multiple windows?
+		auto wndSize = xk::context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
-	    io.DeltaTime = cgb::time().delta_time();
+	    io.DeltaTime = xk::time().delta_time();
 
 		if (!mUserInteractionEnabled) {
 			return;
@@ -268,9 +268,9 @@ namespace cgb
 			a(); // TODO: Invoke here or in update()?
 		}
 		
-		auto mainWnd = cgb::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = xk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
-		auto cmdBfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
+		auto cmdBfr = xk::command_pool::create_single_use_command_buffer(xk::context().graphics_queue());
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
 		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->backbufer_for_frame());

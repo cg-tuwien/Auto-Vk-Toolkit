@@ -1,8 +1,8 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
 #include <set>
 
-namespace cgb
+namespace xk
 {
 	std::vector<const char*> vulkan::sRequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -74,7 +74,7 @@ namespace cgb
 		// and before physical device selection, because it can actually influence 
 		// the physical device selection.
 
-		mContextState = cgb::context_state::initialization_begun;
+		mContextState = xk::context_state::initialization_begun;
 
 		// NOTE: Vulkan-init is not finished yet!
 		// Initialization will continue after the first window (and it's surface) have been created.
@@ -90,7 +90,7 @@ namespace cgb
 			LOG_DEBUG_VERBOSE("Running event handler to pick physical device");
 
 			// Just get any window:
-			auto* window = context().find_window([](cgb::window* w) { 
+			auto* window = context().find_window([](xk::window* w) { 
 				return w->handle().has_value() && static_cast<bool>(w->surface());
 			});
 
@@ -106,13 +106,13 @@ namespace cgb
 			context().pick_physical_device(surface);
 
 			return true;
-		}, cgb::context_state::initialization_begun);
+		}, xk::context_state::initialization_begun);
 
 		mEventHandlers.emplace_back([]() -> bool {
 			LOG_DEBUG_VERBOSE("Running event handler to create logical device");
 
 			// Just get any window:
-			auto* window = context().find_window([](cgb::window* w) { 
+			auto* window = context().find_window([](xk::window* w) { 
 				return w->handle().has_value() && static_cast<bool>(w->surface());
 			});
 
@@ -133,17 +133,16 @@ namespace cgb
 			context().create_and_assign_logical_device(surface);
 
 			return true;
-		}, cgb::context_state::physical_device_selected);
+		}, xk::context_state::physical_device_selected);
 	}
 
 	vulkan::~vulkan()
 	{
-		mContextState = cgb::context_state::about_to_finalize;
+		mContextState = xk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
 
 		// Destroy all descriptors and layouts before destroying the pools
-		mStandardDescriptorCache.clear_all_descriptor_sets();
-		mStandardDescriptorCache.clear_all_layouts();
+		mStandardDescriptorCache.cleanup();
 		
 		// Destroy all descriptor pools before the queues and the device is destroyed
 		mDescriptorPools.clear();
@@ -180,7 +179,7 @@ namespace cgb
 		// Destroy everything
 		mInstance.destroy();
 	
-		mContextState = cgb::context_state::has_finalized;
+		mContextState = xk::context_state::has_finalized;
 		context().work_off_event_handlers();
 	}
 
@@ -189,10 +188,85 @@ namespace cgb
 		createResultValue(static_cast<vk::Result>(err), context().vulkan_instance(), "check_vk_result");
 	}
 
+	ak::command_pool& vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
+	{
+		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
+		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
+							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, ak::command_pool>& existing) {
+									auto& tid = std::get<0>(existing);
+									auto& q = std::get<1>(existing);
+									return tid == lThreadId && q->queue_family_index() == lFamilyIdx && lFlags == q->create_info().flags;
+							   });
+		if (it == std::end(mCommandPools)) {
+			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), create_command_pool(aQueueFamilyIndex, aFlags)));
+		}
+		return std::get<1>(*it);
+	}
+
+	ak::command_pool& vulkan::get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags)
+	{
+		return get_command_pool_for(aQueue.family_index(), aFlags);
+	}
+
+	ak::command_buffer vulkan::create_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
+	{
+		auto usageFlags = vk::CommandBufferUsageFlags();
+		if (aSimultaneousUseEnabled) {
+			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = create_command_buffer(vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;
+	}
+
+	std::vector<ak::command_buffer> vulkan::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
+	{
+		auto usageFlags = vk::CommandBufferUsageFlags();
+		if (aSimultaneousUseEnabled) {
+			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;
+	}
+	
+	ak::command_buffer vulkan::create_single_use_command_buffer(bool aPrimary)
+	{
+		const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;
+	}
+
+	std::vector<ak::command_buffer> vulkan::create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary)
+	{
+		const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;		
+	}
+
+	ak::command_buffer vulkan::create_resettable_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
+	{
+		vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		if (aSimultaneousUseEnabled) {
+			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;
+	}
+
+	std::vector<ak::command_buffer> vulkan::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
+	{
+		vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		if (aSimultaneousUseEnabled) {
+			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+		}
+		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+		return result;
+	}
+	
+	
 	void vulkan::begin_composition()
 	{ 
 		dispatch_to_main_thread([]() {
-			context().mContextState = cgb::context_state::composition_beginning;
+			context().mContextState = xk::context_state::composition_beginning;
 			context().work_off_event_handlers();
 		});
 	}
@@ -200,7 +274,7 @@ namespace cgb
 	void vulkan::end_composition()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = cgb::context_state::composition_ending;
+			context().mContextState = xk::context_state::composition_ending;
 			context().work_off_event_handlers();
 			
 			context().mLogicalDevice.waitIdle();
@@ -210,7 +284,7 @@ namespace cgb
 	void vulkan::begin_frame()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = cgb::context_state::frame_begun;
+			context().mContextState = xk::context_state::frame_begun;
 			context().work_off_event_handlers();
 		});
 	}
@@ -218,7 +292,7 @@ namespace cgb
 	void vulkan::update_stage_done()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = cgb::context_state::frame_updates_done;
+			context().mContextState = xk::context_state::frame_updates_done;
 			context().work_off_event_handlers();
 		});
 	}
@@ -226,7 +300,7 @@ namespace cgb
 	void vulkan::end_frame()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = cgb::context_state::frame_ended;
+			context().mContextState = xk::context_state::frame_ended;
 			context().work_off_event_handlers();
 		});
 	}
@@ -245,7 +319,7 @@ namespace cgb
 			LOG_DEBUG_VERBOSE("Running window surface creator event handler");
 
 			// Make sure it is the right window
-			auto* window = context().find_window([wnd](cgb::window* w) {
+			auto* window = context().find_window([wnd](xk::window* w) {
 				return w == wnd && w->handle().has_value();
 			});
 
@@ -255,7 +329,7 @@ namespace cgb
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw cgb::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw xk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 			//window->mSurface = surface;
 			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
@@ -269,7 +343,7 @@ namespace cgb
 			LOG_DEBUG_VERBOSE("Running swap chain creator event handler");
 
 			// Make sure it is the right window
-			auto* window = context().find_window([wnd](cgb::window* w) { 
+			auto* window = context().find_window([wnd](xk::window* w) { 
 				return w == wnd && w->handle().has_value() && static_cast<bool>(w->surface());
 			});
 
@@ -428,11 +502,11 @@ namespace cgb
 				nullptr, 
 				&mDebugUtilsCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw cgb::runtime_error("Failed to set up debug utils callback via vkCreateDebugUtilsMessengerEXT");
+				throw xk::runtime_error("Failed to set up debug utils callback via vkCreateDebugUtilsMessengerEXT");
 			}
 		}
 		else {
-			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
+			throw xk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
 		}
 #endif
 	}
@@ -503,11 +577,11 @@ namespace cgb
 				nullptr,
 				&mDebugReportCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw cgb::runtime_error("Failed to set up debug report callback via vkCreateDebugReportCallbackEXT");
+				throw xk::runtime_error("Failed to set up debug report callback via vkCreateDebugReportCallbackEXT");
 			}
 		}
 		else {
-			throw cgb::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugReportCallbackEXT.");
+			throw xk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugReportCallbackEXT.");
 		}
 
 #endif
@@ -573,7 +647,7 @@ namespace cgb
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
 		if (devices.size() == 0) {
-			throw cgb::runtime_error("Failed to find GPUs with Vulkan support.");
+			throw xk::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 		const vk::PhysicalDevice* currentSelection = nullptr;
 		uint32_t currentScore = 0; // device score
@@ -599,7 +673,7 @@ namespace cgb
 				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
 			
 			if (!settings::gPhysicalDeviceSelectionHint.empty()) {
-				score += find_case_insensitive(properties.deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
+				score += ak::find_case_insensitive(properties.deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
 			}
 
 			// Check if extensions are required
@@ -635,90 +709,15 @@ namespace cgb
 		// Handle failure:
 		if (nullptr == currentSelection) {
 			if (settings::gRequiredDeviceExtensions.size() > 0) {
-				throw cgb::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
+				throw xk::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
 			}
-			throw cgb::runtime_error("Could not find a suitable physical device.");
+			throw xk::runtime_error("Could not find a suitable physical device.");
 		}
 
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
-		mContextState = cgb::context_state::physical_device_selected;
+		mContextState = xk::context_state::physical_device_selected;
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
-	}
-
-	std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> vulkan::find_queue_families_for_criteria(
-		vk::QueueFlags pRequiredFlags, 
-		vk::QueueFlags pForbiddenFlags, 
-		std::optional<vk::SurfaceKHR> pSurface)
-	{
-		assert(mPhysicalDevice);
-		// All queue families:
-		auto queueFamilies = physical_device().getQueueFamilyProperties();
-		std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> indexedQueueFamilies;
-		std::transform(std::begin(queueFamilies), std::end(queueFamilies),
-					   std::back_inserter(indexedQueueFamilies),
-					   [index = uint32_t(0)](const decltype(queueFamilies)::value_type& input) mutable {
-						   auto tpl = std::make_tuple(index, input);
-						   index += 1;
-						   return tpl;
-					   });
-		// Subset to which the criteria applies:
-		std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> selection;
-		// Select the subset
-		std::copy_if(std::begin(indexedQueueFamilies), std::end(indexedQueueFamilies),
-					 std::back_inserter(selection),
-					 [pRequiredFlags, pForbiddenFlags, pSurface, this](const std::tuple<uint32_t, decltype(queueFamilies)::value_type>& tpl) {
-						 bool requirementsMet = true;
-						 if (pRequiredFlags) {
-							 requirementsMet = requirementsMet && ((std::get<1>(tpl).queueFlags & pRequiredFlags) == pRequiredFlags);
-						 }
-						 if (pForbiddenFlags) {
-							 requirementsMet = requirementsMet && ((std::get<1>(tpl).queueFlags & pForbiddenFlags) != pForbiddenFlags);
-						 }
-						 if (pSurface) {
-							 requirementsMet = requirementsMet && (mPhysicalDevice.getSurfaceSupportKHR(std::get<0>(tpl), *pSurface));
-						 }
-						 return requirementsMet;
-					 });
-		return selection;
-	}
-
-	std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> vulkan::find_best_queue_family_for(vk::QueueFlags pRequiredFlags, device_queue_selection_strategy pSelectionStrategy, std::optional<vk::SurfaceKHR> pSurface)
-	{
-		static std::array queueTypes = {
-			vk::QueueFlagBits::eGraphics,
-			vk::QueueFlagBits::eCompute,
-			vk::QueueFlagBits::eTransfer,
-		};
-		// sparse binding and protected bits are ignored, for now
-
-		decltype(std::declval<vulkan>().find_queue_families_for_criteria(vk::QueueFlags(), vk::QueueFlags(), std::nullopt)) selection;
-		
-		vk::QueueFlags forbiddenFlags = {};
-		for (auto f : queueTypes) {
-			forbiddenFlags |= f;
-		}
-		forbiddenFlags &= ~pRequiredFlags;
-
-		int32_t loosenIndex = 0;
-		
-		switch (pSelectionStrategy) {
-		case cgb::device_queue_selection_strategy::prefer_separate_queues:
-			while (loosenIndex <= queueTypes.size()) { // might result in returning an empty selection
-				selection = find_queue_families_for_criteria(pRequiredFlags, forbiddenFlags, pSurface);
-				if (selection.size() > 0 || loosenIndex == queueTypes.size()) {
-					break;
-				}
-				forbiddenFlags = forbiddenFlags & ~queueTypes[loosenIndex++]; // gradually loosen restrictions
-			};
-			break;
-		case cgb::device_queue_selection_strategy::prefer_everything_on_single_queue:
-			// Nothing is forbidden
-			selection = find_queue_families_for_criteria(pRequiredFlags, vk::QueueFlags(), pSurface);
-			break;
-		}
-
-		return selection;
 	}
 
 	void vulkan::create_and_assign_logical_device(vk::SurfaceKHR pSurface)
@@ -726,18 +725,14 @@ namespace cgb
 		assert(mPhysicalDevice);
 
 		// Determine which queue families we have, i.e. what the different queue families support and what they don't
-		auto* presentQueue		= device_queue::prepare(vk::QueueFlagBits::eGraphics,		settings::gQueueSelectionPreference, pSurface);
-		auto* graphicsQueue		= device_queue::prepare(vk::QueueFlagBits::eGraphics,		settings::gPreferSameQueueForGraphicsAndPresent 
-																							  ? device_queue_selection_strategy::prefer_everything_on_single_queue
-																							  : settings::gQueueSelectionPreference, std::nullopt);
-		auto* computeQueue		= device_queue::prepare(vk::QueueFlagBits::eCompute,		settings::gQueueSelectionPreference, std::nullopt);
-		auto* transferQueue		= device_queue::prepare(vk::QueueFlagBits::eTransfer,		settings::gQueueSelectionPreference, std::nullopt);
+		auto familyIndex = ak::queue::select_queue_family_index(mPhysicalDevice, {}, ak::queue_selection_preference::versatile_queue, pSurface);
+		auto iAmTheOneAndOnly = ak::queue::prepare(mPhysicalDevice, familyIndex, 0);
 
-		context().mContextState = cgb::context_state::queues_prepared;
+		context().mContextState = xk::context_state::queues_prepared;
 		
 		// Defer pipeline creation to enable the user to request more queues
 
-		mEventHandlers.emplace_back([presentQueue, graphicsQueue, computeQueue, transferQueue]() -> bool {
+		mEventHandlers.emplace_back([queuesToBeCreated = std::vector<ak::queue>{ std::move(iAmTheOneAndOnly) }]() mutable -> bool {
 			LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
 
 			// Get the same validation layers as for the instance!
@@ -749,40 +744,10 @@ namespace cgb
 				.setShadingRateCoarseSampleOrder(VK_TRUE);
 			auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
 
-			// Gather all the queue create infos:
-			std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-			std::vector<std::vector<float>> queuePriorities;
-			for (size_t q = 0; q < device_queue::sPreparedQueues.size(); ++q) {
-				auto& pq = device_queue::sPreparedQueues[q];
-				bool handled = false;
-				for (size_t i = 0; i < queueCreateInfos.size(); ++i) {
-					if (queueCreateInfos[i].queueFamilyIndex == pq.family_index()) {
-						// found, i.e. increase count IF it has a different queue index as all before
-						bool isDifferent = true;
-						for (size_t v = 0; v < q; ++v) {
-							if (device_queue::sPreparedQueues[v].family_index() == pq.family_index()
-								&& device_queue::sPreparedQueues[v].queue_index() == pq.queue_index()) {
-								isDifferent = false;
-							}
-						}
-						if (isDifferent) {
-							queueCreateInfos[i].queueCount += 1;
-							queuePriorities[i].push_back(pq.priority());
-						}
-						handled = true; 
-						break; // done
-					}
-				}
-				if (!handled) { // => must be a new entry
-					queueCreateInfos.emplace_back()
-						.setQueueFamilyIndex(pq.family_index())
-						.setQueueCount(1u);
-					queuePriorities.push_back({ pq.priority() });
-				}
-			}
-			// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly
-			for (auto i = 0; i < queueCreateInfos.size(); ++i) {
-				queueCreateInfos[i].setPQueuePriorities(queuePriorities[i].data());
+			auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(queuesToBeCreated), std::end(queuesToBeCreated));
+			// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
+			for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
+				std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
 			}
 
 			// Enable certain device features:
@@ -795,7 +760,7 @@ namespace cgb
 		    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
 			deviceVulkan12Features.setPNext(&deviceFeatures);
 
-			if (cgb::settings::gEnableBufferDeviceAddress) {
+			if (xk::settings::gEnableBufferDeviceAddress) {
 				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
 			}
 
@@ -810,8 +775,8 @@ namespace cgb
 			
 			auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 			auto deviceCreateInfo = vk::DeviceCreateInfo()
-				.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
-				.setPQueueCreateInfos(queueCreateInfos.data())
+				.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
+				.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
 				.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
 				// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
 				// TODO: Are these the correct extensions to set here?
@@ -824,22 +789,23 @@ namespace cgb
 			context().mDynamicDispatch = vk::DispatchLoaderDynamic(
 				context().vulkan_instance(), 
 				vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
-				context().logical_device()
+				context().device()
 			);
 
-			// Create the queues which have been prepared in the beginning of this method:
-			for (auto& q : device_queue::sPreparedQueues) {
-				device_queue::create(q);
+			// For every queue, assign the proper handle
+			for (auto& q : queuesToBeCreated) {
+				q.assign_handle(context().mLogicalDevice);
 			}
-			context().mPresentQueue		= presentQueue;
-			context().mGraphicsQueue	= graphicsQueue;
-			context().mComputeQueue		= computeQueue;
-			context().mTransferQueue	= transferQueue;
+			
+			context().mPresentQueue		= queuesToBeCreated[0];
+			context().mGraphicsQueue	= queuesToBeCreated[0];
+			context().mComputeQueue		= queuesToBeCreated[0];
+			context().mTransferQueue	= queuesToBeCreated[0];
 
 			// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
 			std::set<uint32_t> uniqueFamilyIndices;
 			std::set<std::tuple<uint32_t, uint32_t>> uniqueQueues;
-			for (auto q : device_queue::sPreparedQueues) {
+			for (auto& q : queuesToBeCreated) {
 				uniqueFamilyIndices.insert(q.family_index());
 				uniqueQueues.insert(std::make_tuple(q.family_index(), q.queue_index()));
 			}
@@ -851,10 +817,10 @@ namespace cgb
 				context().mDistinctQueues.push_back(tpl);
 			}
 
-			context().mContextState = cgb::context_state::fully_initialized;
+			context().mContextState = xk::context_state::fully_initialized;
 
 			return true; // This is just always true
-		}, cgb::context_state::queues_prepared);
+		}, xk::context_state::queues_prepared);
 	}
 
 	void vulkan::create_swap_chain_for_window(window* pWindow)
@@ -874,7 +840,7 @@ namespace cgb
 
 		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
 
-		const xv::image_usage swapChainImageUsage = xv::image_usage::color_attachment			 | xv::image_usage::transfer_destination		| xv::image_usage::presentable;
+		const ak::image_usage swapChainImageUsage = ak::image_usage::color_attachment			 | ak::image_usage::transfer_destination		| ak::image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
@@ -887,10 +853,7 @@ namespace cgb
 			.setUsage(swapChainImageUsageVk)
 			.setInitialLayout(vk::ImageLayout::eUndefined);
 
-		auto nope = vk::QueueFlags();
-		// See if we can find a queue family which satisfies both criteria: graphics AND presentation (on the given surface)
-		auto allInclFamilies = find_queue_families_for_criteria(vk::QueueFlagBits::eGraphics, nope, pWindow->surface());
-		if (allInclFamilies.size() != 0) {
+		if (mPresentQueue == mGraphicsQueue) {
 			// Found a queue family which supports both!
 			// If the graphics queue family and presentation queue family are the same, which will be the case on most hardware, then we should stick to exclusive mode. [2]
 			pWindow->mImageCreateInfoSwapChain
@@ -899,12 +862,8 @@ namespace cgb
 				.setPQueueFamilyIndices(nullptr); // Optional [2]
 		}
 		else {
-			auto graphicsFamily = find_queue_families_for_criteria(vk::QueueFlagBits::eGraphics, nope, std::nullopt);
-			auto presentFamily = find_queue_families_for_criteria(nope, nope, pWindow->surface());
-			assert(graphicsFamily.size() > 0);
-			assert(presentFamily.size() > 0);
-			pWindow->mQueueFamilyIndices.push_back(std::get<0>(graphicsFamily[0]));
-			pWindow->mQueueFamilyIndices.push_back(std::get<0>(presentFamily[0]));
+			pWindow->mQueueFamilyIndices.push_back(mPresentQueue.family_index());
+			pWindow->mQueueFamilyIndices.push_back(mGraphicsQueue.family_index());
 			// Have to use separate queue families!
 			// If the queue families differ, then we'll be using the concurrent mode [2]
 			pWindow->mImageCreateInfoSwapChain
@@ -932,30 +891,30 @@ namespace cgb
 			.setPQueueFamilyIndices(pWindow->mImageCreateInfoSwapChain.pQueueFamilyIndices);
 
 		// Finally, create the swap chain prepare a struct which stores all relevant data (for further use)
-		pWindow->mSwapChain = logical_device().createSwapchainKHRUnique(createInfo);
+		pWindow->mSwapChain = device().createSwapchainKHRUnique(createInfo);
 		//pWindow->mSwapChain = logical_device().createSwapchainKHR(createInfo);
-		pWindow->mSwapChainImageFormat = surfaceFormat;
+		pWindow->mSwapChainImageFormat = surfaceFormat.format;
 		pWindow->mSwapChainExtent = vk::Extent2D(extent.x, extent.y);
 		pWindow->mCurrentFrame = 0; // Start af frame 0
 
-		auto swapChainImages = logical_device().getSwapchainImagesKHR(pWindow->swap_chain());
+		auto swapChainImages = device().getSwapchainImagesKHR(pWindow->swap_chain());
 		assert(swapChainImages.size() == pWindow->get_config_number_of_presentable_images());
 
 		// and create one image view per image
 		pWindow->mSwapChainImageViews.reserve(swapChainImages.size());
 		for (auto& imageHandle : swapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			auto& ref = pWindow->mSwapChainImageViews.emplace_back(image_view_t::create(image_t::wrap(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
+			auto& ref = pWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
 			ref.enable_shared_ownership(); // Back buffers must be in shared ownership, because they are also stored in the renderpass (see below), and imgui_manager will also require it that way if it is enabled.
 		}
 
 		// Create a renderpass for the back buffers
-		std::vector<xv::attachment> renderpassAttachments = {
-			xv::attachment::declare_for(pWindow->mSwapChainImageViews[0], xv::on_load::clear, xv::color(0), xv::on_store::dont_care)
+		std::vector<ak::attachment> renderpassAttachments = {
+			ak::attachment::declare_for(pWindow->mSwapChainImageViews[0], ak::on_load::clear, ak::color(0), ak::on_store::dont_care)
 		};
 		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
-		pWindow->mBackBufferRenderpass = renderpass_t::create(renderpassAttachments);
+		pWindow->mBackBufferRenderpass = create_renderpass(renderpassAttachments);
 		pWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
 
 		// Create a back buffer per image
@@ -964,20 +923,20 @@ namespace cgb
 			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
-			std::vector<image_view> imageViews;
+			std::vector<ak::image_view> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
 			imageViews.push_back(imView); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = image_view_t::create_depth(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, xv::memory_usage::device, xv::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
+					auto depthView = create_depth_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, ak::memory_usage::device, ak::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
 					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(image_view_t::create(image_t::create(imExtent.width, imExtent.height, aa.format(), 1, memory_usage::device, xv::image_usage::general_color_attachment)));
+					imageViews.emplace_back(create_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, ak::memory_usage::device, ak::image_usage::general_color_attachment)));
 				}
 			}
 
-			pWindow->mBackBuffers.push_back(framebuffer_t::create(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			pWindow->mBackBuffers.push_back(create_framebuffer(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
 		assert(pWindow->mBackBuffers.size() == pWindow->get_config_number_of_presentable_images());
 
@@ -986,7 +945,7 @@ namespace cgb
 			const auto n = bb->image_views().size();
 			assert(n == pWindow->get_renderpass().attachment_descriptions().size());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout, sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout, ak::sync::wait_idle(true));
 			}
 		}
 
@@ -995,7 +954,7 @@ namespace cgb
 			const auto n = pWindow->get_config_number_of_presentable_images();
 			pWindow->mImageAvailableSemaphores.reserve(n);
 			for (uint32_t i = 0; i < n; ++i) {
-				pWindow->mImageAvailableSemaphores.push_back(semaphore_t::create());
+				pWindow->mImageAvailableSemaphores.push_back(create_semaphore());
 			}
 		}
 		assert(pWindow->mImageAvailableSemaphores.size() == pWindow->get_config_number_of_presentable_images());
@@ -1005,112 +964,11 @@ namespace cgb
 			pWindow->mFences.reserve(n);
 			pWindow->mRenderFinishedSemaphores.reserve(n);
 			for (uint32_t i = 0; i < n; ++i) {
-				pWindow->mFences.push_back(fence_t::create(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-				pWindow->mRenderFinishedSemaphores.push_back(semaphore_t::create());
+				pWindow->mFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+				pWindow->mRenderFinishedSemaphores.push_back(create_semaphore());
 			}
 		}
 		assert(pWindow->mFences.size() == pWindow->get_config_number_of_concurrent_frames());
 		assert(pWindow->mRenderFinishedSemaphores.size() == pWindow->get_config_number_of_concurrent_frames());
 	}
-
-	command_pool& vulkan::get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
-	{
-		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
-		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
-							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, command_pool>& existing) {
-									auto& tid = std::get<0>(existing);
-									auto& q = std::get<1>(existing);
-									return tid == lThreadId && q.queue_family_index() == lFamilyIdx && lFlags == q.create_info().flags;
-							   });
-		if (it == std::end(mCommandPools)) {
-			return std::get<1>(mCommandPools.emplace_back(std::this_thread::get_id(), command_pool::create(aQueueFamilyIndex, aFlags)));
-		}
-		return std::get<1>(*it);
-	}
-
-	command_pool& vulkan::get_command_pool_for_queue(const device_queue& aQueue, vk::CommandPoolCreateFlags aFlags)
-	{
-		return get_command_pool_for_queue_family(aQueue.family_index(), aFlags);
-	}
-
-	uint32_t vulkan::find_memory_type_index(uint32_t pMemoryTypeBits, vk::MemoryPropertyFlags pMemoryProperties)
-	{
-		// The VkPhysicalDeviceMemoryProperties structure has two arrays memoryTypes and memoryHeaps. 
-		// Memory heaps are distinct memory resources like dedicated VRAM and swap space in RAM for 
-		// when VRAM runs out. The different types of memory exist within these heaps. Right now we'll 
-		// only concern ourselves with the type of memory and not the heap it comes from, but you can 
-		// imagine that this can affect performance. (Source: https://vulkan-tutorial.com/)
-		auto memProperties = physical_device().getMemoryProperties();
-		for (auto i = 0u; i < memProperties.memoryTypeCount; ++i) {
-			if ((pMemoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & pMemoryProperties) == pMemoryProperties) {
-				return i;
-			}
-		}
-		throw cgb::runtime_error("failed to find suitable memory type!");
-	}
-
-	std::shared_ptr<descriptor_pool> vulkan::get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName, bool aRequestNewPool)
-	{
-		// We'll allocate the pools per (thread and name)
-		auto pId = pool_id{std::this_thread::get_id(), aPoolName};
-		auto& pools = mDescriptorPools[pId];
-
-		// First of all, do some cleanup => remove all pools which no longer exist:
-		pools.erase(std::remove_if(std::begin(pools), std::end(pools), [](const std::weak_ptr<descriptor_pool>& ptr) {
-			return ptr.expired();
-		}), std::end(pools));
-
-		// Find a pool which is capable of allocating this:
-		if (!aRequestNewPool) {
-			for (auto& pool : pools) {
-				if (auto sptr = pool.lock()) {
-					if (sptr->has_capacity_for(aAllocRequest)) {
-						return sptr;
-					}
-				}
-			}
-		}
-		
-		// We weren't lucky (or new pool has been requested) => create a new pool:
-		LOG_INFO(fmt::format("Allocating new descriptor pool for thread[{}] and name['{}'/{}]", pId.mThreadId, fourcc_to_string(pId.mName), pId.mName));
-		
-		// TODO: On AMD, it seems that all the entries have to be multiplied as well, while on NVIDIA, only multiplying the number of sets seems to be sufficient
-		//       => How to handle this? Overallocation is as bad as underallocation. Shall we make use of exceptions? Shall we 'if' on the vendor?
-
-		const bool isNvidia = 0x12d2 == physical_device().getProperties().vendorID;
-		auto amplifiedAllocRequest = aAllocRequest.multiply_size_requirements(settings::gDescriptorPoolSizeFactor);
-		//if (!isNvidia) { // Let's 'if' on the vendor and see what happens...
-		//}
-
-		auto newPool = descriptor_pool::create(
-			isNvidia 
-			  ? aAllocRequest.accumulated_pool_sizes()
-			  : amplifiedAllocRequest.accumulated_pool_sizes(),
-			isNvidia
-			  ? aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor
-			  : aAllocRequest.num_sets() * settings::gDescriptorPoolSizeFactor * 2 // the last factor is a "magic number"/"educated guess"/"preemtive strike"
-		);
-
-		//  However, set the stored capacities to the amplified version, to not mess up our internal "has_capacity_for-logic":
-		newPool->mRemainingCapacities = amplifiedAllocRequest.accumulated_pool_sizes();
-		//if (!isNvidia) {
-		//}
-		
-		pools.emplace_back(newPool); // Store as a weak_ptr
-		return newPool;
-	}
-
-
-
-	// REFERENCES:
-	// [1] Vulkan Tutorial, Logical device and queues, https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Logical_device_and_queues
-	// [2] Vulkan Tutorial, Swap chain, https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain
-	// [3] Vulkan Tutorial, Image views, https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Image_views
-	// [4] Vulkan Tutorial, Fixed functions, https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions
-	// [5] Vulkan Tutorial, Render passes, https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes
-	// [6] Vulkan Tutorial, Framebuffers, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Framebuffers
-	// [7] Vulkan Tutorial, Command Buffers, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers
-	// [8] Vulkan Tutorial, Rendering and presentation, https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
-	// [9] Vulkan Tutorial, Vertex buffers, https://vulkan-tutorial.com/Vertex_buffers/Vertex_buffer_creation
-	// [10] Vulkan Tutorial, Descriptor pool and sets, https://vulkan-tutorial.com/Uniform_buffers/Descriptor_pool_and_sets
 }

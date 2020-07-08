@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	camera::camera()
 		: mProjectionMatrix{ 1.0f }

@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	using namespace glm;
 
@@ -187,42 +187,42 @@ namespace cgb
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::front(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::front(pTransform), 1.0f);
 	}
 
 	glm::vec3 back_wrt(const transform& pTransform, glm::mat4 pReference)
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::back(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::back(pTransform), 1.0f);
 	}
 
 	glm::vec3 right_wrt(const transform& pTransform, glm::mat4 pReference)
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::right(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::right(pTransform), 1.0f);
 	}
 
 	glm::vec3 left_wrt(const transform& pTransform, glm::mat4 pReference)
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::left(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::left(pTransform), 1.0f);
 	}
 
 	glm::vec3 up_wrt(const transform& pTransform, glm::mat4 pReference)
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::up(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::up(pTransform), 1.0f);
 	}
 
 	glm::vec3 down_wrt(const transform& pTransform, glm::mat4 pReference)
 	{
 		glm::mat4 trSpace = pReference * pTransform.global_transformation_matrix();
 		glm::mat4 invTrSpace = glm::inverse(trSpace);
-		return invTrSpace * glm::vec4(cgb::down(pTransform), 1.0f);
+		return invTrSpace * glm::vec4(xk::down(pTransform), 1.0f);
 	}
 
 	void translate(transform& pTransform, const glm::vec3& pTranslation)

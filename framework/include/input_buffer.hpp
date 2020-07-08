@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** @brief Contains all the input data of a frame
 	 *

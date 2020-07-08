@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	quake_camera::quake_camera()
 		: mRotationSpeed(0.001f)

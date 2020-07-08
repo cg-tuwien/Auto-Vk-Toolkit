@@ -1,173 +1,13 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
-	std::optional<command_buffer> copy_image_to_another(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
-	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-		
-		const auto originalSrcLayout = aSrcImage.target_layout();
-		const auto originalDstLayout = aDstImage.target_layout();
-		
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
-
-		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		const auto srcLayoutAfterBarrier = aSrcImage.current_layout();
-		const bool suitableSrcLayout = srcLayoutAfterBarrier == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
-									//|| initialSrcLayout == vk::ImageLayout::eGeneral
-									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
-		if (suitableSrcLayout) {
-			// Just make sure that is really is in target layout:
-			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
-		}
-		else {
-			// Not a suitable src layout => must transform
-			aSrcImage.transition_to_layout(vk::ImageLayout::eTransferSrcOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-
-		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
-		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal;
-									//|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
-									//|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
-		if (suitableDstLayout) {
-			// Just make sure that is really is in target layout:
-			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
-		}
-		else {
-			// Not a suitable dst layout => must transform
-			aDstImage.transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-		
-		// Operation:
-		auto copyRegion = vk::ImageCopy{}
-			.setExtent(aSrcImage.config().extent) // TODO: Support different ranges/extents
-			.setSrcOffset({0, 0})
-			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(aSrcImage.aspect_flags())
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u)
-				.setMipLevel(0u)
-			)
-			.setDstOffset({0, 0})
-			.setDstSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(aDstImage.aspect_flags())
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u)
-				.setMipLevel(0u));
-
-		commandBuffer.handle().copyImage(
-			aSrcImage.handle(),
-			aSrcImage.current_layout(),
-			aDstImage.handle(),
-			aDstImage.current_layout(),
-			1u, &copyRegion);
-
-		if (aRestoreSrcLayout) { // => restore original layout of the src image
-			aSrcImage.transition_to_layout(originalSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-
-		if (aRestoreDstLayout) { // => restore original layout of the dst image
-			aDstImage.transition_to_layout(originalDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-		
-		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
-
-		// Finish him:
-		return aSyncHandler.submit_and_sync();
-	}
-
-	std::optional<command_buffer> blit_image(image_t& aSrcImage, image_t& aDstImage, sync aSyncHandler, bool aRestoreSrcLayout, bool aRestoreDstLayout)
-	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
-
-		const auto originalSrcLayout = aSrcImage.target_layout();
-		const auto originalDstLayout = aDstImage.target_layout();
-		
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		// Sync before:
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
-
-		// Citing the specs: "srcImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		const auto srcLayoutAfterBarrier = aSrcImage.current_layout();
-		const bool suitableSrcLayout = srcLayoutAfterBarrier == vk::ImageLayout::eTransferSrcOptimal; // For optimal performance, only allow eTransferSrcOptimal
-									//|| initialSrcLayout == vk::ImageLayout::eGeneral
-									//|| initialSrcLayout == vk::ImageLayout::eSharedPresentKHR;
-		if (suitableSrcLayout) {
-			// Just make sure that is really is in target layout:
-			aSrcImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
-		}
-		else {
-			// Not a suitable src layout => must transform
-			aSrcImage.transition_to_layout(vk::ImageLayout::eTransferSrcOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-
-		// Citing the specs: "dstImageLayout must be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, or VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR"
-		const auto dstLayoutAfterBarrier = aDstImage.current_layout();
-		const bool suitableDstLayout = dstLayoutAfterBarrier == vk::ImageLayout::eTransferDstOptimal;
-									//|| dstLayoutAfterBarrier == vk::ImageLayout::eGeneral
-									//|| dstLayoutAfterBarrier == vk::ImageLayout::eSharedPresentKHR;
-		if (suitableDstLayout) {
-			// Just make sure that is really is in target layout:
-			aDstImage.transition_to_layout({}, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
-		}
-		else {
-			// Not a suitable dst layout => must transform
-			aDstImage.transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-
-
-		std::array<vk::Offset3D, 2> srcOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aSrcImage.width()), static_cast<int32_t>(aSrcImage.height()), 1 } };
-		std::array<vk::Offset3D, 2> dstOffsets = { vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ static_cast<int32_t>(aDstImage.width()), static_cast<int32_t>(aDstImage.height()), 1 } };
-		
-		// Operation:
-		auto blitRegion = vk::ImageBlit{}
-			.setSrcSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(aSrcImage.aspect_flags())
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u)
-				.setMipLevel(0u)
-			)
-			.setSrcOffsets(srcOffsets)
-			.setDstSubresource(vk::ImageSubresourceLayers{} // TODO: Add support for the other parameters
-				.setAspectMask(aDstImage.aspect_flags())
-				.setBaseArrayLayer(0u)
-				.setLayerCount(1u)
-				.setMipLevel(0u)
-			)
-			.setDstOffsets(dstOffsets);
-
-		commandBuffer.handle().blitImage(
-			aSrcImage.handle(),
-			aSrcImage.current_layout(),
-			aDstImage.handle(),
-			aDstImage.current_layout(),
-			1u, &blitRegion, 
-			vk::Filter::eNearest); // TODO: Support other filters and everything
-
-		if (aRestoreSrcLayout) { // => restore original layout of the src image
-			aSrcImage.transition_to_layout(originalSrcLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-
-		if (aRestoreDstLayout) { // => restore original layout of the dst image
-			aDstImage.transition_to_layout(originalDstLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		}
-		
-		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
-
-		// Finish him:
-		return aSyncHandler.submit_and_sync();
-	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<image_sampler>> convert_for_gpu_usage(
-		std::vector<cgb::material_config> aMaterialConfigs, 
+		std::vector<xk::material_config> aMaterialConfigs, 
 		xv::image_usage aImageUsage,
-		cgb::filter_mode aTextureFilterMode, 
-		cgb::border_handling_mode aBorderHandlingMode,
+		xk::filter_mode aTextureFilterMode, 
+		xk::border_handling_mode aBorderHandlingMode,
 		sync aSyncHandler)
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
@@ -215,7 +55,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
 			}
 			else {
-				auto path = cgb::clean_up_path(mc.mDiffuseTex);
+				auto path = xk::clean_up_path(mc.mDiffuseTex);
 				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
 				if (settings::gLoadImagesInSrgbFormatByDefault) {
 					srgbTextures.insert(path);
@@ -227,7 +67,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mSpecularTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
 			}
 
 			gm.mAmbientTexIndex				= -1;							 
@@ -235,7 +75,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
 			}
 			else {
-				auto path = cgb::clean_up_path(mc.mAmbientTex);
+				auto path = xk::clean_up_path(mc.mAmbientTex);
 				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
 				if (settings::gLoadImagesInSrgbFormatByDefault) {
 					srgbTextures.insert(path);
@@ -247,7 +87,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
 			}
 
 			gm.mHeightTexIndex				= -1;							 
@@ -255,7 +95,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mHeightTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
 			}
 
 			gm.mNormalsTexIndex				= -1;							 
@@ -263,7 +103,7 @@ namespace cgb
 				straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
 			}
 
 			gm.mShininessTexIndex			= -1;							 
@@ -271,7 +111,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mShininessTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
 			}
 
 			gm.mOpacityTexIndex				= -1;							 
@@ -279,7 +119,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mOpacityTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
 			}
 
 			gm.mDisplacementTexIndex		= -1;							 
@@ -287,7 +127,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
 			}
 
 			gm.mReflectionTexIndex			= -1;							 
@@ -295,7 +135,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mReflectionTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
 			}
 
 			gm.mLightmapTexIndex			= -1;							 
@@ -303,7 +143,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mLightmapTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
 			}
 
 			gm.mExtraTexIndex				= -1;							 
@@ -311,7 +151,7 @@ namespace cgb
 				whiteTexUsages.push_back(&gm.mExtraTexIndex);
 			}
 			else {
-				texNamesToUsages[cgb::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
+				texNamesToUsages[xk::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
 			}
 																			 
 			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
@@ -332,7 +172,7 @@ namespace cgb
 		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
 		imageSamplers.reserve(numSamplers);
 
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		
 		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> sync {
 			++lSyncCount;
@@ -405,9 +245,9 @@ namespace cgb
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
-				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
-					cgb::additional_vertex_data(positionsData,	[&]() { return modelRef.get().positions_for_mesh(meshIndex);			} )
+				xk::append_indices_and_vertex_data(
+					xk::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
+					xk::additional_vertex_data(positionsData,	[&]() { return modelRef.get().positions_for_mesh(meshIndex);			} )
 				);
 			}
 		}
@@ -417,16 +257,16 @@ namespace cgb
 	
 	std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto [positionsData, indicesData] = get_vertices_and_indices(std::move(aModelsAndSelectedMeshes));
 
 		vk::BufferUsageFlags usageFlags{};
-		if (cgb::settings::gEnableBufferDeviceAddress) {
+		if (xk::settings::gEnableBufferDeviceAddress) {
 			usageFlags = vk::BufferUsageFlagBits::eShaderDeviceAddressKHR; // TODO: Abstract this better/in a different way! Global setting affecting ALL buffers can't be the right way.
 		}
 		
-		vertex_buffer positionsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(positionsData)
+		vertex_buffer positionsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(positionsData)
 				.describe_only_member(positionsData[0], 0, content_description::position),
 			xv::memory_usage::device,
 			positionsData.data(),
@@ -436,8 +276,8 @@ namespace cgb
 			, usageFlags
 		);
 
-		index_buffer indexBuffer = cgb::create_and_fill(
-			cgb::index_buffer_meta::create_from_data(indicesData),
+		index_buffer indexBuffer = xk::create_and_fill(
+			xk::index_buffer_meta::create_from_data(indicesData),
 			xv::memory_usage::device,
 			indicesData.data(),
 			std::move(aSyncHandler)
@@ -465,11 +305,11 @@ namespace cgb
 	
 	vertex_buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto normalsData = get_normals(std::move(aModelsAndSelectedMeshes));
 		
-		vertex_buffer normalsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(normalsData),
+		vertex_buffer normalsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(normalsData),
 			xv::memory_usage::device,
 			normalsData.data(),
 			std::move(aSyncHandler)
@@ -496,11 +336,11 @@ namespace cgb
 	
 	vertex_buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto tangentsData = get_tangents(std::move(aModelsAndSelectedMeshes));
 		
-		vertex_buffer tangentsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(tangentsData),
+		vertex_buffer tangentsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(tangentsData),
 			xv::memory_usage::device,
 			tangentsData.data(),
 			std::move(aSyncHandler)
@@ -527,11 +367,11 @@ namespace cgb
 	
 	vertex_buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto bitangentsData = get_bitangents(std::move(aModelsAndSelectedMeshes));
 		
-		vertex_buffer bitangentsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(bitangentsData),
+		vertex_buffer bitangentsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(bitangentsData),
 			xv::memory_usage::device,
 			bitangentsData.data(),
 			std::move(aSyncHandler)
@@ -558,11 +398,11 @@ namespace cgb
 	
 	vertex_buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto colorsData = get_colors(std::move(aModelsAndSelectedMeshes), _ColorsSet);
 		
-		vertex_buffer colorsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(colorsData),
+		vertex_buffer colorsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(colorsData),
 			xv::memory_usage::device,
 			colorsData.data(),
 			std::move(aSyncHandler)
@@ -589,11 +429,11 @@ namespace cgb
 	
 	vertex_buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto texCoordsData = get_2d_texture_coordinates(std::move(aModelsAndSelectedMeshes), aTexCoordSet);
 		
-		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
+		vertex_buffer texCoordsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(texCoordsData),
 			xv::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)
@@ -620,11 +460,11 @@ namespace cgb
 	
 	vertex_buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, sync aSyncHandler)
 	{
-		aSyncHandler.set_queue_hint(cgb::context().transfer_queue());
+		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto texCoordsData = get_3d_texture_coordinates(std::move(aModelsAndSelectedMeshes), aTexCoordSet);
 		
-		vertex_buffer texCoordsBuffer = cgb::create_and_fill(
-			cgb::vertex_buffer_meta::create_from_data(texCoordsData),
+		vertex_buffer texCoordsBuffer = xk::create_and_fill(
+			xk::vertex_buffer_meta::create_from_data(texCoordsData),
 			xv::memory_usage::device,
 			texCoordsData.data(),
 			std::move(aSyncHandler)

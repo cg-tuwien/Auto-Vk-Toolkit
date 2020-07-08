@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Contains the raw material config as read out by Assimp.
 	 *	Note however, that some fields will not be set by Assimp.
@@ -208,9 +208,9 @@ namespace cgb
 
 namespace std // Inject hash for `cgb::material_config` into std::
 {
-	template<> struct hash<cgb::material_config>
+	template<> struct hash<xk::material_config>
 	{
-		std::size_t operator()(cgb::material_config const& o) const noexcept
+		std::size_t operator()(xk::material_config const& o) const noexcept
 		{
 			std::size_t h = 0;
 			ak::hash_combine(h,

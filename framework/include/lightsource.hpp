@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Type of a light source */
 	enum struct lightsource_type {
@@ -140,9 +140,9 @@ namespace cgb
 
 namespace std
 {
-	template<> struct hash<cgb::lightsource>
+	template<> struct hash<xk::lightsource>
 	{
-		std::size_t operator()(cgb::lightsource const& o) const noexcept
+		std::size_t operator()(xk::lightsource const& o) const noexcept
 		{
 			std::size_t h = 0;
 			ak::hash_combine(h, 

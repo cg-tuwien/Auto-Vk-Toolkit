@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	// Forward-declare cg_element
 	class cg_element;
@@ -116,7 +116,7 @@ namespace cgb
 		{
 			if (nullptr != sCurrentComposition && sCurrentComposition->is_running())
 			{
-				throw cgb::runtime_error("There is already an active composition_interface which is still running.");
+				throw xk::runtime_error("There is already an active composition_interface which is still running.");
 			}
 			// It's okay.
 			sCurrentComposition = pNewComposition;

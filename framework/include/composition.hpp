@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	A composition brings together all of the separate components, which there are
 	 *	 - A timer
@@ -226,7 +226,7 @@ namespace cgb
 					please_swap_input_buffers(thiz);
 
 					// Sync (wait for fences and so) per window BEFORE executing render callbacks
-					cgb::context().execute_for_each_window([](window* wnd){
+					xk::context().execute_for_each_window([](window* wnd){
 						wnd->sync_before_render();
 					});
 
@@ -237,7 +237,7 @@ namespace cgb
 					thiz->mExecutor.execute_render_gizmos(thiz->mElements);
 					
 					// Render per window
-					cgb::context().execute_for_each_window([](window* wnd){
+					xk::context().execute_for_each_window([](window* wnd){
 						wnd->render_frame();
 					});
 				}
@@ -363,9 +363,9 @@ namespace cgb
 					mInputBufferSwapPending = false;
 
 					int width = 0, height = 0;
-				    glfwGetFramebufferSize(cgb::context().main_window()->handle()->mHandle, &width, &height);
+				    glfwGetFramebufferSize(xk::context().main_window()->handle()->mHandle, &width, &height);
 				    while (width == 0 || height == 0) {
-				        glfwGetFramebufferSize(cgb::context().main_window()->handle()->mHandle, &width, &height);
+				        glfwGetFramebufferSize(xk::context().main_window()->handle()->mHandle, &width, &height);
 				        glfwWaitEvents();
 				    }
 					

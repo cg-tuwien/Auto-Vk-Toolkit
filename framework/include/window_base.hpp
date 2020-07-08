@@ -1,7 +1,6 @@
 #pragma once
-#include "cg_base.hpp"
 
-namespace cgb
+namespace xk
 {
 	/** Dimensions of a window */
 	struct window_size

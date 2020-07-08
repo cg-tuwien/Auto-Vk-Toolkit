@@ -1,4 +1,4 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 #include <imgui.h>
 
 class ray_tracing_basic_usage_app : public cgb::cg_element

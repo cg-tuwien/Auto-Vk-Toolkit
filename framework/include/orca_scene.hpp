@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	struct model_and_mesh_indices
 	{
@@ -22,7 +22,7 @@ namespace cgb
 		std::string mName;
 		std::vector<model_instance_data> mInstances;
 		std::string mFullPathName;
-		cgb::model mLoadedModel;
+		xk::model mLoadedModel;
 	};
 
 	struct direct_light_data

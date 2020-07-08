@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	class imgui_manager : public cg_element
 	{
@@ -42,7 +42,7 @@ namespace cgb
 
 	private:
 		int mExecutionOrder;
-		std::shared_ptr<cgb::descriptor_pool> mDescriptorPool;
+		std::shared_ptr<xk::descriptor_pool> mDescriptorPool;
 		std::optional<renderpass> mRenderpass;
 		int mMouseCursorPreviousValue;
 		std::vector<ak::unique_function<void()>> mCallback;

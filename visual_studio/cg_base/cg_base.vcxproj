@@ -15,9 +15,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\auto_vulkan\include\ak\sync.cpp" />
     <ClCompile Include="..\..\auto_vulkan\src\ak.cpp" />
-    <ClCompile Include="..\..\auto_vulkan\src\vulkan_helper_functions.cpp" />
+    <ClCompile Include="..\..\auto_vulkan\src\sync.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
@@ -26,14 +25,10 @@
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\framework\include\sync.cpp" />
-    <ClCompile Include="..\..\framework\src\acceleration_structure_size_requirements.cpp" />
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure.cpp" />
-    <ClCompile Include="..\..\framework\src\buffer_view.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
-    <ClCompile Include="..\..\framework\src\cg_element.cpp" />
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />
     <ClCompile Include="..\..\framework\src\context.cpp" />
     <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp" />
@@ -42,13 +37,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\descriptor_pool.cpp" />
-    <ClCompile Include="..\..\framework\src\descriptor_set.cpp" />
     <ClCompile Include="..\..\framework\src\essential_utils.cpp" />
-    <ClCompile Include="..\..\framework\src\fence.cpp" />
     <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp" />
-    <ClCompile Include="..\..\framework\src\framebuffer.cpp" />
-    <ClCompile Include="..\..\framework\src\geometry_instance.cpp" />
     <ClCompile Include="..\..\framework\src\graphics_pipeline_config.cpp" />
     <ClCompile Include="..\..\framework\src\input_buffer.cpp" />
     <ClCompile Include="..\..\framework\src\input_description.cpp" />
@@ -58,11 +48,9 @@
     <ClCompile Include="..\..\framework\src\memory_access.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
-    <ClCompile Include="..\..\framework\src\graphics_pipeline.cpp" />
     <ClCompile Include="..\..\framework\src\quake_camera.cpp" />
     <ClCompile Include="..\..\framework\src\queue_vulkan.cpp" />
     <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_config.cpp" />
-    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline.cpp" />
     <ClCompile Include="..\..\framework\src\renderpass.cpp" />
     <ClCompile Include="..\..\framework\src\semaphore.cpp" />
     <ClCompile Include="..\..\framework\src\shader_binding_table.cpp" />
@@ -97,7 +85,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\binding_data.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\border_handling_mode.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\bottom_level_acceleration_structure.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_declaration.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_meta.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_view.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer.hpp" />
@@ -118,7 +105,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\geometry_instance.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config_convenience_functions.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_format.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_order.hpp" />
@@ -131,18 +117,17 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constant_binding_data.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config_convenience_functions.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\root_example_implementation.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\sampler.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\semaphore.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader.hpp" />
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_info.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\standard_descriptor_cache.hpp" />
@@ -150,14 +135,12 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\top_level_acceleration_structure.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_desc.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp" />
-    <ClInclude Include="..\..\framework\include\aabb.hpp" />
-    <ClInclude Include="..\..\framework\include\buffer.hpp" />
-    <ClInclude Include="..\..\framework\include\buffer_data.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
-    <ClInclude Include="..\..\framework\include\cg_base.hpp">
+    <ClInclude Include="..\..\framework\include\exekutor.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
@@ -176,7 +159,6 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cursor.hpp" />
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp" />
-    <ClInclude Include="..\..\framework\include\device_queue_selection_strategy.hpp" />
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp" />
     <ClInclude Include="..\..\framework\include\input_buffer.hpp" />
     <ClInclude Include="..\..\framework\include\key_code.hpp" />
@@ -187,10 +169,8 @@
     <ClInclude Include="..\..\framework\include\material_gpu_data.hpp" />
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
-    <ClInclude Include="..\..\framework\include\memory_access.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
-    <ClInclude Include="..\..\framework\include\pipeline_stage.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
     <ClInclude Include="..\..\framework\include\setup.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp" />

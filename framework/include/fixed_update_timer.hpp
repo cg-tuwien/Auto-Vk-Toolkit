@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	@brief Timer enabling a fixed update rate
 	 *

@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	window* generic_glfw::sWindowInFocus = nullptr;
 	std::mutex generic_glfw::sInputMutex;
@@ -257,7 +257,7 @@ namespace cgb
 		}
 
 		if (wnd.is_in_use()) {
-			throw new cgb::logic_error("This window is in use and can not be closed at the moment.");
+			throw new xk::logic_error("This window is in use and can not be closed at the moment.");
 		}
 
 		context().dispatch_to_main_thread([&wnd]() {
@@ -327,7 +327,7 @@ namespace cgb
 				});
 
 			if (position == mWindows.end()) {
-				throw cgb::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
+				throw xk::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
 			}
 
 			mMainWindowIndex = std::distance(std::begin(mWindows), position);
@@ -506,7 +506,7 @@ namespace cgb
 				std::remove_if(
 					std::begin(mEventHandlers), std::end(mEventHandlers),
 					[curState = mContextState](const auto& tpl) {
-				auto targetStates = std::get<cgb::context_state>(tpl);
+				auto targetStates = std::get<xk::context_state>(tpl);
 				if ((curState & targetStates) != curState) {
 					return false; // false => not done yet! Handler shall remain, because handler has not been invoked.
 				}

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/**	@brief Basic timer_interface which only supports time steps with varying delta time
 	 *

@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	runtime_error::runtime_error (const std::string& what_arg) : std::runtime_error(what_arg)
 	{

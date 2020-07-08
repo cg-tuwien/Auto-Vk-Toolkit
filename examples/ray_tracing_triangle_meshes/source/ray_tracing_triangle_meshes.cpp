@@ -1,4 +1,4 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 #include <imgui.h>
 
 class ray_tracing_triangle_meshes_app : public cgb::cg_element

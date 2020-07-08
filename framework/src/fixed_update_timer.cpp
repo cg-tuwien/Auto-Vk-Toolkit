@@ -1,4 +1,4 @@
-namespace cgb
+namespace xk
 {
 	fixed_update_timer::fixed_update_timer() :
 		mTimeSinceStart(0.0),

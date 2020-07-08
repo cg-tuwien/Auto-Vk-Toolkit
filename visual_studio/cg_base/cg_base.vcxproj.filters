@@ -19,9 +19,6 @@
     <ClCompile Include="..\..\framework\src\transform.cpp">
       <Filter>Source Files\scene_and_object_hierarchy</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\cg_element.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
       <Filter>Source Files\external\FileWatcher</Filter>
     </ClCompile>
@@ -109,34 +106,7 @@
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
       <Filter>Source Files\application_structure_and_general_stuff</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\acceleration_structure_size_requirements.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\buffer_view.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\descriptor_pool.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\descriptor_set.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\fence.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\framebuffer.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\geometry_instance.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\graphics_pipeline.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\renderpass.cpp">
@@ -154,9 +124,6 @@
     <ClCompile Include="..\..\framework\src\standard_descriptor_cache.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\include\sync.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\top_level_acceleration_structure.cpp">
       <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
     </ClCompile>
@@ -169,94 +136,37 @@
     <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vulkan\include\ak\sync.cpp">
-      <Filter>ak</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\auto_vulkan\src\vulkan_helper_functions.cpp">
+    <ClCompile Include="..\..\auto_vulkan\src\sync.cpp">
       <Filter>aksrc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\framework\include\context.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\cg_element.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\composition_interface.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\timers</Filter>
+      <Filter>Header Files\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\timers</Filter>
+      <Filter>Header Files\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\timer_interface.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\timers</Filter>
+      <Filter>Header Files\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\input_buffer.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\input</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\key_code.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\input</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\key_state.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\input</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\glfw</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\glfw</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_vulkan.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\model.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\transform.hpp">
-      <Filter>Header Files\scene_and_object_hierarchy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\window_base.hpp">
-      <Filter>Header Files\window_and_presentation</Filter>
+      <Filter>Header Files\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\timers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\context_state.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\cg_base.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
+      <Filter>Header Files\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff\executors</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\quake_camera.hpp">
-      <Filter>Header Files\utilities_components_helpers\cameras</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\camera.hpp">
-      <Filter>Header Files\utilities_components_helpers\cameras</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\log.hpp">
-      <Filter>Header Files\utilities_components_helpers\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\math_utils.hpp">
-      <Filter>Header Files\utilities_components_helpers\math_and_geometry_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\buffer.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\composition.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\buffer_data.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\device_queue_selection_strategy.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
+      <Filter>Header Files\invokers</Filter>
     </ClInclude>
     <ClInclude Include="cg_stdafx.hpp">
       <Filter>precompiled_headers</Filter>
@@ -264,53 +174,20 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\material_config.hpp">
-      <Filter>Header Files\materials</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\material_gpu_data.hpp">
-      <Filter>Header Files\materials</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\material.hpp">
-      <Filter>Header Files\materials</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
-      <Filter>Header Files\materials</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\orca_scene.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
+      <Filter>Header Files\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\lightsource.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
+      <Filter>Header Files\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\aabb.hpp">
-      <Filter>Header Files\geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\pipeline_stage.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\memory_access.hpp">
-      <Filter>Header Files\data_buffers_images</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\setup.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
+      <Filter>Header Files\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp">
       <Filter>Header Files\user_interface</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cursor.hpp">
       <Filter>Header Files\user_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
-      <Filter>Header Files\application_structure_and_general_stuff</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\window.hpp">
-      <Filter>Header Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\commands.hpp">
       <Filter>ak</Filter>
@@ -322,12 +199,6 @@
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config_convenience_functions.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config_convenience_functions.hpp">
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\framebuffer.hpp">
@@ -453,9 +324,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp">
       <Filter>ak</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp">
       <Filter>ak</Filter>
     </ClInclude>
@@ -463,9 +331,6 @@
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp">
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp">
@@ -489,9 +354,6 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp">
       <Filter>ak</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_declaration.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer.hpp">
       <Filter>ak</Filter>
     </ClInclude>
@@ -505,6 +367,84 @@
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constant_binding_data.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_vulkan.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\window.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_state.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\setup.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cg_element.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\composition.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\composition_interface.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
+      <Filter>Header Files\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material.hpp">
+      <Filter>Header Files\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_config.hpp">
+      <Filter>Header Files\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_gpu_data.hpp">
+      <Filter>Header Files\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\transform.hpp">
+      <Filter>Header Files\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\log.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\camera.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\quake_camera.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\math_utils.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\window_base.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\exekutor.hpp">
+      <Filter>Header Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\root_example_implementation.hpp">
       <Filter>ak</Filter>
     </ClInclude>
   </ItemGroup>
@@ -521,56 +461,8 @@
     <Filter Include="Source Files\external\FileWatcher">
       <UniqueIdentifier>{e42383c6-18d8-4c20-95ad-9d3f00c29b0d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="shaders">
-      <UniqueIdentifier>{15f8ac6c-d112-4381-ba3f-b40b491e5a90}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\window_and_presentation">
-      <UniqueIdentifier>{71265412-bcfb-4e91-a7f7-658599c017c9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\pipeline_and_shaders">
-      <UniqueIdentifier>{bbc1b475-3f01-4d00-bc33-444e7d205aee}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\application_structure_and_general_stuff">
-      <UniqueIdentifier>{a4957e45-c75d-4e02-b071-b9ee12a0ecee}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\application_structure_and_general_stuff\timers">
-      <UniqueIdentifier>{bb4197cf-5a2e-439b-8c69-0f3197ed1abc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\application_structure_and_general_stuff\executors">
-      <UniqueIdentifier>{55acfcc3-15f4-491b-8cfa-d768e751b37a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\application_structure_and_general_stuff\input">
-      <UniqueIdentifier>{13e34ef1-6c80-45ea-a246-44fbddb451b7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\scene_and_object_hierarchy">
-      <UniqueIdentifier>{874fb75f-84d8-4d21-bc49-4a0b2b414996}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utilities_components_helpers">
-      <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utilities_components_helpers\cameras">
-      <UniqueIdentifier>{c53c355c-f3f9-4752-b94d-5f146ba9ce85}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\user_interface">
       <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utilities_components_helpers\math_and_geometry_utils">
-      <UniqueIdentifier>{3f988d90-307a-4889-a21c-1dbe8b2320c2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utilities_components_helpers\helper_functions">
-      <UniqueIdentifier>{bc6c275d-bcd4-457d-bf53-c72064ce8be2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utilities_components_helpers\logging">
-      <UniqueIdentifier>{6c0adc2a-695f-4f53-83be-b3ffc143ad5c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\context_and_context_specific_functionality">
-      <UniqueIdentifier>{e5492fdd-6b02-4ca0-b263-543f1210e7b0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\context_and_context_specific_functionality\glfw">
-      <UniqueIdentifier>{7a48d805-d55d-43b4-871b-c3ca8f382c38}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\context_and_context_specific_functionality\vulkan">
-      <UniqueIdentifier>{c905e534-5618-4d8e-8cd8-5f1bb618ad0d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\context_and_context_specific_functionality">
       <UniqueIdentifier>{f608b38b-95d7-4852-ab7c-e65244afe8cd}</UniqueIdentifier>
@@ -620,23 +512,14 @@
     <Filter Include="Source Files\user_interface">
       <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\data_buffers_images">
-      <UniqueIdentifier>{7e592d59-e1a9-4f56-a9d2-2fdb56a7075f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\data_buffers_images">
       <UniqueIdentifier>{50fa4b81-fe6d-4215-80a8-6d974e43b960}</UniqueIdentifier>
     </Filter>
     <Filter Include="precompiled_headers">
       <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\materials">
-      <UniqueIdentifier>{2f48c5b9-1e70-4133-b325-ebad35d14317}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\materials">
       <UniqueIdentifier>{10fc3df0-04ba-4e48-a552-94a1d862d01d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\geometry">
-      <UniqueIdentifier>{69f88a68-5ba7-4e99-a4e2-613a71e3dc50}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\geometry">
       <UniqueIdentifier>{aa63a7ef-8226-409c-86fe-6b5a72cea179}</UniqueIdentifier>
@@ -646,6 +529,24 @@
     </Filter>
     <Filter Include="aksrc">
       <UniqueIdentifier>{568607b2-d6cb-4a02-9b26-0d96fab766de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\base">
+      <UniqueIdentifier>{26caf0b8-7ce7-43d3-9e8f-9b44e20fdbae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\timers">
+      <UniqueIdentifier>{bb4197cf-5a2e-439b-8c69-0f3197ed1abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\input">
+      <UniqueIdentifier>{13e34ef1-6c80-45ea-a246-44fbddb451b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\invokers">
+      <UniqueIdentifier>{55acfcc3-15f4-491b-8cfa-d768e751b37a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\data">
+      <UniqueIdentifier>{7e592d59-e1a9-4f56-a9d2-2fdb56a7075f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

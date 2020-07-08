@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	class transform : std::enable_shared_from_this<transform>
 	{

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	// A flying camera, controlled in a somewhat quake-style.
 	// Move the camera with WASD + Mouse!

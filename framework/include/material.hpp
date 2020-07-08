@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	/** Material struct which hold all the concrete data, i.e. 
 	 *	in addition to the data in material config also all the 
@@ -101,9 +101,9 @@ namespace cgb
 
 namespace std // Inject hash for `cgb::material` into std::
 {
-	template<> struct hash<cgb::material>
+	template<> struct hash<xk::material>
 	{
-		std::size_t operator()(cgb::material const& o) const noexcept
+		std::size_t operator()(xk::material const& o) const noexcept
 		{
 			auto& config = o.mMaterialConfig;
 

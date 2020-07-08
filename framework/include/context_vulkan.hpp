@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	struct pool_id
 	{
@@ -21,9 +21,9 @@ namespace cgb
 
 namespace std // Inject hash for `cgb::sampler_t` into std::
 {
-	template<> struct hash<cgb::pool_id>
+	template<> struct hash<xk::pool_id>
 	{
-		std::size_t operator()(cgb::pool_id const& o) const noexcept
+		std::size_t operator()(xk::pool_id const& o) const noexcept
 		{
 			std::size_t h = 0;
 			ak::hash_combine(h, o.mThreadId, o.mName);
@@ -32,7 +32,7 @@ namespace std // Inject hash for `cgb::sampler_t` into std::
 	};
 }
 
-namespace cgb
+namespace xk
 {	
 	// ============================== VULKAN CONTEXT ================================
 	/**	@brief Context for Vulkan
@@ -41,7 +41,7 @@ namespace cgb
 	 *	stuff, like window creation etc.,  it relies on GLFW and inherits
 	 *	@ref generic_glfw.
 	 */
-	class vulkan : public generic_glfw
+	class vulkan : public generic_glfw, public ak::root
 	{
 	public:
 		vulkan();
@@ -53,18 +53,81 @@ namespace cgb
 
 		// Checks a VkResult return type and handles it according to the current Vulkan-Hpp config
 		static void check_vk_result(VkResult err);
+		
+		vk::Instance vulkan_instance() { return mInstance; }
+		vk::PhysicalDevice physical_device() override { return mPhysicalDevice; }
+		vk::Device device() override { return mLogicalDevice; }
+		vk::DispatchLoaderDynamic dynamic_dispatch() override { return mDynamicDispatch; }
 
-		vk::Instance& vulkan_instance() { return mInstance; }
-		vk::PhysicalDevice& physical_device() { return mPhysicalDevice; }
-		vk::Device& logical_device() { return mLogicalDevice; }
-		vk::DispatchLoaderDynamic& dynamic_dispatch() { return mDynamicDispatch; }
-		uint32_t graphics_queue_index() const { return mGraphicsQueue->queue_index(); }
-		uint32_t presentation_queue_index() const { return mPresentQueue->queue_index(); }
-		uint32_t transfer_queue_index() const { return mTransferQueue->queue_index(); }
-		device_queue& graphics_queue() { return *mGraphicsQueue; }
-		device_queue& presentation_queue() { return *mPresentQueue; }
-		device_queue& transfer_queue() { return *mTransferQueue; }
+		uint32_t graphics_queue_index() const { return mGraphicsQueue.queue_index(); }
+		uint32_t presentation_queue_index() const { return mPresentQueue.queue_index(); }
+		uint32_t transfer_queue_index() const { return mTransferQueue.queue_index(); }
+
+		ak::queue& graphics_queue() { return mGraphicsQueue; }
+		ak::queue& presentation_queue() { return mPresentQueue; }
+		ak::queue& transfer_queue() { return mTransferQueue; }
+		
 		const std::vector<uint32_t>& all_queue_family_indices() { return mDistinctQueueFamilies; }
+
+		/** Gets a command pool for the given queue family index.
+		 *	If the command pool does not exist already, it will be created.
+		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
+		 */
+		ak::command_pool& get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
+		
+		/** Gets a command pool for the given queue's queue family index.
+		 *	If the command pool does not exist already, it will be created.
+		 *	A command pool can be shared for multiple queue families if they have the same queue family index.
+		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
+		 */
+		ak::command_pool& get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags);
+		
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		ak::command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+
+		/** Creates a "standard" command buffer which is not necessarily short-lived
+		 *	and can be re-submitted, but not necessarily re-recorded.
+		 *
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		std::vector<ak::command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 */
+		ak::command_buffer create_single_use_command_buffer(bool aPrimary = true);
+
+		/** Creates a command buffer which is intended to be used as a one time submit command buffer
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 */
+		std::vector<ak::command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary = true);
+
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		ak::command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+
+		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		 *										resubmitted to a queue while it is in the pending state.
+		 *										It also means that it can be recorded into multiple primary
+		 *										command buffers, if it is intended to be used as a secondary.
+		 */
+		std::vector<ak::command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 		/**	Creates a new window, but doesn't open it. Set the window's parameters
 		 *	according to your requirements before opening it!
@@ -146,19 +209,6 @@ namespace cgb
 		/** Pick the physical device which looks to be the most promising one */
 		void pick_physical_device(vk::SurfaceKHR pSurface);
 
-
-		/**	Finds all queue families which support certain criteria which are defined by the parameters.
-		 *	@param pRequiredFlags	If set, a queue family must support the set flags
-		 *	@param pSurface			If set, the queue family must support the given surface
-		 *	@return		All which support them are returned as a vector of tuples of indices and data.
-		 *				The index is important for further vk-calls and is stored in the first element
-		 *				of the tuple, i.e. use @ref std::get<0>() to get the index, @ref std::get<1>() 
-		 *				for the data
-		 */
-		std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> find_queue_families_for_criteria(vk::QueueFlags pRequiredFlags, vk::QueueFlags pForbiddenFlags, std::optional<vk::SurfaceKHR> pSurface);
-
-		std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> find_best_queue_family_for(vk::QueueFlags pRequiredFlags, device_queue_selection_strategy pSelectionStrategy, std::optional<vk::SurfaceKHR> pSurface);
-
 		//std::vector<vk::DeviceQueueCreateInfo> compile_create_infos_and_assign_members(
 		//	std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> pProps, 
 		//	std::vector<std::reference_wrapper<uint32_t>> pAssign);
@@ -181,38 +231,7 @@ namespace cgb
 
 		//std::vector<framebuffer> create_framebuffers(const vk::RenderPass& renderPass, window* pWindow, const image_view_t& pDepthImageView);
 
-		/** Gets a command pool for the given queue family index.
-		 *	If the command pool does not exist already, it will be created.
-		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
-		 */
-		command_pool& get_command_pool_for_queue_family(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
-		
-		/** Gets a command pool for the given queue's queue family index.
-		 *	If the command pool does not exist already, it will be created.
-		 *	A command pool can be shared for multiple queue families if they have the same queue family index.
-		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
-		 */
-		command_pool& get_command_pool_for_queue(const device_queue& aQueue, vk::CommandPoolCreateFlags aFlags);
-		
-		///** Calculates the semaphore index of the current frame */
-		//size_t sync_index_curr_frame() const { return mFrameCounter % sActualMaxFramesInFlight; }
-
-		///** Calculates the semaphore index of the previous frame */
-		//size_t sync_index_prev_frame() const { return (mFrameCounter - 1) % sActualMaxFramesInFlight; }
-
-		//vk::Semaphore& image_available_semaphore_current_frame() { return mImageAvailableSemaphores[sync_index_curr_frame()]; }
-
-		//vk::Semaphore& render_finished_semaphore_current_frame() { return mRenderFinishedSemaphores[sync_index_curr_frame()]; }
-
-		//vk::Fence& fence_current_frame() { return mInFlightFences[sync_index_curr_frame()]; }
-
-		
-		std::shared_ptr<descriptor_pool> get_descriptor_pool_for_layouts(const descriptor_alloc_request& aAllocRequest, int aPoolName = 0, bool aRequestNewPool = false);
-
-		//std::vector<vk::UniqueDescriptorSet> create_descriptor_set(std::vector<vk::DescriptorSetLayout> pData);
-
-		
-		descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
+		ak::descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
 
 		auto requested_physical_device_features() const { return mRequestedPhysicalDeviceFeatures; }
 		void set_requested_physical_device_features(vk::PhysicalDeviceFeatures aNewValue) { mRequestedPhysicalDeviceFeatures = aNewValue; }
@@ -236,10 +255,10 @@ namespace cgb
 		vk::Device mLogicalDevice;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
 
-		device_queue* mPresentQueue;
-		device_queue* mGraphicsQueue;
-		device_queue* mComputeQueue;
-		device_queue* mTransferQueue;
+		ak::queue mPresentQueue;
+		ak::queue mGraphicsQueue;
+		ak::queue mComputeQueue;
+		ak::queue mTransferQueue;
 		// Vector of queue family indices
 		std::vector<uint32_t> mDistinctQueueFamilies;
 		// Vector of pairs of queue family indices and queue indices
@@ -247,20 +266,18 @@ namespace cgb
 
 		// Command pools are created/stored per thread and per queue family index.
 		// Queue family indices are stored within the command_pool objects, thread indices in the tuple.
-		std::deque<std::tuple<std::thread::id, command_pool>> mCommandPools;
+		std::deque<std::tuple<std::thread::id, ak::command_pool>> mCommandPools;
 
 		// Descriptor pools are created/stored per thread and can have a name (an integer-id). 
 		// If possible, it is tried to re-use a pool. Even when re-using a pool, it might happen that
 		// allocating from it might fail (because out of memory, for instance). In such cases, a new 
 		// pool will be created.
-		std::unordered_map<pool_id, std::vector<std::weak_ptr<descriptor_pool>>> mDescriptorPools;
+		std::unordered_map<pool_id, std::vector<std::weak_ptr<ak::descriptor_pool>>> mDescriptorPools;
 
-		standard_descriptor_cache mStandardDescriptorCache;
+		ak::standard_descriptor_cache mStandardDescriptorCache;
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
 	};
 
-
-	// [1] Vulkan Tutorial, Depth buffering, https://vulkan-tutorial.com/Depth_buffering
 }

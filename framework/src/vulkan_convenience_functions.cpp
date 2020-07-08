@@ -1,6 +1,6 @@
-#include <cg_base.hpp>
+#include <exekutor.hpp>
 
-namespace cgb
+namespace xk
 {
 	//descriptor_set_layout layout_for(std::initializer_list<binding_data> pBindings)
 	//{

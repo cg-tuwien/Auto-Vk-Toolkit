@@ -2,7 +2,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace cgb
+namespace xk
 {
 	/** Context-specific handle to a window.
 	 *  For this context, the window is handled via GLFW.
@@ -34,7 +34,7 @@ namespace cgb
 					return monitor_handle{ monitors[i] };
 				}
 			}
-			throw cgb::runtime_error("No secondary monitor found");
+			throw xk::runtime_error("No secondary monitor found");
 		}
 
 		GLFWmonitor* mHandle;

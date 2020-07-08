@@ -1,4 +1,4 @@
-namespace cgb
+namespace xk
 {
 	varying_update_timer::varying_update_timer()
 		: mStartTime(0.0),

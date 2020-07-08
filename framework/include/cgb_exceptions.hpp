@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cgb
+namespace xk
 {
 	class runtime_error : public std::runtime_error {
 	public:
