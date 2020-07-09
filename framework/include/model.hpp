@@ -7,6 +7,8 @@ namespace xk
 
 	class model_t
 	{
+		friend class vulkan;
+		
 	public:
 		using aiProcessFlagsType = unsigned int;
 
@@ -239,9 +241,6 @@ namespace xk
 		/** Returns all cameras stored in the model file */
 		std::vector<xk::camera> cameras() const;
 
-		static owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
-		static owning_resource<model_t> load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
-
 	private:
 		void initialize_materials();
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const;
@@ -254,7 +253,7 @@ namespace xk
 		std::vector<std::optional<material_config>> mMaterialConfigPerMesh;
 	};
 
-	using model = owning_resource<model_t>;
+	using model = ak::owning_resource<model_t>;
 
 
 	template <>

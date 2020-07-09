@@ -9,18 +9,18 @@ namespace xk
 	struct material
 	{
 		material_config mMaterialConfig;
-		image_sampler mDiffuseTexImageSampler;
-		image_sampler mSpecularTexImageSampler;
-		image_sampler mAmbientTexImageSampler;
-		image_sampler mEmissiveTexImageSampler;
-		image_sampler mHeightTexImageSampler;
-		image_sampler mNormalsTexImageSampler;
-		image_sampler mShininessTexImageSampler;
-		image_sampler mOpacityTexImageSampler;
-		image_sampler mDisplacementTexImageSampler;
-		image_sampler mReflectionTexImageSampler;
-		image_sampler mLightmapTexImageSampler;
-		image_sampler mExtraTexImageSampler;
+		ak::image_sampler mDiffuseTexImageSampler;
+		ak::image_sampler mSpecularTexImageSampler;
+		ak::image_sampler mAmbientTexImageSampler;
+		ak::image_sampler mEmissiveTexImageSampler;
+		ak::image_sampler mHeightTexImageSampler;
+		ak::image_sampler mNormalsTexImageSampler;
+		ak::image_sampler mShininessTexImageSampler;
+		ak::image_sampler mOpacityTexImageSampler;
+		ak::image_sampler mDisplacementTexImageSampler;
+		ak::image_sampler mReflectionTexImageSampler;
+		ak::image_sampler mLightmapTexImageSampler;
+		ak::image_sampler mExtraTexImageSampler;
 	};
 
 	/** Compares the two `material`s for equality.

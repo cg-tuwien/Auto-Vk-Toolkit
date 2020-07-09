@@ -150,10 +150,10 @@ namespace xk
 		}
 
 		// Load the models into memory:
-		auto fsceneBasePath = xk::extract_base_path(result.mLoadPath);
+		auto fsceneBasePath = ak::extract_base_path(result.mLoadPath);
 		for (auto& modelData : result.mModelData) {
-			modelData.mFullPathName = xk::combine_paths(fsceneBasePath, modelData.mFileName);
-			modelData.mLoadedModel = xk::model_t::load_from_file(modelData.mFullPathName, aAssimpFlags);
+			modelData.mFullPathName = ak::combine_paths(fsceneBasePath, modelData.mFileName);
+			modelData.mLoadedModel = context().load_model_from_file(modelData.mFullPathName, aAssimpFlags);
 		}
 		
 		return result;

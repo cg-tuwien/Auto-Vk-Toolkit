@@ -126,7 +126,7 @@ namespace xk
 		 *
 		 *	Call this method to enable this cg_element by the end of 
 		 *	the current frame! I.e. this method expresses your intent
-		 *	to enable. Perform neccessary actions in the on_enable() 
+		 *	to enable. Perform necessary actions in the on_enable() 
 		 *	event handler method (not here!).
 		 *
 		 *	It is strongly recommended not to override this method!
@@ -158,7 +158,7 @@ namespace xk
 		 *
 		 *	Call this method to disable this cg_element by the end of
 		 *	the current frame! I.e. this method expresses your intent
-		 *	to disable. Perform neccessary actions in the on_disable()
+		 *	to disable. Perform necessary actions in the on_disable()
 		 *	event handler method (not here!).
 		 *
 		 *	It is strongly recommended not to override this method!

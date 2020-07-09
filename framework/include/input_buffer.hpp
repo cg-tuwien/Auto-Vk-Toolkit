@@ -9,13 +9,9 @@ namespace xk
 	 */
 	class input_buffer
 	{
-#if defined(USE_OPENGL_CONTEXT)
-		friend class generic_glfw;	
-		friend class opengl;
-#elif defined(USE_VULKAN_CONTEXT)
 		friend class generic_glfw;
 		friend class vulkan;
-#endif
+
 	public:
 		/** Resets all the input values to a state representing no input.
 		 *	If a window is passed, the cursor is set to the cursor position

@@ -10,7 +10,7 @@ namespace xk
 
 	std::mutex vulkan::sConcurrentAccessMutex;
 
-	auto vulkan::assemble_validation_layers()
+	std::vector<const char*> vulkan::assemble_validation_layers()
 	{
 		std::vector<const char*> supportedValidationLayers;
 
@@ -303,6 +303,32 @@ namespace xk
 			context().mContextState = xk::context_state::frame_ended;
 			context().work_off_event_handlers();
 		});
+	}
+
+	model vulkan::load_model_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
+	{
+		model_t result;
+		result.mModelPath = ak::clean_up_path(aPath);
+		result.mImporter = std::make_unique<Assimp::Importer>();
+		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
+		if (nullptr == result.mScene) {
+			throw xk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+		}
+		result.initialize_materials();
+		return result;
+	}
+	
+	model vulkan::load_model_from_memory(const std::string& aMemory, model_t::aiProcessFlagsType aAssimpFlags)
+	{
+		model_t result;
+		result.mModelPath = "";
+		result.mImporter = std::make_unique<Assimp::Importer>();
+		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
+		if (nullptr == result.mScene) {
+			throw xk::runtime_error("Loading model from memory failed.");
+		}
+		result.initialize_materials();
+		return result;
 	}
 
 	window* vulkan::create_window(const std::string& _Title)

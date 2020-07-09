@@ -2,29 +2,29 @@
 
 namespace xk
 {	
-	static ak::image create_1px_texture(std::array<uint8_t, 4> aColor, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static ak::image create_1px_texture(std::array<uint8_t, 4> aColor, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, ak::sync aSyncHandler = ak::sync::wait_idle())
 	{
 		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
-		
-		auto stagingBuffer = xk::create_and_fill(
-			xk::generic_buffer_meta::create_from_size(sizeof(aColor)),
+		aSyncHandler.establish_barrier_before_the_operation(ak::pipeline_stage::transfer, ak::read_memory_access{ak::memory_access::transfer_read_access});
+
+		auto stagingBuffer = context().create_buffer(
 			ak::memory_usage::host_coherent,
-			aColor.data(),
-			sync::not_required(),
-			vk::BufferUsageFlagBits::eTransferSrc);
+			vk::BufferUsageFlagBits::eTransferSrc,
+			ak::generic_buffer_meta::create_from_size(sizeof(aColor))
+		);
+		stagingBuffer->fill(aColor.data(), 0, ak::sync::not_required());
 
 		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
-		auto img = ak::image_t::create(1, 1, selectedFormat, 1, aMemoryUsage, aImageUsage);
+		auto img = context().create_image(1u, 1u, selectedFormat, 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
 
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+		copy_buffer_to_image(stagingBuffer, img, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																									   // TODO: Verify the above ^ comment
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
@@ -32,20 +32,20 @@ namespace xk
 		if (img->config().mipLevels > 1u) {
 			// generat_mip_maps will perform the final layout transitiion
 			img->set_target_layout(finalTargetLayout);
-			img->generate_mip_maps(xk::sync::auxiliary_with_barriers(aSyncHandler,
+			img->generate_mip_maps(ak::sync::auxiliary_with_barriers(aSyncHandler,
 				// We have to sync copy_buffer_to_image with generate_mip_maps:
-				[&img](command_buffer_t& cb, pipeline_stage dstStage, std::optional<read_memory_access> dstAccess){
+				[&img](ak::command_buffer_t& cb, ak::pipeline_stage dstStage, std::optional<ak::read_memory_access> dstAccess){
 					cb.establish_image_memory_barrier_rw(img,
-						pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
-						write_memory_access{ memory_access::transfer_write_access }, /* -> */ dstAccess
+						ak::pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
+						ak::write_memory_access{ ak::memory_access::transfer_write_access }, /* -> */ dstAccess
 					);
 				},
-				xk::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
+				ak::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
 			);
 		}
 		else {
-			img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-			aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access}); 
+			img->transition_to_layout(finalTargetLayout, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			aSyncHandler.establish_barrier_after_the_operation(ak::pipeline_stage::transfer, ak::write_memory_access{ak::memory_access::transfer_write_access}); 
 		}
 
 		auto result = aSyncHandler.submit_and_sync();
@@ -54,9 +54,9 @@ namespace xk
 		return img;
 	}
 
-	static ak::image create_image_from_file(const std::string& aPath, vk::Format aFormat, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static ak::image create_image_from_file(const std::string& aPath, vk::Format aFormat, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, ak::sync aSyncHandler = ak::sync::wait_idle())
 	{
-		generic_buffer stagingBuffer;
+		ak::buffer stagingBuffer;
 		int width = 0;
 		int height = 0;
 
@@ -86,29 +86,29 @@ namespace xk
 				throw xk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", aPath));
 			}
 
-			stagingBuffer = xk::create_and_fill(
-				xk::generic_buffer_meta::create_from_size(imageSize),
+			stagingBuffer = context().create_buffer(
 				ak::memory_usage::host_coherent,
-				pixels,
-				sync::not_required(),
-				vk::BufferUsageFlagBits::eTransferSrc);
+				vk::BufferUsageFlagBits::eTransferSrc,
+				ak::generic_buffer_meta::create_from_size(imageSize)
+			);
+			stagingBuffer->fill(pixels, 0, ak::sync::not_required());
 
 			stbi_image_free(pixels);
 		}
 		// ============ RGB 16-bit float formats (HDR) ==========
-		else if (is_float16_format(aFormat)) {
+		else if (ak::is_float16_format(aFormat)) {
 			
 			stbi_set_flip_vertically_on_load(true);
 			int desiredColorChannels = STBI_rgb_alpha;
 			
-			if (!is_4component_format(aFormat)) { 
-				if (is_3component_format(aFormat)) {
+			if (!ak::is_4component_format(aFormat)) { 
+				if (ak::is_3component_format(aFormat)) {
 					desiredColorChannels = STBI_rgb;
 				}
-				else if (is_2component_format(aFormat)) {
+				else if (ak::is_2component_format(aFormat)) {
 					desiredColorChannels = STBI_grey_alpha;
 				}
-				else if (is_1component_format(aFormat)) {
+				else if (ak::is_1component_format(aFormat)) {
 					desiredColorChannels = STBI_grey;
 				}
 			}
@@ -121,13 +121,13 @@ namespace xk
 				throw xk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", aPath));
 			}
 
-			stagingBuffer = xk::create_and_fill(
-				xk::generic_buffer_meta::create_from_size(imageSize),
+			stagingBuffer = context().create_buffer(
 				ak::memory_usage::host_coherent,
-				pixels,
-				sync::not_required(),
-				vk::BufferUsageFlagBits::eTransferSrc);
-
+				vk::BufferUsageFlagBits::eTransferSrc,
+				ak::generic_buffer_meta::create_from_size(imageSize)
+			);
+			stagingBuffer->fill(pixels, 0, ak::sync::not_required());
+			
 			stbi_image_free(pixels);
 		}
 		// ========= TODO: Support DDS loader, maybe also further loaders
@@ -137,52 +137,52 @@ namespace xk
 
 		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(pipeline_stage::transfer, read_memory_access{memory_access::transfer_read_access});
+		aSyncHandler.establish_barrier_before_the_operation(ak::pipeline_stage::transfer, ak::read_memory_access{ak::memory_access::transfer_read_access});
 
-		auto img = xk::image_t::create(width, height, xk::image_format(aFormat), 1, aMemoryUsage, aImageUsage);
+		auto img = context().create_image(width, height, aFormat, 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 
 		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
 		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
 		
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+		copy_buffer_to_image(stagingBuffer, img, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																										// TODO: Verify the above ^ comment
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync
-		img->transition_to_layout(finalTargetLayout, sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		img->transition_to_layout(finalTargetLayout, ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
-		img->generate_mip_maps(xk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		img->generate_mip_maps(ak::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
-		aSyncHandler.establish_barrier_after_the_operation(pipeline_stage::transfer, write_memory_access{memory_access::transfer_write_access});
+		aSyncHandler.establish_barrier_after_the_operation(ak::pipeline_stage::transfer, ak::write_memory_access{ ak::memory_access::transfer_write_access });
 		auto result = aSyncHandler.submit_and_sync();
 		assert(!result.has_value());
 		return img;
 	}
 	
-	static image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, sync aSyncHandler = sync::wait_idle())
+	static ak::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, ak::sync aSyncHandler = ak::sync::wait_idle())
 	{
-		xk::image_format imFmt;
+		vk::Format imFmt;
 		if (aLoadHdrIfPossible) {
 			if (stbi_is_hdr(aPath.c_str())) {
 				switch (aPreferredNumberOfTextureComponents) {
 				case 4:
-					imFmt = image_format::default_rgb16f_4comp_format();
+					imFmt = default_rgb16f_4comp_format();
 					break;
 				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
 				case 3:
-					imFmt = image_format::default_rgb16f_3comp_format();
+					imFmt = default_rgb16f_3comp_format();
 					break;
 				case 2:
-					imFmt = image_format::default_rgb16f_2comp_format();
+					imFmt = default_rgb16f_2comp_format();
 					break;
 				case 1:
-					imFmt = image_format::default_rgb16f_1comp_format();
+					imFmt = default_rgb16f_1comp_format();
 					break;
 				default:
-					imFmt = image_format::default_rgb16f_4comp_format();
+					imFmt = default_rgb16f_4comp_format();
 					break;
 				}
 				return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
@@ -231,11 +231,11 @@ namespace xk
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
-		std::vector<xk::material_config> aMaterialConfigs, 
+		const std::vector<xk::material_config> aMaterialConfigs&, 
 		ak::image_usage aImageUsage = ak::image_usage::general_texture,
 		ak::filter_mode aTextureFilterMode = ak::filter_mode::bilinear,
 		ak::border_handling_mode aBorderHandlingMode = ak::border_handling_mode::repeat,
-		sync aSyncHandler = sync::wait_idle());
+		ak::sync aSyncHandler = ak::sync::wait_idle());
 
 	template <typename... Rest>
 	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aResult)
@@ -272,55 +272,18 @@ namespace xk
 	}
 	
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
-	extern std::tuple<vertex_buffer, index_buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
-	extern vertex_buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
-	extern vertex_buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
-	extern vertex_buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet);
-	extern vertex_buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet = 0, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern vertex_buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern vertex_buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, sync aSyncHandler = sync::wait_idle());
+	extern ak::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, ak::sync aSyncHandler = ak::sync::wait_idle());
 
-	// TODO: Not sure if the following leads somewhere:
-	//
-	//using model_ref_getter_func = std::function<const model_t&()>;
-	//using mesh_indices_getter_func = std::function<std::vector<size_t>()>;
-
-	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target)
-	//{ }
-
-	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, const material_config& _Material, const model_t& _Model, const std::vector<size_t>& _Indices)
-	//{
-	//	_Target[_Material].push_back(std::make_tuple(
-	//		[modelAddr = &_Model]() -> const model_t& { return *modelAddr; },
-	//		[meshIndices = _Indices]() -> std::vector<size_t> { return meshIndices; }
-	//	));
-	//}
-
-	//inline static void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, const material_config& _Material, const orca_scene_t& _OrcaScene, const std::tuple<size_t, std::vector<size_t>>& _ModelAndMeshIndices)
-	//{
-	//	_Target[_Material].push_back(std::make_tuple(
-	//		[modelAddr = &static_cast<const model_t&>(_OrcaScene.model_at_index(std::get<0>(_ModelAndMeshIndices)).mLoadedModel)]() -> const model_t& { return *modelAddr; },
-	//		[meshIndices = std::get<1>(_ModelAndMeshIndices)]() -> std::vector<size_t> { return meshIndices; }
-	//	));
-	//}
-
-	//template <typename O, typename D, typename... Os, typename... Ds>
-	//void merge_distinct_materials_into(std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>>& _Target, std::tuple<const O&, const D&> _First, std::tuple<const Os&, const Ds&>... _Rest) 
-	//{
-	//	merge_distinct_materials_into(_Target, )
-	//	
-	//}
-
-	//template <typename... Os, typename... Ds>
-	//std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>> merge_distinct_materials(std::tuple<const Os&, const Ds&>... _Rest) 
-	//{
-	//	std::unordered_map<material_config, std::vector<std::tuple<model_ref_getter_func, mesh_indices_getter_func>>> result;
-	//	
-	//}
 }

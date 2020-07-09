@@ -1,36 +1,5 @@
 #pragma once
-
-namespace xk
-{
-	struct pool_id
-	{
-		std::thread::id mThreadId;
-		int mName;
-	};
-
-	static bool operator==(const pool_id& left, const pool_id& right)
-	{
-		return left.mThreadId == right.mThreadId && left.mName == right.mName;
-	}
-
-	static bool operator!=(const pool_id& left, const pool_id& right)
-	{
-		return !(left==right);
-	}
-}
-
-namespace std // Inject hash for `cgb::sampler_t` into std::
-{
-	template<> struct hash<xk::pool_id>
-	{
-		std::size_t operator()(xk::pool_id const& o) const noexcept
-		{
-			std::size_t h = 0;
-			ak::hash_combine(h, o.mThreadId, o.mName);
-			return h;
-		}
-	};
-}
+#include "exekutor.hpp"
 
 namespace xk
 {	
@@ -54,7 +23,7 @@ namespace xk
 		// Checks a VkResult return type and handles it according to the current Vulkan-Hpp config
 		static void check_vk_result(VkResult err);
 		
-		vk::Instance vulkan_instance() { return mInstance; }
+		vk::Instance vulkan_instance() const { return mInstance; }
 		vk::PhysicalDevice physical_device() override { return mPhysicalDevice; }
 		vk::Device device() override { return mLogicalDevice; }
 		vk::DispatchLoaderDynamic dynamic_dispatch() override { return mDynamicDispatch; }
@@ -67,7 +36,7 @@ namespace xk
 		ak::queue& presentation_queue() { return mPresentQueue; }
 		ak::queue& transfer_queue() { return mTransferQueue; }
 		
-		const std::vector<uint32_t>& all_queue_family_indices() { return mDistinctQueueFamilies; }
+		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 
 		/** Gets a command pool for the given queue family index.
 		 *	If the command pool does not exist already, it will be created.
@@ -89,6 +58,7 @@ namespace xk
 		 *										resubmitted to a queue while it is in the pending state.
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
+		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
 		 */
 		ak::command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
@@ -100,6 +70,7 @@ namespace xk
 		 *										resubmitted to a queue while it is in the pending state.
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
+		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
 		 */
 		std::vector<ak::command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
@@ -109,6 +80,7 @@ namespace xk
 
 		/** Creates a command buffer which is intended to be used as a one time submit command buffer
 		 *	@param	aNumBuffers					How many command buffers to be created.
+		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
 		 */
 		std::vector<ak::command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary = true);
 
@@ -117,6 +89,7 @@ namespace xk
 		 *										resubmitted to a queue while it is in the pending state.
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
+		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
 		 */
 		ak::command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
@@ -126,18 +99,16 @@ namespace xk
 		 *										resubmitted to a queue while it is in the pending state.
 		 *										It also means that it can be recorded into multiple primary
 		 *										command buffers, if it is intended to be used as a secondary.
+		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
 		 */
 		std::vector<ak::command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
-		/**	Creates a new window, but doesn't open it. Set the window's parameters
+		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!
 		 *
 		 *  @thread_safety This function must only be called from the main thread.
 		 */
 		window* create_window(const std::string& _Title);
-
-		/** Completes all pending work on the device, blocks the current thread until then. */
-		void finish_pending_work();
 
 		/** Used to signal the context about the beginning of a composition */
 		void begin_composition();
@@ -151,12 +122,17 @@ namespace xk
 		/** Used to signal the context about the point within a frame
 		 *	when all updates have been performed.
 		 *	This usually means that the main thread is about to be awoken
-		 *	(but hasn't been yet) in order to start handling input and stuff.
+		 *	(but has not been yet) in order to start handling input and stuff.
 		 */
 		void update_stage_done();
 
 		/** Used to signal the context about the end of a frame */
 		void end_frame();
+
+		model load_model_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
+		
+		model load_model_from_memory(const std::string& aMemory, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
+
 
 	public: // TODO: private
 		/** Queries the instance layer properties for validation layers 
@@ -169,7 +145,7 @@ namespace xk
 		 *	an array which are supported by the instance. A warning will be issued for those
 		 *	entries which are not supported.
 		 */
-		static auto assemble_validation_layers();
+		static std::vector<const char*> assemble_validation_layers();
 
 		/** Create a new vulkan instance with all the application information and
 		 *	also set the required instance extensions which GLFW demands.
@@ -220,8 +196,6 @@ namespace xk
 
 		/** Creates the swap chain for the given window and surface with the given parameters
 		 *	@param pWindow		[in] The window to create the swap chain for
-		 *	@param pSurface		[in] the surface to create the swap chain for
-		 *	@param pParams		[in] swap chain creation parameters
 		 */
 		void create_swap_chain_for_window(window* pWindow);
 
@@ -230,8 +204,6 @@ namespace xk
 		//	const std::vector<vk::DescriptorSetLayout>& pDescriptorSets);
 
 		//std::vector<framebuffer> create_framebuffers(const vk::RenderPass& renderPass, window* pWindow, const image_view_t& pDepthImageView);
-
-		ak::descriptor_cache_interface* get_standard_descriptor_cache() { return &mStandardDescriptorCache; }
 
 		auto requested_physical_device_features() const { return mRequestedPhysicalDeviceFeatures; }
 		void set_requested_physical_device_features(vk::PhysicalDeviceFeatures aNewValue) { mRequestedPhysicalDeviceFeatures = aNewValue; }
@@ -268,13 +240,7 @@ namespace xk
 		// Queue family indices are stored within the command_pool objects, thread indices in the tuple.
 		std::deque<std::tuple<std::thread::id, ak::command_pool>> mCommandPools;
 
-		// Descriptor pools are created/stored per thread and can have a name (an integer-id). 
-		// If possible, it is tried to re-use a pool. Even when re-using a pool, it might happen that
-		// allocating from it might fail (because out of memory, for instance). In such cases, a new 
-		// pool will be created.
-		std::unordered_map<pool_id, std::vector<std::weak_ptr<ak::descriptor_pool>>> mDescriptorPools;
-
-		ak::standard_descriptor_cache mStandardDescriptorCache;
+		ak::descriptor_cache mStandardDescriptorCache;
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;

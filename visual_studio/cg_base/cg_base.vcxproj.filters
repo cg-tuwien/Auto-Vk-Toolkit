@@ -1,32 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\..\framework\src\composition_interface.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\context.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\glfw</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\model.cpp">
-      <Filter>Source Files\data_buffers_images</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\transform.cpp">
-      <Filter>Source Files\scene_and_object_hierarchy</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
       <Filter>Source Files\external\FileWatcher</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
       <Filter>Source Files\external\FileWatcher</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\window_base.cpp">
-      <Filter>Source Files\window_and_presentation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui.cpp">
       <Filter>Source Files\external</Filter>
@@ -46,98 +25,74 @@
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\input_buffer.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff\input</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\log.cpp">
-      <Filter>Source Files\utilities_components_helpers\logging</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\math_utils.cpp">
-      <Filter>Source Files\utilities_components_helpers\math_and_geometry_utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\camera.cpp">
-      <Filter>Source Files\utilities_components_helpers\cameras</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\quake_camera.cpp">
-      <Filter>Source Files\utilities_components_helpers\cameras</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff\timers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\varying_update_timer.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff\timers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\vulkan_convenience_functions.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\queue_vulkan.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\essential_utils.cpp">
-      <Filter>Source Files\utilities_components_helpers\helper_functions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\input_description.cpp">
-      <Filter>Source Files\pipeline_and_shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\graphics_pipeline_config.cpp">
-      <Filter>Source Files\pipeline_and_shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\shader_info.cpp">
-      <Filter>Source Files\pipeline_and_shaders</Filter>
-    </ClCompile>
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
-      <Filter>Source Files\materials</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\orca_scene.cpp">
-      <Filter>Source Files\data_buffers_images</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\ray_tracing_pipeline_config.cpp">
-      <Filter>Source Files\pipeline_and_shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\memory_access.cpp">
-      <Filter>Source Files\data_buffers_images</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp">
       <Filter>Source Files\user_interface</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
-      <Filter>Source Files\application_structure_and_general_stuff</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\bottom_level_acceleration_structure.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\renderpass.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\semaphore.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\shader_binding_table.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\shader.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\standard_descriptor_cache.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\top_level_acceleration_structure.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\framework\src\window.cpp">
-      <Filter>Source Files\context_and_context_specific_functionality\vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\auto_vulkan\src\ak.cpp">
       <Filter>aksrc</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\auto_vulkan\src\sync.cpp">
       <Filter>aksrc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\input_buffer.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp">
+      <Filter>Source Files\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\varying_update_timer.cpp">
+      <Filter>Source Files\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\composition_interface.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\window.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\model.cpp">
+      <Filter>Source Files\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\orca_scene.cpp">
+      <Filter>Source Files\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
+      <Filter>Source Files\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\transform.cpp">
+      <Filter>Source Files\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\camera.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\quake_camera.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\log.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\math_utils.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\window_base.cpp">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -327,16 +282,10 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp">
       <Filter>ak</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\standard_descriptor_cache.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp">
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache_interface.hpp">
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline_config.hpp">
@@ -367,9 +316,6 @@
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp">
-      <Filter>ak</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constant_binding_data.hpp">
       <Filter>ak</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp">
@@ -447,6 +393,15 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\root_example_implementation.hpp">
       <Filter>ak</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\format_for.hpp">
+      <Filter>ak</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -464,65 +419,11 @@
     <Filter Include="Header Files\user_interface">
       <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\context_and_context_specific_functionality">
-      <UniqueIdentifier>{f608b38b-95d7-4852-ab7c-e65244afe8cd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\context_and_context_specific_functionality\glfw">
-      <UniqueIdentifier>{5fe888a9-cde3-421a-8902-658ac9aaaea4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\context_and_context_specific_functionality\vulkan">
-      <UniqueIdentifier>{ea0fdf81-c732-4701-a2d4-ab296818eaba}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\window_and_presentation">
-      <UniqueIdentifier>{70da7be8-f87f-424f-a2cb-e7e14c29771c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\application_structure_and_general_stuff">
-      <UniqueIdentifier>{b6a318e6-0672-4cfd-9dee-8f4cffb2b9c1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\application_structure_and_general_stuff\executors">
-      <UniqueIdentifier>{a034951f-bd33-48d2-86a0-7907e64f14c3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\application_structure_and_general_stuff\input">
-      <UniqueIdentifier>{f78cf817-7639-4ad7-850c-0ade2bcbf0a2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\application_structure_and_general_stuff\timers">
-      <UniqueIdentifier>{f526f372-4587-438e-92bc-f69b7dda58bb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\pipeline_and_shaders">
-      <UniqueIdentifier>{0fdd72a4-7319-41db-8135-463523b4cb94}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\scene_and_object_hierarchy">
-      <UniqueIdentifier>{7e028abe-dc0a-4bc4-a113-c1f9c61d73b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\utilities_components_helpers">
-      <UniqueIdentifier>{46fe8982-4f9b-4606-9f98-bf60fa1f6524}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\utilities_components_helpers\logging">
-      <UniqueIdentifier>{80dc6cad-1fd7-4ea1-9237-bb75bd732ffb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\utilities_components_helpers\math_and_geometry_utils">
-      <UniqueIdentifier>{86d74518-3790-4dbb-9338-e5800540fab5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\utilities_components_helpers\helper_functions">
-      <UniqueIdentifier>{5abc8df4-e418-4881-bb49-9bdc854ec3f0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\utilities_components_helpers\cameras">
-      <UniqueIdentifier>{8ce5e2af-eb10-41db-b611-c87ed4520013}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\user_interface">
       <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\data_buffers_images">
-      <UniqueIdentifier>{50fa4b81-fe6d-4215-80a8-6d974e43b960}</UniqueIdentifier>
-    </Filter>
     <Filter Include="precompiled_headers">
       <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\materials">
-      <UniqueIdentifier>{10fc3df0-04ba-4e48-a552-94a1d862d01d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\geometry">
-      <UniqueIdentifier>{aa63a7ef-8226-409c-86fe-6b5a72cea179}</UniqueIdentifier>
     </Filter>
     <Filter Include="ak">
       <UniqueIdentifier>{9e5f3a01-c1b4-4952-a270-2a62a0bc3aa7}</UniqueIdentifier>
@@ -547,6 +448,21 @@
     </Filter>
     <Filter Include="Header Files\utils">
       <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\base">
+      <UniqueIdentifier>{20a5d664-c092-4504-91ac-42ba3437b7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\data">
+      <UniqueIdentifier>{e1a6a227-b044-42b8-ae5c-68f3bd93df72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\input">
+      <UniqueIdentifier>{26864eed-0286-4cb0-b966-c212bb6a9b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\timers">
+      <UniqueIdentifier>{1a6b27c5-b97b-4f6b-af5d-646a8543d57a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{c52831a5-f770-4498-84d8-f1957757ebad}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

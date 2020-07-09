@@ -31,13 +31,13 @@ namespace xk
 			if (!(srfFrmts.size() == 1 && srfFrmts[0].format == vk::Format::eUndefined)) {
 				for (const auto& e : srfFrmts) {
 					if (lSrgbFormatRequested) {
-						if (is_srgb_format(xk::image_format(e))) {
+						if (ak::is_srgb_format(e.format)) {
 							selSurfaceFormat = e;
 							break;
 						}
 					}
 					else {
-						if (!is_srgb_format(xk::image_format(e))) {
+						if (!ak::is_srgb_format(e.format)) {
 							selSurfaceFormat = e;
 							break;
 						}
@@ -95,7 +95,7 @@ namespace xk
 
 	void window::set_number_of_samples(int aNumSamples)
 	{
-		mNumberOfSamplesGetter = [lSamples = to_vk_sample_count(aNumSamples)]() { return lSamples; };
+		mNumberOfSamplesGetter = [lSamples = aNumSamples]() { return lSamples; };
 
 		mMultisampleCreateInfoBuilder = [this]() {
 			auto samples = mNumberOfSamplesGetter();
@@ -252,7 +252,7 @@ namespace xk
 		}
 	}
 
-	void window::set_extra_semaphore_dependency(semaphore aSemaphore, std::optional<int64_t> aFrameId)
+	void window::set_extra_semaphore_dependency(ak::semaphore aSemaphore, std::optional<int64_t> aFrameId)
 	{
 		if (!aFrameId.has_value()) {
 			aFrameId = current_frame();
@@ -260,7 +260,7 @@ namespace xk
 		mExtraSemaphoreDependencies.emplace_back(aFrameId.value(), std::move(aSemaphore));
 	}
 
-	void window::handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::handle_single_use_command_buffer_lifetime(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
@@ -269,7 +269,7 @@ namespace xk
 		mSingleUseCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
 	}
 
-	void window::submit_for_backbuffer(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::submit_for_backbuffer(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
@@ -280,11 +280,11 @@ namespace xk
 		
 		const auto frameId = aFrameId.value();
 		auto& refTpl = mSingleUseCommandBuffers.emplace_back(frameId, std::move(aCommandBuffer));
-		mCommandBufferRefs.emplace_back(frameId, std::cref(*std::get<command_buffer>(refTpl)));
+		mCommandBufferRefs.emplace_back(frameId, std::cref(*std::get<ak::command_buffer>(refTpl)));
 		// ^ Prefer code duplication over recursive_mutex
 	}
 
-	void window::submit_for_backbuffer(std::optional<command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::submit_for_backbuffer(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		if (!aCommandBuffer.has_value()) {
 			LOG_WARNING("std::optional<command_buffer> submitted and it has no value.");
@@ -293,7 +293,7 @@ namespace xk
 		submit_for_backbuffer(std::move(aCommandBuffer.value()), aFrameId);
 	}
 
-	void window::submit_for_backbuffer_ref(const command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::submit_for_backbuffer_ref(const ak::command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
@@ -305,7 +305,7 @@ namespace xk
 		mCommandBufferRefs.emplace_back(aFrameId.value(), std::cref(aCommandBuffer));
 	}
 
-	std::vector<semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId)
+	std::vector<ak::semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
@@ -317,16 +317,16 @@ namespace xk
 				return std::get<int64_t>(tpl) <= maxTTL;
 			});
 		// return ownership of all the semaphores to remove to the caller
-		std::vector<semaphore> moved_semaphores;
+		std::vector<ak::semaphore> moved_semaphores;
 		for (decltype(to_remove) it = to_remove; it != std::end(mExtraSemaphoreDependencies); ++it) {
-			moved_semaphores.push_back(std::move(std::get<semaphore>(*it)));
+			moved_semaphores.push_back(std::move(std::get<ak::semaphore>(*it)));
 		}
 		// Erase and return
 		mExtraSemaphoreDependencies.erase(to_remove, std::end(mExtraSemaphoreDependencies));
 		return moved_semaphores;
 	}
 
-	std::vector<command_buffer> window::clean_up_command_buffers_for_frame(int64_t aPresentFrameId)
+	std::vector<ak::command_buffer> window::clean_up_command_buffers_for_frame(int64_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
@@ -347,7 +347,7 @@ namespace xk
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
 		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
 		auto eraseBegin = std::begin(mSingleUseCommandBuffers);
-		std::vector<command_buffer> removedBuffers;
+		std::vector<ak::command_buffer> removedBuffers;
 		if (std::end(mSingleUseCommandBuffers) == eraseBegin || std::get<int64_t>(*eraseBegin) > maxTTL) {
 			return removedBuffers;
 		}
@@ -355,16 +355,16 @@ namespace xk
 		auto eraseEnd = eraseBegin;
 		while (eraseEnd != std::end(mSingleUseCommandBuffers) && std::get<int64_t>(*eraseEnd) <= maxTTL) {
 			// return ownership of all the command_buffers to remove to the caller
-			removedBuffers.push_back(std::move(std::get<command_buffer>(*eraseEnd)));
+			removedBuffers.push_back(std::move(std::get<ak::command_buffer>(*eraseEnd)));
 			++eraseEnd;
 		}
 		mSingleUseCommandBuffers.erase(eraseBegin, eraseEnd);
 		return removedBuffers;
 	}
 
-	std::vector<std::reference_wrapper<const xk::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
+	std::vector<std::reference_wrapper<const ak::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
 	{
-		std::vector<std::reference_wrapper<const xk::command_buffer_t>> result;
+		std::vector<std::reference_wrapper<const ak::command_buffer_t>> result;
 		for (const auto& [cbFrameId, ref] : mCommandBufferRefs) {
 			if (cbFrameId == aFrameId) {
 				result.push_back(ref);
@@ -403,8 +403,8 @@ namespace xk
 		
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
-		xk::context().logical_device().waitForFences(1u, fence.handle_ptr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
-		result = xk::context().logical_device().resetFences(1u, fence.handle_ptr());
+		context().device().waitForFences(1u, fence.handle_ptr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
+		result = xk::context().device().resetFences(1u, fence.handle_ptr());
 		assert (vk::Result::eSuccess == result);
 
 		// At this point we are certain that frame which used the current fence before is done.
@@ -440,7 +440,7 @@ namespace xk
 			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 			uint32_t imageIndex;
 			const auto& imgAvailableSem = image_available_semaphore_for_frame();
-			xk::context().logical_device().acquireNextImageKHR(
+			context().device().acquireNextImageKHR(
 				swap_chain(), // the swap chain from which we wish to acquire an image 
 				// At this point, I have to rant about the `timeout` parameter:
 				// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
@@ -503,28 +503,28 @@ namespace xk
 		}
 	}
 	
-	std::optional<command_buffer> window::copy_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
+	std::optional<ak::command_buffer> window::copy_to_swapchain_image(ak::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
 		auto& destinationImage = image_for_frame(aDestinationFrameId);
-		return copy_image_to_another(aSourceImage, destinationImage, xk::sync::with_barriers_by_return(
-				xk::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		return copy_image_to_another(aSourceImage, destinationImage, ak::sync::with_barriers_by_return(
+				ak::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
 				aShallBePresentedDirectlyAfterwards 
-					? xk::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
-					: xk::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+					? ak::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+					: ak::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
 			),
 			true, // Restore layout of source image
 			false // Don't restore layout of destination => this is handled by the after-handler in any case
 		);
 	}
 	
-	std::optional<command_buffer> window::blit_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
+	std::optional<ak::command_buffer> window::blit_to_swapchain_image(ak::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards)
 	{
 		auto& destinationImage = image_for_frame(aDestinationFrameId);
-		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), xk::sync::with_barriers_by_return(
-			xk::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
+		return blit_image(aSourceImage, image_for_frame(aDestinationFrameId), ak::sync::with_barriers_by_return(
+			ak::sync::presets::image_copy::wait_for_previous_operations(aSourceImage, destinationImage),
 			aShallBePresentedDirectlyAfterwards 
-				? xk::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
-				: xk::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
+				? ak::sync::presets::image_copy::directly_into_present(aSourceImage, destinationImage)
+				: ak::sync::presets::image_copy::let_subsequent_operations_wait(aSourceImage, destinationImage)
 			),	
 			true, // Restore layout of source image
 			false // Don't restore layout of destination => this is handled by the after-handler in any case

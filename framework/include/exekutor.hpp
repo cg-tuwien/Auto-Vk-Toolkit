@@ -90,7 +90,16 @@
 
 // -------------------- Exekutor includes --------------------
 #include "cgb_exceptions.hpp"
+
+#define AK_LOG_FATAL			LOG_ERROR_EM
+#define AK_LOG_ERROR			LOG_ERROR
+#define AK_LOG_WARNING			LOG_WARNING
+#define AK_LOG_INFO				LOG_INFO
+#define AK_LOG_VERBOSE			LOG_VERBOSE
+#define AK_LOG_DEBUG			LOG_DEBUG
+#define AK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
+
 #include "context_state.hpp"
 
 #include "cursor.hpp"
@@ -101,11 +110,6 @@
 #include "window.hpp"
 #include "context_generic_glfw.hpp"
 
-#include "vk_convenience_functions.hpp"
-
-#include "context_vulkan.hpp"
-#include "context.hpp"
-
 #include "math_utils.hpp"
 #include "key_code.hpp"
 #include "key_state.hpp"
@@ -113,9 +117,35 @@
 #include "timer_frame_type.hpp"
 #include "fixed_update_timer.hpp"
 #include "varying_update_timer.hpp"
-
 #include "input_buffer.hpp"
 #include "composition_interface.hpp"
+
+#include "vk_convenience_functions.hpp"
+
+#include "cg_element.hpp"
+#include "sequential_executor.hpp"
+#include "composition.hpp"
+#include "setup.hpp"
+
+#include "transform.hpp"
+#include "material_config.hpp"
+#include "material_gpu_data.hpp"
+#include "material.hpp"
+#include "lightsource.hpp"
+#include "lightsource_gpu_data.hpp"
+#include "camera.hpp"
+#include "model.hpp"
+#include "quake_camera.hpp"
+#include "orca_scene.hpp"
+
+#include "material_image_helpers.hpp"
+
+#include "imgui_manager.hpp"
+
+#include "context_vulkan.hpp"
+#include "context.hpp"
+
+
 
 namespace xk
 {
@@ -146,24 +176,5 @@ namespace xk
 #pragma endregion 
 }
 
-#include "cg_element.hpp"
-#include "sequential_executor.hpp"
-#include "composition.hpp"
-#include "setup.hpp"
-
-#include "transform.hpp"
-#include "material_config.hpp"
-#include "material_gpu_data.hpp"
-#include "material.hpp"
-#include "lightsource.hpp"
-#include "lightsource_gpu_data.hpp"
-#include "camera.hpp"
-#include "model.hpp"
-#include "quake_camera.hpp"
-#include "orca_scene.hpp"
-
-#include "material_image_helpers.hpp"
-
-#include "imgui_manager.hpp"
 
 // ReSharper restore CppUnusedIncludeDirective

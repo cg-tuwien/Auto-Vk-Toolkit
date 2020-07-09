@@ -13,7 +13,7 @@ namespace xk
 			, mShadingModel{}
 			, mWireframeMode{ false }
 			, mTwosided{ false }
-			, mBlendMode{ cfg::color_blending_config::disable() }
+			, mBlendMode{ ak::cfg::color_blending_config::disable() }
 			, mDiffuseReflectivity{ 1.f, 1.f, 1.f, 1.f }
 			, mAmbientReflectivity{ 1.f, 1.f, 1.f, 1.f }
 			, mSpecularReflectivity{ 1.f, 1.f, 1.f, 1.f }
@@ -74,7 +74,7 @@ namespace xk
 		std::string mShadingModel;
 		bool mWireframeMode;
 		bool mTwosided;
-		cfg::color_blending_config mBlendMode;
+		ak::cfg::color_blending_config mBlendMode;
 
 		// Shader parameters:
 		glm::vec4 mDiffuseReflectivity;

@@ -185,7 +185,7 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) {
+		ak::fence_t& fence_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mFences[in_flight_index_for_frame(aFrameId)];
 		}
 
@@ -193,7 +193,7 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) {
+		ak::semaphore_t& image_available_semaphore_for_frame(std::optional<int64_t> aFrameId = {}) {
 			return mImageAvailableSemaphores[swapchain_image_index_for_frame(aFrameId)];
 		}
 
@@ -213,14 +213,14 @@ namespace xk
 		 *							rendered is the frame with the id current_frame(), assuming this function is called 
 		 *							before render_frame() is called.
 		 */
-		void set_extra_semaphore_dependency(semaphore aSemaphore, std::optional<int64_t> aFrameId = {});
+		void set_extra_semaphore_dependency(ak::semaphore aSemaphore, std::optional<int64_t> aFrameId = {});
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
 		 *	The lifetime of this command buffer will last until the given frame + number of frames in flight.
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void handle_single_use_command_buffer_lifetime(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void handle_single_use_command_buffer_lifetime(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
 		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
@@ -229,7 +229,7 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void submit_for_backbuffer(command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void submit_for_backbuffer(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
 		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
@@ -238,7 +238,7 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void submit_for_backbuffer(std::optional<command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void submit_for_backbuffer(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Pass a reference to a command buffer and submit it after the given frame's back buffer has become available.
 		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
@@ -248,19 +248,19 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void submit_for_backbuffer_ref(const command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void submit_for_backbuffer_ref(const ak::command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
 		 */
-		std::vector<semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId);
+		std::vector<ak::semaphore> remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId);
 
 		/** Remove all the "single use" command buffers for the given frame, also clear command buffer references.
 		 *	The command buffers are moved out of the internal storage and returned to the caller.
 		 */
-		std::vector<command_buffer> clean_up_command_buffers_for_frame(int64_t aPresentFrameId);
+		std::vector<ak::command_buffer> clean_up_command_buffers_for_frame(int64_t aPresentFrameId);
 
-		std::vector<std::reference_wrapper<const xk::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
+		std::vector<std::reference_wrapper<const ak::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
 		
 		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
 
@@ -286,7 +286,7 @@ namespace xk
 
 		/** Gets a const reference to the backbuffer's render pass
 		 */
-		const xk::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
+		const ak::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
 		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
@@ -307,7 +307,7 @@ namespace xk
 		 *		);
 		 *		
 		 */
-		std::optional<command_buffer> copy_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
+		std::optional<ak::command_buffer> copy_to_swapchain_image(ak::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
 		/**	A convenience method that internally calls `cgb::copy_image_to_another` and establishes rather coarse barriers
 		 *	for synchronization by using some predefined synchronization functions from `cgb::sync::presets::image_copy`.
@@ -328,7 +328,7 @@ namespace xk
 		 *		);
 		 *	
 		 */
-		std::optional<command_buffer> blit_to_swapchain_image(xk::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
+		std::optional<ak::command_buffer> blit_to_swapchain_image(ak::image_t& aSourceImage, std::optional<int64_t> aDestinationFrameId, bool aShallBePresentedDirectlyAfterwards);
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -340,7 +340,7 @@ namespace xk
 		 */
 		auto command_buffer_lifetime_handler(std::optional<int64_t> aFrameId = {})
 		{
-			return [this, aFrameId](command_buffer aCommandBufferToLifetimeHandle){
+			return [this, aFrameId](ak::command_buffer aCommandBufferToLifetimeHandle){
 				handle_single_use_command_buffer_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);
 			};
 		}
@@ -424,10 +424,10 @@ namespace xk
 #pragma endregion
 
 		// The renderpass used for the back buffers
-		renderpass mBackBufferRenderpass;
+		ak::renderpass mBackBufferRenderpass;
 
 		// The backbuffers of this window
-		std::vector<framebuffer> mBackBuffers;
+		std::vector<ak::framebuffer> mBackBuffers;
 
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
@@ -436,11 +436,11 @@ namespace xk
 		// It is used for both, such that are committed `cgb::sync::with_barriers_on_current_frame` and
 		// for those submitted via `window::submit_for_backbuffer`.
 		// A command buffer's lifetime lasts until the specified int64_t frame-id + max(number_of_swapchain_images(), number_of_in_flight_frames())
-		std::deque<std::tuple<int64_t, command_buffer>> mSingleUseCommandBuffers;
+		std::deque<std::tuple<int64_t, ak::command_buffer>> mSingleUseCommandBuffers;
 
 		// Comand buffers which are submitted via `window::submit_for_backbuffer` or `window::submit_for_backbuffer_ref`
 		// are stored within this container. In the former case, they are moved into `mSingleUseCommandBuffers` first,
 		// and a reference into `mSingleUseCommandBuffers` ist pushed to the back of `mCommandBufferRefs` afterwards.
-		std::vector<std::tuple<int64_t, std::reference_wrapper<const xk::command_buffer_t>>> mCommandBufferRefs;
+		std::vector<std::tuple<int64_t, std::reference_wrapper<const ak::command_buffer_t>>> mCommandBufferRefs;
 	};
 }

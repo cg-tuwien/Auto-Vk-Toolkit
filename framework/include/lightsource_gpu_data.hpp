@@ -102,7 +102,7 @@ namespace xk
 	 *									to a size of `aNumElements`. Example usage: `auto result = cgb::convert_for_gpu_usage<std::vector<cgb::lightsource_gpu_data>>(...)`
 	 */
 	template <typename Out, typename In>
-	typename std::enable_if<xk::has_resize<Out>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	typename std::enable_if<ak::has_resize<Out>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		Out gpuLights{};
 		gpuLights.resize(aNumElements);
@@ -116,7 +116,7 @@ namespace xk
 	 *	@tparam Out						May be a type that has a `.resize()` member or that doesn't. Either is fine and the respective overload will be invoked.
 	 */
 	template <typename Out, typename In>
-	typename std::enable_if<xk::has_size_and_iterators<In>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	typename std::enable_if<ak::has_size_and_iterators<In>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		return convert_for_gpu_usage<Out, In>(aLightsourceData, aLightsourceData.size(), aTransformationMatrix);
 	}

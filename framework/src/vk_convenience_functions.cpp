@@ -1,3 +1,5 @@
+#include "vk_convenience_functions.hpp"
+
 namespace xk
 {
 	vk::Format default_rgb8_4comp_format() noexcept
@@ -63,7 +65,7 @@ namespace xk
 
 	vk::Format default_depth_format() noexcept
 	{
-		const auto formatCandidates = xk::make_array<vk::Format>(
+		const auto formatCandidates = ak::make_array<vk::Format>(
 			vk::Format::eD32Sfloat,
 			vk::Format::eD24UnormS8Uint,
 			vk::Format::eD16Unorm,
@@ -75,7 +77,7 @@ namespace xk
 			return formatCandidates[0];
 		}
 
-		auto candidateScores = xk::make_array<uint32_t>(0u, 0u, 0u, 0u, 0u);
+		auto candidateScores = ak::make_array<uint32_t>(0u, 0u, 0u, 0u, 0u);
 		size_t topScorer = 0;
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
@@ -94,7 +96,7 @@ namespace xk
 
 	vk::Format default_depth_stencil_format() noexcept
 	{
-		const auto formatCandidates = xk::make_array<vk::Format>(
+		const auto formatCandidates = ak::make_array<vk::Format>(
 			vk::Format::eD24UnormS8Uint,
 			vk::Format::eD16UnormS8Uint,
 			vk::Format::eD32SfloatS8Uint
@@ -104,7 +106,7 @@ namespace xk
 			return formatCandidates[0];
 		}
 
-		auto candidateScores = xk::make_array<uint32_t>(0u, 0u, 0u);
+		auto candidateScores = ak::make_array<uint32_t>(0u, 0u, 0u);
 		size_t topScorer = 0;
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
@@ -141,6 +143,6 @@ namespace xk
 				return a.format();
 			}
 		}
-		return vk::Format::default_depth_format();
+		return default_depth_format();
 	}
 }
