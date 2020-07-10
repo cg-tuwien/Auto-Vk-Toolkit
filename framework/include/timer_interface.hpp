@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -14,6 +15,8 @@ namespace xk
 	class timer_interface
 	{
 	public:
+		virtual ~timer_interface() {}
+		
 		/**	@brief The absolute system time.
 		 */
 		virtual float absolute_time() const = 0;

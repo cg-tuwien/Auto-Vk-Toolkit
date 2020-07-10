@@ -122,30 +122,8 @@
 
 #include "vk_convenience_functions.hpp"
 
-#include "cg_element.hpp"
-#include "sequential_executor.hpp"
-#include "composition.hpp"
-#include "setup.hpp"
-
-#include "transform.hpp"
-#include "material_config.hpp"
-#include "material_gpu_data.hpp"
-#include "material.hpp"
-#include "lightsource.hpp"
-#include "lightsource_gpu_data.hpp"
-#include "camera.hpp"
-#include "model.hpp"
-#include "quake_camera.hpp"
-#include "orca_scene.hpp"
-
-#include "material_image_helpers.hpp"
-
-#include "imgui_manager.hpp"
-
 #include "context_vulkan.hpp"
 #include "context.hpp"
-
-
 
 namespace xk
 {
@@ -176,5 +154,24 @@ namespace xk
 #pragma endregion 
 }
 
+#include "cg_element.hpp"
+#include "sequential_executor.hpp"
+
+#include "transform.hpp"
+#include "camera.hpp"
+#include "quake_camera.hpp"
+#include "material_config.hpp"
+#include "material_gpu_data.hpp"
+#include "material.hpp"
+#include "lightsource.hpp"
+#include "lightsource_gpu_data.hpp"
+#include "model.hpp"
+#include "orca_scene.hpp"
+#include "material_image_helpers.hpp"
+
+#include "composition.hpp"
+#include "setup.hpp"
+
+#include "imgui_manager.hpp"
 
 // ReSharper restore CppUnusedIncludeDirective

@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -111,7 +112,7 @@ namespace xk
 		}
 	};
 
-	/** Compare two light source data for equality. Only the lightsource settings are
+	/** Compare two light source data for equality. Only the light source settings are
 	 *	used for comparison, the name is ignored. */
 	static bool operator ==(const lightsource& left, const lightsource& right) {
 		if (left.mAngleInnerCone != right.mAngleInnerCone) return false;
@@ -131,7 +132,7 @@ namespace xk
 		return true;
 	}
 
-	/** Compare two light source data for inequality. Only the lightsource settings are
+	/** Compare two light source data for inequality. Only the light source settings are
 	 *	used for comparison, the name is ignored. */
 	static bool operator !=(const lightsource& left, const lightsource& right) {
 		return !(left == right);

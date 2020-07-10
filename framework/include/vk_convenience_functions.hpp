@@ -1,5 +1,5 @@
 #pragma once
-#include "exekutor.hpp"
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -17,7 +17,7 @@ namespace xk
 	vk::Format default_rgb16f_1comp_format() noexcept;
 	vk::Format default_depth_format() noexcept;
 	vk::Format default_depth_stencil_format() noexcept;
-	vk::Format from_window_color_buffer(window* aWindow);
+	vk::Format format_from_window_color_buffer(window* aWindow);
 }
 
 namespace ak // Inject into ak::

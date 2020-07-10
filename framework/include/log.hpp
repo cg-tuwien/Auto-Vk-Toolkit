@@ -158,7 +158,5 @@ namespace xk
 	std::string to_string(const glm::vec3&);
 	std::string to_string(const glm::vec4&);
 
-	std::string fourcc_to_string(unsigned int fourcc);
-
 	std::string get_current_callstack();
 }

@@ -31,13 +31,13 @@ namespace xk
 		ImGui_ImplVulkan_InitInfo init_info = {};
 	    init_info.Instance = context().vulkan_instance();
 	    init_info.PhysicalDevice = context().physical_device();
-	    init_info.Device = context().logical_device();
+	    init_info.Device = context().device();
 	    init_info.QueueFamily = context().graphics_queue().family_index();
 	    init_info.Queue = context().graphics_queue().handle();
 	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
 		const uint32_t magicImguiFactor = 1000;
-		auto allocRequest = descriptor_alloc_request::create({});
+		auto allocRequest = ak::descriptor_alloc_request{};
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampledImage,		 magicImguiFactor});
@@ -50,10 +50,12 @@ namespace xk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
 		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
-		mDescriptorPool = xk::context().get_descriptor_pool_for_layouts(allocRequest, 'imgu');
+		mDescriptorPool = xk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 		
-	    init_info.DescriptorPool = mDescriptorPool->handle();
+	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
+
+		mCommandPool = xk::context().create_command_pool(context().graphics_queue().family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
 
 		// MinImageCount and ImageCount are related to the swapchain images. These are not Dear ImGui specific properties and your
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
@@ -64,14 +66,14 @@ namespace xk
 	    init_info.CheckVkResultFn = xk::context().check_vk_result;
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
-			std::vector<xv::attachment> attachments;
-			attachments.push_back(xv::attachment::declare(image_format::from_window_color_buffer(wnd).mFormat, xv::on_load::load, xv::color(0), xv::on_store::store_in_presentable_format));
+			std::vector<ak::attachment> attachments;
+			attachments.push_back(ak::attachment::declare(format_from_window_color_buffer(wnd), ak::on_load::load, ak::color(0), ak::on_store::store_in_presentable_format));
 			for (auto a : wnd->get_additional_back_buffer_attachments()) {
-				a.mLoadOperation = xv::on_load::dont_care;
-				a.mStoreOperation = xv::on_store::dont_care;
+				a.mLoadOperation = ak::on_load::dont_care;
+				a.mStoreOperation = ak::on_store::dont_care;
 				attachments.push_back(a);
 			}
-			mRenderpass = renderpass_t::create(attachments);
+			mRenderpass = context().create_renderpass(attachments);
 		}
 
 		// Init it:
@@ -117,12 +119,13 @@ namespace xk
 #endif		
 
 		// Upload fonts:
-		auto cmdBfr = xk::command_pool::create_single_use_command_buffer(xk::context().graphics_queue()); // TODO: Graphics queue?
+		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = xk::context().graphics_queue().submit_and_handle_with_semaphore(std::move(cmdBfr));
+		auto semaph = xk::context().graphics_queue().submit_and_handle_with_semaphore(std::move(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
+		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
 		wnd->set_extra_semaphore_dependency(std::move(semaph));
 	}
 
@@ -270,14 +273,14 @@ namespace xk
 		
 		auto mainWnd = xk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
-		auto cmdBfr = xk::command_pool::create_single_use_command_buffer(xk::context().graphics_queue());
+		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
 		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->backbufer_for_frame());
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
-		mainWnd->submit_for_backbuffer(std::move(cmdBfr));
+		mainWnd->submit_for_backbuffer(std::move(cmdBfr));  // TODO: Support other queues!
 	}
 
 	void imgui_manager::finalize()
@@ -292,5 +295,5 @@ namespace xk
 		mUserInteractionEnabled = aEnableOrNot;
 	}
 
-	void set_renderpass(renderpass aRenderpass);
+	void set_renderpass(ak::renderpass aRenderpass);
 }

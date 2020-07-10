@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -12,6 +13,8 @@ namespace xk
 	{
 		friend class generic_glfw;
 	public:
+		virtual ~composition_interface() {}
+		
 		/** @brief Get the currently active composition_interface
 		 *
 		 *	By design, there can only be one active composition_interface at at time.

@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -66,10 +67,10 @@ namespace xk
 		window* main_window() const;
 
 		/** Returns the window which matches the given name, if it is present in the composition.
-		 *	@param	pName	Name of the window
+		 *	@param	aTitle	Title of the window
 		 *  @return	Pointer to the window with the given name or nullptr if no window matches
 		 */
-		window* window_by_title(std::string_view pTitle) const;
+		window* window_by_title(std::string_view aTitle) const;
 
 		/** Returns the window which matches the given id, if it is present in the composition.
 		 *	@param	pId		Id of the window

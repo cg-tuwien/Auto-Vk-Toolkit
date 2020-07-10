@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -19,7 +20,7 @@ namespace xk
 	/// => row vectors!!
 	/// </param>
 	/// <param name="c">Spaltenvektor, Format: new Vec3(c1, c2, c3)</param>
-	/// <param name="x">Lösungsvektor</param>
+	/// <param name="outX">Lösungsvektor</param>
 	/// <returns></returns>
 	bool solve_system_of_equations(const glm::dmat3& A, const glm::dvec3& c, glm::dvec3& outX);
 
@@ -31,7 +32,7 @@ namespace xk
 	/// => row vectors!!
 	/// </param>
 	/// <param name="c">Spaltenvektor, Format: new Vec2(c1, c2)</param>
-	/// <param name="x">Lösungsvektor</param>
+	/// <param name="outX">Lösungsvektor</param>
 	/// <returns></returns>
 	bool solve_system_of_equations(const glm::dmat2& A, const glm::dvec2& c, glm::dvec2& outX);
 

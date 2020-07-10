@@ -1,9 +1,36 @@
 #include <exekutor.hpp>
-
 #include <sstream>
 
 namespace xk
 {
+
+	ak::owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
+	{
+		model_t result;
+		result.mModelPath = ak::clean_up_path(aPath);
+		result.mImporter = std::make_unique<Assimp::Importer>();
+		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
+		if (nullptr == result.mScene) {
+			throw xk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+		}
+		result.initialize_materials();
+		return result;
+	}
+	
+	ak::owning_resource<model_t> model_t::load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags)
+	{
+		model_t result;
+		result.mModelPath = "";
+		result.mImporter = std::make_unique<Assimp::Importer>();
+		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
+		if (nullptr == result.mScene) {
+			throw xk::runtime_error("Loading model from memory failed.");
+		}
+		result.initialize_materials();
+		return result;
+	}
+
+	
 	void model_t::initialize_materials()
 	{
 		auto n = static_cast<size_t>(mScene->mNumMeshes);

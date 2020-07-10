@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -10,7 +11,7 @@ namespace xk
 		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other cg_elements.
 		 *									Therefore, use a high execution order. Default value is 100000.
 		 */
-		imgui_manager(std::string aName = "imgui", std::optional<renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
+		imgui_manager(std::string aName = "imgui", std::optional<ak::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
 			: cg_element(std::move(aName))
 			, mExecutionOrder(aExecutionOrder)
 			, mUserInteractionEnabled{ true }
@@ -41,11 +42,12 @@ namespace xk
 		bool is_user_interaction_enabled() { return mUserInteractionEnabled; }
 
 	private:
-		int mExecutionOrder;
-		std::shared_ptr<xk::descriptor_pool> mDescriptorPool;
-		std::optional<renderpass> mRenderpass;
-		int mMouseCursorPreviousValue;
+		ak::descriptor_pool mDescriptorPool;
+		ak::command_pool mCommandPool;
+		std::optional<ak::renderpass> mRenderpass;
 		std::vector<ak::unique_function<void()>> mCallback;
+		int mExecutionOrder;
+		int mMouseCursorPreviousValue;
 		bool mUserInteractionEnabled;
 	};
 }

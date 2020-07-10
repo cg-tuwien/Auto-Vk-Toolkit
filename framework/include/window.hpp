@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -63,7 +64,7 @@ namespace xk
 		 */
 		vk::SampleCountFlagBits get_config_number_of_samples();
 
-		/** Gets the multisampling-related config info struct for the Vk-pipeline config.
+		/** Gets the multi sampling-related config info struct for the Vk-pipeline config.
 		 *	A default value will be set if no other value has been configured.
 		 */
 		vk::PipelineMultisampleStateCreateInfo get_config_multisample_state_create_info();

@@ -124,7 +124,7 @@ namespace xk
 	}
 
 
-	vk::Format from_window_color_buffer(window* aWindow)
+	vk::Format format_from_window_color_buffer(window* aWindow)
 	{
 		if (nullptr == aWindow) {
 			aWindow = xk::context().main_window();

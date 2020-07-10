@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {
@@ -18,6 +19,10 @@ namespace xk
 		model_t& operator=(model_t&&) noexcept = default;
 		model_t& operator=(const model_t&) = delete;
 		~model_t() = default;
+
+		static ak::owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
+		
+		static ak::owning_resource<model_t> load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 
 		/** Returns this model's path where it has been loaded from */
 		auto path() const { return mModelPath; }

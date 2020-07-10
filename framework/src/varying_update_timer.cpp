@@ -1,3 +1,5 @@
+#include <exekutor.hpp>
+
 namespace xk
 {
 	varying_update_timer::varying_update_timer()

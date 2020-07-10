@@ -144,9 +144,6 @@ namespace xk
 		// Destroy all descriptors and layouts before destroying the pools
 		mStandardDescriptorCache.cleanup();
 		
-		// Destroy all descriptor pools before the queues and the device is destroyed
-		mDescriptorPools.clear();
-
 		// Destroy all command pools before the queues and the device is destroyed
 		mCommandPools.clear();
 
@@ -208,60 +205,60 @@ namespace xk
 		return get_command_pool_for(aQueue.family_index(), aFlags);
 	}
 
-	ak::command_buffer vulkan::create_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
-	{
-		auto usageFlags = vk::CommandBufferUsageFlags();
-		if (aSimultaneousUseEnabled) {
-			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		}
-		auto result = create_command_buffer(vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;
-	}
+	//ak::command_buffer vulkan::create_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
+	//{
+	//	auto usageFlags = vk::CommandBufferUsageFlags();
+	//	if (aSimultaneousUseEnabled) {
+	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	}
+	//	auto result = create_command_buffer(vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;
+	//}
 
-	std::vector<ak::command_buffer> vulkan::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
-	{
-		auto usageFlags = vk::CommandBufferUsageFlags();
-		if (aSimultaneousUseEnabled) {
-			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		}
-		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;
-	}
-	
-	ak::command_buffer vulkan::create_single_use_command_buffer(bool aPrimary)
-	{
-		const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-		auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;
-	}
+	//std::vector<ak::command_buffer> vulkan::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
+	//{
+	//	auto usageFlags = vk::CommandBufferUsageFlags();
+	//	if (aSimultaneousUseEnabled) {
+	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	}
+	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;
+	//}
+	//
+	//ak::command_buffer vulkan::create_single_use_command_buffer(bool aPrimary)
+	//{
+	//	const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	//	auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;
+	//}
 
-	std::vector<ak::command_buffer> vulkan::create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary)
-	{
-		const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;		
-	}
+	//std::vector<ak::command_buffer> vulkan::create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary)
+	//{
+	//	const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;		
+	//}
 
-	ak::command_buffer vulkan::create_resettable_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
-	{
-		vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		if (aSimultaneousUseEnabled) {
-			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		}
-		auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;
-	}
+	//ak::command_buffer vulkan::create_resettable_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
+	//{
+	//	vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	if (aSimultaneousUseEnabled) {
+	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	}
+	//	auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;
+	//}
 
-	std::vector<ak::command_buffer> vulkan::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
-	{
-		vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		if (aSimultaneousUseEnabled) {
-			usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-		}
-		auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-		return result;
-	}
-	
+	//std::vector<ak::command_buffer> vulkan::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
+	//{
+	//	vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	if (aSimultaneousUseEnabled) {
+	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	//	}
+	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
+	//	return result;
+	//}
+	//
 	
 	void vulkan::begin_composition()
 	{ 
@@ -303,32 +300,6 @@ namespace xk
 			context().mContextState = xk::context_state::frame_ended;
 			context().work_off_event_handlers();
 		});
-	}
-
-	model vulkan::load_model_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
-	{
-		model_t result;
-		result.mModelPath = ak::clean_up_path(aPath);
-		result.mImporter = std::make_unique<Assimp::Importer>();
-		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
-		if (nullptr == result.mScene) {
-			throw xk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
-		}
-		result.initialize_materials();
-		return result;
-	}
-	
-	model vulkan::load_model_from_memory(const std::string& aMemory, model_t::aiProcessFlagsType aAssimpFlags)
-	{
-		model_t result;
-		result.mModelPath = "";
-		result.mImporter = std::make_unique<Assimp::Importer>();
-		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
-		if (nullptr == result.mScene) {
-			throw xk::runtime_error("Loading model from memory failed.");
-		}
-		result.initialize_materials();
-		return result;
 	}
 
 	window* vulkan::create_window(const std::string& _Title)
@@ -426,7 +397,7 @@ namespace xk
 		return availableLayers.end() !=  std::find_if(
 			std::begin(availableLayers), std::end(availableLayers), 
 			[toFind = std::string(pName)](const vk::LayerProperties& e) {
-				return e.layerName == toFind;
+				return std::string(static_cast<const char*>(e.layerName)) == toFind;
 			});
 	}
 
@@ -697,9 +668,11 @@ namespace xk
 				(computeBitSet ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
+
+			auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
 			
 			if (!settings::gPhysicalDeviceSelectionHint.empty()) {
-				score += ak::find_case_insensitive(properties.deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
+				score += ak::find_case_insensitive(deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
 			}
 
 			// Check if extensions are required

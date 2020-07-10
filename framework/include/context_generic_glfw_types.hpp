@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -26,7 +27,7 @@ namespace xk
 		/** Gets a monitor handle to ANY secondary monitor */
 		static monitor_handle secondary_monitor()
 		{
-			auto primary = primary_monitor();
+			const auto primary = primary_monitor();
 			int count;
 			GLFWmonitor** monitors = glfwGetMonitors(&count);
 			for (int i = 0; i < count; ++i) {

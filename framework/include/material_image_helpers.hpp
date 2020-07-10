@@ -1,4 +1,5 @@
 #pragma once
+#include <exekutor.hpp>
 
 namespace xk
 {	
@@ -231,7 +232,7 @@ namespace xk
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
-		const std::vector<xk::material_config> aMaterialConfigs&, 
+		const std::vector<xk::material_config>& aMaterialConfigs, 
 		ak::image_usage aImageUsage = ak::image_usage::general_texture,
 		ak::filter_mode aTextureFilterMode = ak::filter_mode::bilinear,
 		ak::border_handling_mode aBorderHandlingMode = ak::border_handling_mode::repeat,

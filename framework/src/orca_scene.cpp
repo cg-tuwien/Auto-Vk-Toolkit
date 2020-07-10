@@ -153,7 +153,7 @@ namespace xk
 		auto fsceneBasePath = ak::extract_base_path(result.mLoadPath);
 		for (auto& modelData : result.mModelData) {
 			modelData.mFullPathName = ak::combine_paths(fsceneBasePath, modelData.mFileName);
-			modelData.mLoadedModel = context().load_model_from_file(modelData.mFullPathName, aAssimpFlags);
+			modelData.mLoadedModel = model_t::load_from_file(modelData.mFullPathName, aAssimpFlags);
 		}
 		
 		return result;

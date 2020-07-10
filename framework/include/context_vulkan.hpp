@@ -1,5 +1,5 @@
 #pragma once
-#include "exekutor.hpp"
+#include <exekutor.hpp>
 
 namespace xk
 {	
@@ -51,57 +51,57 @@ namespace xk
 		 */
 		ak::command_pool& get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags);
 		
-		/** Creates a "standard" command buffer which is not necessarily short-lived
-		 *	and can be re-submitted, but not necessarily re-recorded.
-		 *
-		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		 *										resubmitted to a queue while it is in the pending state.
-		 *										It also means that it can be recorded into multiple primary
-		 *										command buffers, if it is intended to be used as a secondary.
-		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		 */
-		ak::command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+		///** Creates a "standard" command buffer which is not necessarily short-lived
+		// *	and can be re-submitted, but not necessarily re-recorded.
+		// *
+		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		// *										resubmitted to a queue while it is in the pending state.
+		// *										It also means that it can be recorded into multiple primary
+		// *										command buffers, if it is intended to be used as a secondary.
+		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
+		// */
+		//ak::command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
-		/** Creates a "standard" command buffer which is not necessarily short-lived
-		 *	and can be re-submitted, but not necessarily re-recorded.
-		 *
-		 *	@param	aNumBuffers					How many command buffers to be created.
-		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		 *										resubmitted to a queue while it is in the pending state.
-		 *										It also means that it can be recorded into multiple primary
-		 *										command buffers, if it is intended to be used as a secondary.
-		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		 */
-		std::vector<ak::command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+		///** Creates a "standard" command buffer which is not necessarily short-lived
+		// *	and can be re-submitted, but not necessarily re-recorded.
+		// *
+		// *	@param	aNumBuffers					How many command buffers to be created.
+		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		// *										resubmitted to a queue while it is in the pending state.
+		// *										It also means that it can be recorded into multiple primary
+		// *										command buffers, if it is intended to be used as a secondary.
+		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
+		// */
+		//std::vector<ak::command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
-		/** Creates a command buffer which is intended to be used as a one time submit command buffer
-		 */
-		ak::command_buffer create_single_use_command_buffer(bool aPrimary = true);
+		///** Creates a command buffer which is intended to be used as a one time submit command buffer
+		// */
+		//ak::command_buffer create_single_use_command_buffer(bool aPrimary = true);
 
-		/** Creates a command buffer which is intended to be used as a one time submit command buffer
-		 *	@param	aNumBuffers					How many command buffers to be created.
-		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		 */
-		std::vector<ak::command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary = true);
+		///** Creates a command buffer which is intended to be used as a one time submit command buffer
+		// *	@param	aNumBuffers					How many command buffers to be created.
+		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
+		// */
+		//std::vector<ak::command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary = true);
 
-		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
-		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		 *										resubmitted to a queue while it is in the pending state.
-		 *										It also means that it can be recorded into multiple primary
-		 *										command buffers, if it is intended to be used as a secondary.
-		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		 */
-		ak::command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+		///** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		// *										resubmitted to a queue while it is in the pending state.
+		// *										It also means that it can be recorded into multiple primary
+		// *										command buffers, if it is intended to be used as a secondary.
+		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
+		// */
+		//ak::command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
-		/** Creates a command buffer which is intended to be reset (and possible re-recorded).
-		 *	@param	aNumBuffers					How many command buffers to be created.
-		 *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		 *										resubmitted to a queue while it is in the pending state.
-		 *										It also means that it can be recorded into multiple primary
-		 *										command buffers, if it is intended to be used as a secondary.
-		 *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		 */
-		std::vector<ak::command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
+		///** Creates a command buffer which is intended to be reset (and possible re-recorded).
+		// *	@param	aNumBuffers					How many command buffers to be created.
+		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
+		// *										resubmitted to a queue while it is in the pending state.
+		// *										It also means that it can be recorded into multiple primary
+		// *										command buffers, if it is intended to be used as a secondary.
+		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
+		// */
+		//std::vector<ak::command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
 
 		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!
@@ -128,11 +128,6 @@ namespace xk
 
 		/** Used to signal the context about the end of a frame */
 		void end_frame();
-
-		model load_model_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
-		
-		model load_model_from_memory(const std::string& aMemory, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
-
 
 	public: // TODO: private
 		/** Queries the instance layer properties for validation layers 
