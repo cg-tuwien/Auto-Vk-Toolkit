@@ -29,7 +29,6 @@
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />
-    <ClCompile Include="..\..\framework\src\context.cpp" />
     <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp" />
     <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
@@ -133,7 +132,6 @@
     <ClInclude Include="..\..\framework\include\cg_element.hpp" />
     <ClInclude Include="..\..\framework\include\composition.hpp" />
     <ClInclude Include="..\..\framework\include\composition_interface.hpp" />
-    <ClInclude Include="..\..\framework\include\context.hpp" />
     <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp" />
     <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp" />
     <ClInclude Include="..\..\framework\include\context_state.hpp" />
@@ -146,6 +144,7 @@
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp" />
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp" />
     <ClInclude Include="..\..\framework\include\input_buffer.hpp" />
+    <ClInclude Include="..\..\framework\include\invoker_interface.hpp" />
     <ClInclude Include="..\..\framework\include\key_code.hpp" />
     <ClInclude Include="..\..\framework\include\key_state.hpp" />
     <ClInclude Include="..\..\framework\include\log.hpp" />
@@ -264,7 +263,7 @@
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -288,7 +287,7 @@
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -314,7 +313,7 @@
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <AdditionalOptions>/Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

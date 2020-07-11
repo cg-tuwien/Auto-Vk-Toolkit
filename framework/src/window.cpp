@@ -93,7 +93,7 @@ namespace xk
 		}
 	}
 
-	void window::set_number_of_samples(int aNumSamples)
+	void window::set_number_of_samples(vk::SampleCountFlagBits aNumSamples)
 	{
 		mNumberOfSamplesGetter = [lSamples = aNumSamples]() { return lSamples; };
 
@@ -205,7 +205,7 @@ namespace xk
 	{
 		if (!mNumberOfSamplesGetter) {
 			// Set the default:
-			set_number_of_samples(1);
+			set_number_of_samples(vk::SampleCountFlagBits::e1);
 		}
 		// Determine the number of samples:
 		return mNumberOfSamplesGetter();
@@ -215,7 +215,7 @@ namespace xk
 	{
 		if (!mMultisampleCreateInfoBuilder) {
 			// Set the default:
-			set_number_of_samples(1);
+			set_number_of_samples(vk::SampleCountFlagBits::e1);
 		}
 		// Get the config struct:
 		return mMultisampleCreateInfoBuilder();

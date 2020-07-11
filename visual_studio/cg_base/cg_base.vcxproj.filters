@@ -61,9 +61,6 @@
     <ClCompile Include="..\..\framework\src\window.cpp">
       <Filter>Source Files\base</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\context.cpp">
-      <Filter>Source Files\base</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\framework\src\model.cpp">
       <Filter>Source Files\data</Filter>
     </ClCompile>
@@ -333,9 +330,6 @@
     <ClInclude Include="..\..\framework\include\window.hpp">
       <Filter>Header Files\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\context.hpp">
-      <Filter>Header Files\base</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\context_state.hpp">
       <Filter>Header Files\base</Filter>
     </ClInclude>
@@ -401,6 +395,9 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\format_for.hpp">
       <Filter>ak</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\invoker_interface.hpp">
+      <Filter>Header Files\invokers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -13,7 +13,8 @@ namespace xk
 	{
 		friend class generic_glfw;
 	public:
-		virtual ~composition_interface() {}
+		virtual ~composition_interface()
+		{ }
 		
 		/** @brief Get the currently active composition_interface
 		 *
@@ -115,14 +116,14 @@ namespace xk
 		 *	composition_interface is currently set with @ref is_running() evaluating
 		 *	to true.
 		 */
-		static void set_current(composition_interface* pNewComposition)
+		static void set_current(composition_interface* aNewComposition)
 		{
 			if (nullptr != sCurrentComposition && sCurrentComposition->is_running())
 			{
 				throw xk::runtime_error("There is already an active composition_interface which is still running.");
 			}
 			// It's okay.
-			sCurrentComposition = pNewComposition;
+			sCurrentComposition = aNewComposition;
 		}
 
 		/** Hidden access to the background input buffer, accessible to friends (namely @ref generic_glfw) */

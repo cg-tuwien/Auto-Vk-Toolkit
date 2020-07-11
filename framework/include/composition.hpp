@@ -22,33 +22,21 @@ namespace xk
 	 *	a similar structure as proposed by this composition-class, please make sure 
 	 *	to call @ref set_global_composition_data 
 	 */
-	template <typename TTimer, typename TExecutor>
 	class composition : public composition_interface
 	{
 	public:
-		composition() :
-			mTimer(),
-			mExecutor(this),
-			mInputBuffers(),
-			mInputBufferForegroundIndex(0),
-			mInputBufferBackgroundIndex(1),
-			mShouldStop(false),
-			mInputBufferSwapPending(false),
-			mIsRunning(false)
+		composition(timer_interface* aTimer, invoker_interface* aInvoker, std::vector<window*> aWindows, std::vector<cg_element*> aElements)
+			: mTimer{ aTimer }
+			, mInvoker{ aInvoker }
+			, mWindows{ aWindows }
+			, mInputBuffers()
+			, mInputBufferForegroundIndex(0)
+			, mInputBufferBackgroundIndex(1)
+			, mShouldStop(false)
+			, mInputBufferSwapPending(false)
+			, mIsRunning(false)
 		{
-		}
-
-		composition(std::initializer_list<cg_element*> pObjects) :
-			mTimer(),
-			mExecutor(this),
-			mInputBuffers(),
-			mInputBufferForegroundIndex(0),
-			mInputBufferBackgroundIndex(1),
-			mShouldStop(false),
-			mInputBufferSwapPending(false),
-			mIsRunning(false)
-		{
-			for (auto* el : pObjects) {
+			for (auto* el : aElements) {
 				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const cg_element* left, const cg_element* right) { return left->execution_order() < right->execution_order(); });
 				mElements.insert(it, el);
 			}
@@ -57,7 +45,7 @@ namespace xk
 		/** Provides access to the timer which is used by this composition */
 		timer_interface& time() override
 		{
-			return mTimer;
+			return *mTimer;
 		}
 
 		/** Provides to the currently active input buffer, which contains the
@@ -201,23 +189,23 @@ namespace xk
 				context().begin_frame();
 				context().signal_waiting_main_thread(); // Let the main thread do some work in the meantime
 
-				frameType = thiz->mTimer.tick();
+				frameType = thiz->mTimer->tick();
 
 				wait_for_input_buffers_swapped(thiz);
 
 				// 2. check and possibly issue on_enable event handlers
-				thiz->mExecutor.execute_handle_enablings(thiz->mElements);
+				thiz->mInvoker->execute_handle_enablings(thiz->mElements);
 
 				// 3. fixed_update
 				if ((frameType & timer_frame_type::fixed) == timer_frame_type::fixed)
 				{
-					thiz->mExecutor.execute_fixed_updates(thiz->mElements);
+					thiz->mInvoker->execute_fixed_updates(thiz->mElements);
 				}
 
 				if ((frameType & timer_frame_type::varying) == timer_frame_type::varying)
 				{
 					// 4. update
-					thiz->mExecutor.execute_updates(thiz->mElements);
+					thiz->mInvoker->execute_updates(thiz->mElements);
 
 					// signal context
 					context().update_stage_done();
@@ -232,10 +220,10 @@ namespace xk
 					});
 
 					// 5. render
-					thiz->mExecutor.execute_renders(thiz->mElements);
+					thiz->mInvoker->execute_renders(thiz->mElements);
 
 					// 6. render_gizmos
-					thiz->mExecutor.execute_render_gizmos(thiz->mElements);
+					thiz->mInvoker->execute_render_gizmos(thiz->mElements);
 					
 					// Render per window
 					xk::context().execute_for_each_window([](window* wnd){
@@ -254,7 +242,7 @@ namespace xk
 				}
 
 				// 8. check and possibly issue on_disable event handlers
-				thiz->mExecutor.execute_handle_disablings(thiz->mElements);
+				thiz->mInvoker->execute_handle_disablings(thiz->mElements);
 
 				// signal context
 				context().end_frame();
@@ -334,7 +322,7 @@ namespace xk
 				// Write into the buffer at mInputBufferUpdateIndex,
 				// let client-objects read from the buffer at mInputBufferConsumerIndex
 				context().start_receiving_input_from_window(*w, mInputBuffers[mInputBufferForegroundIndex]);
-				mWindowsReceivingInputFrom.push_back(w);
+				mWindows.push_back(w);
 			}
 
 			// game-/render-loop:
@@ -383,15 +371,16 @@ namespace xk
 
 			renderThread.join();
 
+
 			mIsRunning = false;
 
 			// Stop the input
-			for (auto* w : mWindowsReceivingInputFrom)
+			for (auto* w : mWindows)
 			{
 				context().stop_receiving_input_from_window(*w);
 				w->set_is_in_use(false);
 			}
-			mWindowsReceivingInputFrom.clear();
+			mWindows.clear();
 
 			// Signal context before finalization
 			context().end_composition();
@@ -401,6 +390,9 @@ namespace xk
 			{
 				o->finalize();
 			}
+			
+			// Make myself the current composition_interface
+			composition_interface::set_current(nullptr);
 		}
 
 		/** Stop a currently running game/rendering-loop for this composition_interface */
@@ -423,22 +415,21 @@ namespace xk
 
 		bool mIsRunning;
 
-		std::vector<window*> mWindowsReceivingInputFrom;
+		timer_interface* mTimer;
+		invoker_interface* mInvoker;
+		std::vector<window*> mWindows;
 		std::vector<cg_element*> mElements;
 		std::vector<cg_element*> mElementsToBeAdded;
 		std::vector<cg_element*> mElementsToBeRemoved;
-		TTimer mTimer;
-		TExecutor mExecutor;
+
 		std::array<input_buffer, 2> mInputBuffers;
 		int32_t mInputBufferForegroundIndex;
 		int32_t mInputBufferBackgroundIndex;
 	};
 
-	template <typename TTimer, typename TExecutor>
-	std::mutex composition<TTimer, TExecutor>::sCompMutex{};
+	std::mutex composition::sCompMutex{};
 
-	template <typename TTimer, typename TExecutor>
-	std::condition_variable composition<TTimer, TExecutor>::sInputBufferCondVar{};
+	std::condition_variable composition::sInputBufferCondVar{};
 
 }
 

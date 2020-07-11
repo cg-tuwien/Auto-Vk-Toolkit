@@ -113,8 +113,8 @@
 #include "math_utils.hpp"
 #include "key_code.hpp"
 #include "key_state.hpp"
-#include "timer_interface.hpp"
 #include "timer_frame_type.hpp"
+#include "timer_interface.hpp"
 #include "fixed_update_timer.hpp"
 #include "varying_update_timer.hpp"
 #include "input_buffer.hpp"
@@ -147,14 +147,15 @@ namespace xk
 	/** @brief Get access to the currently active objects
 	 *	\remark This is just a shortcut to @ref *composition_interface::current();
 	 */
-	inline composition_interface& current_composition()
+	inline composition_interface* current_composition()
 	{
-		return *composition_interface::current();
+		return composition_interface::current();
 	}
 #pragma endregion 
 }
 
 #include "cg_element.hpp"
+#include "invoker_interface.hpp"
 #include "sequential_executor.hpp"
 
 #include "transform.hpp"

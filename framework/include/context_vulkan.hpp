@@ -41,6 +41,8 @@ namespace xk
 		/** Gets a command pool for the given queue family index.
 		 *	If the command pool does not exist already, it will be created.
 		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
+		 *	@param		aQueueFamilyIndex		Command buffers allocated from the resulting pool must be sent to the given queue family
+		 *	@param		aFlags		Create-flags for the pool.
 		 */
 		ak::command_pool& get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
 		
@@ -48,61 +50,30 @@ namespace xk
 		 *	If the command pool does not exist already, it will be created.
 		 *	A command pool can be shared for multiple queue families if they have the same queue family index.
 		 *	The pool must have exactly the flags specified, i.e. the flags specified and only the flags specified.
+		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
+		 *							of the given queue.
+		 *	@param		aFlags		Create-flags for the pool.
 		 */
 		ak::command_pool& get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags);
+
+		/**	Get a command pool with the "transient"-bit set, which is optimal for single-use command buffers.
+		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
+		 *							of the given queue.
+		 */
+		ak::command_pool& get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue);
 		
-		///** Creates a "standard" command buffer which is not necessarily short-lived
-		// *	and can be re-submitted, but not necessarily re-recorded.
-		// *
-		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		// *										resubmitted to a queue while it is in the pending state.
-		// *										It also means that it can be recorded into multiple primary
-		// *										command buffers, if it is intended to be used as a secondary.
-		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		// */
-		//ak::command_buffer create_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
-
-		///** Creates a "standard" command buffer which is not necessarily short-lived
-		// *	and can be re-submitted, but not necessarily re-recorded.
-		// *
-		// *	@param	aNumBuffers					How many command buffers to be created.
-		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		// *										resubmitted to a queue while it is in the pending state.
-		// *										It also means that it can be recorded into multiple primary
-		// *										command buffers, if it is intended to be used as a secondary.
-		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		// */
-		//std::vector<ak::command_buffer> create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
-
-		///** Creates a command buffer which is intended to be used as a one time submit command buffer
-		// */
-		//ak::command_buffer create_single_use_command_buffer(bool aPrimary = true);
-
-		///** Creates a command buffer which is intended to be used as a one time submit command buffer
-		// *	@param	aNumBuffers					How many command buffers to be created.
-		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		// */
-		//std::vector<ak::command_buffer> create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary = true);
-
-		///** Creates a command buffer which is intended to be reset (and possible re-recorded).
-		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		// *										resubmitted to a queue while it is in the pending state.
-		// *										It also means that it can be recorded into multiple primary
-		// *										command buffers, if it is intended to be used as a secondary.
-		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		// */
-		//ak::command_buffer create_resettable_command_buffer(bool aSimultaneousUseEnabled = false, bool aPrimary = true);
-
-		///** Creates a command buffer which is intended to be reset (and possible re-recorded).
-		// *	@param	aNumBuffers					How many command buffers to be created.
-		// *	@param	aSimultaneousUseEnabled		`true` means that the command buffer to be created can be 
-		// *										resubmitted to a queue while it is in the pending state.
-		// *										It also means that it can be recorded into multiple primary
-		// *										command buffers, if it is intended to be used as a secondary.
-		// *	@param	aPrimary					true => create primary command buffer, false => create secondary
-		// */
-		//std::vector<ak::command_buffer> create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled = false, bool aPrimary = true);
-
+		/**	Get a command pool which is optimal for reusable command buffers.
+		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
+		 *							of the given queue.
+		 */
+		ak::command_pool& get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue);
+		
+		/**	Get a command pool which is optimal for single-use command buffers.
+		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
+		 *							of the given queue.
+		 */
+		ak::command_pool& get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue);
+		
 		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!
 		 *
@@ -234,8 +205,6 @@ namespace xk
 		// Command pools are created/stored per thread and per queue family index.
 		// Queue family indices are stored within the command_pool objects, thread indices in the tuple.
 		std::deque<std::tuple<std::thread::id, ak::command_pool>> mCommandPools;
-
-		ak::descriptor_cache mStandardDescriptorCache;
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;

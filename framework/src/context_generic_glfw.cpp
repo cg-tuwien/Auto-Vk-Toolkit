@@ -506,14 +506,14 @@ namespace xk
 				std::remove_if(
 					std::begin(mEventHandlers), std::end(mEventHandlers),
 					[curState = mContextState](const auto& tpl) {
-				auto targetStates = std::get<xk::context_state>(tpl);
-				if ((curState & targetStates) != curState) {
-					return false; // false => not done yet! Handler shall remain, because handler has not been invoked.
-				}
-				// Invoke the handler:
-				return std::get<event_handler_func>(tpl)();	// true => done, i.e. remove
-															// false => not done yet, i.e. shall remain
-			}),
+					auto targetStates = std::get<xk::context_state>(tpl);
+					if ((curState & targetStates) != curState) {
+						return false; // false => not done yet! Handler shall remain, because handler has not been invoked.
+					}
+					// Invoke the handler:
+					return std::get<event_handler_func>(tpl)();	// true => done, i.e. remove
+																// false => not done yet, i.e. shall remain
+				}),
 				std::end(mEventHandlers));
 			auto numAfter = mEventHandlers.size();
 			numHandled = numAfter - numBefore;

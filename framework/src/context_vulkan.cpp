@@ -141,8 +141,8 @@ namespace xk
 		mContextState = xk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
 
-		// Destroy all descriptors and layouts before destroying the pools
-		mStandardDescriptorCache.cleanup();
+		ak::sync::sPoolToAllocCommandBuffersFrom = ak::command_pool{};
+		ak::sync::sQueueToUse = nullptr;
 		
 		// Destroy all command pools before the queues and the device is destroyed
 		mCommandPools.clear();
@@ -205,60 +205,20 @@ namespace xk
 		return get_command_pool_for(aQueue.family_index(), aFlags);
 	}
 
-	//ak::command_buffer vulkan::create_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
-	//{
-	//	auto usageFlags = vk::CommandBufferUsageFlags();
-	//	if (aSimultaneousUseEnabled) {
-	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	}
-	//	auto result = create_command_buffer(vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;
-	//}
-
-	//std::vector<ak::command_buffer> vulkan::create_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
-	//{
-	//	auto usageFlags = vk::CommandBufferUsageFlags();
-	//	if (aSimultaneousUseEnabled) {
-	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	}
-	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlags{}, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;
-	//}
-	//
-	//ak::command_buffer vulkan::create_single_use_command_buffer(bool aPrimary)
-	//{
-	//	const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-	//	auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;
-	//}
-
-	//std::vector<ak::command_buffer> vulkan::create_single_use_command_buffers(uint32_t aNumBuffers, bool aPrimary)
-	//{
-	//	const vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eTransient, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;		
-	//}
-
-	//ak::command_buffer vulkan::create_resettable_command_buffer(bool aSimultaneousUseEnabled, bool aPrimary)
-	//{
-	//	vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	if (aSimultaneousUseEnabled) {
-	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	}
-	//	auto result = create_command_buffer(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;
-	//}
-
-	//std::vector<ak::command_buffer> vulkan::create_resettable_command_buffers(uint32_t aNumBuffers, bool aSimultaneousUseEnabled, bool aPrimary)
-	//{
-	//	vk::CommandBufferUsageFlags usageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	if (aSimultaneousUseEnabled) {
-	//		usageFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-	//	}
-	//	auto result = create_command_buffers(aNumBuffers, vk::CommandPoolCreateFlagBits::eResetCommandBuffer, usageFlags, aPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary);
-	//	return result;
-	//}
-	//
+	ak::command_pool& vulkan::get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue)
+	{
+		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eTransient);
+	}
+	
+	ak::command_pool& vulkan::get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue)
+	{
+		return get_command_pool_for(aQueue, {});
+	}
+	
+	ak::command_pool& vulkan::get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue)
+	{
+		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+	}
 	
 	void vulkan::begin_composition()
 	{ 
@@ -726,100 +686,101 @@ namespace xk
 		// Determine which queue families we have, i.e. what the different queue families support and what they don't
 		auto familyIndex = ak::queue::select_queue_family_index(mPhysicalDevice, {}, ak::queue_selection_preference::versatile_queue, pSurface);
 		auto iAmTheOneAndOnly = ak::queue::prepare(mPhysicalDevice, familyIndex, 0);
-
+		auto queuesToBeCreated = std::vector<ak::queue>{ std::move(iAmTheOneAndOnly) };
+		
 		context().mContextState = xk::context_state::queues_prepared;
 		
-		// Defer pipeline creation to enable the user to request more queues
+		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
 
-		mEventHandlers.emplace_back([queuesToBeCreated = std::vector<ak::queue>{ std::move(iAmTheOneAndOnly) }]() mutable -> bool {
-			LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
+		// Get the same validation layers as for the instance!
+		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
+	
+		// Always prepare the shading rate image features descriptor, but only use it if the extension has been requested
+		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV()
+			.setShadingRateImage(VK_TRUE)
+			.setShadingRateCoarseSampleOrder(VK_TRUE);
+		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
 
-			// Get the same validation layers as for the instance!
-			std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
+		auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(queuesToBeCreated), std::end(queuesToBeCreated));
+		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
+		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
+			std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
+		}
+
+		// Enable certain device features:
+		// (Build a pNext chain for further supported extensions)
+
+		auto deviceFeatures = vk::PhysicalDeviceFeatures2()
+			.setFeatures(context().mRequestedPhysicalDeviceFeatures)
+			.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
+
+	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
+		deviceVulkan12Features.setPNext(&deviceFeatures);
+
+		if (xk::settings::gEnableBufferDeviceAddress) {
+			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+		}
+
+	    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
+		if (ray_tracing_extension_requested()) {
+			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+			deviceRayTracingFeatures
+				.setPNext(&deviceFeatures)
+				.setRayTracing(VK_TRUE);
+			deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
+		}
 		
-			// Always prepare the shading rate image features descriptor, but only use it if the extension has been requested
-			auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV()
-				.setShadingRateImage(VK_TRUE)
-				.setShadingRateCoarseSampleOrder(VK_TRUE);
-			auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		auto deviceCreateInfo = vk::DeviceCreateInfo()
+			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
+			.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
+			.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
+			// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
+			// TODO: Are these the correct extensions to set here?
+			.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
+			.setPpEnabledExtensionNames(allRequiredDeviceExtensions.data())
+			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
+			.setPpEnabledLayerNames(supportedValidationLayers.data());
+		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
+		// Create a dynamic dispatch loader for extensions
+		context().mDynamicDispatch = vk::DispatchLoaderDynamic(
+			context().vulkan_instance(), 
+			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
+			context().device()
+		);
 
-			auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(queuesToBeCreated), std::end(queuesToBeCreated));
-			// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
-			for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
-				std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
-			}
+		// For every queue, assign the proper handle
+		for (auto& q : queuesToBeCreated) {
+			q.assign_handle(context().mLogicalDevice);
+		}
+		
+		context().mPresentQueue		= queuesToBeCreated[0];
+		context().mGraphicsQueue	= queuesToBeCreated[0];
+		context().mComputeQueue		= queuesToBeCreated[0];
+		context().mTransferQueue	= queuesToBeCreated[0];
 
-			// Enable certain device features:
-			// (Build a pNext chain for further supported extensions)
+		// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
+		std::set<uint32_t> uniqueFamilyIndices;
+		std::set<std::tuple<uint32_t, uint32_t>> uniqueQueues;
+		for (auto& q : queuesToBeCreated) {
+			uniqueFamilyIndices.insert(q.family_index());
+			uniqueQueues.insert(std::make_tuple(q.family_index(), q.queue_index()));
+		}
+		// Put into contiguous memory
+		for (auto idx : uniqueFamilyIndices) {
+			context().mDistinctQueueFamilies.push_back(idx);
+		}
+		for (auto tpl : uniqueQueues) {
+			context().mDistinctQueues.push_back(tpl);
+		}
 
-			auto deviceFeatures = vk::PhysicalDeviceFeatures2()
-				.setFeatures(context().mRequestedPhysicalDeviceFeatures)
-				.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
+		
+		// TODO: Remove sync
+		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(xk::context().graphics_queue().family_index(), {});
+		ak::sync::sQueueToUse = &xk::context().graphics_queue();
+		
+		context().mContextState = xk::context_state::fully_initialized;
 
-		    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
-			deviceVulkan12Features.setPNext(&deviceFeatures);
-
-			if (xk::settings::gEnableBufferDeviceAddress) {
-				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-			}
-
-		    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
-			if (ray_tracing_extension_requested()) {
-				deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-				deviceRayTracingFeatures
-					.setPNext(&deviceFeatures)
-					.setRayTracing(VK_TRUE);
-				deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
-			}
-			
-			auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-			auto deviceCreateInfo = vk::DeviceCreateInfo()
-				.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
-				.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
-				.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
-				// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
-				// TODO: Are these the correct extensions to set here?
-				.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
-				.setPpEnabledExtensionNames(allRequiredDeviceExtensions.data())
-				.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
-				.setPpEnabledLayerNames(supportedValidationLayers.data());
-			context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
-			// Create a dynamic dispatch loader for extensions
-			context().mDynamicDispatch = vk::DispatchLoaderDynamic(
-				context().vulkan_instance(), 
-				vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
-				context().device()
-			);
-
-			// For every queue, assign the proper handle
-			for (auto& q : queuesToBeCreated) {
-				q.assign_handle(context().mLogicalDevice);
-			}
-			
-			context().mPresentQueue		= queuesToBeCreated[0];
-			context().mGraphicsQueue	= queuesToBeCreated[0];
-			context().mComputeQueue		= queuesToBeCreated[0];
-			context().mTransferQueue	= queuesToBeCreated[0];
-
-			// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
-			std::set<uint32_t> uniqueFamilyIndices;
-			std::set<std::tuple<uint32_t, uint32_t>> uniqueQueues;
-			for (auto& q : queuesToBeCreated) {
-				uniqueFamilyIndices.insert(q.family_index());
-				uniqueQueues.insert(std::make_tuple(q.family_index(), q.queue_index()));
-			}
-			// Put into contiguous memory
-			for (auto idx : uniqueFamilyIndices) {
-				context().mDistinctQueueFamilies.push_back(idx);
-			}
-			for (auto tpl : uniqueQueues) {
-				context().mDistinctQueues.push_back(tpl);
-			}
-
-			context().mContextState = xk::context_state::fully_initialized;
-
-			return true; // This is just always true
-		}, xk::context_state::queues_prepared);
 	}
 
 	void vulkan::create_swap_chain_for_window(window* pWindow)

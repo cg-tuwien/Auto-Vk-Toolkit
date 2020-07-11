@@ -16,7 +16,11 @@ namespace xk
 	{
 	public:
 		virtual ~timer_interface() {}
-		
+
+		/** @brief To be invoked once per frame... tick... tick... tick...
+		 */
+		virtual timer_frame_type tick() = 0;
+
 		/**	@brief The absolute system time.
 		 */
 		virtual float absolute_time() const = 0;

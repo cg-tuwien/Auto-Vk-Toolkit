@@ -53,7 +53,10 @@ namespace xk
 		virtual ~cg_element()
 		{
 			// Make sure, this element gets removed from the composition
-			xk::current_composition().remove_element_immediately(*this, true);
+			auto* cc = xk::current_composition();
+			if (nullptr != cc) {
+				cc->remove_element_immediately(*this, true);
+			}
 		}
 
 		/** Returns the name of this cg_element */

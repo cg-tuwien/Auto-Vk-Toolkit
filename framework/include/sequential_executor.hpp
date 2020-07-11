@@ -10,14 +10,10 @@ namespace xk
 	 *	are handled through an executor. The @ref sequential_executor updates,
 	 *	renders, etc. all of them one after the other.
 	 */
-	class sequential_executor
+	class sequential_executor : public invoker_interface
 	{
 	public:
-		sequential_executor(composition_interface* pComposition)
-			: mParentComposition(pComposition) 
-		{}
-
-		void execute_handle_enablings(const std::vector<cg_element*>& elements)
+		void execute_handle_enablings(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
@@ -25,7 +21,7 @@ namespace xk
 			}
 		}
 
-		void execute_fixed_updates(const std::vector<cg_element*>& elements)
+		void execute_fixed_updates(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
@@ -35,7 +31,7 @@ namespace xk
 			}
 		}
 
-		void execute_updates(const std::vector<cg_element*>& elements)
+		void execute_updates(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
@@ -45,7 +41,7 @@ namespace xk
 			}
 		}
 
-		void execute_renders(const std::vector<cg_element*>& elements)
+		void execute_renders(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
@@ -55,7 +51,7 @@ namespace xk
 			}
 		}
 
-		void execute_render_gizmos(const std::vector<cg_element*>& elements)
+		void execute_render_gizmos(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
@@ -65,15 +61,12 @@ namespace xk
 			}
 		}
 
-		void execute_handle_disablings(const std::vector<cg_element*>& elements)
+		void execute_handle_disablings(const std::vector<cg_element*>& elements) override
 		{
 			for (auto& e : elements)
 			{
 				e->handle_disabling();
 			}
 		}
-
-	private:
-		composition_interface* mParentComposition;
 	};
 }

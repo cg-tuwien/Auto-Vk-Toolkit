@@ -16,7 +16,11 @@ namespace xk
 		window(const window&) = delete;
 		window& operator =(window&&) noexcept = default;
 		window& operator =(const window&) = delete;
-		~window() = default;
+		~window()
+		{
+			mCommandBufferRefs.clear();
+			mSingleUseCommandBuffers.clear();
+		}
 
 		/** Set to true to create a resizable window, set to false to prevent the window from being resized */
 		void enable_resizing(bool aEnable);
@@ -28,7 +32,7 @@ namespace xk
 		void set_presentaton_mode(xk::presentation_mode aMode);
 
 		/** Sets the number of samples for MSAA */
-		void set_number_of_samples(int aNumSamples);
+		void set_number_of_samples(vk::SampleCountFlagBits aNumSamples);
 
 		/** Sets the number of presentable images for a swap chain */
 		void set_number_of_presentable_images(uint32_t aNumImages);
