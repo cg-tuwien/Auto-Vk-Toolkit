@@ -2,123 +2,123 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
-      <Filter>Source Files\external\FileWatcher</Filter>
+      <Filter>exekutor_src\external\FileWatcher</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
-      <Filter>Source Files\external\FileWatcher</Filter>
+      <Filter>exekutor_src\external\FileWatcher</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
-      <Filter>Source Files\external</Filter>
+      <Filter>exekutor_src\external</Filter>
     </ClCompile>
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp">
-      <Filter>Source Files\user_interface</Filter>
+      <Filter>exekutor_src\user_interface</Filter>
     </ClCompile>
     <ClCompile Include="..\..\auto_vulkan\src\ak.cpp">
-      <Filter>aksrc</Filter>
+      <Filter>auto-vk_src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\auto_vulkan\src\sync.cpp">
-      <Filter>aksrc</Filter>
+      <Filter>auto-vk_src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\input_buffer.cpp">
-      <Filter>Source Files\input</Filter>
+      <Filter>exekutor_src\input</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp">
-      <Filter>Source Files\timers</Filter>
+      <Filter>exekutor_src\timers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\varying_update_timer.cpp">
-      <Filter>Source Files\timers</Filter>
+      <Filter>exekutor_src\timers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\composition_interface.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\window.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\model.cpp">
-      <Filter>Source Files\data</Filter>
+      <Filter>exekutor_src\data</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\orca_scene.cpp">
-      <Filter>Source Files\data</Filter>
+      <Filter>exekutor_src\data</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
-      <Filter>Source Files\data</Filter>
+      <Filter>exekutor_src\data</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\transform.cpp">
-      <Filter>Source Files\data</Filter>
+      <Filter>exekutor_src\data</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\camera.cpp">
-      <Filter>Source Files\utils</Filter>
+      <Filter>exekutor_src\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\quake_camera.cpp">
-      <Filter>Source Files\utils</Filter>
+      <Filter>exekutor_src\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\log.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\math_utils.cpp">
-      <Filter>Source Files\utils</Filter>
+      <Filter>exekutor_src\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\window_base.cpp">
-      <Filter>Source Files\base</Filter>
+      <Filter>exekutor_src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
-      <Filter>Source Files\utils</Filter>
+      <Filter>exekutor_src\utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
-      <Filter>Header Files\timers</Filter>
+      <Filter>exekutor_include\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp">
-      <Filter>Header Files\timers</Filter>
+      <Filter>exekutor_include\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\timer_interface.hpp">
-      <Filter>Header Files\timers</Filter>
+      <Filter>exekutor_include\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\input_buffer.hpp">
-      <Filter>Header Files\input</Filter>
+      <Filter>exekutor_include\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\key_code.hpp">
-      <Filter>Header Files\input</Filter>
+      <Filter>exekutor_include\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\key_state.hpp">
-      <Filter>Header Files\input</Filter>
+      <Filter>exekutor_include\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\model.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp">
-      <Filter>Header Files\timers</Filter>
+      <Filter>exekutor_include\timers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp">
-      <Filter>Header Files\invokers</Filter>
+      <Filter>exekutor_include\invokers</Filter>
     </ClInclude>
     <ClInclude Include="cg_stdafx.hpp">
       <Filter>precompiled_headers</Filter>
@@ -127,338 +127,341 @@
       <Filter>precompiled_headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\orca_scene.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\lightsource.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\imgui_manager.hpp">
-      <Filter>Header Files\user_interface</Filter>
+      <Filter>exekutor_include\user_interface</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cursor.hpp">
-      <Filter>Header Files\user_interface</Filter>
+      <Filter>exekutor_include\user_interface</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\commands.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\framebuffer.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\bottom_level_acceleration_structure.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\top_level_acceleration_structure.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_view.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\binding_data.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\bindings.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\sync.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\command_buffer.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\fence.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\semaphore.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_info.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ak.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_view.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_sampler.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\sampler.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ak_error.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\cpp_utils.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_desc.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_order.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_usage.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\memory_usage.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\attachment.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\filter_mode.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\border_handling_mode.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_format.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ak_log.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\geometry_instance.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_pool.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\command_pool.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\acceleration_structure_size_requirements.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline_config.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\aabb.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\memory_access.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\input_description.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_meta.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_alloc_request.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set_layout.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_vulkan.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\window.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_state.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\setup.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cg_element.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\composition.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\composition_interface.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material_config.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material_gpu_data.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\transform.hpp">
-      <Filter>Header Files\data</Filter>
+      <Filter>exekutor_include\data</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\log.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\camera.hpp">
-      <Filter>Header Files\utils</Filter>
+      <Filter>exekutor_include\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\quake_camera.hpp">
-      <Filter>Header Files\utils</Filter>
+      <Filter>exekutor_include\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\math_utils.hpp">
-      <Filter>Header Files\utils</Filter>
+      <Filter>exekutor_include\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\window_base.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp">
-      <Filter>Header Files\utils</Filter>
+      <Filter>exekutor_include\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\exekutor.hpp">
-      <Filter>Header Files\base</Filter>
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\root_example_implementation.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vulkan\include\ak\format_for.hpp">
-      <Filter>ak</Filter>
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\invoker_interface.hpp">
-      <Filter>Header Files\invokers</Filter>
+      <Filter>exekutor_include\invokers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\settings.hpp">
+      <Filter>exekutor_include\base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{f0debc15-831c-4ce5-8aa8-b45e296d9848}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{99cf0065-9330-4485-b7e0-b67aa6c775cc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\external">
-      <UniqueIdentifier>{01ec6606-9462-4183-b896-331537dd7240}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\external\FileWatcher">
-      <UniqueIdentifier>{e42383c6-18d8-4c20-95ad-9d3f00c29b0d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\user_interface">
-      <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\user_interface">
-      <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
-    </Filter>
     <Filter Include="precompiled_headers">
       <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ak">
+    <Filter Include="auto-vk_include">
       <UniqueIdentifier>{9e5f3a01-c1b4-4952-a270-2a62a0bc3aa7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="aksrc">
+    <Filter Include="auto-vk_src">
       <UniqueIdentifier>{568607b2-d6cb-4a02-9b26-0d96fab766de}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\base">
+    <Filter Include="exekutor_include">
+      <UniqueIdentifier>{f0debc15-831c-4ce5-8aa8-b45e296d9848}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_include\user_interface">
+      <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_include\base">
       <UniqueIdentifier>{26caf0b8-7ce7-43d3-9e8f-9b44e20fdbae}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\timers">
+    <Filter Include="exekutor_include\timers">
       <UniqueIdentifier>{bb4197cf-5a2e-439b-8c69-0f3197ed1abc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\input">
+    <Filter Include="exekutor_include\input">
       <UniqueIdentifier>{13e34ef1-6c80-45ea-a246-44fbddb451b7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\invokers">
+    <Filter Include="exekutor_include\invokers">
       <UniqueIdentifier>{55acfcc3-15f4-491b-8cfa-d768e751b37a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\data">
+    <Filter Include="exekutor_include\data">
       <UniqueIdentifier>{7e592d59-e1a9-4f56-a9d2-2fdb56a7075f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\utils">
+    <Filter Include="exekutor_include\utils">
       <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\base">
+    <Filter Include="exekutor_src">
+      <UniqueIdentifier>{99cf0065-9330-4485-b7e0-b67aa6c775cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_src\external">
+      <UniqueIdentifier>{01ec6606-9462-4183-b896-331537dd7240}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_src\external\FileWatcher">
+      <UniqueIdentifier>{e42383c6-18d8-4c20-95ad-9d3f00c29b0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_src\user_interface">
+      <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exekutor_src\base">
       <UniqueIdentifier>{20a5d664-c092-4504-91ac-42ba3437b7fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\data">
+    <Filter Include="exekutor_src\data">
       <UniqueIdentifier>{e1a6a227-b044-42b8-ae5c-68f3bd93df72}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\input">
+    <Filter Include="exekutor_src\input">
       <UniqueIdentifier>{26864eed-0286-4cb0-b966-c212bb6a9b09}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\timers">
+    <Filter Include="exekutor_src\timers">
       <UniqueIdentifier>{1a6b27c5-b97b-4f6b-af5d-646a8543d57a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\utils">
+    <Filter Include="exekutor_src\utils">
       <UniqueIdentifier>{c52831a5-f770-4498-84d8-f1957757ebad}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

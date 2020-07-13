@@ -165,7 +165,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// ... update its vertex data:
-		//mainWnd->submit_for_backbuffer(
+		//mainWnd->handle_lifetime(
 			cgb::fill(
 			mVertexBuffers[inFlightIndex],
 			vertexDataCurrentFrame.data(),

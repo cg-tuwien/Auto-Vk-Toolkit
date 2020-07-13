@@ -14,14 +14,14 @@ namespace xk
 	{
 		std::vector<const char*> supportedValidationLayers;
 
-		bool enableValidationLayers = settings::gEnableValidationLayersAlsoInReleaseBuilds;
+		bool enableValidationLayers = mSettings.mValidationLayers.mEnableInRelease;
 #ifdef _DEBUG
 		enableValidationLayers = true; // always true
 #endif
 
 		if (enableValidationLayers) {
 			std::copy_if(
-				std::begin(settings::gValidationLayersToBeActivated), std::end(settings::gValidationLayersToBeActivated),
+				std::begin(mSettings.mValidationLayers.mLayers), std::end(mSettings.mValidationLayers.mLayers),
 				std::back_inserter(supportedValidationLayers),
 				[](auto name) {
 					auto supported = is_validation_layer_supported(name);
@@ -33,107 +33,6 @@ namespace xk
 		}
 
 		return supportedValidationLayers;
-	}
-
-	vulkan::vulkan()
-		: generic_glfw()
-		// Set a default for the requested physical device features:
-		, mRequestedPhysicalDeviceFeatures { 
-			vk::PhysicalDeviceFeatures()
-				.setGeometryShader(VK_TRUE)
-				.setTessellationShader(VK_TRUE)
-				.setSamplerAnisotropy(VK_TRUE)
-				.setVertexPipelineStoresAndAtomics(VK_TRUE)
-				.setFragmentStoresAndAtomics(VK_TRUE)
-				.setShaderStorageImageExtendedFormats(VK_TRUE)
-				.setSampleRateShading(VK_TRUE)
-		}
-		// Set a default for the requested Vulkan 1.2 device features:
-		, mRequestedVulkan12DeviceFeatures { 
-			vk::PhysicalDeviceVulkan12Features()
-				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
-				.setRuntimeDescriptorArray(VK_TRUE)
-				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setDescriptorIndexing(VK_TRUE)
-		}
-	{
-		// So it begins
-		create_instance();
-
-#ifdef _DEBUG
-		// Setup debug callback and enable all validation layers configured in global settings 
-		setup_vk_debug_callback();
-
-		if (std::find(std::begin(settings::gRequiredInstanceExtensions), std::end(settings::gRequiredInstanceExtensions), VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != settings::gRequiredInstanceExtensions.end()) {
-			setup_vk_debug_report_callback();
-		}
-#endif
-
-		// The window surface needs to be created right after the instance creation 
-		// and before physical device selection, because it can actually influence 
-		// the physical device selection.
-
-		mContextState = xk::context_state::initialization_begun;
-
-		// NOTE: Vulkan-init is not finished yet!
-		// Initialization will continue after the first window (and it's surface) have been created.
-		// Only after the first window's surface has been created, the vulkan context can complete
-		//   initialization and enter the context state of fully_initialized.
-		//
-		// Attention: May not use the `add_event_handler`-method here, because it would internally
-		//   make use of `cgb::context()` which would refer to this static instance, which has not 
-		//   yet finished initialization => would deadlock; Instead, modify data structure directly. 
-		//   This constructor is the only exception, in all other cases, it's safe to use `add_event_handler`
-		//   
-		mEventHandlers.emplace_back([]() -> bool {
-			LOG_DEBUG_VERBOSE("Running event handler to pick physical device");
-
-			// Just get any window:
-			auto* window = context().find_window([](xk::window* w) { 
-				return w->handle().has_value() && static_cast<bool>(w->surface());
-			});
-
-			// Do we have a window with a handle?
-			if (nullptr == window) { 
-				return false; // Nope => not done
-			}
-
-			// We need a SURFACE to create the logical device => do it after the first window has been created
-			auto& surface = window->surface();
-
-			// Select the best suitable physical device which supports all requested extensions
-			context().pick_physical_device(surface);
-
-			return true;
-		}, xk::context_state::initialization_begun);
-
-		mEventHandlers.emplace_back([]() -> bool {
-			LOG_DEBUG_VERBOSE("Running event handler to create logical device");
-
-			// Just get any window:
-			auto* window = context().find_window([](xk::window* w) { 
-				return w->handle().has_value() && static_cast<bool>(w->surface());
-			});
-
-			// Do we have a window with a handle?
-			if (nullptr == window) { 
-				return false; // Nope => not done
-			}
-
-			// We need a SURFACE to create the logical device => do it after the first window has been created
-			auto& surface = window->surface();
-
-			// Do we already have a physical device?
-			if (!context().physical_device()) {
-				return false; // Nope => wait a bit longer
-			}
-
-			// Alright => let's move on and finally finish Vulkan initialization
-			context().create_and_assign_logical_device(surface);
-
-			return true;
-		}, xk::context_state::physical_device_selected);
 	}
 
 	vulkan::~vulkan()
@@ -182,7 +81,155 @@ namespace xk
 
 	void vulkan::check_vk_result(VkResult err)
 	{
-		createResultValue(static_cast<vk::Result>(err), context().vulkan_instance(), "check_vk_result");
+		const auto& inst = context().vulkan_instance();
+		createResultValue(static_cast<vk::Result>(err), inst, "check_vk_result");
+	}
+
+	void vulkan::initialize(
+		settings aSettings,
+		vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
+		vk::PhysicalDeviceVulkan12Features aVulkan12Features
+	)
+	{
+		mSettings = std::move(aSettings);
+		mRequestedPhysicalDeviceFeatures = std::move(aPhysicalDeviceFeatures);
+		mRequestedVulkan12DeviceFeatures = std::move(aVulkan12Features);
+		
+		// So it begins
+		create_instance();
+		work_off_event_handlers();
+
+#ifdef _DEBUG
+		// Setup debug callback and enable all validation layers configured in global settings 
+		setup_vk_debug_callback();
+
+		if (std::find(std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions), VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
+			setup_vk_debug_report_callback();
+		}
+#endif
+
+		// The window surface needs to be created right after the instance creation 
+		// and before physical device selection, because it can actually influence 
+		// the physical device selection.
+
+		mContextState = xk::context_state::initialization_begun;
+		work_off_event_handlers();
+
+		// NOTE: Vulkan-init is not finished yet!
+		// Initialization will continue after the first window (and it's surface) have been created.
+		// Only after the first window's surface has been created, the vulkan context can complete
+		//   initialization and enter the context state of fully_initialized.
+
+		LOG_DEBUG_VERBOSE("Picking physical device...");
+
+		// Select the best suitable physical device which supports all requested extensions
+		context().pick_physical_device();
+
+		LOG_DEBUG_VERBOSE("Creating logical device...");
+
+		// Just get any window:
+		auto* window = context().find_window([](xk::window* w) { 
+			return w->handle().has_value() && static_cast<bool>(w->surface());
+		});
+
+		const vk::SurfaceKHR* surface = nullptr;
+		// Do we have a window with a handle?
+		if (nullptr != window) { 
+			surface = &window->surface();
+		}
+
+		context().mContextState = xk::context_state::surfaces_created;
+		work_off_event_handlers();
+
+		// Do we already have a physical device?
+		assert(context().physical_device());
+		assert(mPhysicalDevice);
+
+		// If the user has not created any queue, create at least one
+		if (mQueues.empty()) {
+			auto familyIndex = ak::queue::select_queue_family_index(mPhysicalDevice, {}, ak::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
+			mQueues.emplace_back(ak::queue::prepare(mPhysicalDevice, familyIndex, 0));
+		}
+		
+		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
+
+		// Get the same validation layers as for the instance!
+		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
+	
+		// Always prepare the shading rate image features descriptor, but only use it if the extension has been requested
+		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV()
+			.setShadingRateImage(VK_TRUE)
+			.setShadingRateCoarseSampleOrder(VK_TRUE);
+		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
+
+		auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
+		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
+		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
+			std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
+		}
+
+		// Enable certain device features:
+		// (Build a pNext chain for further supported extensions)
+
+		auto deviceFeatures = vk::PhysicalDeviceFeatures2()
+			.setFeatures(context().mRequestedPhysicalDeviceFeatures)
+			.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
+
+	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
+		deviceVulkan12Features.setPNext(&deviceFeatures);
+
+	    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
+		if (ray_tracing_extension_requested()) {
+			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+			deviceRayTracingFeatures
+				.setPNext(&deviceFeatures)
+				.setRayTracing(VK_TRUE);
+			deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
+		}
+		
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		auto deviceCreateInfo = vk::DeviceCreateInfo()
+			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
+			.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
+			.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
+			// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
+			// TODO: Are these the correct extensions to set here?
+			.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
+			.setPpEnabledExtensionNames(allRequiredDeviceExtensions.data())
+			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
+			.setPpEnabledLayerNames(supportedValidationLayers.data());
+		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
+		// Create a dynamic dispatch loader for extensions
+		context().mDynamicDispatch = vk::DispatchLoaderDynamic(
+			context().vulkan_instance(), 
+			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
+			context().device()
+		);
+
+		mContextState = context_state::device_created;
+		work_off_event_handlers();
+		
+		// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
+		std::set<uint32_t> uniqueFamilyIndices;
+		std::set<std::tuple<uint32_t, uint32_t>> uniqueQueues;
+		for (auto& q : mQueues) {
+			uniqueFamilyIndices.insert(q.family_index());
+			uniqueQueues.insert(std::make_tuple(q.family_index(), q.queue_index()));
+		}
+		// Put into contiguous memory
+		for (auto idx : uniqueFamilyIndices) {
+			context().mDistinctQueueFamilies.push_back(idx);
+		}
+		for (auto tpl : uniqueQueues) {
+			context().mDistinctQueues.push_back(tpl);
+		}
+
+		// TODO: Remove sync
+		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(xk::context().graphics_queue().family_index(), {});
+		ak::sync::sQueueToUse = &xk::context().graphics_queue();
+		
+		context().mContextState = xk::context_state::fully_initialized;
+		work_off_event_handlers();
 	}
 
 	ak::command_pool& vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
@@ -262,14 +309,60 @@ namespace xk
 		});
 	}
 
-	window* vulkan::create_window(const std::string& _Title)
+	ak::queue& vulkan::create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
+	{
+		assert(are_we_on_the_main_thread());
+		context().work_off_event_handlers();
+		auto& nuQu = mQueues.emplace_back();
+
+		context().add_event_handler(context_state::surfaces_created, [&nuQu, aRequiredFlags, aQueueSelectionPreference, aPresentSupportForWindow, aQueuePriority, this]() -> bool {
+			LOG_DEBUG_VERBOSE("Running queue creation handler.");
+
+			std::optional<vk::SurfaceKHR> surfaceSupport{};
+			if (nullptr != aPresentSupportForWindow) {
+				surfaceSupport = aPresentSupportForWindow->surface();
+			}
+			auto queueFamily = ak::queue::select_queue_family_index(context().physical_device(), aRequiredFlags, aQueueSelectionPreference, surfaceSupport);
+
+			// Do we already have queues with that queue family?
+			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const ak::queue& q) { return q.family_index() == queueFamily; });
+#if _DEBUG
+			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
+			std::vector<int> check(num, 0);
+			for (size_t i = 0; i < mQueues.size(); ++i) {
+				if (mQueues[i].family_index() == queueFamily) {
+					check[mQueues[i].queue_index()]++;
+				}
+			}
+			for (size_t i = 0; i < mQueues.size(); ++i) {
+				assert(check[i] == 1);
+			}
+#endif
+			
+			nuQu = ak::queue::prepare(context().physical_device(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
+
+			return true;
+		});
+		
+		context().add_event_handler(context_state::queues_created, [&nuQu, aPresentSupportForWindow, this]() -> bool {
+			LOG_DEBUG_VERBOSE("Assigning queue handles handler.");
+
+			nuQu.assign_handle(device());
+
+			return true;
+		});
+
+		return nuQu;
+	}
+	
+	window* vulkan::create_window(const std::string& aTitle)
 	{
 		assert(are_we_on_the_main_thread());
 		context().work_off_event_handlers();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		auto* wnd = generic_glfw::prepare_window();
-		wnd->set_title(_Title);
+		wnd->set_title(aTitle);
 
 		// Wait for the window to receive a valid handle before creating its surface
 		context().add_event_handler(context_state::initialization_begun | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
@@ -288,7 +381,7 @@ namespace xk
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
 				throw xk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
-			//window->mSurface = surface;
+
 			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
 			window->mSurface = vk::UniqueHandle<vk::SurfaceKHR, vk::DispatchLoaderStatic>(surface, deleter);
 			return true;
@@ -319,9 +412,9 @@ namespace xk
 	void vulkan::create_instance()
 	{
 		// Information about the application for the instance creation call
-		auto appInfo = vk::ApplicationInfo(settings::gApplicationName.c_str(), settings::gApplicationVersion,
-										   "cg_base", VK_MAKE_VERSION(0, 1, 0), // TODO: Real version of cg_base
-										   VK_API_VERSION_1_1);
+		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
+										   "Exekutor", VK_MAKE_VERSION(0, 1, 0), // TODO: Real version of cg_base
+										   VK_API_VERSION_1_2);
 
 		// GLFW requires several extensions to interface with the window system. Query them.
 		uint32_t glfwExtensionCount = 0;
@@ -330,7 +423,7 @@ namespace xk
 		requiredExtensions.assign(glfwExtensions, static_cast<const char**>(glfwExtensions + glfwExtensionCount));
 		requiredExtensions.insert(
 			std::end(requiredExtensions),
-			std::begin(settings::gRequiredInstanceExtensions), std::end(settings::gRequiredInstanceExtensions));
+			std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions));
 
 		// Check for each validation layer if it exists and activate all which do.
 		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
@@ -431,7 +524,7 @@ namespace xk
 		assert(mInstance);
 		// Configure logging
 #if LOG_LEVEL > 0
-		if (settings::gValidationLayersToBeActivated.size() == 0) {
+		if (mSettings.mValidationLayers.mLayers.size() == 0) {
 			return;
 		}
 
@@ -547,7 +640,7 @@ namespace xk
 	std::vector<const char*> vulkan::get_all_required_device_extensions()
 	{
 		std::vector<const char*> combined;
-		combined.assign(std::begin(settings::gRequiredDeviceExtensions), std::end(settings::gRequiredDeviceExtensions));
+		combined.assign(std::begin(mSettings.mRequiredDeviceExtensions.mExtensions), std::end(mSettings.mRequiredDeviceExtensions.mExtensions));
 		combined.insert(std::end(combined), std::begin(sRequiredDeviceExtensions), std::end(sRequiredDeviceExtensions));
 		return combined;
 	}
@@ -599,7 +692,7 @@ namespace xk
 		return allExtensionsSupported;
 	}
 
-	void vulkan::pick_physical_device(vk::SurfaceKHR pSurface)
+	void vulkan::pick_physical_device()
 	{
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
@@ -613,7 +706,7 @@ namespace xk
 		for (const auto& device : devices) {
 			// get features and queues
 			auto properties = device.getProperties();
-			auto supportedFeatures = device.getFeatures();
+			const auto supportedFeatures = device.getFeatures();
 			auto queueFamilyProps = device.getQueueFamilyProperties();
 			// check for required features
 			bool graphicsBitSet = false;
@@ -629,10 +722,10 @@ namespace xk
 				(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
 
-			auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
+			const auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
 			
-			if (!settings::gPhysicalDeviceSelectionHint.empty()) {
-				score += ak::find_case_insensitive(deviceName, settings::gPhysicalDeviceSelectionHint, 0) != std::string::npos ? 1000 : 0;
+			if (!mSettings.mPhysicalDeviceSelectionHint.mValue.empty()) {
+				score += ak::find_case_insensitive(deviceName, mSettings.mPhysicalDeviceSelectionHint.mValue, 0) != std::string::npos ? 1000 : 0;
 			}
 
 			// Check if extensions are required
@@ -667,7 +760,7 @@ namespace xk
 
 		// Handle failure:
 		if (nullptr == currentSelection) {
-			if (settings::gRequiredDeviceExtensions.size() > 0) {
+			if (mSettings.mRequiredDeviceExtensions.mExtensions.size() > 0) {
 				throw xk::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
 			}
 			throw xk::runtime_error("Could not find a suitable physical device.");
@@ -679,113 +772,9 @@ namespace xk
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
-	void vulkan::create_and_assign_logical_device(vk::SurfaceKHR pSurface)
+	void vulkan::create_swap_chain_for_window(window* aWindow)
 	{
-		assert(mPhysicalDevice);
-
-		// Determine which queue families we have, i.e. what the different queue families support and what they don't
-		auto familyIndex = ak::queue::select_queue_family_index(mPhysicalDevice, {}, ak::queue_selection_preference::versatile_queue, pSurface);
-		auto iAmTheOneAndOnly = ak::queue::prepare(mPhysicalDevice, familyIndex, 0);
-		auto queuesToBeCreated = std::vector<ak::queue>{ std::move(iAmTheOneAndOnly) };
-		
-		context().mContextState = xk::context_state::queues_prepared;
-		
-		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
-
-		// Get the same validation layers as for the instance!
-		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
-	
-		// Always prepare the shading rate image features descriptor, but only use it if the extension has been requested
-		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV()
-			.setShadingRateImage(VK_TRUE)
-			.setShadingRateCoarseSampleOrder(VK_TRUE);
-		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
-
-		auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(queuesToBeCreated), std::end(queuesToBeCreated));
-		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
-		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
-			std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
-		}
-
-		// Enable certain device features:
-		// (Build a pNext chain for further supported extensions)
-
-		auto deviceFeatures = vk::PhysicalDeviceFeatures2()
-			.setFeatures(context().mRequestedPhysicalDeviceFeatures)
-			.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
-
-	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
-		deviceVulkan12Features.setPNext(&deviceFeatures);
-
-		if (xk::settings::gEnableBufferDeviceAddress) {
-			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-		}
-
-	    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
-		if (ray_tracing_extension_requested()) {
-			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-			deviceRayTracingFeatures
-				.setPNext(&deviceFeatures)
-				.setRayTracing(VK_TRUE);
-			deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
-		}
-		
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		auto deviceCreateInfo = vk::DeviceCreateInfo()
-			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
-			.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
-			.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
-			// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
-			// TODO: Are these the correct extensions to set here?
-			.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
-			.setPpEnabledExtensionNames(allRequiredDeviceExtensions.data())
-			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
-			.setPpEnabledLayerNames(supportedValidationLayers.data());
-		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
-		// Create a dynamic dispatch loader for extensions
-		context().mDynamicDispatch = vk::DispatchLoaderDynamic(
-			context().vulkan_instance(), 
-			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
-			context().device()
-		);
-
-		// For every queue, assign the proper handle
-		for (auto& q : queuesToBeCreated) {
-			q.assign_handle(context().mLogicalDevice);
-		}
-		
-		context().mPresentQueue		= queuesToBeCreated[0];
-		context().mGraphicsQueue	= queuesToBeCreated[0];
-		context().mComputeQueue		= queuesToBeCreated[0];
-		context().mTransferQueue	= queuesToBeCreated[0];
-
-		// Determine distinct queue family indices and distinct (family-id, queue-id)-tuples:
-		std::set<uint32_t> uniqueFamilyIndices;
-		std::set<std::tuple<uint32_t, uint32_t>> uniqueQueues;
-		for (auto& q : queuesToBeCreated) {
-			uniqueFamilyIndices.insert(q.family_index());
-			uniqueQueues.insert(std::make_tuple(q.family_index(), q.queue_index()));
-		}
-		// Put into contiguous memory
-		for (auto idx : uniqueFamilyIndices) {
-			context().mDistinctQueueFamilies.push_back(idx);
-		}
-		for (auto tpl : uniqueQueues) {
-			context().mDistinctQueues.push_back(tpl);
-		}
-
-		
-		// TODO: Remove sync
-		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(xk::context().graphics_queue().family_index(), {});
-		ak::sync::sQueueToUse = &xk::context().graphics_queue();
-		
-		context().mContextState = xk::context_state::fully_initialized;
-
-	}
-
-	void vulkan::create_swap_chain_for_window(window* pWindow)
-	{
-		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(pWindow->surface());
+		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(aWindow->surface());
 
 		// Vulkan tells us to match the resolution of the window by setting the width and height in the 
 		// currentExtent member. However, some window managers do allow us to differ here and this is 
@@ -793,16 +782,16 @@ namespace xk
 		// value of uint32_t. In that case we'll pick the resolution that best matches the window within 
 		// the minImageExtent and maxImageExtent bounds. [2]
 		auto extent = srfCaps.currentExtent.width == std::numeric_limits<uint32_t>::max()
-			? glm::clamp(pWindow->resolution(),
+			? glm::clamp(aWindow->resolution(),
 						 glm::uvec2(srfCaps.minImageExtent.width, srfCaps.minImageExtent.height),
 						 glm::uvec2(srfCaps.maxImageExtent.width, srfCaps.maxImageExtent.height))
 			: glm::uvec2(srfCaps.currentExtent.width, srfCaps.currentExtent.height);
 
-		auto surfaceFormat = pWindow->get_config_surface_format(pWindow->surface());
+		auto surfaceFormat = aWindow->get_config_surface_format(aWindow->surface());
 
 		const ak::image_usage swapChainImageUsage = ak::image_usage::color_attachment			 | ak::image_usage::transfer_destination		| ak::image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
-		pWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
+		aWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
 			.setFormat(surfaceFormat.format)
 			.setExtent(vk::Extent3D(extent.x, extent.y))
@@ -816,70 +805,70 @@ namespace xk
 		if (mPresentQueue == mGraphicsQueue) {
 			// Found a queue family which supports both!
 			// If the graphics queue family and presentation queue family are the same, which will be the case on most hardware, then we should stick to exclusive mode. [2]
-			pWindow->mImageCreateInfoSwapChain
+			aWindow->mImageCreateInfoSwapChain
 				.setSharingMode(vk::SharingMode::eExclusive)
 				.setQueueFamilyIndexCount(0) // Optional [2]
 				.setPQueueFamilyIndices(nullptr); // Optional [2]
 		}
 		else {
-			pWindow->mQueueFamilyIndices.push_back(mPresentQueue.family_index());
-			pWindow->mQueueFamilyIndices.push_back(mGraphicsQueue.family_index());
+			aWindow->mQueueFamilyIndices.push_back(mPresentQueue.family_index());
+			aWindow->mQueueFamilyIndices.push_back(mGraphicsQueue.family_index());
 			// Have to use separate queue families!
 			// If the queue families differ, then we'll be using the concurrent mode [2]
-			pWindow->mImageCreateInfoSwapChain
+			aWindow->mImageCreateInfoSwapChain
 				.setSharingMode(vk::SharingMode::eConcurrent)
-				.setQueueFamilyIndexCount(static_cast<uint32_t>(pWindow->mQueueFamilyIndices.size()))
-				.setPQueueFamilyIndices(pWindow->mQueueFamilyIndices.data());
+				.setQueueFamilyIndexCount(static_cast<uint32_t>(aWindow->mQueueFamilyIndices.size()))
+				.setPQueueFamilyIndices(aWindow->mQueueFamilyIndices.data());
 		}
 
 		// With all settings gathered, create the swap chain!
 		auto createInfo = vk::SwapchainCreateInfoKHR()
-			.setSurface(pWindow->surface())
-			.setMinImageCount(pWindow->get_config_number_of_presentable_images())
-			.setImageFormat(pWindow->mImageCreateInfoSwapChain.format)
+			.setSurface(aWindow->surface())
+			.setMinImageCount(aWindow->get_config_number_of_presentable_images())
+			.setImageFormat(aWindow->mImageCreateInfoSwapChain.format)
 			.setImageColorSpace(surfaceFormat.colorSpace)
-			.setImageExtent(vk::Extent2D{ pWindow->mImageCreateInfoSwapChain.extent.width, pWindow->mImageCreateInfoSwapChain.extent.height })
-			.setImageArrayLayers(pWindow->mImageCreateInfoSwapChain.arrayLayers) // The imageArrayLayers specifies the amount of layers each image consists of. This is always 1 unless you are developing a stereoscopic 3D application. [2]
-			.setImageUsage(pWindow->mImageCreateInfoSwapChain.usage)
+			.setImageExtent(vk::Extent2D{ aWindow->mImageCreateInfoSwapChain.extent.width, aWindow->mImageCreateInfoSwapChain.extent.height })
+			.setImageArrayLayers(aWindow->mImageCreateInfoSwapChain.arrayLayers) // The imageArrayLayers specifies the amount of layers each image consists of. This is always 1 unless you are developing a stereoscopic 3D application. [2]
+			.setImageUsage(aWindow->mImageCreateInfoSwapChain.usage)
 			.setPreTransform(srfCaps.currentTransform) // To specify that you do not want any transformation, simply specify the current transformation. [2]
 			.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque) // => no blending with other windows
-			.setPresentMode(pWindow->get_config_presentation_mode(pWindow->surface()))
+			.setPresentMode(aWindow->get_config_presentation_mode(aWindow->surface()))
 			.setClipped(VK_TRUE) // we don't care about the color of pixels that are obscured, for example because another window is in front of them.  [2]
 			.setOldSwapchain({}) // TODO: This won't be enought, I'm afraid/pretty sure. => advanced chapter
-			.setImageSharingMode(pWindow->mImageCreateInfoSwapChain.sharingMode)
-			.setQueueFamilyIndexCount(pWindow->mImageCreateInfoSwapChain.queueFamilyIndexCount)
-			.setPQueueFamilyIndices(pWindow->mImageCreateInfoSwapChain.pQueueFamilyIndices);
+			.setImageSharingMode(aWindow->mImageCreateInfoSwapChain.sharingMode)
+			.setQueueFamilyIndexCount(aWindow->mImageCreateInfoSwapChain.queueFamilyIndexCount)
+			.setPQueueFamilyIndices(aWindow->mImageCreateInfoSwapChain.pQueueFamilyIndices);
 
 		// Finally, create the swap chain prepare a struct which stores all relevant data (for further use)
-		pWindow->mSwapChain = device().createSwapchainKHRUnique(createInfo);
-		//pWindow->mSwapChain = logical_device().createSwapchainKHR(createInfo);
-		pWindow->mSwapChainImageFormat = surfaceFormat.format;
-		pWindow->mSwapChainExtent = vk::Extent2D(extent.x, extent.y);
-		pWindow->mCurrentFrame = 0; // Start af frame 0
+		aWindow->mSwapChain = device().createSwapchainKHRUnique(createInfo);
+		//aWindow->mSwapChain = logical_device().createSwapchainKHR(createInfo);
+		aWindow->mSwapChainImageFormat = surfaceFormat.format;
+		aWindow->mSwapChainExtent = vk::Extent2D(extent.x, extent.y);
+		aWindow->mCurrentFrame = 0; // Start af frame 0
 
-		auto swapChainImages = device().getSwapchainImagesKHR(pWindow->swap_chain());
-		assert(swapChainImages.size() == pWindow->get_config_number_of_presentable_images());
+		auto swapChainImages = device().getSwapchainImagesKHR(aWindow->swap_chain());
+		assert(swapChainImages.size() == aWindow->get_config_number_of_presentable_images());
 
 		// and create one image view per image
-		pWindow->mSwapChainImageViews.reserve(swapChainImages.size());
+		aWindow->mSwapChainImageViews.reserve(swapChainImages.size());
 		for (auto& imageHandle : swapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			auto& ref = pWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, pWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
+			auto& ref = aWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, aWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
 			ref.enable_shared_ownership(); // Back buffers must be in shared ownership, because they are also stored in the renderpass (see below), and imgui_manager will also require it that way if it is enabled.
 		}
 
 		// Create a renderpass for the back buffers
 		std::vector<ak::attachment> renderpassAttachments = {
-			ak::attachment::declare_for(pWindow->mSwapChainImageViews[0], ak::on_load::clear, ak::color(0), ak::on_store::dont_care)
+			ak::attachment::declare_for(aWindow->mSwapChainImageViews[0], ak::on_load::clear, ak::color(0), ak::on_store::dont_care)
 		};
-		auto additionalAttachments = pWindow->get_additional_back_buffer_attachments();
+		auto additionalAttachments = aWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
-		pWindow->mBackBufferRenderpass = create_renderpass(renderpassAttachments);
-		pWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
+		aWindow->mBackBufferRenderpass = create_renderpass(renderpassAttachments);
+		aWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
 
 		// Create a back buffer per image
-		pWindow->mBackBuffers.reserve(pWindow->mSwapChainImageViews.size());
-		for (auto& imView: pWindow->mSwapChainImageViews) {
+		aWindow->mBackBuffers.reserve(aWindow->mSwapChainImageViews.size());
+		for (auto& imView: aWindow->mSwapChainImageViews) {
 			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
@@ -896,39 +885,39 @@ namespace xk
 				}
 			}
 
-			pWindow->mBackBuffers.push_back(create_framebuffer(pWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			aWindow->mBackBuffers.push_back(create_framebuffer(aWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
-		assert(pWindow->mBackBuffers.size() == pWindow->get_config_number_of_presentable_images());
+		assert(aWindow->mBackBuffers.size() == aWindow->get_config_number_of_presentable_images());
 
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
-		for (auto& bb : pWindow->mBackBuffers) {
+		for (auto& bb : aWindow->mBackBuffers) {
 			const auto n = bb->image_views().size();
-			assert(n == pWindow->get_renderpass().attachment_descriptions().size());
+			assert(n == aWindow->get_renderpass().attachment_descriptions().size());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(pWindow->get_renderpass().attachment_descriptions()[i].finalLayout, ak::sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass().attachment_descriptions()[i].finalLayout, ak::sync::wait_idle(true));
 			}
 		}
 
 		// ============= SYNCHRONIZATION OBJECTS ===========
 		{
-			const auto n = pWindow->get_config_number_of_presentable_images();
-			pWindow->mImageAvailableSemaphores.reserve(n);
+			const auto n = aWindow->get_config_number_of_presentable_images();
+			aWindow->mImageAvailableSemaphores.reserve(n);
 			for (uint32_t i = 0; i < n; ++i) {
-				pWindow->mImageAvailableSemaphores.push_back(create_semaphore());
+				aWindow->mImageAvailableSemaphores.push_back(create_semaphore());
 			}
 		}
-		assert(pWindow->mImageAvailableSemaphores.size() == pWindow->get_config_number_of_presentable_images());
+		assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_presentable_images());
 		
 		{
-			auto n = pWindow->get_config_number_of_concurrent_frames();
-			pWindow->mFences.reserve(n);
-			pWindow->mRenderFinishedSemaphores.reserve(n);
+			auto n = aWindow->get_config_number_of_concurrent_frames();
+			aWindow->mFences.reserve(n);
+			aWindow->mRenderFinishedSemaphores.reserve(n);
 			for (uint32_t i = 0; i < n; ++i) {
-				pWindow->mFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-				pWindow->mRenderFinishedSemaphores.push_back(create_semaphore());
+				aWindow->mFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+				aWindow->mRenderFinishedSemaphores.push_back(create_semaphore());
 			}
 		}
-		assert(pWindow->mFences.size() == pWindow->get_config_number_of_concurrent_frames());
-		assert(pWindow->mRenderFinishedSemaphores.size() == pWindow->get_config_number_of_concurrent_frames());
+		assert(aWindow->mFences.size() == aWindow->get_config_number_of_concurrent_frames());
+		assert(aWindow->mRenderFinishedSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
 	}
 }

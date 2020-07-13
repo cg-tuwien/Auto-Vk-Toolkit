@@ -122,8 +122,8 @@
 
 #include "vk_convenience_functions.hpp"
 
+#include "settings.hpp"
 #include "context_vulkan.hpp"
-#include "context.hpp"
 
 namespace xk
 {

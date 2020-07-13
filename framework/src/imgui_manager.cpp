@@ -280,7 +280,7 @@ namespace xk
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
-		mainWnd->submit_for_backbuffer(std::move(cmdBfr));  // TODO: Support other queues!
+		mainWnd->handle_lifetime(std::move(cmdBfr));  // TODO: Support other queues!
 	}
 
 	void imgui_manager::finalize()

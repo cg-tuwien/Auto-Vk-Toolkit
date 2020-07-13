@@ -156,6 +156,7 @@
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
+    <ClInclude Include="..\..\framework\include\settings.hpp" />
     <ClInclude Include="..\..\framework\include\setup.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_executor.hpp" />
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />

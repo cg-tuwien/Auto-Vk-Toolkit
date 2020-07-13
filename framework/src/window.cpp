@@ -269,7 +269,7 @@ namespace xk
 		mSingleUseCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
 	}
 
-	void window::submit_for_backbuffer(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::handle_lifetime(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
@@ -280,29 +280,16 @@ namespace xk
 		
 		const auto frameId = aFrameId.value();
 		auto& refTpl = mSingleUseCommandBuffers.emplace_back(frameId, std::move(aCommandBuffer));
-		mCommandBufferRefs.emplace_back(frameId, std::cref(*std::get<ak::command_buffer>(refTpl)));
 		// ^ Prefer code duplication over recursive_mutex
 	}
 
-	void window::submit_for_backbuffer(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId)
+	void window::handle_lifetime(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId)
 	{
 		if (!aCommandBuffer.has_value()) {
 			LOG_WARNING("std::optional<command_buffer> submitted and it has no value.");
 			return;
 		}
-		submit_for_backbuffer(std::move(aCommandBuffer.value()), aFrameId);
-	}
-
-	void window::submit_for_backbuffer_ref(const ak::command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId)
-	{
-		std::scoped_lock<std::mutex> guard(sSubmitMutex);
-		if (!aFrameId.has_value()) {
-			aFrameId = current_frame();
-		}
-
-		aCommandBuffer.invoke_post_execution_handler(); // Yes, do it now!
-		
-		mCommandBufferRefs.emplace_back(aFrameId.value(), std::cref(aCommandBuffer));
+		handle_lifetime(std::move(aCommandBuffer.value()), aFrameId);
 	}
 
 	std::vector<ak::semaphore> window::remove_all_extra_semaphore_dependencies_for_frame(int64_t aPresentFrameId)
@@ -334,14 +321,6 @@ namespace xk
 		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
 		auto maxTTL = std::min(aPresentFrameId - number_of_in_flight_frames(), aPresentFrameId - number_of_swapchain_images());
 		
-		// 1. COMMAND BUFFER REFERENCES
-		const auto refs_to_remove = std::remove_if(
-			std::begin(mCommandBufferRefs), std::end(mCommandBufferRefs),
-			[maxTTL](const auto& tpl){
-				return std::get<int64_t>(tpl) <= maxTTL;
-			});
-		mCommandBufferRefs.erase(refs_to_remove, std::end(mCommandBufferRefs));
-		
 		// 2. SINGLE USE COMMAND BUFFERS
 		// Can not use the erase-remove idiom here because that would invalidate iterators and references
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
@@ -362,22 +341,12 @@ namespace xk
 		return removedBuffers;
 	}
 
-	std::vector<std::reference_wrapper<const ak::command_buffer_t>> window::get_command_buffer_refs_for_frame(int64_t aFrameId) const
-	{
-		std::vector<std::reference_wrapper<const ak::command_buffer_t>> result;
-		for (const auto& [cbFrameId, ref] : mCommandBufferRefs) {
-			if (cbFrameId == aFrameId) {
-				result.push_back(ref);
-			}
-		}
-		return result;
-	}
-
-	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const
+	void window::fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, int64_t aFrameId) const
 	{
 		for (const auto& [frameId, sem] : mExtraSemaphoreDependencies) {
 			if (frameId == aFrameId) {
 				aSemaphores.push_back(sem->handle());
+				aWaitStages.push_back(sem->semaphore_wait_stage());
 			}
 		}
 	}
@@ -399,12 +368,10 @@ namespace xk
 
 	void window::sync_before_render()
 	{
-		vk::Result result;
-		
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto& fence = fence_for_frame();
 		context().device().waitForFences(1u, fence.handle_ptr(), VK_TRUE, std::numeric_limits<uint64_t>::max());
-		result = xk::context().device().resetFences(1u, fence.handle_ptr());
+		const auto result = xk::context().device().resetFences(1u, fence.handle_ptr());
 		assert (vk::Result::eSuccess == result);
 
 		// At this point we are certain that frame which used the current fence before is done.
@@ -429,16 +396,9 @@ namespace xk
 		//
 		//
 
-	}
-	
-	void window::render_frame()
-	{
 		try
 		{
-			const auto& fence = fence_for_frame();
-
 			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
-			uint32_t imageIndex;
 			const auto& imgAvailableSem = image_available_semaphore_for_frame();
 			context().device().acquireNextImageKHR(
 				swap_chain(), // the swap chain from which we wish to acquire an image 
@@ -450,40 +410,42 @@ namespace xk
 				std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
 				imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
 				nullptr,
-				&imageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
+				&mCurrentFramesImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
+		}
+		catch (vk::OutOfDateKHRError omg) {
+			LOG_INFO(fmt::format("Swap chain out of date at presentKHR-call[{}]. Waiting for better times...", omg.what()));
+		}
+	}
+	
+	void window::render_frame()
+	{
+		try
+		{
+			const auto& fence = fence_for_frame();
 
-			auto cbRefs = get_command_buffer_refs_for_frame(current_frame());
-			std::vector<vk::CommandBuffer> cmdBuffers;
-			cmdBuffers.reserve(cbRefs.size());
-			for (auto cb : cbRefs) {
-				cmdBuffers.push_back(cb.get().handle());
-			}
+			const auto& imgAvailableSem = image_available_semaphore_for_frame();
 
-			// ...and submit them. But also assemble several GPU -> GPU sync objects for both, inbound and outbound sync:
-			// Wait for some extra semaphores, if there are any; i.e. GPU -> GPU sync from acquire to the following submit
+			// Wait for at least the imgAvailableSemaphore, potentially also more.
 			std::vector<vk::Semaphore> waitBeforeExecuteSemaphores = { imgAvailableSem.handle() };
-			fill_in_extra_semaphore_dependencies_for_frame(waitBeforeExecuteSemaphores, current_frame());
-			// For every semaphore, also add a entry for the corresponding stage:
-			std::vector<vk::PipelineStageFlags> waitBeforeExecuteStages;
-			std::transform( std::begin(waitBeforeExecuteSemaphores), std::end(waitBeforeExecuteSemaphores),
-							std::back_inserter(waitBeforeExecuteStages),
-							[](const auto & s) { return vk::PipelineStageFlagBits::eColorAttachmentOutput; });
+			std::vector<vk::PipelineStageFlags> waitBeforeExecuteStages = { imgAvailableSem.semaphore_wait_stage() }; // TODO: Which stage??? 
+			fill_in_extra_semaphore_dependencies_for_frame(waitBeforeExecuteSemaphores, waitBeforeExecuteStages, current_frame());
+
 			// Signal at least one semaphore when done, potentially also more.
 			const auto& renderFinishedSem = render_finished_semaphore_for_frame();
 			std::vector<vk::Semaphore> toSignalAfterExecute = { renderFinishedSem->handle() };
 			fill_in_extra_render_finished_semaphores_for_frame(toSignalAfterExecute, current_frame());
+			
 			auto submitInfo = vk::SubmitInfo()
 				.setWaitSemaphoreCount(static_cast<uint32_t>(waitBeforeExecuteSemaphores.size()))
 				.setPWaitSemaphores(waitBeforeExecuteSemaphores.data())
 				.setPWaitDstStageMask(waitBeforeExecuteStages.data())
-				.setCommandBufferCount(static_cast<uint32_t>(cmdBuffers.size()))
-				.setPCommandBuffers(cmdBuffers.data())
+				.setCommandBufferCount(0u) // Submit ZERO command buffers :O
 				.setSignalSemaphoreCount(static_cast<uint32_t>(toSignalAfterExecute.size()))
 				.setPSignalSemaphores(toSignalAfterExecute.data());
 			// Finally, submit to the graphics queue.
 			// Also provide a fence for GPU -> CPU sync which will be waited on next time we need this frame (top of this method).
 			xk::context().graphics_queue().handle().submit(1u, &submitInfo, fence.handle());
-			// Attention: Do not invoke post execution handlers here, they have already been invoked in submit_for_backbuffer/submit_for_backbuffer_ref
+			// Attention: Do not invoke post execution handlers here, they have already been invoked in handle_lifetime/submit_for_backbuffer_ref
 
 			// Present as soon as the render finished semaphore has been signalled:
 			auto presentInfo = vk::PresentInfoKHR()
@@ -491,7 +453,7 @@ namespace xk
 				.setPWaitSemaphores(&renderFinishedSem->handle())
 				.setSwapchainCount(1u)
 				.setPSwapchains(&swap_chain())
-				.setPImageIndices(&imageIndex)
+				.setPImageIndices(&mCurrentFramesImageIndex)
 				.setPResults(nullptr);
 			xk::context().presentation_queue().handle().presentKHR(presentInfo);
 			
@@ -530,5 +492,22 @@ namespace xk
 			false // Don't restore layout of destination => this is handled by the after-handler in any case
 		);
 	}
+
+	void window::add_queue_family_ownership(uint32_t aQueueFamilyIndex)
+	{
+		if (std::end(mQueueFamilyIndices) != std::find(std::begin(mQueueFamilyIndices), std::end(mQueueFamilyIndices), aQueueFamilyIndex)) {
+			mQueueFamilyIndices.push_back(aQueueFamilyIndex);
+		}
+	}
+		
+	void window::add_queue_family_ownership(ak::queue& aQueue)
+	{
+		add_queue_family_ownership(aQueue.family_index());
+	}
+
+	void window::set_present_queue(ak::queue& aPresentQueue)
+	{
+		mPresentQueue = &aPresentQueue;
+	}		
 	
 }

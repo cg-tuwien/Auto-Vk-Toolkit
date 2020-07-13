@@ -13,7 +13,7 @@ namespace xk
 	class vulkan : public generic_glfw, public ak::root
 	{
 	public:
-		vulkan();
+		vulkan() = default;
 		vulkan(const vulkan&) = delete;
 		vulkan(vulkan&&) = delete;
 		vulkan& operator=(const vulkan&) = delete;
@@ -22,19 +22,30 @@ namespace xk
 
 		// Checks a VkResult return type and handles it according to the current Vulkan-Hpp config
 		static void check_vk_result(VkResult err);
+
+		void initialize(
+			settings aSettings,
+			vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures = vk::PhysicalDeviceFeatures()
+				.setGeometryShader(VK_TRUE)
+				.setTessellationShader(VK_TRUE)
+				.setSamplerAnisotropy(VK_TRUE)
+				.setVertexPipelineStoresAndAtomics(VK_TRUE)
+				.setFragmentStoresAndAtomics(VK_TRUE)
+				.setShaderStorageImageExtendedFormats(VK_TRUE)
+				.setSampleRateShading(VK_TRUE),
+			vk::PhysicalDeviceVulkan12Features aVulkan12Features = vk::PhysicalDeviceVulkan12Features()
+				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
+				.setRuntimeDescriptorArray(VK_TRUE)
+				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
+				.setDescriptorIndexing(VK_TRUE)
+				.setBufferDeviceAddress(VK_TRUE)
+		);
 		
 		vk::Instance vulkan_instance() const { return mInstance; }
 		vk::PhysicalDevice physical_device() override { return mPhysicalDevice; }
 		vk::Device device() override { return mLogicalDevice; }
 		vk::DispatchLoaderDynamic dynamic_dispatch() override { return mDynamicDispatch; }
-
-		uint32_t graphics_queue_index() const { return mGraphicsQueue.queue_index(); }
-		uint32_t presentation_queue_index() const { return mPresentQueue.queue_index(); }
-		uint32_t transfer_queue_index() const { return mTransferQueue.queue_index(); }
-
-		ak::queue& graphics_queue() { return mGraphicsQueue; }
-		ak::queue& presentation_queue() { return mPresentQueue; }
-		ak::queue& transfer_queue() { return mTransferQueue; }
 		
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 
@@ -73,13 +84,15 @@ namespace xk
 		 *							of the given queue.
 		 */
 		ak::command_pool& get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue);
+
+		ak::queue& create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow = nullptr, float aQueuePriority = 0.5f);
 		
 		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!
 		 *
 		 *  @thread_safety This function must only be called from the main thread.
 		 */
-		window* create_window(const std::string& _Title);
+		window* create_window(const std::string& aTitle);
 
 		/** Used to signal the context about the beginning of a composition */
 		void begin_composition();
@@ -111,7 +124,7 @@ namespace xk
 		 *	an array which are supported by the instance. A warning will be issued for those
 		 *	entries which are not supported.
 		 */
-		static std::vector<const char*> assemble_validation_layers();
+		std::vector<const char*> assemble_validation_layers();
 
 		/** Create a new vulkan instance with all the application information and
 		 *	also set the required instance extensions which GLFW demands.
@@ -133,37 +146,28 @@ namespace xk
 		/** Returns a vector containing all elements from @ref sRequiredDeviceExtensions
 		 *  and settings::gRequiredDeviceExtensions
 		 */
-		static std::vector<const char*> get_all_required_device_extensions();
+		std::vector<const char*> get_all_required_device_extensions();
 
 		/** Checks if the given physical device supports the shading rate image feature
 		 */
-		static bool supports_shading_rate_image(const vk::PhysicalDevice& device);
+		bool supports_shading_rate_image(const vk::PhysicalDevice& device);
 
-		static bool shading_rate_image_extension_requested();
-		static bool ray_tracing_extension_requested();
+		bool shading_rate_image_extension_requested();
+		bool ray_tracing_extension_requested();
 		
 		/** Checks whether the given physical device supports all the required extensions,
 		 *	namely those stored in @ref settings::gRequiredDeviceExtensions. 
 		 *	Returns true if it does, false otherwise.
 		 */
-		static bool supports_all_required_extensions(const vk::PhysicalDevice& device);
+		bool supports_all_required_extensions(const vk::PhysicalDevice& device);
 
 		/** Pick the physical device which looks to be the most promising one */
-		void pick_physical_device(vk::SurfaceKHR pSurface);
-
-		//std::vector<vk::DeviceQueueCreateInfo> compile_create_infos_and_assign_members(
-		//	std::vector<std::tuple<uint32_t, vk::QueueFamilyProperties>> pProps, 
-		//	std::vector<std::reference_wrapper<uint32_t>> pAssign);
-
-		/**
-		 *
-		 */
-		void create_and_assign_logical_device(vk::SurfaceKHR pSurface);
+		void pick_physical_device();
 
 		/** Creates the swap chain for the given window and surface with the given parameters
-		 *	@param pWindow		[in] The window to create the swap chain for
+		 *	@param aWindow		[in] The window to create the swap chain for
 		 */
-		void create_swap_chain_for_window(window* pWindow);
+		void create_swap_chain_for_window(window* aWindow);
 
 		//pipeline create_ray_tracing_pipeline(
 		//	const std::vector<std::tuple<shader_type, shader*>>& pShaderInfos,
@@ -184,6 +188,8 @@ namespace xk
 		// It is only used in some functions, which are expected to be called during runtime (i.e.
 		// during `cg_element::update` or cg_element::render` calls), not during initialization.
 		static std::mutex sConcurrentAccessMutex;
+
+		settings mSettings;
 		
 		vk::Instance mInstance;
 		VkDebugUtilsMessengerEXT mDebugUtilsCallbackHandle;
@@ -193,10 +199,6 @@ namespace xk
 		vk::Device mLogicalDevice;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
 
-		ak::queue mPresentQueue;
-		ak::queue mGraphicsQueue;
-		ak::queue mComputeQueue;
-		ak::queue mTransferQueue;
 		// Vector of queue family indices
 		std::vector<uint32_t> mDistinctQueueFamilies;
 		// Vector of pairs of queue family indices and queue indices
@@ -208,6 +210,8 @@ namespace xk
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
+
+		std::deque<ak::queue> mQueues;
 	};
 
 }

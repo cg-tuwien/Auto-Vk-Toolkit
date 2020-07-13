@@ -18,7 +18,6 @@ namespace xk
 		window& operator =(const window&) = delete;
 		~window()
 		{
-			mCommandBufferRefs.clear();
 			mSingleUseCommandBuffers.clear();
 		}
 
@@ -234,7 +233,7 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void submit_for_backbuffer(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void handle_lifetime(ak::command_buffer aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
 		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
@@ -243,17 +242,7 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void submit_for_backbuffer(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId = {});
-
-		/**	Pass a reference to a command buffer and submit it after the given frame's back buffer has become available.
-		 *	The submitted command buffer's commands have an execution dependency on the back buffer's
-		 *	image to become available (same characteristics as `submit_for_backbuffer` in that matter).
-		 *	Attention: The application must ensure that the command buffer lives long enough!
-		 *			   I.e., it is the application's responsibility to properly handle the command buffer's lifetime.
-		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
-		 *	@param	aFrameId		The frame this command buffer is associated to.
-		 */
-		void submit_for_backbuffer_ref(const ak::command_buffer_t& aCommandBuffer, std::optional<int64_t> aFrameId = {});
+		void handle_lifetime(std::optional<ak::command_buffer> aCommandBuffer, std::optional<int64_t> aFrameId = {});
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
@@ -265,9 +254,7 @@ namespace xk
 		 */
 		std::vector<ak::command_buffer> clean_up_command_buffers_for_frame(int64_t aPresentFrameId);
 
-		std::vector<std::reference_wrapper<const ak::command_buffer_t>> get_command_buffer_refs_for_frame(int64_t aFrameId) const;
-		
-		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
+		void fill_in_extra_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, int64_t aFrameId) const;
 
 		void fill_in_extra_render_finished_semaphores_for_frame(std::vector<vk::Semaphore>& aSemaphores, int64_t aFrameId) const;
 
@@ -349,6 +336,15 @@ namespace xk
 				handle_single_use_command_buffer_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);
 			};
 		}
+
+		/** Add a queue family for shared ownership of the swap chain images. */
+		void add_queue_family_ownership(uint32_t aQueueFamilyIndex);
+		
+		/** Add a queue which family will be added to shared ownership of the swap chain images. */
+		void add_queue_family_ownership(ak::queue& aQueue);
+
+		/** Set the queue that shall handle presenting. You MUST set it if you want to show any rendered images in this window! */
+		void set_present_queue(ak::queue& aPresentQueue);
 		
 	protected:
 		
@@ -437,15 +433,12 @@ namespace xk
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
-		// This container handles single use-command buffers' lifetimes.
-		// It is used for both, such that are committed `cgb::sync::with_barriers_on_current_frame` and
-		// for those submitted via `window::submit_for_backbuffer`.
+		// This container handles (single use) command buffers' lifetimes.
 		// A command buffer's lifetime lasts until the specified int64_t frame-id + max(number_of_swapchain_images(), number_of_in_flight_frames())
 		std::deque<std::tuple<int64_t, ak::command_buffer>> mSingleUseCommandBuffers;
 
-		// Comand buffers which are submitted via `window::submit_for_backbuffer` or `window::submit_for_backbuffer_ref`
-		// are stored within this container. In the former case, they are moved into `mSingleUseCommandBuffers` first,
-		// and a reference into `mSingleUseCommandBuffers` ist pushed to the back of `mCommandBufferRefs` afterwards.
-		std::vector<std::tuple<int64_t, std::reference_wrapper<const ak::command_buffer_t>>> mCommandBufferRefs;
+		ak::queue* mPresentQueue = nullptr;
+
+		uint32_t mCurrentFramesImageIndex;
 	};
 }
