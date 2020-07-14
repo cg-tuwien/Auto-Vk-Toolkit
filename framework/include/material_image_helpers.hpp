@@ -3,9 +3,8 @@
 
 namespace xk
 {	
-	static ak::image create_1px_texture(std::array<uint8_t, 4> aColor, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, ak::sync aSyncHandler = ak::sync::wait_idle())
+	static ak::image create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, ak::memory_usage aMemoryUsage = ak::memory_usage::device, ak::image_usage aImageUsage = ak::image_usage::general_texture, ak::sync aSyncHandler = ak::sync::wait_idle())
 	{
-		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(ak::pipeline_stage::transfer, ak::read_memory_access{ak::memory_access::transfer_read_access});
 
@@ -16,9 +15,7 @@ namespace xk
 		);
 		stagingBuffer->fill(aColor.data(), 0, ak::sync::not_required());
 
-		vk::Format selectedFormat = settings::gLoadImagesInSrgbFormatByDefault ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
-
-		auto img = context().create_image(1u, 1u, selectedFormat, 1, aMemoryUsage, aImageUsage);
+		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// 1. Transition image layout to eTransferDstOptimal
@@ -136,7 +133,6 @@ namespace xk
 			throw xk::runtime_error("No loader for the given image format implemented.");
 		}
 
-		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(ak::pipeline_stage::transfer, ak::read_memory_access{ak::memory_access::transfer_read_access});
 
@@ -189,7 +185,7 @@ namespace xk
 				return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 			}
 		}
-		if (aLoadSrgbIfApplicable && settings::gLoadImagesInSrgbFormatByDefault) {
+		if (aLoadSrgbIfApplicable) {
 			switch (aPreferredNumberOfTextureComponents) {
 			case 4:
 				imFmt = xk::default_srgb_4comp_format();
@@ -232,7 +228,8 @@ namespace xk
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
-		const std::vector<xk::material_config>& aMaterialConfigs, 
+		const std::vector<xk::material_config>& aMaterialConfigs,
+		bool aLoadTexturesInSrgb = false,
 		ak::image_usage aImageUsage = ak::image_usage::general_texture,
 		ak::filter_mode aTextureFilterMode = ak::filter_mode::bilinear,
 		ak::border_handling_mode aBorderHandlingMode = ak::border_handling_mode::repeat,
@@ -273,7 +270,7 @@ namespace xk
 	}
 	
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
-	extern std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
+	extern std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
 	extern ak::buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler = ak::sync::wait_idle());
 	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const xk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);

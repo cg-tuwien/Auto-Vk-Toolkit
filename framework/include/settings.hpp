@@ -12,13 +12,15 @@ namespace xk
 	/** Set this to your application's name */
 	struct application_name
 	{
-		std::string mValue = "Exekutor Application";
+		application_name(std::string aValue = "Vulkan application powered by Exekutor and Auto-Vk") : mValue{ std::move(aValue) } {}
+		std::string mValue;
 	};
 
 	/** Set this to your application's version */
 	struct application_version
 	{
-		uint32_t mValue = ak::make_version(1u, 0u, 0u);
+		application_version(uint32_t aValue = ak::make_version(1u, 0u, 0u)) : mValue{ aValue } {}
+		uint32_t mValue;
 	};
 
 	/** Fill this vector with further required instance extensions, if required */

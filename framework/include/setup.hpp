@@ -4,7 +4,7 @@
 namespace xk
 {
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<window*>& w, std::vector<cg_element*>& e)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w)
 	{ }
 
 	template <typename... Args>
@@ -78,6 +78,13 @@ namespace xk
 	}
 
 	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, window* aValue, Args&... args)
+	{
+		w.push_back(aValue);
+		add_config(s, phdf, v12f, t, i, e, w, args...);
+	}
+	
+	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, cg_element& aValue, Args&... args)
 	{
 		e.push_back(&aValue);
@@ -90,15 +97,9 @@ namespace xk
 		e.push_back(aValue);
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
-
-	inline auto& context()
-	{
-		static vulkan sContext;
-		return sContext;
-	}
 	
 	template <typename... Args>
-	static void execute(Args&... args)
+	static void execute(Args&&... args)
 	{
 		varying_update_timer defaultTimer;
 		sequential_executor defaultInvoker;
@@ -128,15 +129,12 @@ namespace xk
 		std::vector<window*> w;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 
-		// TODO: Create context with settings
-
-		
+		context().initialize(s, phdf, v12f);
 		{
 			composition c(t, i, w, e);
 			c.start();
 		}
-
-		// Context goes out of scope, all good
+		// Context goes out of scope later, all good
 	}
 	
 	

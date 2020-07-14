@@ -42,9 +42,8 @@ namespace xk
 
 		ak::sync::sPoolToAllocCommandBuffersFrom = ak::command_pool{};
 		ak::sync::sQueueToUse = nullptr;
-		
-		// Destroy all command pools before the queues and the device is destroyed
-		mCommandPools.clear();
+
+		mLogicalDevice.waitIdle();
 
 		//// Destroy all:
 		////  - swap chains,
@@ -61,6 +60,12 @@ namespace xk
 		//}
 		//mSurfSwap.clear();
 
+		// Clear the parent class' windows
+		mWindows.clear();
+
+		// Destroy all command pools before the queues and the device is destroyed... but AFTER the command buffers of the windows have been destroyed
+		mCommandPools.clear();
+		
 		// Destroy logical device
 		mLogicalDevice.destroy();
 
@@ -126,7 +131,7 @@ namespace xk
 		context().pick_physical_device();
 
 		LOG_DEBUG_VERBOSE("Creating logical device...");
-
+		
 		// Just get any window:
 		auto* window = context().find_window([](xk::window* w) { 
 			return w->handle().has_value() && static_cast<bool>(w->surface());
@@ -225,11 +230,12 @@ namespace xk
 		}
 
 		// TODO: Remove sync
-		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(xk::context().graphics_queue().family_index(), {});
-		ak::sync::sQueueToUse = &xk::context().graphics_queue();
+		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(mQueues.front().family_index(), {});
+		ak::sync::sQueueToUse = &mQueues.front();
 		
 		context().mContextState = xk::context_state::fully_initialized;
 		work_off_event_handlers();
+
 	}
 
 	ak::command_pool& vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
@@ -315,12 +321,22 @@ namespace xk
 		context().work_off_event_handlers();
 		auto& nuQu = mQueues.emplace_back();
 
-		context().add_event_handler(context_state::surfaces_created, [&nuQu, aRequiredFlags, aQueueSelectionPreference, aPresentSupportForWindow, aQueuePriority, this]() -> bool {
+		auto whenToInvoke = context_state::physical_device_selected;
+		if (nullptr != aPresentSupportForWindow) {
+			whenToInvoke |= context_state::surfaces_created;
+		}
+		
+		context().add_event_handler(whenToInvoke, [&nuQu, aRequiredFlags, aQueueSelectionPreference, aPresentSupportForWindow, aQueuePriority, this]() -> bool {
 			LOG_DEBUG_VERBOSE("Running queue creation handler.");
 
 			std::optional<vk::SurfaceKHR> surfaceSupport{};
 			if (nullptr != aPresentSupportForWindow) {
 				surfaceSupport = aPresentSupportForWindow->surface();
+				if (!surfaceSupport.has_value() || !surfaceSupport.value()) {
+					LOG_INFO("Have to open window which the queue depends on during initialization! Opening now...");
+					aPresentSupportForWindow->open();
+					return false;
+				}
 			}
 			auto queueFamily = ak::queue::select_queue_family_index(context().physical_device(), aRequiredFlags, aQueueSelectionPreference, surfaceSupport);
 
@@ -344,7 +360,7 @@ namespace xk
 			return true;
 		});
 		
-		context().add_event_handler(context_state::queues_created, [&nuQu, aPresentSupportForWindow, this]() -> bool {
+		context().add_event_handler(context_state::device_created, [&nuQu, aPresentSupportForWindow, this]() -> bool {
 			LOG_DEBUG_VERBOSE("Assigning queue handles handler.");
 
 			nuQu.assign_handle(device());
@@ -365,7 +381,7 @@ namespace xk
 		wnd->set_title(aTitle);
 
 		// Wait for the window to receive a valid handle before creating its surface
-		context().add_event_handler(context_state::initialization_begun | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
+		context().add_event_handler(context_state::anytime_during_or_after_init | context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
 			LOG_DEBUG_VERBOSE("Running window surface creator event handler");
 
 			// Make sure it is the right window
@@ -387,7 +403,7 @@ namespace xk
 			return true;
 		});
 
-		// Continue with swap chain creation after the context has completely initialized
+		// Continue with swap chain creation after the context has COMPLETELY initialized
 		//   and the window's handle and surface have been created
 		context().add_event_handler(context_state::anytime_after_init_before_finalize, [wnd]() -> bool {
 			LOG_DEBUG_VERBOSE("Running swap chain creator event handler");
@@ -802,23 +818,33 @@ namespace xk
 			.setUsage(swapChainImageUsageVk)
 			.setInitialLayout(vk::ImageLayout::eUndefined);
 
-		if (mPresentQueue == mGraphicsQueue) {
-			// Found a queue family which supports both!
-			// If the graphics queue family and presentation queue family are the same, which will be the case on most hardware, then we should stick to exclusive mode. [2]
+		// Handle queue family ownership:
+
+		std::vector<uint32_t> queueFamilyIndices;
+		for (auto& getter : aWindow->mQueueFamilyIndicesGetter) {
+			auto familyIndex = getter();
+			if (std::end(queueFamilyIndices) == std::find(std::begin(queueFamilyIndices), std::end(queueFamilyIndices), familyIndex)) {
+				queueFamilyIndices.push_back(familyIndex);
+			}
+		}
+		
+		switch (queueFamilyIndices.size()) {
+		case 0:
+			throw xk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use add_queue_family_ownership().", aWindow->title()));
+		case 1:
 			aWindow->mImageCreateInfoSwapChain
 				.setSharingMode(vk::SharingMode::eExclusive)
-				.setQueueFamilyIndexCount(0) // Optional [2]
-				.setPQueueFamilyIndices(nullptr); // Optional [2]
-		}
-		else {
-			aWindow->mQueueFamilyIndices.push_back(mPresentQueue.family_index());
-			aWindow->mQueueFamilyIndices.push_back(mGraphicsQueue.family_index());
+				.setQueueFamilyIndexCount(0u)
+				.setPQueueFamilyIndices(&queueFamilyIndices[0]); // could also leave at nullptr!
+			break;
+		default:
 			// Have to use separate queue families!
 			// If the queue families differ, then we'll be using the concurrent mode [2]
 			aWindow->mImageCreateInfoSwapChain
 				.setSharingMode(vk::SharingMode::eConcurrent)
-				.setQueueFamilyIndexCount(static_cast<uint32_t>(aWindow->mQueueFamilyIndices.size()))
-				.setPQueueFamilyIndices(aWindow->mQueueFamilyIndices.data());
+				.setQueueFamilyIndexCount(static_cast<uint32_t>(queueFamilyIndices.size()))
+				.setPQueueFamilyIndices(queueFamilyIndices.data());
+			break;
 		}
 
 		// With all settings gathered, create the swap chain!
@@ -847,10 +873,11 @@ namespace xk
 		aWindow->mCurrentFrame = 0; // Start af frame 0
 
 		auto swapChainImages = device().getSwapchainImagesKHR(aWindow->swap_chain());
-		assert(swapChainImages.size() == aWindow->get_config_number_of_presentable_images());
+		const auto imagesInFlight = swapChainImages.size();
+		assert(imagesInFlight == aWindow->get_config_number_of_presentable_images());
 
 		// and create one image view per image
-		aWindow->mSwapChainImageViews.reserve(swapChainImages.size());
+		aWindow->mSwapChainImageViews.reserve(imagesInFlight);
 		for (auto& imageHandle : swapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
 			auto& ref = aWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, aWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
@@ -867,7 +894,7 @@ namespace xk
 		aWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
 
 		// Create a back buffer per image
-		aWindow->mBackBuffers.reserve(aWindow->mSwapChainImageViews.size());
+		aWindow->mBackBuffers.reserve(imagesInFlight);
 		for (auto& imView: aWindow->mSwapChainImageViews) {
 			auto imExtent = imView->get_image().config().extent;
 
@@ -887,7 +914,7 @@ namespace xk
 
 			aWindow->mBackBuffers.push_back(create_framebuffer(aWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
 		}
-		assert(aWindow->mBackBuffers.size() == aWindow->get_config_number_of_presentable_images());
+		assert(aWindow->mBackBuffers.size() == imagesInFlight);
 
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : aWindow->mBackBuffers) {
@@ -899,25 +926,29 @@ namespace xk
 		}
 
 		// ============= SYNCHRONIZATION OBJECTS ===========
+		// per IMAGE:
 		{
-			const auto n = aWindow->get_config_number_of_presentable_images();
-			aWindow->mImageAvailableSemaphores.reserve(n);
-			for (uint32_t i = 0; i < n; ++i) {
+			aWindow->mImagesInFlightFenceIndices.reserve(imagesInFlight);
+			for (uint32_t i = 0; i < imagesInFlight; ++i) {
+				aWindow->mImagesInFlightFenceIndices.push_back(-1);
+			}
+		}
+		assert(aWindow->mImagesInFlightFenceIndices.size() == imagesInFlight);
+
+		// ============= SYNCHRONIZATION OBJECTS ===========
+		// per CONCURRENT FRAME:
+		{
+			auto framesInFlight = aWindow->get_config_number_of_concurrent_frames();
+			aWindow->mFramesInFlightFences.reserve(framesInFlight);
+			aWindow->mImageAvailableSemaphores.reserve(framesInFlight);
+			aWindow->mInitiatePresentSemaphores.reserve(framesInFlight);
+			for (uint32_t i = 0; i < framesInFlight; ++i) {
+				aWindow->mFramesInFlightFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
 				aWindow->mImageAvailableSemaphores.push_back(create_semaphore());
+				aWindow->mInitiatePresentSemaphores.push_back(create_semaphore());
 			}
 		}
-		assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_presentable_images());
-		
-		{
-			auto n = aWindow->get_config_number_of_concurrent_frames();
-			aWindow->mFences.reserve(n);
-			aWindow->mRenderFinishedSemaphores.reserve(n);
-			for (uint32_t i = 0; i < n; ++i) {
-				aWindow->mFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-				aWindow->mRenderFinishedSemaphores.push_back(create_semaphore());
-			}
-		}
-		assert(aWindow->mFences.size() == aWindow->get_config_number_of_concurrent_frames());
-		assert(aWindow->mRenderFinishedSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
+		assert(aWindow->mFramesInFlightFences.size() == aWindow->get_config_number_of_concurrent_frames());
+		assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
 	}
 }

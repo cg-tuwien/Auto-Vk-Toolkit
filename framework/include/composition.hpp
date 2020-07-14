@@ -380,11 +380,17 @@ namespace xk
 				context().stop_receiving_input_from_window(*w);
 				w->set_is_in_use(false);
 			}
-			mWindows.clear();
 
 			// Signal context before finalization
-			context().end_composition();
+			context().end_composition(); // Performs a waitIdle
 
+			for (auto* w : mWindows)
+			{
+				w->clean_up_command_buffers_for_frame(std::numeric_limits<window::frame_id_t>().max());
+				w->remove_all_present_semaphore_dependencies_for_frame(std::numeric_limits<window::frame_id_t>().max());
+			}
+			mWindows.clear();
+			
 			// 9. finalize
 			for (auto& o : mElements)
 			{
@@ -426,10 +432,6 @@ namespace xk
 		int32_t mInputBufferForegroundIndex;
 		int32_t mInputBufferBackgroundIndex;
 	};
-
-	std::mutex composition::sCompMutex{};
-
-	std::condition_variable composition::sInputBufferCondVar{};
 
 }
 

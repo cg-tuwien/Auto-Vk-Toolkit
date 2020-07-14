@@ -4,7 +4,9 @@
 class draw_a_triangle_app : public xk::cg_element
 {
 public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-
+	draw_a_triangle_app(ak::queue& aQueue) : mQueue{ &aQueue }
+	{}
+	
 	void initialize() override
 	{
 		// Create a graphics pipeline:
@@ -15,19 +17,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			ak::cfg::viewport_depth_scissors_config::from_framebuffer(xk::context().main_window()->backbuffer_at_index(0)),
 			ak::attachment::declare(xk::format_from_window_color_buffer(xk::context().main_window()), ak::on_load::clear, ak::color(0), ak::on_store::store) // But not in presentable format, because ImGui comes after
 		);
-
-		// Create command buffers, one per frame in flight; use a convenience function for creating and recording them:
-		const auto framesInFlight = xk::context().main_window()->number_of_in_flight_frames();
-		auto& commandPool = xk::context().get_command_pool_for_reusable_command_buffers(xk::context().graphics_queue());
-		mCmdBfrs = commandPool->alloc_command_buffers(framesInFlight);
-		for (size_t i = 0; i < framesInFlight; ++i) {
-			mCmdBfrs[i]->begin_recording();
-			mCmdBfrs[i]->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), xk::context().main_window()->backbufer_for_frame(i)); // TODO: only because #concurrent == #present... This is not optimal
-			mCmdBfrs[i]->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-			mCmdBfrs[i]->handle().draw(3u, 1u, 0u, 0u);
-			mCmdBfrs[i]->end_render_pass();
-			mCmdBfrs[i]->end_recording();
-		}
 
 		auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 		if(nullptr != imguiManager) {
@@ -54,7 +43,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// On H pressed,
 		if (xk::input().key_pressed(xk::key_code::h)) {
 			// log a message:
-			LOG_INFO_EM("Hello cg_base!");
+			LOG_INFO_EM("Hello Exekutor! Hello Auto-Vk!");
 		}
 
 		// On C pressed,
@@ -74,50 +63,64 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void render() override
 	{
 		auto mainWnd = xk::context().main_window();
-		
-		// Draw using the command buffer which is associated to the current frame in flight-index:
-		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
-		mainWnd->submit_for_backbuffer_ref(mCmdBfrs[inFlightIndex]);
+
+		// Get a command pool to allocate command buffers from:
+		auto& commandPool = xk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		cmdBfr->begin_recording();
+		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), xk::context().main_window()->current_backbuffer());
+		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
+		cmdBfr->end_render_pass();
+		cmdBfr->end_recording();
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+
+		// Submit the draw call (that will be executed after the semaphore has been signalled:
+		auto renderFinishedSemaphore = mQueue->submit_with_semaphore(cmdBfr, imageAvailableSemaphore);
+
+		// Present must not happen before rendering is finished => add renderFinishedSemaphore as a dependency:
+		mainWnd->add_render_finished_semaphore_for_current_frame(std::move(renderFinishedSemaphore));
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 
 private: // v== Member variables ==v
 
+	ak::queue* mQueue;
 	ak::graphics_pipeline mPipeline;
-	std::vector<ak::command_buffer> mCmdBfrs;
 
 }; // draw_a_triangle_app
 
 int main() // <== Starting point ==
 {
 	try {
-		// What's the name of our application
-		xk::settings::gApplicationName = "Hello, cg_base World!";
-
 		// Create a window and open it
 		auto mainWnd = xk::context().create_window("cg_base main window");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(xk::presentation_mode::immediate);
+		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
+		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
+
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = draw_a_triangle_app();
+		auto app = draw_a_triangle_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = xk::imgui_manager();
-		
-		// Setup an application by providing elements which will be invoked:
-		auto helloWorld = xk::setup(app, ui);
-		helloWorld.start();
+		auto ui = xk::imgui_manager(singleQueue);
 
+		// GO:
 		xk::execute(
 			xk::application_name("Hello, Exekutor + Auto-Vk World!"),
 			mainWnd,
-			xk::request_queues([](auto physicalDevice) {
-				
-			}),
 			app,
-			ui,
-		);
-		
+			ui
+		);		
 	}
 	catch (xk::logic_error&) {}
 	catch (xk::runtime_error&) {}

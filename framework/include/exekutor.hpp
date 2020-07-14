@@ -151,6 +151,12 @@ namespace xk
 	{
 		return composition_interface::current();
 	}
+
+	inline auto& context()
+	{
+		static vulkan sContext;
+		return sContext;
+	}
 #pragma endregion 
 }
 

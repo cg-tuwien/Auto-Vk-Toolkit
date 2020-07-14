@@ -85,7 +85,7 @@ namespace xk
 		 */
 		ak::command_pool& get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue);
 
-		ak::queue& create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow = nullptr, float aQueuePriority = 0.5f);
+		ak::queue& create_queue(vk::QueueFlags aRequiredFlags = {}, ak::queue_selection_preference aQueueSelectionPreference = ak::queue_selection_preference::versatile_queue, window* aPresentSupportForWindow = nullptr, float aQueuePriority = 0.5f);
 		
 		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!

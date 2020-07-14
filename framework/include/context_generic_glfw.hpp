@@ -191,9 +191,9 @@ namespace xk
 		static void glfw_window_size_callback(GLFWwindow* window, int width, int height);
 
 		std::deque<window> mWindows;
-		size_t mMainWindowIndex;
+		size_t mMainWindowIndex = 0;
 		static window* sWindowInFocus;
-		bool mInitialized;
+		bool mInitialized = false;
 
 		static std::mutex sInputMutex;
 		static std::array<key_code, GLFW_KEY_LAST + 1> sGlfwToKeyMapping;
@@ -213,13 +213,13 @@ namespace xk
 		std::list<std::tuple<event_handler_func, xk::context_state>> mEventHandlers;
 
 		// Which state the context is currently in
-		xk::context_state mContextState;
+		xk::context_state mContextState = context_state::uninitialized;
 
-		GLFWcursor* mArrowCursor;
-		GLFWcursor* mIbeamCursor;
-		GLFWcursor* mCrosshairCursor;
-		GLFWcursor* mHandCursor;
-		GLFWcursor* mHorizResizeCursor;
-		GLFWcursor* mVertResizeCursor;
+		GLFWcursor* mArrowCursor = nullptr;
+		GLFWcursor* mIbeamCursor = nullptr;
+		GLFWcursor* mCrosshairCursor = nullptr;
+		GLFWcursor* mHandCursor = nullptr;
+		GLFWcursor* mHorizResizeCursor = nullptr;
+		GLFWcursor* mVertResizeCursor = nullptr;
 	};
 }

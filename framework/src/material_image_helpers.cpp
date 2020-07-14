@@ -5,6 +5,7 @@ namespace xk
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
 		const std::vector<xk::material_config>& aMaterialConfigs, 
+		bool aLoadTexturesInSrgb,
 		ak::image_usage aImageUsage,
 		ak::filter_mode aTextureFilterMode, 
 		ak::border_handling_mode aBorderHandlingMode,
@@ -57,7 +58,7 @@ namespace xk
 			else {
 				auto path = ak::clean_up_path(mc.mDiffuseTex);
 				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
-				if (settings::gLoadImagesInSrgbFormatByDefault) {
+				if (aLoadTexturesInSrgb) {
 					srgbTextures.insert(path);
 				}
 			}
@@ -77,7 +78,7 @@ namespace xk
 			else {
 				auto path = ak::clean_up_path(mc.mAmbientTex);
 				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
-				if (settings::gLoadImagesInSrgbFormatByDefault) {
+				if (aLoadTexturesInSrgb) {
 					srgbTextures.insert(path);
 				}
 			}
@@ -172,8 +173,6 @@ namespace xk
 		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
 		imageSamplers.reserve(numSamplers);
 
-		aSyncHandler.set_queue_hint(xk::context().transfer_queue());
-		
 		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> ak::sync {
 			++lSyncCount;
 			if (lSyncCount < numSamplers) {
@@ -188,7 +187,7 @@ namespace xk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_1px_texture({ 255, 255, 255, 255 }, ak::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, ak::memory_usage::device, aImageUsage, getSync())
 					),
 					context().create_sampler(ak::filter_mode::nearest_neighbor, ak::border_handling_mode::repeat)
 				)
@@ -204,7 +203,7 @@ namespace xk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_1px_texture({ 127, 127, 255, 0 }, ak::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, ak::memory_usage::device, aImageUsage, getSync())
 					),
 					context().create_sampler(ak::filter_mode::nearest_neighbor, ak::border_handling_mode::repeat)
 				)
@@ -257,17 +256,12 @@ namespace xk
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler)
+	std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, ak::sync aSyncHandler)
 	{
 		auto [positionsData, indicesData] = get_vertices_and_indices(aModelsAndSelectedMeshes);
 
-		vk::BufferUsageFlags usageFlags{};
-		if (xk::settings::gEnableBufferDeviceAddress) {
-			usageFlags = vk::BufferUsageFlagBits::eShaderDeviceAddressKHR; // TODO: Abstract this better/in a different way! Global setting affecting ALL buffers can't be the right way.
-		}
-		
 		auto positionsBuffer = context().create_buffer(
-			ak::memory_usage::device, usageFlags,
+			ak::memory_usage::device, aUsageFlags,
 			ak::vertex_buffer_meta::create_from_data(positionsData)
 				.describe_only_member(positionsData[0], 0, ak::content_description::position)
 		);
@@ -276,7 +270,7 @@ namespace xk
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		auto indexBuffer = context().create_buffer(
-			ak::memory_usage::device, usageFlags,
+			ak::memory_usage::device, aUsageFlags,
 			ak::index_buffer_meta::create_from_data(indicesData)
 		);
 		indexBuffer->fill(indicesData.data(), 0, std::move(aSyncHandler));

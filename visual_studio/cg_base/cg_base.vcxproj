@@ -26,6 +26,7 @@
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
+    <ClCompile Include="..\..\framework\src\composition.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />

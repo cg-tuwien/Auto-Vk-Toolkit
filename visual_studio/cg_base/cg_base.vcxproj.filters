@@ -91,6 +91,9 @@
     <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
       <Filter>exekutor_src\utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\composition.cpp">
+      <Filter>exekutor_src\base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">

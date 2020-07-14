@@ -9,8 +9,6 @@ namespace xk
 	std::mutex generic_glfw::sDispatchMutex;
 
 	generic_glfw::generic_glfw()
-		: mInitialized(false)
-		, mMainWindowIndex(0)
 	{
 		LOG_VERBOSE("Creating GLFW context...");
 	
@@ -498,6 +496,10 @@ namespace xk
 	void generic_glfw::work_off_event_handlers()
 	{
 		assert(are_we_on_the_main_thread());
+		if (mContextState < context_state::initialization_begun) {
+			return;
+		}
+		
 		size_t numHandled = 0;
 		do {
 			// No need to lock anything here, everything is happening on the main thread only

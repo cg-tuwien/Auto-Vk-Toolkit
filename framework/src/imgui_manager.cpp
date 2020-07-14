@@ -32,8 +32,9 @@ namespace xk
 	    init_info.Instance = context().vulkan_instance();
 	    init_info.PhysicalDevice = context().physical_device();
 	    init_info.Device = context().device();
-	    init_info.QueueFamily = context().graphics_queue().family_index();
-	    init_info.Queue = context().graphics_queue().handle();
+		assert(mQueue);
+	    init_info.QueueFamily = mQueue->family_index();
+	    init_info.Queue = mQueue->handle();
 	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
 		const uint32_t magicImguiFactor = 1000;
@@ -55,7 +56,7 @@ namespace xk
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
-		mCommandPool = xk::context().create_command_pool(context().graphics_queue().family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
+		mCommandPool = xk::context().create_command_pool(mQueue->family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
 
 		// MinImageCount and ImageCount are related to the swapchain images. These are not Dear ImGui specific properties and your
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
@@ -124,9 +125,9 @@ namespace xk
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = xk::context().graphics_queue().submit_and_handle_with_semaphore(std::move(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
+		auto semaph = mQueue->submit_and_handle_with_semaphore(std::move(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
 		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
-		wnd->set_extra_semaphore_dependency(std::move(semaph));
+		wnd->add_render_finished_semaphore_for_current_frame(std::move(semaph));
 	}
 
 	
@@ -276,11 +277,11 @@ namespace xk
 		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->backbufer_for_frame());
+		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->current_backbuffer());
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
-		mainWnd->handle_lifetime(std::move(cmdBfr));  // TODO: Support other queues!
+		mainWnd->add_render_finished_semaphore_for_current_frame(mQueue->submit_and_handle_with_semaphore(std::move(cmdBfr)));
 	}
 
 	void imgui_manager::finalize()
