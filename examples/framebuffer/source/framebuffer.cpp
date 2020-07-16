@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class framebuffer_app : public cgb::cg_element
+class framebuffer_app : public xk::cg_element
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -34,65 +34,68 @@ class framebuffer_app : public cgb::cg_element
 		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
 	};
 
-public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-	framebuffer_app()
-		: mSelectedAttachmentToCopy{ 0 }
+public: // v== xk::cg_element overrides which will be invoked by the framework ==v
+	framebuffer_app(ak::queue& aQueue)
+		: mQueue{ &aQueue }
+		, mSelectedAttachmentToCopy{ 0 }
 		, mAdditionalTranslationY{ 0.0f }
 		, mRotationSpeed{ 1.0f }
 	{ }
 
 	void initialize() override
 	{
-		// Create vertex buffers, but don't upload vertices yet; we'll do that in the render() method.
-		// Create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
-		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [this](int64_t inFlightIndex){
-			mVertexBuffers.push_back(
-				cgb::create(
-					cgb::vertex_buffer_meta::create_from_data(mVertexData),	// Pass/create meta data about the vertex data
-					xv::memory_usage::device								// We want our buffer to "live" in GPU memory
-				)
-			);
-		});
-
-		// Create index buffer. Upload data already since we won't change it ever
-		// (hence the usage of cgb::create_and_fill instead of just cgb::create)
-		mIndexBuffer = cgb::create_and_fill(
-			cgb::index_buffer_meta::create_from_data(mIndices),	// Pass/create meta data about the indices
-			xv::memory_usage::device,							// Also this buffer should "live" in GPU memory
-			mIndices.data(),									// Since we also want to upload the data => pass a data pointer
-			cgb::sync::wait_idle()								// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
+		const auto r = xk::context().main_window()->resolution();
+		auto colorAttachment = xk::context().create_image_view(xk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, ak::memory_usage::device, ak::image_usage::general_color_attachment));
+		auto depthAttachment = xk::context().create_image_view(xk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, ak::memory_usage::device, ak::image_usage::general_depth_stencil_attachment));
+		auto colorAttachmentDescription = ak::attachment::declare_for(colorAttachment, ak::on_load::clear, ak::color(0),		ak::on_store::store);
+		auto depthAttachmentDescription = ak::attachment::declare_for(depthAttachment, ak::on_load::clear, ak::depth_stencil(),	ak::on_store::store);
+		mOneFramebuffer = xk::context().create_framebuffer(
+			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
+			ak::make_vector( // Transfer ownership of both attachments into the vector and into create_framebuffer:
+				std::move(colorAttachment), 
+				std::move(depthAttachment)
+			)
 		);
 		
-		const auto r = cgb::context().main_window()->resolution();
-		auto colorAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_rgb8_4comp_format(), 1, xv::memory_usage::device, xv::image_usage::general_color_attachment));
-		auto depthAttachment = cgb::image_view_t::create(cgb::image_t::create(r.x, r.y, cgb::image_format::default_depth_format(), 1, xv::memory_usage::device, xv::image_usage::general_depth_stencil_attachment));
-		auto colorAttachmentDescription = cgb::attachment::declare_for(colorAttachment, on_load::clear, color(0),			on_store::store);
-		auto depthAttachmentDescription = cgb::attachment::declare_for(depthAttachment, on_load::clear, depth_stencil(),	on_store::store);
-		mOneFramebuffer = cgb::framebuffer_t::create(
-			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
-			cgb::move_into_vector(colorAttachment, depthAttachment)			// For owning resources, we have to use move_into_vector in order to properly move ownership.
-		);
-
 		// Create graphics pipeline for rasterization with the required configuration:
-		mPipelineIntoFramebuffer = cgb::graphics_pipeline_for(
-			cgb::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
-			cgb::vertex_input_location(1, &Vertex::color),								// Describe the color vertex attribute
-			cgb::vertex_shader("shaders/passthrough.vert"),								// Add a vertex shader
-			cgb::fragment_shader("shaders/color.frag"),									// Add a fragment shader
-			cgb::cfg::front_face::define_front_faces_to_be_clockwise(),					// Front faces are in clockwise order
-			cgb::cfg::viewport_depth_scissors_config::from_window(),					// Align viewport with main window's resolution
+		mPipeline = xk::context().create_graphics_pipeline_for(
+			ak::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
+			ak::vertex_input_location(1, &Vertex::color),							// Describe the color vertex attribute
+			ak::vertex_shader("shaders/passthrough.vert"),							// Add a vertex shader
+			ak::fragment_shader("shaders/color.frag"),								// Add a fragment shader
+			ak::cfg::front_face::define_front_faces_to_be_clockwise(),				// Front faces are in clockwise order
+			ak::cfg::viewport_depth_scissors_config::from_framebuffer(xk::context().main_window()->backbuffer_at_index(0)),	// Align viewport with main window's resolution
 			colorAttachmentDescription,
 			depthAttachmentDescription
 		);
 
-		mCmdBfrIntoFramebuffer = record_command_buffers_for_all_in_flight_frames(cgb::context().main_window(), cgb::context().graphics_queue(), [&](cgb::command_buffer_t& commandBuffer, int64_t inFlightIndex) {
-			commandBuffer.begin_render_pass_for_framebuffer(mPipelineIntoFramebuffer->get_renderpass(), mOneFramebuffer);
-			commandBuffer.bind_pipeline(mPipelineIntoFramebuffer);
-			commandBuffer.draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
-			commandBuffer.end_render_pass();
-		});
+		// Create vertex buffers --- namely one for each frame in flight.
+		// We create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
+		// However, do not upload vertices yet. we'll do that in the render() method.
+		auto numFramesInFlight = xk::context().main_window()->number_of_frames_in_flight();
+		for (int i = 0; i < numFramesInFlight; ++i) {
+			mVertexBuffers.emplace_back(
+				xk::context().create_buffer(
+					ak::memory_usage::device, {},								// Create the buffer on the device, i.e. in GPU memory, (no additional usage flags).
+					ak::vertex_buffer_meta::create_from_data(mVertexData)		// Infer meta data from the given buffer.
+				)
+			);
+		}
 		
-		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		// Create index buffer. Upload data already since we won't change it ever
+		// (hence the usage of ak::create_and_fill instead of just ak::create)
+		mIndexBuffer = xk::context().create_buffer(
+			ak::memory_usage::device, {},										// Also this buffer should "live" in GPU memory
+			ak::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
+		);
+		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
+		mIndexBuffer->fill(			
+			mIndices.data(), 0,													// Since we also want to upload the data => pass a data pointer
+			ak::sync::wait_idle()												// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
+		);
+
+		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
+		auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -117,30 +120,29 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 	void update() override
 	{
 		// On C pressed,
-		if (cgb::input().key_pressed(cgb::key_code::c)) {
+		if (xk::input().key_pressed(xk::key_code::c)) {
 			// center the cursor:
-			auto resolution = cgb::context().main_window()->resolution();
-			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+			auto resolution = xk::context().main_window()->resolution();
+			xk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
 
 		// On Esc pressed,
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+		if (xk::input().key_pressed(xk::key_code::escape)) {
 			// stop the current composition:
-			cgb::current_composition().stop();
+			xk::current_composition()->stop();
 		}
 	}
 
 	void render() override
 	{
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
-		auto rotAngle = glm::radians(90.0f) * cgb::time().time_since_start() * mRotationSpeed;
+		auto rotAngle = glm::radians(90.0f) * xk::time().time_since_start() * mRotationSpeed;
 		auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
 		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
 		auto invTranslZ = glm::inverse(translateZ);
 		auto translateY = glm::translate(glm::vec3{ 0.0f, -mAdditionalTranslationY, 0.0f });
 
 		// Store modified vertices in vertexDataCurrentFrame:
-
 		std::vector<Vertex> vertexDataCurrentFrame;
 		for (const Vertex& vtx : mVertexData) {
 			glm::vec4 origPos{ vtx.pos, 1.0f };
@@ -150,8 +152,6 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			});
 		}
 
-		//cgb::context().graphics_queue().handle().waitIdle();
-
 		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
 		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
 		//		 in sync --- it can make a difference.
@@ -159,49 +159,68 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
 		//		 will ensure correct and smooth rendering regardless of the timer used.
 
-		auto mainWnd = cgb::context().main_window();
-		
 		// For the right vertex buffer, ...
+		auto mainWnd = xk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// ... update its vertex data:
-		//mainWnd->handle_lifetime(
-			cgb::fill(
-			mVertexBuffers[inFlightIndex],
-			vertexDataCurrentFrame.data(),
+		mVertexBuffers[inFlightIndex]->fill(
+			vertexDataCurrentFrame.data(), 0,
 			// Sync this fill-operation with pipeline memory barriers:
-			//cgb::sync::with_barriers_by_return()
-			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
+			ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler())
 			// ^ This handler is a convenience method which hands over the (internally created, but externally
 			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
 			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
-			//   cgb::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
+			//   ak::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
 		);
-		//);
 
-		// Finally, submit the right command buffer in order to issue the draw call:
-		//mainWnd->submit_for_backbuffer_ref(mCmdBfrIntoFramebuffer[inFlightIndex]);
-		cgb::context().graphics_queue().submit(mCmdBfrIntoFramebuffer[inFlightIndex]);
+		// Get a command pool to allocate command buffers from:
+		auto& commandPool = xk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+
+		// Create a command buffer and render into the *current* swap chain image:
+		
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		cmdBfr->begin_recording();
+		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mOneFramebuffer);
+		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
+		cmdBfr->draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
+		cmdBfr->end_render_pass();
+		cmdBfr->end_recording();
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Submit the draw call and take care of the command buffer's lifetime:
+		mQueue->submit(cmdBfr, imageAvailableSemaphore);
+		mainWnd->handle_lifetime(std::move(cmdBfr));
+
 		if (0 == mUseCopyOrBlit) {
-			mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, false));
+			// Copy:
+			auto transferCmdBuffer = ak::copy_image_to_another(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), ak::sync::with_barriers_by_return());
+			// TODO: Add barriers to the command buffer to sync before and after
+			mQueue->submit(*transferCmdBuffer);
+			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
 		}
 		else {
-			mainWnd->submit_for_backbuffer(mainWnd->blit_to_swapchain_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), {}, false));
+			// Blit:
+			auto transferCmdBuffer = ak::blit_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), ak::sync::with_barriers_by_return());
+			// TODO: Add barriers to the command buffer to sync before and after
+			mQueue->submit(*transferCmdBuffer);
+			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
 		}
-
-
 	}
 
 
 private: // v== Member variables ==v
 
+	ak::queue* mQueue;
 	int mSelectedAttachmentToCopy;
 	int mUseCopyOrBlit;
-	cgb::framebuffer mOneFramebuffer;
-	std::vector<cgb::command_buffer> mCmdBfrIntoFramebuffer;
-	std::vector<cgb::vertex_buffer> mVertexBuffers;
-	cgb::index_buffer mIndexBuffer;
-	cgb::graphics_pipeline mPipelineIntoFramebuffer;
+	ak::framebuffer mOneFramebuffer;
+	std::vector<ak::buffer> mVertexBuffers;
+	ak::buffer mIndexBuffer;
+	ak::graphics_pipeline mPipeline;
 	float mAdditionalTranslationY;
 	float mRotationSpeed;
 
@@ -210,24 +229,32 @@ private: // v== Member variables ==v
 int main() // <== Starting point ==
 {
 	try {
-		cgb::settings::gApplicationName = "cg_base Example: Framebuffer";
-		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Framebuffer main window");
+		auto mainWnd = xk::context().create_window("Framebuffers");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::immediate);
-		mainWnd->open(); 
+		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
+		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->open();
 
-		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = framebuffer_app();
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_present_queue(singleQueue);
+		
+		// Create an instance of our main ak::element which contains all the functionality:
+		auto app = framebuffer_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = cgb::imgui_manager();
+		auto ui = xk::imgui_manager(singleQueue);
 
-		// Tie everything together and let's roll:
-		auto vertexBuffers = cgb::setup(app, ui);
-		vertexBuffers.start();
+		// GO:
+		xk::execute(
+			xk::application_name("Exekutor + Auto-Vk Example: Framebuffers"),
+			mainWnd,
+			app,
+			ui
+		);		
 	}
-	catch (cgb::logic_error&) {}
-	catch (cgb::runtime_error&) {}
+	catch (xk::logic_error&) {}
+	catch (xk::runtime_error&) {}
+	catch (ak::logic_error&) {}
+	catch (ak::runtime_error&) {}
 }

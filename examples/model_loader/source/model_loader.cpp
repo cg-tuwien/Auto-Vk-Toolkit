@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class model_loader_app : public cgb::cg_element
+class model_loader_app : public xk::cg_element
 {
 	struct data_for_draw_call
 	{
@@ -10,10 +10,10 @@ class model_loader_app : public cgb::cg_element
 		std::vector<glm::vec3> mNormals;
 		std::vector<uint32_t> mIndices;
 
-		cgb::vertex_buffer mPositionsBuffer;
-		cgb::vertex_buffer mTexCoordsBuffer;
-		cgb::vertex_buffer mNormalsBuffer;
-		cgb::index_buffer mIndexBuffer;
+		ak::buffer mPositionsBuffer;
+		ak::buffer mTexCoordsBuffer;
+		ak::buffer mNormalsBuffer;
+		ak::buffer mIndexBuffer;
 
 		int mMaterialIndex;
 	};
@@ -23,22 +23,28 @@ class model_loader_app : public cgb::cg_element
 		int mMaterialIndex;
 	};
 
-public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-	model_loader_app() : mScale{1.0f, 1.0f, 1.0f} {}
+public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+	model_loader_app(ak::queue& aQueue)
+		: mQueue{ &aQueue }
+		, mScale{1.0f, 1.0f, 1.0f}
+	{}
 
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
 
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = xk::context().create_descriptor_cache();
+
 		// Load a model from file:
-		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto sponza = xk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterials = sponza->distinct_material_configs();
 
 		// The following might be a bit tedious still, but maybe it's not. For what it's worth, it is expressive.
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
-		std::vector<cgb::material_config> allMatConfigs;
+		std::vector<xk::material_config> allMatConfigs;
 		for (const auto& pair : distinctMaterials) {
 			auto& newElement = mDrawCalls.emplace_back();
 			allMatConfigs.push_back(pair.first);
@@ -46,108 +52,114 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 			// 1. Gather all the vertex and index data from the sub meshes:
 			for (auto index : pair.second) {
-				cgb::append_indices_and_vertex_data(
-					cgb::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);								} ),
-					cgb::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
-					cgb::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
-					cgb::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
+				xk::append_indices_and_vertex_data(
+					xk::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);								} ),
+					xk::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
+					xk::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
+					xk::additional_vertex_data(newElement.mNormals,		[&]() { return sponza->normals_for_mesh(index);								} )
 				);
 			}
 			
 			// 2. Build all the buffers for the GPU
 			// 2.1 Positions:
-			newElement.mPositionsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mPositions),
-				xv::memory_usage::device,
-				newElement.mPositions.data(),
-				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: I wonder why validation layers do not complain here, but.... 
+			newElement.mPositionsBuffer = xk::context().create_buffer(
+				ak::memory_usage::device, {},
+				ak::vertex_buffer_meta::create_from_data(newElement.mPositions)
+			);
+			newElement.mPositionsBuffer->fill(
+				newElement.mPositions.data(), 0,
+				ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler()) 
 			);
 			// 2.2 Texture Coordinates:
-			newElement.mTexCoordsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mTexCoords),
-				xv::memory_usage::device,
-				newElement.mTexCoords.data(),
-				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
+			newElement.mTexCoordsBuffer = xk::context().create_buffer(
+				ak::memory_usage::device, {},
+				ak::vertex_buffer_meta::create_from_data(newElement.mTexCoords)
+			);
+			newElement.mTexCoordsBuffer->fill(
+				newElement.mTexCoords.data(), 0,
+				ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.3 Normals:
-			newElement.mNormalsBuffer = cgb::create_and_fill(
-				cgb::vertex_buffer_meta::create_from_data(newElement.mNormals),
-				xv::memory_usage::device,
-				newElement.mNormals.data(),
-				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
+			newElement.mNormalsBuffer = xk::context().create_buffer(
+				ak::memory_usage::device, {},
+				ak::vertex_buffer_meta::create_from_data(newElement.mNormals)
+			);
+			newElement.mNormalsBuffer->fill(
+				newElement.mNormals.data(), 0,
+				ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.4 Indices:
-			newElement.mIndexBuffer = cgb::create_and_fill(
-				cgb::index_buffer_meta::create_from_data(newElement.mIndices),
-				// Where to put our memory? => On the device
-				xv::memory_usage::device,
-				// Pass pointer to the data:
-				newElement.mIndices.data(),
-				cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler())
+			newElement.mIndexBuffer = xk::context().create_buffer(
+				ak::memory_usage::device, {},
+				ak::index_buffer_meta::create_from_data(newElement.mIndices)
+			);
+			newElement.mIndexBuffer->fill(
+				newElement.mIndices.data(), 0,
+				ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
 
 		// For all the different materials, transfer them in structs which are well 
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
-		// via samplers; It all happens in `cgb::convert_for_gpu_usage`:
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
-			allMatConfigs, 
-			xv::image_usage::read_only_image,
-			cgb::filter_mode::bilinear,
-			cgb::border_handling_mode::repeat,
-			cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()
+		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
+		auto [gpuMaterials, imageSamplers] = xk::convert_for_gpu_usage(
+			allMatConfigs, false,
+			ak::image_usage::read_only_image,
+			ak::filter_mode::bilinear,
+			ak::border_handling_mode::repeat,
+			ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()
 		);
 
-		mViewProjBuffer = cgb::create(
-			cgb::uniform_buffer_meta::create_from_data(glm::mat4()),
-			xv::memory_usage::host_coherent
+		mViewProjBuffer = xk::context().create_buffer(
+			ak::memory_usage::host_coherent, {},
+			ak::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
 		
-		mMaterialBuffer = cgb::create_and_fill(
-			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
-			xv::memory_usage::host_coherent,
-			gpuMaterials.data(),
-			cgb::sync::not_required()
+		mMaterialBuffer = xk::context().create_buffer(
+			ak::memory_usage::host_coherent, {},
+			ak::storage_buffer_meta::create_from_data(gpuMaterials)
+		);
+		mMaterialBuffer->fill(
+			gpuMaterials.data(), 0,
+			ak::sync::not_required()
 		);
 		
 		mImageSamplers = std::move(imageSamplers);
 
-		using namespace cgb::att;
-
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
+		auto swapChainFormat = xk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = cgb::graphics_pipeline_for(
+		mPipeline = xk::context().create_graphics_pipeline_for(
 			// Specify which shaders the pipeline consists of:
-			cgb::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
-			cgb::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
+			ak::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
+			ak::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// The next 3 lines define the format and location of the vertex shader inputs:
 			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
-			cgb::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
-			cgb::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
-			cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
+			ak::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
+			ak::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
+			ak::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
 			// Some further settings:
-			cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
+			ak::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
+			ak::cfg::viewport_depth_scissors_config::from_framebuffer(xk::context().main_window()->backbuffer_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			xv::attachment::declare(cgb::image_format::from_window_color_buffer(), xv::on_load::clear, xv::color(0),		xv::on_store::store),	 // But not in presentable format, because ImGui comes after
-			xv::attachment::declare(cgb::image_format::from_window_depth_buffer(), xv::on_load::clear, xv::depth_stencil(), xv::on_store::dont_care),
+			ak::attachment::declare(xk::format_from_window_color_buffer(xk::context().main_window()), ak::on_load::clear, ak::color(0),		ak::on_store::store),	 // But not in presentable format, because ImGui comes after
+			ak::attachment::declare(xk::from_window_depth_buffer(xk::context().main_window()), ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
-			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(0, 1, mViewProjBuffer),
-			cgb::binding(1, 0, mMaterialBuffer)
+			ak::push_constant_binding_data { ak::shader_type::vertex, 0, sizeof(transformation_matrices) },
+			ak::binding(0, 0, mImageSamplers),
+			ak::binding(0, 1, mViewProjBuffer),
+			ak::binding(1, 0, mMaterialBuffer)
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), xk::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-		cgb::current_composition().add_element(mQuakeCam);
+		xk::current_composition()->add_element(mQuakeCam);
 
-		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -164,20 +176,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto mainWnd = cgb::context().main_window();
+		auto mainWnd = xk::context().main_window();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		cgb::fill(mViewProjBuffer, glm::value_ptr(viewProjMat), cgb::sync::not_required());
+		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, ak::sync::not_required());
 		
-		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
+		auto& commandPool = xk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mainWnd->backbufer_for_frame());
+		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), xk::context().main_window()->current_backbuffer());
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(mPipeline->layout(), { 
-			cgb::binding(0, 0, mImageSamplers),
-			cgb::binding(0, 1, mViewProjBuffer),
-			cgb::binding(1, 0, mMaterialBuffer)
-		});
+		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
+			ak::binding(0, 0, mImageSamplers),
+			ak::binding(0, 1, mViewProjBuffer),
+			ak::binding(1, 0, mMaterialBuffer)
+		}));
 
 		for (auto& drawCall : mDrawCalls) {
 			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
@@ -197,14 +210,24 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 			// Bind and use the index buffer to create the draw call:
-			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
+			vk::IndexType indexType = ak::to_vk_index_type(drawCall.mIndexBuffer->meta<ak::index_buffer_meta>().sizeof_one_element());
 			cmdbfr->handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
+			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta<ak::index_buffer_meta>().num_elements(), 1u, 0u, 0u, 0u);
+
+			//cmdbfr->draw_indexed(*drawCall.mIndexBuffer, *drawCall.mPositionsBuffer, drawCall.mTexCoordsBuffer, drawCall.mNormalsBuffer);
+			//// TODO: ^ doesn't work
 		}
 
 		cmdbfr->end_render_pass();
 		cmdbfr->end_recording();
-		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Submit the draw call and take care of the command buffer's lifetime:
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
+		mainWnd->handle_lifetime(std::move(cmdbfr));
 	}
 
 	void update() override
@@ -219,21 +242,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::h)) {
+		if (xk::input().key_pressed(xk::key_code::h)) {
 			// Log a message:
 			LOG_INFO_EM("Hello cg_base!");
 		}
-		if (cgb::input().key_pressed(cgb::key_code::c)) {
+		if (xk::input().key_pressed(xk::key_code::c)) {
 			// Center the cursor:
-			auto resolution = cgb::context().main_window()->resolution();
-			cgb::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+			auto resolution = xk::context().main_window()->resolution();
+			xk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+		if (xk::input().key_pressed(xk::key_code::escape)) {
 			// Stop the current composition:
-			cgb::current_composition().stop();
+			xk::current_composition()->stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::f1)) {
-			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if (xk::input().key_pressed(xk::key_code::f1)) {
+			auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -245,22 +268,20 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 	}
 
-	void finalize() override
-	{
-		cgb::context().logical_device().waitIdle();
-	}
-
 private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	cgb::uniform_buffer mViewProjBuffer;
-	cgb::storage_buffer mMaterialBuffer;
-	std::vector<cgb::image_sampler> mImageSamplers;
+	ak::queue* mQueue;
+	ak::descriptor_cache mDescriptorCache;
+
+	ak::buffer mViewProjBuffer;
+	ak::buffer mMaterialBuffer;
+	std::vector<ak::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	cgb::graphics_pipeline mPipeline;
-	cgb::quake_camera mQuakeCam;
+	ak::graphics_pipeline mPipeline;
+	xk::quake_camera mQuakeCam;
 
 	glm::vec3 mScale;
 
@@ -269,31 +290,35 @@ private: // v== Member variables ==v
 int main() // <== Starting point ==
 {
 	try {
-		// What's the name of our application
-		cgb::settings::gApplicationName = "Model Loader Example";
-		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
-		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("Hello World Window");
+		auto mainWnd = xk::context().create_window("Model Loader");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::fifo);
 		mainWnd->set_additional_back_buffer_attachments({ 
-			xv::attachment::declare(cgb::image_format::default_depth_format(), xv::on_load::clear, xv::depth_stencil(), xv::on_store::dont_care)
+			ak::attachment::declare(vk::Format::eD32Sfloat, ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care)
 		});
-		mainWnd->request_srgb_framebuffer(true);
-		mainWnd->open(); 
+		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
+		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->open();
 
-		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = model_loader_app();
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_present_queue(singleQueue);
+		
+		// Create an instance of our main ak::element which contains all the functionality:
+		auto app = model_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = cgb::imgui_manager();
+		auto ui = xk::imgui_manager(singleQueue);
 
-		auto modelLoader = cgb::setup(app, ui);
-		modelLoader.start();
+		// GO:
+		xk::execute(
+			xk::application_name("Exekutor + Auto-Vk Example: Model Loader"),
+			mainWnd,
+			app,
+			ui
+		);
 	}
-	catch (cgb::logic_error&) {}
-	catch (cgb::runtime_error&) {}
+	catch (ak::logic_error&) {}
+	catch (ak::runtime_error&) {}
 }
 
 

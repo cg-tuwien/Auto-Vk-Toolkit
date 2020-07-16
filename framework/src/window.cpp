@@ -282,7 +282,7 @@ namespace xk
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mPresentSemaphoreDependencies), std::end(mPresentSemaphoreDependencies),
-			[maxTTL = aPresentFrameId - number_of_in_flight_frames()](const auto& tpl) {
+			[maxTTL = aPresentFrameId - number_of_frames_in_flight()](const auto& tpl) {
 				return std::get<frame_id_t>(tpl) <= maxTTL;
 			});
 		// return ownership of all the semaphores to remove to the caller
@@ -301,7 +301,7 @@ namespace xk
 		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
 
 		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
-		const auto maxTTL = aPresentFrameId - number_of_in_flight_frames();
+		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
 		
 		// 2. SINGLE USE COMMAND BUFFERS
 		// Can not use the erase-remove idiom here because that would invalidate iterators and references
@@ -377,6 +377,10 @@ namespace xk
 		{
 			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 			auto& imgAvailableSem = image_available_semaphore_for_frame();
+
+			// Update previous image index before getting a new image index for the current frame:
+			mPreviousFrameImageIndex = mCurrentFrameImageIndex;
+			
 			context().device().acquireNextImageKHR(
 				swap_chain(), // the swap chain from which we wish to acquire an image 
 				// At this point, I have to rant about the `timeout` parameter:
@@ -425,6 +429,8 @@ namespace xk
 				renderFinishedSemaphores.push_back(imgAvailable.handle());
 				renderFinishedSemaphoreStages.push_back(imgAvailable.semaphore_wait_stage());
 			}
+
+			// TODO: What if the user has not submitted any renderFinishedSemaphores?
 			
 			// WAIT -> SIGNAL
 			auto& signalSemaphore = current_initiate_present_semaphore();

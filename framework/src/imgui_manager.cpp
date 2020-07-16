@@ -62,7 +62,7 @@ namespace xk
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
 		// allocate. MinImageCount is not actually used even though there is a check at init time that its value is greater than 1.
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
-	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_in_flight_frames()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
+	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_frames_in_flight()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
 	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
 	    init_info.CheckVkResultFn = xk::context().check_vk_result;
 
@@ -74,7 +74,23 @@ namespace xk
 				a.mStoreOperation = ak::on_store::dont_care;
 				attachments.push_back(a);
 			}
-			mRenderpass = context().create_renderpass(attachments);
+			mRenderpass = context().create_renderpass(
+				attachments,
+				[](ak::renderpass_sync& rpSync){
+					if (rpSync.is_external_pre_sync()) {
+						rpSync.mSourceStage = ak::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = ak::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = ak::pipeline_stage::color_attachment_output;
+						rpSync.mDestinationMemoryDependency = ak::memory_access::color_attachment_read_access;
+					}
+					if (rpSync.is_external_post_sync()) {
+						rpSync.mSourceStage = ak::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = ak::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = ak::pipeline_stage::bottom_of_pipe;
+						rpSync.mDestinationMemoryDependency = {};
+					}
+				}
+			);
 		}
 
 		// Init it:

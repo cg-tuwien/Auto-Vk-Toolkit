@@ -141,7 +141,7 @@ namespace xk
 		/** Gets the number of how many frames are (potentially) concurrently rendered into,
 		 *	or put differently: How many frames are (potentially) "in flight" at the same time.
 		 */
-		auto number_of_in_flight_frames() const { 
+		auto number_of_frames_in_flight() const { 
 			return static_cast<frame_id_t>(mFramesInFlightFences.size());
 		}
 
@@ -160,11 +160,11 @@ namespace xk
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
 		auto in_flight_index_for_frame(std::optional<frame_id_t> aFrameId = {}) const { 
-			return aFrameId.value_or(current_frame()) % number_of_in_flight_frames(); 
+			return aFrameId.value_or(current_frame()) % number_of_frames_in_flight(); 
 		}
 		/** Returns the "in flight index" for the requested frame. */
 		auto current_in_flight_index() const {
-			return current_frame() % number_of_in_flight_frames();
+			return current_frame() % number_of_frames_in_flight();
 		}
 
 		/** Returns the "swapchain image index" for the current frame.  */

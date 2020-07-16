@@ -79,12 +79,9 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-
-		// Submit the draw call (that will be executed after the semaphore has been signalled:
-		auto renderFinishedSemaphore = mQueue->submit_with_semaphore(cmdBfr, imageAvailableSemaphore);
-
-		// Present must not happen before rendering is finished => add renderFinishedSemaphore as a dependency:
-		mainWnd->add_render_finished_semaphore_for_current_frame(std::move(renderFinishedSemaphore));
+		
+		// Submit the draw call and take care of the command buffer's lifetime:
+		mQueue->submit(cmdBfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 
@@ -99,7 +96,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// Create a window and open it
-		auto mainWnd = xk::context().create_window("cg_base main window");
+		auto mainWnd = xk::context().create_window("Hello World");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
