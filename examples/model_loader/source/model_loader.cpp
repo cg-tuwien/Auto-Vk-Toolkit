@@ -108,7 +108,7 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 			ak::image_usage::read_only_image,
 			ak::filter_mode::bilinear,
 			ak::border_handling_mode::repeat,
-			ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler()) // TODO: ....they complain here, if I use with_barriers_on_current_frame()
+			ak::sync::with_barriers(xk::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		mViewProjBuffer = xk::context().create_buffer(
@@ -193,13 +193,6 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		}));
 
 		for (auto& drawCall : mDrawCalls) {
-			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-			cmdbfr->handle().bindVertexBuffers(0u, {
-				drawCall.mPositionsBuffer->buffer_handle(), 
-				drawCall.mTexCoordsBuffer->buffer_handle(), 
-				drawCall.mNormalsBuffer->buffer_handle()
-			}, { 0, 0, 0 });
-
 			// Set the push constants:
 			auto pushConstantsForThisDrawCall = transformation_matrices { 
 				// Set model matrix for this mesh:
@@ -209,13 +202,13 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 			};
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-			// Bind and use the index buffer to create the draw call:
-			vk::IndexType indexType = ak::to_vk_index_type(drawCall.mIndexBuffer->meta<ak::index_buffer_meta>().sizeof_one_element());
-			cmdbfr->handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta<ak::index_buffer_meta>().num_elements(), 1u, 0u, 0u, 0u);
-
-			//cmdbfr->draw_indexed(*drawCall.mIndexBuffer, *drawCall.mPositionsBuffer, drawCall.mTexCoordsBuffer, drawCall.mNormalsBuffer);
-			//// TODO: ^ doesn't work
+			// Make the draw call:
+			cmdbfr->draw_indexed(
+				// Bind and use the index buffer:
+				*drawCall.mIndexBuffer,
+				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
+				*drawCall.mPositionsBuffer, *drawCall.mTexCoordsBuffer, *drawCall.mNormalsBuffer
+			);
 		}
 
 		cmdbfr->end_render_pass();
@@ -300,7 +293,7 @@ int main() // <== Starting point ==
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		auto& singleQueue = xk::context().create_queue(vk::QueueFlagBits::eCompute, ak::queue_selection_preference::specialized_queue);
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
 		
@@ -317,6 +310,8 @@ int main() // <== Starting point ==
 			ui
 		);
 	}
+	catch (xk::logic_error&) {}
+	catch (xk::runtime_error&) {}
 	catch (ak::logic_error&) {}
 	catch (ak::runtime_error&) {}
 }

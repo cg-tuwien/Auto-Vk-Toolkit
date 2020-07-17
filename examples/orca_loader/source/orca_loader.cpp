@@ -2,14 +2,14 @@
 #include <imgui.h>
 #include <glm/gtx/euler_angles.hpp>
 
-class orca_loader_app : public cgb::cg_element
+class orca_loader_app : public xk::cg_element
 {
 	struct data_for_draw_call
 	{
-		cgb::vertex_buffer mPositionsBuffer;
-		cgb::vertex_buffer mTexCoordsBuffer;
-		cgb::vertex_buffer mNormalsBuffer;
-		cgb::index_buffer mIndexBuffer;
+		ak::buffer mPositionsBuffer;
+		ak::buffer mTexCoordsBuffer;
+		ak::buffer mNormalsBuffer;
+		ak::buffer mIndexBuffer;
 		int mMaterialIndex;
 		glm::mat4 mModelMatrix;
 	};
@@ -19,19 +19,25 @@ class orca_loader_app : public cgb::cg_element
 		int mMaterialIndex;
 	};
 
-public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-
+public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+	orca_loader_app(ak::queue& aQueue)
+		: mQueue{ &aQueue }
+	{}
+	
 	void initialize() override
 	{
 		mInitTime = std::chrono::high_resolution_clock::now();
-
+		
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = xk::context().create_descriptor_cache();
+		
 		// Load a model from file:
-		auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto sponza = xk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 		// Get all the different materials of the model:
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
+		auto orca = xk::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
@@ -39,7 +45,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
-		std::vector<cgb::material_config> allMatConfigs;
+		std::vector<xk::material_config> allMatConfigs;
 		for (const auto& pair : distinctMaterialsSponza) {
 			allMatConfigs.push_back(pair.first);
 			auto matIndex = allMatConfigs.size() - 1;
@@ -49,30 +55,30 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			newElement.mModelMatrix = glm::scale(glm::vec3(0.01f));
 			
 			// Compared to the "model_loader" example, we are taking a more optimistic appproach here.
-			// By not using `cgb::append_indices_and_vertex_data` directly, we have no guarantee that
+			// By not using `ak::append_indices_and_vertex_data` directly, we have no guarantee that
 			// all vectors of vertex-data are of the same length. 
-			// Instead, here we use the (possibly more convenient) `cgb::get_combined*` functions and
+			// Instead, here we use the (possibly more convenient) `ak::get_combined*` functions and
 			// just optimistically assume that positions, texture coordinates, and normals are all of
 			// the same length.
 
 			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-			auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
-				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 
-				cgb::sync::with_semaphore_to_backbuffer_dependency()
+			auto [positionsBuffer, indicesBuffer] = xk::create_vertex_and_index_buffers(
+				{ xk::make_models_and_meshes_selection(sponza, pair.second) }, {}, 
+				ak::sync::wait_idle()
 			);
 			newElement.mPositionsBuffer = std::move(positionsBuffer);
 			newElement.mIndexBuffer = std::move(indicesBuffer);
 
 			// Get a buffer containing all texture coordinates for all submeshes with this material
-			newElement.mTexCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
-				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 0,
-				cgb::sync::with_semaphore_to_backbuffer_dependency()
+			newElement.mTexCoordsBuffer = xk::create_2d_texture_coordinates_buffer(
+				{ xk::make_models_and_meshes_selection(sponza, pair.second) }, 0,
+				ak::sync::wait_idle()
 			);
 
 			// Get a buffer containing all normals for all submeshes with this material
-			newElement.mNormalsBuffer = cgb::create_normals_buffer(
-				{ cgb::make_models_and_meshes_selection(sponza, pair.second) }, 
-				cgb::sync::with_semaphore_to_backbuffer_dependency()
+			newElement.mNormalsBuffer = xk::create_normals_buffer(
+				{ xk::make_models_and_meshes_selection(sponza, pair.second) }, 
+				ak::sync::wait_idle()
 			);
 		}
 		// Same for the ORCA scene:
@@ -104,31 +110,31 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 				//  buffers for everything which could potentially be instanced.)
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = cgb::create_vertex_and_index_buffers(
-					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
-					cgb::sync::with_semaphore_to_backbuffer_dependency()
+				auto [positionsBuffer, indicesBuffer] = xk::create_vertex_and_index_buffers(
+					{ xk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {},
+					ak::sync::wait_idle()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = cgb::create_2d_texture_coordinates_buffer(
-					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
-					cgb::sync::with_semaphore_to_backbuffer_dependency()
+				auto texCoordsBuffer = xk::create_2d_texture_coordinates_buffer(
+					{ xk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
+					ak::sync::wait_idle()
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = cgb::create_normals_buffer(
-					{ cgb::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
-					cgb::sync::with_semaphore_to_backbuffer_dependency()
+				auto normalsBuffer = xk::create_normals_buffer(
+					{ xk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					ak::sync::wait_idle()
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
 					newElement.mMaterialIndex = static_cast<int>(matIndex);
-					newElement.mModelMatrix = cgb::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
+					newElement.mModelMatrix = xk::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 					newElement.mPositionsBuffer = positionsBuffer;
 					newElement.mIndexBuffer = indicesBuffer;
 					newElement.mTexCoordsBuffer = texCoordsBuffer;
@@ -138,60 +144,62 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
-		auto [gpuMaterials, imageSamplers] = cgb::convert_for_gpu_usage(
-			allMatConfigs, 
-			xv::image_usage::general_texture,
-			cgb::filter_mode::anisotropic_16x,
-			cgb::border_handling_mode::repeat,
-			cgb::sync::with_semaphore_to_backbuffer_dependency()
+		auto [gpuMaterials, imageSamplers] = xk::convert_for_gpu_usage(
+			allMatConfigs, false,
+			ak::image_usage::general_texture,
+			ak::filter_mode::anisotropic_16x,
+			ak::border_handling_mode::repeat,
+			ak::sync::wait_idle()
 		);
 
-		mViewProjBuffer = cgb::create(
-			cgb::uniform_buffer_meta::create_from_data(glm::mat4()),
-			xv::memory_usage::host_coherent
+		mViewProjBuffer = xk::context().create_buffer(
+			ak::memory_usage::host_coherent, {},
+			ak::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
 		
-		mMaterialBuffer = cgb::create_and_fill(
-			cgb::storage_buffer_meta::create_from_data(gpuMaterials),
-			xv::memory_usage::host_coherent,
-			gpuMaterials.data(),
-			cgb::sync::not_required()
+		mMaterialBuffer = xk::context().create_buffer(
+			ak::memory_usage::host_coherent, {},
+			ak::storage_buffer_meta::create_from_data(gpuMaterials)
+		);
+		mMaterialBuffer->fill(
+			gpuMaterials.data(), 0,
+			ak::sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
 
-		auto swapChainFormat = cgb::context().main_window()->swap_chain_image_format();
+		auto swapChainFormat = xk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = cgb::graphics_pipeline_for(
+		mPipeline = xk::context().create_graphics_pipeline_for(
 			// Specify which shaders the pipeline consists of:
-			cgb::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
-			cgb::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
+			ak::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
+			ak::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// The next 3 lines define the format and location of the vertex shader inputs:
 			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
-			cgb::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
-			cgb::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
-			cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
+			ak::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0), // <-- corresponds to vertex shader's inPosition
+			ak::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1), // <-- corresponds to vertex shader's inTexCoord
+			ak::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2), // <-- corresponds to vertex shader's inNormal
 			// Some further settings:
-			cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			cgb::cfg::viewport_depth_scissors_config::from_window(cgb::context().main_window()),
+			ak::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
+			ak::cfg::viewport_depth_scissors_config::from_framebuffer(xk::context().main_window()->backbuffer_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			xv::attachment::declare(cgb::image_format::from_window_color_buffer(),	xv::on_load::clear, xv::color(0),		 xv::on_store::store),		 // But not in presentable format, because ImGui comes after
-			xv::attachment::declare(cgb::image_format::from_window_depth_buffer(),	xv::on_load::clear, xv::depth_stencil(), xv::on_store::dont_care),
+			ak::attachment::declare(xk::format_from_window_color_buffer(xk::context().main_window()), ak::on_load::clear, ak::color(0),		ak::on_store::store),	 // But not in presentable format, because ImGui comes after
+			ak::attachment::declare(xk::from_window_depth_buffer(xk::context().main_window()), ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
-			cgb::push_constant_binding_data { cgb::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			cgb::binding(0, 5, mViewProjBuffer),
-			cgb::binding(4, 4, mImageSamplers),
-			cgb::binding(7, 9, mMaterialBuffer) 
+			ak::push_constant_binding_data { ak::shader_type::vertex, 0, sizeof(transformation_matrices) },
+			ak::binding(0, 5, mViewProjBuffer),
+			ak::binding(4, 4, mImageSamplers),
+			ak::binding(7, 9, mMaterialBuffer) 
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), xk::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-		cgb::current_composition().add_element(mQuakeCam);
+		xk::current_composition()->add_element(mQuakeCam);
 
-		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -209,30 +217,23 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto mainWnd = cgb::context().main_window();
+		auto mainWnd = xk::context().main_window();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		cgb::fill(mViewProjBuffer, glm::value_ptr(viewProjMat), cgb::sync::not_required());
+		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, ak::sync::not_required());
 		
-		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
+		auto& commandPool = xk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mainWnd->backbufer_for_frame());
+		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), xk::context().main_window()->current_backbuffer());
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(mPipeline->layout(), {
-				cgb::binding(0, 5, mViewProjBuffer),
-				cgb::binding(4, 4, mImageSamplers),
-				cgb::binding(7, 9, mMaterialBuffer)
-			}
-		);
+		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
+			ak::binding(0, 5, mViewProjBuffer),
+			ak::binding(4, 4, mImageSamplers),
+			ak::binding(7, 9, mMaterialBuffer)
+		}));
 
 		for (auto& drawCall : mDrawCalls) {
-			// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-			cmdbfr->handle().bindVertexBuffers(0u, {
-				drawCall.mPositionsBuffer->buffer_handle(), 
-				drawCall.mTexCoordsBuffer->buffer_handle(), 
-				drawCall.mNormalsBuffer->buffer_handle()
-			}, { 0, 0, 0 });
-
 			// Set the push constants:
 			auto pushConstantsForThisDrawCall = transformation_matrices {
 				// Set model matrix for this mesh:
@@ -242,15 +243,25 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			};
 			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-			// Bind and use the index buffer to create the draw call:
-			vk::IndexType indexType = cgb::to_vk_index_type(drawCall.mIndexBuffer->meta_data().sizeof_one_element());
-			cmdbfr->handle().bindIndexBuffer(drawCall.mIndexBuffer->buffer_handle(), 0u, indexType);
-			cmdbfr->handle().drawIndexed(drawCall.mIndexBuffer->meta_data().num_elements(), 1u, 0u, 0u, 0u);
+			// Make the draw call:
+			cmdbfr->draw_indexed(
+				// Bind and use the index buffer:
+				*drawCall.mIndexBuffer,
+				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
+				*drawCall.mPositionsBuffer, *drawCall.mTexCoordsBuffer, *drawCall.mNormalsBuffer
+			);
 		}
 
 		cmdbfr->end_render_pass();
 		cmdbfr->end_recording();
-		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Submit the draw call and take care of the command buffer's lifetime:
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
+		mainWnd->handle_lifetime(std::move(cmdbfr));
 	}
 
 	void update() override
@@ -265,17 +276,21 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::space)) {
-			// Print the current camera position
-			auto pos = mQuakeCam.translation();
-			LOG_INFO(fmt::format("Current camera position: {}", cgb::to_string(pos)));
+		if (xk::input().key_pressed(xk::key_code::h)) {
+			// Log a message:
+			LOG_INFO_EM("Hello cg_base!");
 		}
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+		if (xk::input().key_pressed(xk::key_code::c)) {
+			// Center the cursor:
+			auto resolution = xk::context().main_window()->resolution();
+			xk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+		}
+		if (xk::input().key_pressed(xk::key_code::escape)) {
 			// Stop the current composition:
-			cgb::current_composition().stop();
+			xk::current_composition()->stop();
 		}
-		if (cgb::input().key_pressed(cgb::key_code::f1)) {
-			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if (xk::input().key_pressed(xk::key_code::f1)) {
+			auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -287,23 +302,20 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		}
 	}
 	
-	void finalize() override
-	{
-		cgb::context().logical_device().waitIdle();
-	}
-
 private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
-	cgb::uniform_buffer mViewProjBuffer;
-	cgb::storage_buffer mMaterialBuffer;
-	std::vector<cgb::image_sampler> mImageSamplers;
+	ak::queue* mQueue;
+	ak::descriptor_cache mDescriptorCache;
+
+	ak::buffer mViewProjBuffer;
+	ak::buffer mMaterialBuffer;
+	std::vector<ak::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	std::shared_ptr<cgb::descriptor_set> mDescriptorSet;
-	cgb::graphics_pipeline mPipeline;
-	cgb::quake_camera mQuakeCam;
+	ak::graphics_pipeline mPipeline;
+	xk::quake_camera mQuakeCam;
 
 	glm::vec3 mRotateObjects;
 	glm::vec3 mRotateScene;
@@ -313,32 +325,37 @@ private: // v== Member variables ==v
 int main() // <== Starting point ==
 {
 	try {
-		// What's the name of our application
-		//cgb::settings::gPhysicalDeviceSelectionHint = "radeon";
-		cgb::settings::gApplicationName = "cg_base::orca_loader";
-		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
-		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("cg_base: ORCA Loader Example");
+		auto mainWnd = xk::context().create_window("ORCA Loader");
 		mainWnd->set_resolution({ 1920, 1080 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::mailbox);
 		mainWnd->set_additional_back_buffer_attachments({ 
-			cgb::attachment::declare(cgb::image_format::default_depth_format(), cgb::xv::on_load::clear, cgb::xv::depth_stencil(), cgb::xv::on_store::dont_care)
+			ak::attachment::declare(vk::Format::eD32Sfloat, ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care)
 		});
-		mainWnd->request_srgb_framebuffer(true);
-		mainWnd->open(); 
+		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
+		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->open();
 
-		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = orca_loader_app();
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_present_queue(singleQueue);
+		
+		// Create an instance of our main ak::element which contains all the functionality:
+		auto app = orca_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = cgb::imgui_manager();
+		auto ui = xk::imgui_manager(singleQueue);
 
-		auto orcaLoader = cgb::setup(app, ui);
-		orcaLoader.start();
+		// GO:
+		xk::execute(
+			xk::application_name("Exekutor + Auto-Vk Example: ORCA Loader"),
+			mainWnd,
+			app,
+			ui
+		);
 	}
-	catch (cgb::logic_error&) {}
-	catch (cgb::runtime_error&) {}
+	catch (xk::logic_error&) {}
+	catch (xk::runtime_error&) {}
+	catch (ak::logic_error&) {}
+	catch (ak::runtime_error&) {}
 }
 
 
