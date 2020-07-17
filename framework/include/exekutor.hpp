@@ -90,6 +90,7 @@
 
 // -------------------- Exekutor includes --------------------
 #include "cgb_exceptions.hpp"
+#include "conversion_utils.hpp"
 
 #define AK_LOG_FATAL			LOG_ERROR_EM
 #define AK_LOG_ERROR			LOG_ERROR

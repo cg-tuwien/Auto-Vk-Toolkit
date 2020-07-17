@@ -1,77 +1,87 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class ray_tracing_basic_usage_app : public cgb::cg_element
+class ray_tracing_basic_usage_app : public xk::cg_element
 {
 	struct push_const_data {
 		glm::mat4 mViewMatrix;
 		glm::vec4 mLightDirection;
 	};
 
-public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
-
+public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+	ray_tracing_basic_usage_app(ak::queue& aQueue)
+		: mQueue{ &aQueue }
+	{}
+	
 	void initialize() override
 	{
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = xk::context().create_descriptor_cache();
+		
 		// Load an ORCA scene from file:
-		auto orca = cgb::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
+		auto orca = xk::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
 		// Iterate over all models, all model instances, and all meshes, and create bottom level acceleration structures for each one of them:
 		for (const auto& modelData : orca->models()) {
 			for (const auto& modelInstance : modelData.mInstances) {
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
-				auto [vtxBfr, idxBfr] = cgb::create_vertex_and_index_buffers({ cgb::make_models_and_meshes_selection(model, meshIndices) });
-				auto blas = cgb::bottom_level_acceleration_structure_t::create({ cgb::acceleration_structure_size_requirements::from_buffers(vtxBfr, idxBfr) }, false);
-				blas->build({ std::forward_as_tuple(std::cref(*vtxBfr), std::cref(*idxBfr)) });
+				auto [vtxBfr, idxBfr] = xk::create_vertex_and_index_buffers({ xk::make_models_and_meshes_selection(model, meshIndices) });
+				auto blas = xk::context().create_bottom_level_acceleration_structure({ ak::acceleration_structure_size_requirements::from_buffers(ak::vertex_index_buffer_pair{ vtxBfr, idxBfr }) }, false);
+				blas->build({ ak::vertex_index_buffer_pair{ vtxBfr, idxBfr } });
 				mGeometryInstances.push_back(
-					cgb::geometry_instance::create(blas)
-						.set_transform(cgb::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling))
+					xk::context().create_geometry_instance(blas)
+						.set_transform_column_major(xk::to_array( xk::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling) ))
 				);
 				mBLASs.push_back(std::move(blas));
 			}
 		}
-		
-		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
-			auto tlas = cgb::top_level_acceleration_structure_t::create(mGeometryInstances.size());
-			tlas->build(mGeometryInstances);
-			mTLAS.push_back(std::move(tlas));
-		});
-		
-		// Create offscreen image views to ray-trace into, one for each frame in flight:
-		size_t n = cgb::context().main_window()->number_of_in_flight_frames();
-		const auto wdth = cgb::context().main_window()->resolution().x;
-		const auto hght = cgb::context().main_window()->resolution().y;
-		const auto frmt = cgb::image_format::from_window_color_buffer(cgb::context().main_window());
-		cgb::invoke_for_all_in_flight_frames(cgb::context().main_window(), [&](auto inFlightIndex){
+
+		auto mainWnd = xk::context().main_window();
+		const auto numFramesInFlight = mainWnd->number_of_frames_in_flight();
+		for (int i = 0; i < numFramesInFlight; ++i) {
+
+			// Create top level acceleration structures, one for each frame in flight:
+			auto tlas = xk::context().create_top_level_acceleration_structure( mGeometryInstances.size() );
+			tlas->build( mGeometryInstances );
+			mTLAS.push_back( std::move(tlas) );
+
+			// Create offscreen image views to ray-trace into, one for each frame in flight:
+			const auto wdth = mainWnd->resolution().x;
+			const auto hght = mainWnd->resolution().y;
+			const auto frmt = xk::format_from_window_color_buffer(xk::context().main_window());
+
 			mOffscreenImageViews.emplace_back(
-				cgb::image_view_t::create(
-					cgb::image_t::create(wdth, hght, frmt, 1, xv::memory_usage::device, xv::image_usage::general_storage_image)
+				xk::context().create_image_view(
+					xk::context().create_image(wdth, hght, frmt, 1, ak::memory_usage::device, ak::image_usage::general_storage_image)
 				)
 			);
-			mOffscreenImageViews.back()->get_image().transition_to_layout({}, cgb::sync::with_barriers(cgb::context().main_window()->command_buffer_lifetime_handler()));
+
+			mOffscreenImageViews.back()->get_image().transition_to_layout({}, ak::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
-		});
+
+		}
 
 		// Create our ray tracing pipeline with the required configuration:
-		mPipeline = cgb::ray_tracing_pipeline_for(
-			cgb::define_shader_table(
-				cgb::ray_generation_shader("shaders/ray_generation_shader.rgen"),
-				cgb::triangles_hit_group::create_with_rchit_only("shaders/closest_hit_shader.rchit"),
-				cgb::miss_shader("shaders/miss_shader.rmiss")
+		mPipeline = xk::context().create_ray_tracing_pipeline_for(
+			ak::define_shader_table(
+				ak::ray_generation_shader("shaders/ray_generation_shader.rgen"),
+				ak::triangles_hit_group::create_with_rchit_only("shaders/closest_hit_shader.rchit"),
+				ak::miss_shader("shaders/miss_shader.rmiss")
 			),
-			cgb::max_recursion_depth::set_to_max(),
+			//xk::context().get_max_ray_tracing_recursion_depth(),
 			// Define push constants and descriptor bindings:
-			cgb::push_constant_binding_data { cgb::shader_type::ray_generation | cgb::shader_type::closest_hit, 0, sizeof(push_const_data) },
-			cgb::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
-			cgb::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
+			ak::push_constant_binding_data { ak::shader_type::ray_generation | ak::shader_type::closest_hit, 0, sizeof(push_const_data) },
+			ak::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
+			ak::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), cgb::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), mainWnd->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-		cgb::current_composition().add_element(mQuakeCam);
+		xk::current_composition()->add_element(mQuakeCam);
 
-		auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -99,19 +109,19 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::space)) {
+		if (xk::input().key_pressed(xk::key_code::space)) {
 			// Print the current camera position
 			auto pos = mQuakeCam.translation();
-			LOG_INFO(fmt::format("Current camera position: {}", cgb::to_string(pos)));
+			LOG_INFO(fmt::format("Current camera position: {}", xk::to_string(pos)));
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::escape)) {
+		if (xk::input().key_pressed(xk::key_code::escape)) {
 			// Stop the current composition:
-			cgb::current_composition().stop();
+			xk::current_composition()->stop();
 		}
 
-		if (cgb::input().key_pressed(cgb::key_code::f1)) {
-			auto imguiManager = cgb::current_composition().element_by_type<cgb::imgui_manager>();
+		if (xk::input().key_pressed(xk::key_code::f1)) {
+			auto imguiManager = xk::current_composition()->element_by_type<xk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -125,17 +135,17 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 
 	void render() override
 	{
-		auto mainWnd = cgb::context().main_window();
+		auto mainWnd = xk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		
-		auto cmdbfr = cgb::command_pool::create_single_use_command_buffer(cgb::context().graphics_queue());
+		auto& commandPool = xk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
-		cmdbfr->bind_descriptors(mPipeline->layout(), { 
-				cgb::binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
-				cgb::binding(1, 0, mTLAS[inFlightIndex])
-			}
-		);
+		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({  
+			ak::binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
+			ak::binding(1, 0, mTLAS[inFlightIndex])
+		}));
 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 
@@ -144,7 +154,7 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-		// TRACE. THA. RAYZ.
+		// Define the offsets into the shader binding table and then, issue the "trace rays" call:
 		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_size()};
 		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
 		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
@@ -152,68 +162,87 @@ public: // v== cgb::cg_element overrides which will be invoked by the framework 
 		cmdbfr->handle().traceRaysKHR(
 			&raygen, &raymiss, &rayhit, &callable, 
 			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-			cgb::context().dynamic_dispatch()
+			xk::context().dynamic_dispatch()
 		);
 
+		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
+		cmdbfr->establish_global_memory_barrier(
+			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::color_attachment_output,
+			ak::memory_access::shader_buffers_and_images_write_access,     ak::memory_access::color_attachment_write_access
+		);
+		
 		cmdbfr->end_recording();
-		mainWnd->submit_for_backbuffer(std::move(cmdbfr));
-		mainWnd->submit_for_backbuffer(mainWnd->copy_to_swapchain_image(mOffscreenImageViews[inFlightIndex]->get_image(), {}, false)); // UI still comes after
+		
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Submit the draw call and take care of the command buffer's lifetime:
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
+		mainWnd->handle_lifetime(std::move(cmdbfr));
 	}
 
 private: // v== Member variables ==v
 	std::chrono::high_resolution_clock::time_point mInitTime;
 
+	ak::queue* mQueue;
+	ak::descriptor_cache mDescriptorCache;
+	
 	// Multiple BLAS, concurrently used by all the (three?) TLASs:
-	std::vector<cgb::bottom_level_acceleration_structure> mBLASs;
+	std::vector<ak::bottom_level_acceleration_structure> mBLASs;
 	// Geometry instance data which store the instance data per BLAS
-	std::vector<cgb::geometry_instance> mGeometryInstances;
+	std::vector<ak::geometry_instance> mGeometryInstances;
 	// Multiple TLAS, one for each frame in flight:
-	std::vector<cgb::top_level_acceleration_structure> mTLAS;
+	std::vector<ak::top_level_acceleration_structure> mTLAS;
 
-	std::vector<cgb::image_view> mOffscreenImageViews;
+	std::vector<ak::image_view> mOffscreenImageViews;
 
 	glm::vec3 mLightDir = {0.0f, -1.0f, 0.0f};
 	
-	cgb::ray_tracing_pipeline mPipeline;
-	cgb::quake_camera mQuakeCam;
+	ak::ray_tracing_pipeline mPipeline;
+	xk::quake_camera mQuakeCam;
 
 }; // ray_tracing_basic_usage_app
 
 int main() // <== Starting point ==
 {
 	try {
-		// What's the name of our application
-		cgb::settings::gApplicationName = "cg_base::ray_tracing_basic_usage";
-		cgb::settings::gQueueSelectionPreference = cgb::device_queue_selection_strategy::prefer_everything_on_single_queue;
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_EXTENSION_NAME);
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-		cgb::settings::gRequiredDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
-		cgb::settings::gEnableBufferDeviceAddress = true;
-		cgb::settings::gLoadImagesInSrgbFormatByDefault = true;
 
 		// Create a window and open it
-		auto mainWnd = cgb::context().create_window("cg_base: Real-Time Ray Tracing - Basic Usage Example");
-		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(cgb::presentation_mode::fifo);
-		mainWnd->open(); 
+		auto mainWnd = xk::context().create_window("Real-Time Ray Tracing - Basic Usage Example");
+		mainWnd->set_resolution({ 1920, 1080 });
+		mainWnd->set_presentaton_mode(xk::presentation_mode::mailbox);
+		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->open();
 
-		// Create an instance of our main cgb::element which contains all the functionality:
-		auto app = ray_tracing_basic_usage_app();
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_present_queue(singleQueue);
+		
+		// Create an instance of our main ak::element which contains all the functionality:
+		auto app = ray_tracing_basic_usage_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = cgb::imgui_manager();
+		auto ui = xk::imgui_manager(singleQueue);
 
-		auto rtBasic = cgb::setup(app, ui);
-		rtBasic.start();
-
-		cgb::context().work_off_event_handlers();
-		cgb::context().work_off_all_pending_main_thread_actions();
-		cgb::context().work_off_event_handlers();
+		// GO:
+		xk::execute(
+			xk::application_name("Exekutor + Auto-Vk Example: Real-Time Ray Tracing - Basic Usage Example"),
+			xk::required_device_extensions()
+				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
+				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
+				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+			mainWnd,
+			app,
+			ui
+		);
 	}
-	catch (cgb::logic_error&) {}
-	catch (cgb::runtime_error&) {}
+	catch (xk::logic_error&) {}
+	catch (xk::runtime_error&) {}
+	catch (ak::logic_error&) {}
+	catch (ak::runtime_error&) {}
 }
 
 

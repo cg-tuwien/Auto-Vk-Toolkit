@@ -125,6 +125,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
+    <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
     <ClInclude Include="..\..\framework\include\exekutor.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>

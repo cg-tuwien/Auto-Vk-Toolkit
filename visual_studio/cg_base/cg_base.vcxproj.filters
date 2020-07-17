@@ -405,6 +405,9 @@
     <ClInclude Include="..\..\framework\include\settings.hpp">
       <Filter>exekutor_include\base</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\conversion_utils.hpp">
+      <Filter>exekutor_include\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">
