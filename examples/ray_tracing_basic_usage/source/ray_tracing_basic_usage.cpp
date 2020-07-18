@@ -25,7 +25,7 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 			for (const auto& modelInstance : modelData.mInstances) {
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
-				auto [vtxBfr, idxBfr] = xk::create_vertex_and_index_buffers({ xk::make_models_and_meshes_selection(model, meshIndices) });
+				auto [vtxBfr, idxBfr] = xk::create_vertex_and_index_buffers({ xk::make_models_and_meshes_selection(model, meshIndices) }, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR);
 				auto blas = xk::context().create_bottom_level_acceleration_structure({ ak::acceleration_structure_size_requirements::from_buffers(ak::vertex_index_buffer_pair{ vtxBfr, idxBfr }) }, false);
 				blas->build({ ak::vertex_index_buffer_pair{ vtxBfr, idxBfr } });
 				mGeometryInstances.push_back(
@@ -155,21 +155,30 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// Define the offsets into the shader binding table and then, issue the "trace rays" call:
-		auto raygen  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 0,                                 mPipeline->table_entry_size(), mPipeline->table_size()};
-		auto raymiss = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 2 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
-		auto rayhit  = vk::StridedBufferRegionKHR{mPipeline->shader_binding_table_handle(), 1 * mPipeline->table_entry_size(), mPipeline->table_entry_size(), mPipeline->table_size()};
-		auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
-		cmdbfr->handle().traceRaysKHR(
-			&raygen, &raymiss, &rayhit, &callable, 
-			mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-			xk::context().dynamic_dispatch()
-		);
+		//const auto sbtHandle = mPipeline->shader_binding_table_handle();
+		//const auto sbtOffsetSize = mPipeline->table_offset_size();
+		//const auto sbtEntrySize = mPipeline->table_entry_size();
+		//const auto sbtSize = mPipeline->table_size();
+		//auto raygen  = vk::StridedBufferRegionKHR{sbtHandle, 0,                 sbtEntrySize, sbtSize};
+		//auto raymiss = vk::StridedBufferRegionKHR{sbtHandle, 2 * sbtOffsetSize, sbtEntrySize, sbtSize};
+		//auto rayhit  = vk::StridedBufferRegionKHR{sbtHandle, 1 * sbtOffsetSize, sbtEntrySize, sbtSize};
+		//auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
+		//cmdbfr->handle().traceRaysKHR(
+		//	&raygen, &raymiss, &rayhit, &callable, 
+		//	mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
+		//	xk::context().dynamic_dispatch()
+		//);
+		cmdbfr->trace_rays(mPipeline, xk::context().dynamic_dispatch(), 0, 0, 0, {}, mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1);
 
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
 		cmdbfr->establish_global_memory_barrier(
 			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::color_attachment_output,
 			ak::memory_access::shader_buffers_and_images_write_access,     ak::memory_access::color_attachment_write_access
 		);
+
+		ak::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), ak::sync::with_barriers_into_existing_command_buffer(cmdbfr));
+
+		//mOffscreenImageViews[inFlightIndex]->get_image().transition_to_layout(vk::ImageLayout::eColorAttachmentOptimal, ak::sync::with_barriers_into_existing_command_buffer(cmdbfr));
 		
 		cmdbfr->end_recording();
 		
@@ -180,6 +189,8 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		// Submit the draw call and take care of the command buffer's lifetime:
 		mQueue->submit(cmdbfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(std::move(cmdbfr));
+
+	
 	}
 
 private: // v== Member variables ==v
