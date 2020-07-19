@@ -68,7 +68,6 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 				ak::triangles_hit_group::create_with_rchit_only("shaders/closest_hit_shader.rchit"),
 				ak::miss_shader("shaders/miss_shader.rmiss")
 			),
-			//xk::context().get_max_ray_tracing_recursion_depth(),
 			// Define push constants and descriptor bindings:
 			ak::push_constant_binding_data { ak::shader_type::ray_generation | ak::shader_type::closest_hit, 0, sizeof(push_const_data) },
 			ak::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
@@ -170,15 +169,19 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		//);
 		cmdbfr->trace_rays(mPipeline, xk::context().dynamic_dispatch(), 0, 0, 0, {}, mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1);
 
-		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
+		// Sync ray tracing with transfer:
 		cmdbfr->establish_global_memory_barrier(
-			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::color_attachment_output,
-			ak::memory_access::shader_buffers_and_images_write_access,     ak::memory_access::color_attachment_write_access
+			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::transfer,
+			ak::memory_access::shader_buffers_and_images_write_access,     ak::memory_access::transfer_read_access
 		);
 
-		ak::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), ak::sync::with_barriers_into_existing_command_buffer(cmdbfr));
+		ak::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), ak::sync::with_barriers_into_existing_command_buffer(cmdbfr, {}, {}));
 
-		//mOffscreenImageViews[inFlightIndex]->get_image().transition_to_layout(vk::ImageLayout::eColorAttachmentOptimal, ak::sync::with_barriers_into_existing_command_buffer(cmdbfr));
+		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
+		cmdbfr->establish_global_memory_barrier(
+			ak::pipeline_stage::transfer,                                  ak::pipeline_stage::color_attachment_output,
+			ak::memory_access::transfer_write_access,                      ak::memory_access::color_attachment_write_access
+		);
 		
 		cmdbfr->end_recording();
 		
