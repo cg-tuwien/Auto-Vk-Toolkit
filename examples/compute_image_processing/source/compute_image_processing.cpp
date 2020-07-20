@@ -9,7 +9,7 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
-class compute_image_processing_app : public xk::cg_element
+class compute_image_processing_app : public xk::invokee
 {
 private: // v== Struct definitions and data ==v
 
@@ -39,7 +39,7 @@ private: // v== Struct definitions and data ==v
 		 0, 1, 2,   2, 3, 0
 	};
 
-public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+public: // v== ak::invokee overrides which will be invoked by the framework ==v
 	compute_image_processing_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mRotationSpeed{ 1.0f }

@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28531.58
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cg_base", "cg_base\cg_base.vcxproj", "{602F842F-50C1-466D-8696-1707937D8AB9}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "exekutor", "exekutor\exekutor.vcxproj", "{602F842F-50C1-466D-8696-1707937D8AB9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{42ECE233-FCB5-4525-BBC9-024CE075FC38}"
 EndProject

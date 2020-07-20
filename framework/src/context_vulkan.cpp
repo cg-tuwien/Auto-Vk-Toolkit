@@ -4,13 +4,13 @@
 
 namespace xk
 {
-	std::vector<const char*> vulkan::sRequiredDeviceExtensions = {
+	std::vector<const char*> context_vulkan::sRequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	std::mutex vulkan::sConcurrentAccessMutex;
+	std::mutex context_vulkan::sConcurrentAccessMutex;
 
-	std::vector<const char*> vulkan::assemble_validation_layers()
+	std::vector<const char*> context_vulkan::assemble_validation_layers()
 	{
 		std::vector<const char*> supportedValidationLayers;
 
@@ -35,7 +35,7 @@ namespace xk
 		return supportedValidationLayers;
 	}
 
-	vulkan::~vulkan()
+	context_vulkan::~context_vulkan()
 	{
 		mContextState = xk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
@@ -84,13 +84,13 @@ namespace xk
 		context().work_off_event_handlers();
 	}
 
-	void vulkan::check_vk_result(VkResult err)
+	void context_vulkan::check_vk_result(VkResult err)
 	{
 		const auto& inst = context().vulkan_instance();
 		createResultValue(static_cast<vk::Result>(err), inst, "check_vk_result");
 	}
 
-	void vulkan::initialize(
+	void context_vulkan::initialize(
 		settings aSettings,
 		vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
 		vk::PhysicalDeviceVulkan12Features aVulkan12Features
@@ -238,7 +238,7 @@ namespace xk
 
 	}
 
-	ak::command_pool& vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
+	ak::command_pool& context_vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
 	{
 		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
 		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
@@ -253,27 +253,27 @@ namespace xk
 		return std::get<1>(*it);
 	}
 
-	ak::command_pool& vulkan::get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags)
+	ak::command_pool& context_vulkan::get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags)
 	{
 		return get_command_pool_for(aQueue.family_index(), aFlags);
 	}
 
-	ak::command_pool& vulkan::get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue)
+	ak::command_pool& context_vulkan::get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eTransient);
 	}
 	
-	ak::command_pool& vulkan::get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue)
+	ak::command_pool& context_vulkan::get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, {});
 	}
 	
-	ak::command_pool& vulkan::get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue)
+	ak::command_pool& context_vulkan::get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 	}
 	
-	void vulkan::begin_composition()
+	void context_vulkan::begin_composition()
 	{ 
 		dispatch_to_main_thread([]() {
 			context().mContextState = xk::context_state::composition_beginning;
@@ -281,7 +281,7 @@ namespace xk
 		});
 	}
 
-	void vulkan::end_composition()
+	void context_vulkan::end_composition()
 	{
 		dispatch_to_main_thread([]() {
 			context().mContextState = xk::context_state::composition_ending;
@@ -291,7 +291,7 @@ namespace xk
 		});
 	}
 
-	void vulkan::begin_frame()
+	void context_vulkan::begin_frame()
 	{
 		dispatch_to_main_thread([]() {
 			context().mContextState = xk::context_state::frame_begun;
@@ -299,7 +299,7 @@ namespace xk
 		});
 	}
 
-	void vulkan::update_stage_done()
+	void context_vulkan::update_stage_done()
 	{
 		dispatch_to_main_thread([]() {
 			context().mContextState = xk::context_state::frame_updates_done;
@@ -307,7 +307,7 @@ namespace xk
 		});
 	}
 
-	void vulkan::end_frame()
+	void context_vulkan::end_frame()
 	{
 		dispatch_to_main_thread([]() {
 			context().mContextState = xk::context_state::frame_ended;
@@ -315,7 +315,7 @@ namespace xk
 		});
 	}
 
-	ak::queue& vulkan::create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
+	ak::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
 	{
 		assert(are_we_on_the_main_thread());
 		context().work_off_event_handlers();
@@ -371,13 +371,13 @@ namespace xk
 		return nuQu;
 	}
 	
-	window* vulkan::create_window(const std::string& aTitle)
+	window* context_vulkan::create_window(const std::string& aTitle)
 	{
 		assert(are_we_on_the_main_thread());
 		context().work_off_event_handlers();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		auto* wnd = generic_glfw::prepare_window();
+		auto* wnd = context_generic_glfw::prepare_window();
 		wnd->set_title(aTitle);
 
 		// Wait for the window to receive a valid handle before creating its surface
@@ -425,7 +425,7 @@ namespace xk
 		return wnd;
 	}
 
-	void vulkan::create_instance()
+	void context_vulkan::create_instance()
 	{
 		// Information about the application for the instance creation call
 		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
@@ -460,7 +460,7 @@ namespace xk
 		mDynamicDispatch.init((VkInstance)mInstance, vkGetInstanceProcAddr);
 	}
 
-	bool vulkan::is_validation_layer_supported(const char* pName)
+	bool context_vulkan::is_validation_layer_supported(const char* pName)
 	{
 		auto availableLayers = vk::enumerateInstanceLayerProperties();
 		return availableLayers.end() !=  std::find_if(
@@ -470,7 +470,7 @@ namespace xk
 			});
 	}
 
-	VKAPI_ATTR VkBool32 VKAPI_CALL vulkan::vk_debug_utils_callback(
+	VKAPI_ATTR VkBool32 VKAPI_CALL context_vulkan::vk_debug_utils_callback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT pMessageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT pMessageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -535,7 +535,7 @@ namespace xk
 		return VK_TRUE;
 	}
 
-	void vulkan::setup_vk_debug_callback()
+	void context_vulkan::setup_vk_debug_callback()
 	{
 		assert(mInstance);
 		// Configure logging
@@ -557,7 +557,7 @@ namespace xk
 #endif
 			)
 			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
-			.setPfnUserCallback(vulkan::vk_debug_utils_callback);
+			.setPfnUserCallback(context_vulkan::vk_debug_utils_callback);
 
 		// Hook in
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)mInstance.getProcAddr("vkCreateDebugUtilsMessengerEXT");
@@ -577,7 +577,7 @@ namespace xk
 #endif
 	}
 
-	VKAPI_ATTR VkBool32 VKAPI_CALL vulkan::vk_debug_report_callback(
+	VKAPI_ATTR VkBool32 VKAPI_CALL context_vulkan::vk_debug_report_callback(
 		VkDebugReportFlagsEXT                       flags,
 		VkDebugReportObjectTypeEXT                  objectType,
 		uint64_t                                    object,
@@ -615,7 +615,7 @@ namespace xk
 		return VK_FALSE;
 	}
 
-	void vulkan::setup_vk_debug_report_callback()
+	void context_vulkan::setup_vk_debug_report_callback()
 	{
 		assert(mInstance);
 #if LOG_LEVEL > 0
@@ -632,7 +632,7 @@ namespace xk
 #endif
 #endif
 			)
-			.setPfnCallback(vulkan::vk_debug_report_callback);
+			.setPfnCallback(context_vulkan::vk_debug_report_callback);
 		
 		// Hook in
 		auto func = (PFN_vkCreateDebugReportCallbackEXT)mInstance.getProcAddr("vkCreateDebugReportCallbackEXT");
@@ -653,7 +653,7 @@ namespace xk
 #endif
 	}
 
-	std::vector<const char*> vulkan::get_all_required_device_extensions()
+	std::vector<const char*> context_vulkan::get_all_required_device_extensions()
 	{
 		std::vector<const char*> combined;
 		combined.assign(std::begin(mSettings.mRequiredDeviceExtensions.mExtensions), std::end(mSettings.mRequiredDeviceExtensions.mExtensions));
@@ -661,7 +661,7 @@ namespace xk
 		return combined;
 	}
 
-	bool vulkan::supports_shading_rate_image(const vk::PhysicalDevice& device)
+	bool context_vulkan::supports_shading_rate_image(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
 		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV();
@@ -670,19 +670,19 @@ namespace xk
 		return shadingRateImageFeatureNV.shadingRateImage && shadingRateImageFeatureNV.shadingRateCoarseSampleOrder && supportedExtFeatures.features.shaderStorageImageExtendedFormats;
 	}
 
-	bool vulkan::shading_rate_image_extension_requested()
+	bool context_vulkan::shading_rate_image_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}
 
-	bool vulkan::ray_tracing_extension_requested()
+	bool context_vulkan::ray_tracing_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}
 
-	bool vulkan::supports_all_required_extensions(const vk::PhysicalDevice& device)
+	bool context_vulkan::supports_all_required_extensions(const vk::PhysicalDevice& device)
 	{
 		bool allExtensionsSupported = true;
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
@@ -708,7 +708,7 @@ namespace xk
 		return allExtensionsSupported;
 	}
 
-	void vulkan::pick_physical_device()
+	void context_vulkan::pick_physical_device()
 	{
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
@@ -788,7 +788,7 @@ namespace xk
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
-	void vulkan::create_swap_chain_for_window(window* aWindow)
+	void context_vulkan::create_swap_chain_for_window(window* aWindow)
 	{
 		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(aWindow->surface());
 

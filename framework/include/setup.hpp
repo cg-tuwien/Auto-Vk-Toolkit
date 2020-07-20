@@ -4,95 +4,95 @@
 namespace xk
 {
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w)
 	{ }
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
 	{
 		s.mPhysicalDeviceSelectionHint = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
 	{
 		s.mApplicationName = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
 	{
 		s.mApplicationVersion = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
 	{
 		s.mRequiredInstanceExtensions = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, validation_layers& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, validation_layers& aValue, Args&... args)
 	{
 		s.mValidationLayers = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
 	{
 		s.mRequiredDeviceExtensions = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, timer_interface& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface& aValue, Args&... args)
 	{
 		t = &aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, timer_interface* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface* aValue, Args&... args)
 	{
 		t = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, invoker_interface& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface& aValue, Args&... args)
 	{
 		i = &aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, invoker_interface* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface* aValue, Args&... args)
 	{
 		i = aValue;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, window* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
 	{
 		w.push_back(aValue);
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, cg_element& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee& aValue, Args&... args)
 	{
 		e.push_back(&aValue);
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<cg_element*>& e, std::vector<window*>& w, cg_element* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee* aValue, Args&... args)
 	{
 		e.push_back(aValue);
 		add_config(s, phdf, v12f, t, i, e, w, args...);
@@ -102,7 +102,7 @@ namespace xk
 	static void execute(Args&&... args)
 	{
 		varying_update_timer defaultTimer;
-		sequential_executor defaultInvoker;
+		sequential_invoker defaultInvoker;
 		
 		settings s{};
 		
@@ -125,7 +125,7 @@ namespace xk
 		
 		timer_interface* t = &defaultTimer;
 		invoker_interface* i = &defaultInvoker;
-		std::vector<cg_element*> e;
+		std::vector<invokee*> e;
 		std::vector<window*> w;
 		add_config(s, phdf, v12f, t, i, e, w, args...);
 

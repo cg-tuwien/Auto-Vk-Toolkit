@@ -3,15 +3,15 @@
 
 namespace xk
 {
-	// Forward-declare cg_element
-	class cg_element;
+	// Forward-declare invokee
+	class invokee;
 
 	/**	Interface to access the current composition from e.g. inside
-	 *	a @ref cg_element.
+	 *	a @ref invokee.
 	 */
 	class composition_interface
 	{
-		friend class generic_glfw;
+		friend class context_generic_glfw;
 	public:
 		virtual ~composition_interface()
 		{ }
@@ -30,26 +30,26 @@ namespace xk
 		/** Access to the current frame's input */
 		virtual input_buffer& input() = 0;
 
-		/** @brief Get the @ref cg_element at the given index
+		/** @brief Get the @ref invokee at the given index
 		 *
-		 *	Get the @ref cg_element in this composition_interface's objects-container at 
+		 *	Get the @ref invokee in this composition_interface's objects-container at 
 		 *	the given index. If the index is out of bounds, nullptr will be
 		 *	returned.
 		 */
-		virtual cg_element* element_at_index(size_t) = 0;
+		virtual invokee* element_at_index(size_t) = 0;
 
-		/** @brief Find a @ref cg_element by name
+		/** @brief Find a @ref invokee by name
 		 *
-		 *	Find a @ref cg_element assigned to this composition_interface by name.
+		 *	Find a @ref invokee assigned to this composition_interface by name.
 		 *	If no object with the given name could be found, nullptr is returned.
 		 */
-		virtual cg_element* element_by_name(std::string_view) = 0;
+		virtual invokee* element_by_name(std::string_view) = 0;
 
 		/** @brief Find an object by type 
-		 *	@param pType type-identifier of the @ref cg_element to be searched for
+		 *	@param pType type-identifier of the @ref invokee to be searched for
 		 *	@param pIndex Get the n-th object of the specified type
 		 */
-		virtual cg_element* element_by_type(const std::type_info& pType, uint32_t pIndex = 0) = 0;
+		virtual invokee* element_by_type(const std::type_info& pType, uint32_t pIndex = 0) = 0;
 
 		template <typename T>
 		T* element_by_type(uint32_t aIndex = 0)
@@ -59,40 +59,40 @@ namespace xk
 
 		/** @brief	Add an element to this composition which becomes active in the next frame
 		 *	This element will be added to the collection of elements at the end of the current frame.
-		 *  I.e. the first repeating method call on the element will be a call to @ref cg_element::fixed_update()
-		 *  Before the @ref cg_element::fixed_update() call, however, @ref cg_element::initialize() will be 
+		 *  I.e. the first repeating method call on the element will be a call to @ref invokee::fixed_update()
+		 *  Before the @ref invokee::fixed_update() call, however, @ref invokee::initialize() will be 
 		 *  called at the beginning of the next frame.
 		 *  @param	pElement	Reference to the element to add to the composition
 		 */
-		virtual void add_element(cg_element& pElement) = 0;
+		virtual void add_element(invokee& pElement) = 0;
 
 		/** @brief	Adds an element immediately to the composition
 		 *	This method performs the same as @ref add_element() but does not wait until the end of 
-		 *  the current frame. Also @ref cg_element::intialize() will be called immediately on the
+		 *  the current frame. Also @ref invokee::intialize() will be called immediately on the
 		 *  element.
 		 *  @param	pElement	Reference to the element to add to the composition
 		 */
-		virtual void add_element_immediately(cg_element& pElement) = 0;
+		virtual void add_element_immediately(invokee& pElement) = 0;
 
 		/**	@brief	Removes an element from the composition at the end of the current frame
 		 *	Removes the given element from the composition at the end of the current frame.
-		 *	This means that all current frame's repeading method calls up until @ref cg_element::render_gizmos()
-		 *  will be called on the element. After that, @ref cg_element::finalize() will be called and the
+		 *	This means that all current frame's repeading method calls up until @ref invokee::render_gizmos()
+		 *  will be called on the element. After that, @ref invokee::finalize() will be called and the
 		 *  element will be removed from the collection.
 		 *  @param	pElement	Reference to the element to be removed from the composition
 		 */
-		virtual void remove_element(cg_element& pElement) = 0;
+		virtual void remove_element(invokee& pElement) = 0;
 
 		/**	@brief	Removes an element immediately from the composition
 		 *	This method performs the same as @ref remove_element() but does not wait until the end of
-		 *  the current frame. Also @ref cg_element::finalize() will be called immediately on the element
+		 *  the current frame. Also @ref invokee::finalize() will be called immediately on the element
 		 *  (except if the pIsBeingDestructed parameter is set to true).
 		 *  @param	pElement			Reference to the element to be removed from the composition
 		 *	@param	pIsBeingDestructed	Set to true to indicate this call is being issued from the 
-		 *								@ref cg_element's destructor; in that case, @ref cg_element::finalize()
+		 *								@ref invokee's destructor; in that case, @ref invokee::finalize()
 		 *								will not be invoked on the given element.
 		 */
-		virtual void remove_element_immediately(cg_element& pElement, bool pIsBeingDestructed = false) = 0;
+		virtual void remove_element_immediately(invokee& pElement, bool pIsBeingDestructed = false) = 0;
 
 		/** @brief Start a game/rendering-loop for this composition_interface
 		 *

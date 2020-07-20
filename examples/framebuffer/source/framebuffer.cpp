@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class framebuffer_app : public xk::cg_element
+class framebuffer_app : public xk::invokee
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -34,7 +34,7 @@ class framebuffer_app : public xk::cg_element
 		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
 	};
 
-public: // v== xk::cg_element overrides which will be invoked by the framework ==v
+public: // v== xk::invokee overrides which will be invoked by the framework ==v
 	framebuffer_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mSelectedAttachmentToCopy{ 0 }

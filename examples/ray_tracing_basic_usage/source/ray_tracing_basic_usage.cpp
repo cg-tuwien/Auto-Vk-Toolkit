@@ -1,14 +1,14 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class ray_tracing_basic_usage_app : public xk::cg_element
+class ray_tracing_basic_usage_app : public xk::invokee
 {
 	struct push_const_data {
 		glm::mat4 mViewMatrix;
 		glm::vec4 mLightDirection;
 	};
 
-public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+public: // v== ak::invokee overrides which will be invoked by the framework ==v
 	ray_tracing_basic_usage_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}

@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class ray_tracing_custom_intersection_app : public xk::cg_element
+class ray_tracing_custom_intersection_app : public xk::invokee
 {
 	struct transformation_matrices {
 		glm::mat4 mViewMatrix;
@@ -38,7 +38,7 @@ class ray_tracing_custom_intersection_app : public xk::cg_element
 		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
 	};
 
-public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+public: // v== ak::invokee overrides which will be invoked by the framework ==v
 	ray_tracing_custom_intersection_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}

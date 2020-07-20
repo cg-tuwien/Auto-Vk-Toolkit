@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class model_loader_app : public xk::cg_element
+class model_loader_app : public xk::invokee
 {
 	struct data_for_draw_call
 	{
@@ -23,7 +23,7 @@ class model_loader_app : public xk::cg_element
 		int mMaterialIndex;
 	};
 
-public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+public: // v== ak::invokee overrides which will be invoked by the framework ==v
 	model_loader_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mScale{1.0f, 1.0f, 1.0f}

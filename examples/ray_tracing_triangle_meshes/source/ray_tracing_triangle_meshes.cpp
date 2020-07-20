@@ -1,14 +1,14 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class ray_tracing_triangle_meshes_app : public xk::cg_element
+class ray_tracing_triangle_meshes_app : public xk::invokee
 {
 	struct push_const_data {
 		glm::mat4 mViewMatrix;
 		glm::vec4 mLightDirection;
 	};
 
-public: // v== xk::cg_element overrides which will be invoked by the framework ==v
+public: // v== xk::invokee overrides which will be invoked by the framework ==v
 	ray_tracing_triangle_meshes_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}
@@ -82,7 +82,7 @@ public: // v== xk::cg_element overrides which will be invoked by the framework =
 				// Create one bottom level acceleration structure per model
 				auto blas = xk::context().create_bottom_level_acceleration_structure({ 
 					ak::acceleration_structure_size_requirements::from_buffers( ak::vertex_index_buffer_pair{ positionsBuffer, indicesBuffer } )
-				}, false);
+				}, true);
 				// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
 				// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
 				blas.enable_shared_ownership();
@@ -136,7 +136,7 @@ public: // v== xk::cg_element overrides which will be invoked by the framework =
 		auto fif = mainWnd->number_of_frames_in_flight();
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
-			auto tlas = xk::context().create_top_level_acceleration_structure(mGeometryInstances.size());
+			auto tlas = xk::context().create_top_level_acceleration_structure(mGeometryInstances.size(), true);
 			// Build the TLAS, ...
 			tlas->build(mGeometryInstances, {}, ak::sync::with_barriers(
 					xk::context().main_window()->command_buffer_lifetime_handler(),
@@ -256,9 +256,7 @@ public: // v== xk::cg_element overrides which will be invoked by the framework =
 			for (auto& geomInst : mGeometryInstances) {
 				evenOdd = !evenOdd;
 				if (evenOdd) { continue; }
-				geomInst.set_transform_column_major(xk::to_array( glm::translate(
-					glm::vec3{ geomInst.mTransform.matrix[0][3], geomInst.mTransform.matrix[1][3], geomInst.mTransform.matrix[2][3] } + glm::vec3{x, y, z} * speed) 
-				));
+				geomInst.set_transform_column_major(xk::to_array( glm::translate( xk::to_mat(geomInst.mTransform), glm::vec3{x, y, z} * speed ) ));
 			}
 			//
 			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:

@@ -11,7 +11,7 @@ namespace xk
 	 *	functionality, just leave the other virtual methods in their
 	 *	empty default implementation.
 	 *
-	 *	Invocation order of cg_element's methods:
+	 *	Invocation order of invokee's methods:
 	 *	  1. initialize
 	 *	  loop:
 	 *	    2. check and possibly issue on_enable event handlers
@@ -24,14 +24,14 @@ namespace xk
 	 *	  loop-end
 	 *	  8. finalize
 	 */
-	class cg_element
+	class invokee
 	{
 	public:
 		/**
 		 * @brief Constructor which automatically generates a name for this object
 		 */
-		cg_element()
-			: mName{ "cg_element #" + std::to_string(sGeneratedNameId++) }
+		invokee()
+			: mName{ "invokee #" + std::to_string(sGeneratedNameId++) }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
@@ -42,7 +42,7 @@ namespace xk
 		 *	@param pName Name by which this object can be identified
 		 *	@param pIsEnabled Enabled means that this object will receive the method invocations during the loop
 		 */
-		cg_element(std::string pName, bool pIsEnabled = true) 
+		invokee(std::string pName, bool pIsEnabled = true) 
 			: mName{ pName }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ pIsEnabled }
@@ -50,7 +50,7 @@ namespace xk
 			, mRenderGizmosEnabled{ true }
 		{ }
 
-		virtual ~cg_element()
+		virtual ~invokee()
 		{
 			// Make sure, this element gets removed from the composition
 			auto* cc = xk::current_composition();
@@ -59,25 +59,25 @@ namespace xk
 			}
 		}
 
-		/** Returns the name of this cg_element */
+		/** Returns the name of this invokee */
 		const std::string& name() const { return mName; }
 
-		/** Returns the desired execution order of this cg_element w.r.t. the default time 0.
-		 *	cg_elements with negative execution orders will get their initialize-, update-,
-		 *	render-, etc. methods invoked earlier; cg_elements with positive execution orders
+		/** Returns the desired execution order of this invokee w.r.t. the default time 0.
+		 *	invokees with negative execution orders will get their initialize-, update-,
+		 *	render-, etc. methods invoked earlier; invokees with positive execution orders
 		 *	will be invoked later.
 		 */
 		virtual int execution_order() const { return 0; }
 
-		/**	@brief Initialize this cg_element
+		/**	@brief Initialize this invokee
 		 *
-		 *	This is the first method in the lifecycle of a cg_element,
+		 *	This is the first method in the lifecycle of a invokee,
 		 *	that is invoked by the framework during a @ref run. 
 		 *	It is called only once.
 		 */
 		virtual void initialize() {}
 
-		/**	@brief Update this cg_element at fixed intervals
+		/**	@brief Update this invokee at fixed intervals
 		 *
 		 *	This method is called at fixed intervals with a fixed 
 		 *	delta time. Please note that this only applies to timers
@@ -87,7 +87,7 @@ namespace xk
 		 */
 		virtual void fixed_update() {}
 
-		/**	@brief Update this cg_element before rendering with varying delta time
+		/**	@brief Update this invokee before rendering with varying delta time
 		 *
 		 *	This method is called at varying intervals. Query the
 		 *	timer_interface's delta time to get the time which has passed since
@@ -96,26 +96,26 @@ namespace xk
 		 */
 		virtual void update() {}
 
-		/**	@brief Render this cg_element 
+		/**	@brief Render this invokee 
 		 *
-		 *	This method is called whenever this cg_element should
+		 *	This method is called whenever this invokee should
 		 *	perform its rendering tasks. It is called right after
 		 *	all the @ref update methods have been invoked.
 		 */
 		virtual void render() {}
 
-		/**	@brief Render gizmos for this cg_element
+		/**	@brief Render gizmos for this invokee
 		 *
 		 *	This method can be used to render additional information
-		 *	about this cg_element like, for instance, debug information.
+		 *	about this invokee like, for instance, debug information.
 		 *	This method will always be called after all @ref render
 		 *	methods of the current @ref run have been invoked.
 		 */
 		virtual void render_gizmos() {}
 
-		/**	@brief Cleanup this cg_element
+		/**	@brief Cleanup this invokee
 		 *
-		 *	This is the last method in the lifecycle of a cg_element,
+		 *	This is the last method in the lifecycle of a invokee,
 		 *	that is invoked by the framework during a @ref run.
 		 *	It is called only once.
 		 */
@@ -128,7 +128,7 @@ namespace xk
 		 *  indicate whether or not to render, and render gizmos
 		 *  will remain unchanged.
 		 *
-		 *	Call this method to enable this cg_element by the end of 
+		 *	Call this method to enable this invokee by the end of 
 		 *	the current frame! I.e. this method expresses your intent
 		 *	to enable. Perform necessary actions in the on_enable() 
 		 *	event handler method (not here!).
@@ -146,7 +146,7 @@ namespace xk
 			}
 		}
 
-		/**	@brief Handle the event of this cg_element having been enabled
+		/**	@brief Handle the event of this invokee having been enabled
 		 *
 		 *	Perform all your "This element has been enabled" actions within
 		 *	this event handler method! 
@@ -160,7 +160,7 @@ namespace xk
 		 *  indicate whether or not to render, render gizmos, and render
 		 *  gui of this element, will remain unchanged.
 		 *
-		 *	Call this method to disable this cg_element by the end of
+		 *	Call this method to disable this invokee by the end of
 		 *	the current frame! I.e. this method expresses your intent
 		 *	to disable. Perform necessary actions in the on_disable()
 		 *	event handler method (not here!).
@@ -178,11 +178,11 @@ namespace xk
 			}
 		}
 
-		/**	@brief Handle the event of this cg_element having been disabled
+		/**	@brief Handle the event of this invokee having been disabled
 		 *
 		 *	Perform all your "This element has been disabled" actions within
 		 *	this event handler method! It will be called regardless of 
-		 *	whether the disable request has come from within this cg_element
+		 *	whether the disable request has come from within this invokee
 		 *	or from outside.
 		 */
 		virtual void on_disable() {}

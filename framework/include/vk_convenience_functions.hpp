@@ -20,6 +20,7 @@ namespace xk
 	vk::Format format_from_window_color_buffer(window* aWindow);
 	vk::Format from_window_depth_buffer(window* aWindow);
 	vk::Extent3D for_each_pixel(window* aWindow);
+	glm::mat4 to_mat(const VkTransformMatrixKHR& aRowMajor3x4Matrix);
 }
 
 namespace ak // Inject into ak::

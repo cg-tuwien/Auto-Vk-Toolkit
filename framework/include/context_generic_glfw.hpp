@@ -23,14 +23,14 @@ namespace xk
 	// =========================== GLFW (PARTIAL) CONTEXT ===========================
 	/** @brief Provides generic GLFW-specific functionality
 	 */
-	class generic_glfw
+	class context_generic_glfw
 	{
 	public:
 		/** Initializes GLFW */
-		generic_glfw();
+		context_generic_glfw();
 		
 		/** Cleans up GLFW stuff */
-		virtual ~generic_glfw();
+		virtual ~context_generic_glfw();
 		
 		/** Evaluates to true if GLFW initialization succeeded  */
 		operator bool() const;

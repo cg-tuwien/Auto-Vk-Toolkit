@@ -155,15 +155,15 @@ namespace xk
 
 	inline auto& context()
 	{
-		static vulkan sContext;
+		static context_vulkan sContext;
 		return sContext;
 	}
 #pragma endregion 
 }
 
-#include "cg_element.hpp"
+#include "invokee.hpp"
 #include "invoker_interface.hpp"
-#include "sequential_executor.hpp"
+#include "sequential_invoker.hpp"
 
 #include "transform.hpp"
 #include "camera.hpp"

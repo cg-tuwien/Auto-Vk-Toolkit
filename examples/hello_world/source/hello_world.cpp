@@ -1,9 +1,9 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class draw_a_triangle_app : public xk::cg_element
+class draw_a_triangle_app : public xk::invokee
 {
-public: // v== cgb::cg_element overrides which will be invoked by the framework ==v
+public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	draw_a_triangle_app(ak::queue& aQueue) : mQueue{ &aQueue }
 	{}
 	

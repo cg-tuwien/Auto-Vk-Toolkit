@@ -1,7 +1,7 @@
 #include <exekutor.hpp>
 #include <imgui.h>
 
-class vertex_buffers_app : public xk::cg_element
+class vertex_buffers_app : public xk::invokee
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -34,7 +34,7 @@ class vertex_buffers_app : public xk::cg_element
 		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
 	};
 
-public: // v== ak::cg_element overrides which will be invoked by the framework ==v
+public: // v== ak::invokee overrides which will be invoked by the framework ==v
 	vertex_buffers_app(ak::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mAdditionalTranslationY{ 0.0f }

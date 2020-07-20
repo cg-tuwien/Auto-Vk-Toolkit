@@ -2,13 +2,13 @@
 
 namespace xk
 {
-	window* generic_glfw::sWindowInFocus = nullptr;
-	std::mutex generic_glfw::sInputMutex;
-	std::array<key_code, GLFW_KEY_LAST + 1> generic_glfw::sGlfwToKeyMapping{};
-	std::thread::id generic_glfw::sMainThreadId = std::this_thread::get_id();
-	std::mutex generic_glfw::sDispatchMutex;
+	window* context_generic_glfw::sWindowInFocus = nullptr;
+	std::mutex context_generic_glfw::sInputMutex;
+	std::array<key_code, GLFW_KEY_LAST + 1> context_generic_glfw::sGlfwToKeyMapping{};
+	std::thread::id context_generic_glfw::sMainThreadId = std::this_thread::get_id();
+	std::mutex context_generic_glfw::sDispatchMutex;
 
-	generic_glfw::generic_glfw()
+	context_generic_glfw::context_generic_glfw()
 	{
 		LOG_VERBOSE("Creating GLFW context...");
 	
@@ -159,7 +159,7 @@ namespace xk
 		mVertResizeCursor	= glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
 	}
 
-	generic_glfw::~generic_glfw()
+	context_generic_glfw::~context_generic_glfw()
 	{
 		if (mInitialized)
 		{
@@ -184,12 +184,12 @@ namespace xk
 		}
 	}
 
-	generic_glfw::operator bool() const
+	context_generic_glfw::operator bool() const
 	{
 		return mInitialized;
 	}
 
-	window* generic_glfw::prepare_window()
+	window* context_generic_glfw::prepare_window()
 	{
 		assert(are_we_on_the_main_thread());
 		
@@ -246,7 +246,7 @@ namespace xk
 		return &back;
 	}
 
-	void generic_glfw::close_window(window_base& wnd)
+	void context_generic_glfw::close_window(window_base& wnd)
 	{
 		if (!wnd.handle())
 		{
@@ -278,19 +278,19 @@ namespace xk
 		});
 	}
 
-	double generic_glfw::get_time()
+	double context_generic_glfw::get_time()
 	{
 		// Removed the restriction that the caller must be on the main thread.
 		// However, this sort of implies, that glfwSetTime() is a forbidden function.
 		return glfwGetTime();
 	}
 
-	void generic_glfw::glfw_error_callback(int error, const char* description)
+	void context_generic_glfw::glfw_error_callback(int error, const char* description)
 	{
 		LOG_ERROR(fmt::format("GLFW-Error: hex[0x{0:x}] int[{0}] description[{1}]", error, description));
 	}
 
-	void generic_glfw::start_receiving_input_from_window(const window& _Window, input_buffer& _InputBuffer)
+	void context_generic_glfw::start_receiving_input_from_window(const window& _Window, input_buffer& _InputBuffer)
 	{
 		assert(are_we_on_the_main_thread());
 		glfwSetMouseButtonCallback(_Window.handle()->mHandle, glfw_mouse_button_callback);
@@ -300,7 +300,7 @@ namespace xk
 		glfwSetCharCallback(_Window.handle()->mHandle, glfw_char_callback);
 	}
 
-	void generic_glfw::stop_receiving_input_from_window(const window& _Window)
+	void context_generic_glfw::stop_receiving_input_from_window(const window& _Window)
 	{
 		assert(are_we_on_the_main_thread());
 		glfwSetMouseButtonCallback(_Window.handle()->mHandle, nullptr);
@@ -309,7 +309,7 @@ namespace xk
 		glfwSetKeyCallback(_Window.handle()->mHandle, nullptr);
 	}
 
-	window* generic_glfw::main_window() const
+	window* context_generic_glfw::main_window() const
 	{
 		if (mMainWindowIndex < mWindows.size()) {
 			return const_cast<window*>(&mWindows[mMainWindowIndex]);
@@ -317,7 +317,7 @@ namespace xk
 		return nullptr;
 	}
 
-	void generic_glfw::set_main_window(window* aMainWindowToBe) 
+	void context_generic_glfw::set_main_window(window* aMainWindowToBe) 
 	{
 		context().dispatch_to_main_thread([this, aMainWindowToBe]() {
 			auto position = std::find_if(std::begin(mWindows), std::end(mWindows), [aMainWindowToBe](const window& w) -> bool {
@@ -332,7 +332,7 @@ namespace xk
 		});
 	}
 
-	window* generic_glfw::window_by_title(std::string_view pTitle) const
+	window* context_generic_glfw::window_by_title(std::string_view pTitle) const
 	{
 		auto it = std::find_if(std::begin(mWindows), std::end(mWindows),
 							   [&pTitle](const auto& w) {
@@ -341,7 +341,7 @@ namespace xk
 		return it != mWindows.end() ? const_cast<window*>(&*it) : nullptr;
 	}
 
-	window* generic_glfw::window_by_id(uint32_t pId) const
+	window* context_generic_glfw::window_by_id(uint32_t pId) const
 	{
 		auto it = std::find_if(std::begin(mWindows), std::end(mWindows),
 							   [&pId](const auto & w) {
@@ -350,7 +350,7 @@ namespace xk
 		return it != mWindows.end() ? const_cast<window*>(&*it) : nullptr;
 	}
 
-	void generic_glfw::glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+	void context_generic_glfw::glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	{
 		assert(are_we_on_the_main_thread());
 		std::scoped_lock<std::mutex> guard(sInputMutex);
@@ -373,7 +373,7 @@ namespace xk
 		}
 	}
 
-	void generic_glfw::glfw_cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
+	void context_generic_glfw::glfw_cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		assert(are_we_on_the_main_thread());
 		auto* wnd = context().window_for_handle(window);
@@ -381,14 +381,14 @@ namespace xk
 		wnd->mCursorPosition = glm::dvec2(xpos, ypos);
 	}
 
-	void generic_glfw::glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+	void context_generic_glfw::glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	{
 		std::scoped_lock<std::mutex> guard(sInputMutex);
 		auto& inputBackBuffer = composition_interface::current()->background_input_buffer();
 		inputBackBuffer.mScrollDelta += glm::dvec2(xoffset, yoffset);
 	}
 
-	void generic_glfw::glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	void context_generic_glfw::glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		std::scoped_lock<std::mutex> guard(sInputMutex);
 
@@ -413,28 +413,28 @@ namespace xk
 		}
 	}
 
-	void generic_glfw::glfw_char_callback(GLFWwindow* window, unsigned int character)
+	void context_generic_glfw::glfw_char_callback(GLFWwindow* window, unsigned int character)
 	{
 		std::scoped_lock<std::mutex> guard(sInputMutex);
 		auto& inputBackBuffer = composition_interface::current()->background_input_buffer();
 		inputBackBuffer.mCharacters.push_back(character);
 	}
 
-	void generic_glfw::glfw_window_focus_callback(GLFWwindow* window, int focused)
+	void context_generic_glfw::glfw_window_focus_callback(GLFWwindow* window, int focused)
 	{
 		if (focused) {
 			sWindowInFocus = context().window_for_handle(window);
 		}
 	}
 
-	void generic_glfw::glfw_window_size_callback(GLFWwindow* window, int width, int height)
+	void context_generic_glfw::glfw_window_size_callback(GLFWwindow* window, int width, int height)
 	{
 		auto* wnd = context().window_for_handle(window);
 		assert(wnd);
 		wnd->mResoltion = glm::uvec2(width, height);
 	}
 
-	window* generic_glfw::window_for_handle(GLFWwindow* handle) const
+	window* context_generic_glfw::window_for_handle(GLFWwindow* handle) const
 	{
 		for (auto& wnd : mWindows) {
 			if (wnd.handle().has_value()) {
@@ -446,7 +446,7 @@ namespace xk
 		return nullptr;
 	}
 
-	GLFWwindow* generic_glfw::get_window_for_shared_context()
+	GLFWwindow* context_generic_glfw::get_window_for_shared_context()
 	{
 		for (const auto& w : mWindows) {
 			if (w.handle().has_value()) {
@@ -456,12 +456,12 @@ namespace xk
 		return nullptr;
 	}
 
-	bool generic_glfw::are_we_on_the_main_thread()
+	bool context_generic_glfw::are_we_on_the_main_thread()
 	{
 		return sMainThreadId == std::this_thread::get_id();
 	}
 
-	void generic_glfw::dispatch_to_main_thread(std::function<dispatcher_action> pAction)
+	void context_generic_glfw::dispatch_to_main_thread(std::function<dispatcher_action> pAction)
 	{
 		// Are we on the main thread?
 		if (are_we_on_the_main_thread()) {
@@ -473,7 +473,7 @@ namespace xk
 		}
 	}
 
-	void generic_glfw::work_off_all_pending_main_thread_actions()
+	void context_generic_glfw::work_off_all_pending_main_thread_actions()
 	{
 		assert(are_we_on_the_main_thread());
 		std::scoped_lock<std::mutex> guard(sDispatchMutex);
@@ -483,7 +483,7 @@ namespace xk
 		mDispatchQueue.clear();
 	}
 
-	void generic_glfw::add_event_handler(context_state pStage, event_handler_func pHandler)
+	void context_generic_glfw::add_event_handler(context_state pStage, event_handler_func pHandler)
 	{
 		dispatch_to_main_thread([handler = std::move(pHandler), stage = pStage]() {
 			// No need to lock anything here, everything is happening on the main thread only
@@ -493,7 +493,7 @@ namespace xk
 		});
 	}
 
-	void generic_glfw::work_off_event_handlers()
+	void context_generic_glfw::work_off_event_handlers()
 	{
 		assert(are_we_on_the_main_thread());
 		if (mContextState < context_state::initialization_begun) {
@@ -522,7 +522,7 @@ namespace xk
 		} while (numHandled > 0);
 	}
 
-	void generic_glfw::activate_cursor(window_base* aWindow, cursor aCursorType)
+	void context_generic_glfw::activate_cursor(window_base* aWindow, cursor aCursorType)
 	{
 		assert(are_we_on_the_main_thread());
 		switch (aCursorType) {

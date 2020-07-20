@@ -6,10 +6,10 @@ namespace xk
 	/**	A composition brings together all of the separate components, which there are
 	 *	 - A timer
 	 *	 - One or more windows
-	 *	 - One or more @ref cg_element(-derived objects)
+	 *	 - One or more @ref invokee(-derived objects)
 	 *	 
 	 *	Upon @ref start, a composition spins up the game-/rendering-loop in which
-	 *	all of the @ref cg_element's methods are called.
+	 *	all of the @ref invokee's methods are called.
 	 *	
 	 *	A composition will internally call @ref set_global_composition_data in order
 	 *	to make itself the currently active composition. By design, there can only 
@@ -25,7 +25,7 @@ namespace xk
 	class composition : public composition_interface
 	{
 	public:
-		composition(timer_interface* aTimer, invoker_interface* aInvoker, std::vector<window*> aWindows, std::vector<cg_element*> aElements)
+		composition(timer_interface* aTimer, invoker_interface* aInvoker, std::vector<window*> aWindows, std::vector<invokee*> aElements)
 			: mTimer{ aTimer }
 			, mInvoker{ aInvoker }
 			, mWindows{ aWindows }
@@ -37,7 +37,7 @@ namespace xk
 			, mIsRunning(false)
 		{
 			for (auto* el : aElements) {
-				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const cg_element* left, const cg_element* right) { return left->execution_order() < right->execution_order(); });
+				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const invokee* left, const invokee* right) { return left->execution_order() < right->execution_order(); });
 				mElements.insert(it, el);
 			}
 		}
@@ -60,8 +60,8 @@ namespace xk
 			return mInputBuffers[mInputBufferBackgroundIndex];
 		}
 
-		/** Returns the @ref cg_element at the given index */
-		cg_element* element_at_index(size_t pIndex) override
+		/** Returns the @ref invokee at the given index */
+		invokee* element_at_index(size_t pIndex) override
 		{
 			if (pIndex < mElements.size())
 				return mElements[pIndex];
@@ -69,15 +69,15 @@ namespace xk
 			return nullptr;
 		}
 
-		/** Finds a @ref cg_element by its name 
+		/** Finds a @ref invokee by its name 
 		 *	\returns The element found or nullptr
 		 */
-		cg_element* element_by_name(std::string_view pName) override
+		invokee* element_by_name(std::string_view pName) override
 		{
 			auto found = std::find_if(
 				std::begin(mElements), 
 				std::end(mElements), 
-				[&pName](const cg_element* element)
+				[&pName](const invokee* element)
 				{
 					return element->name() == pName;
 				});
@@ -88,12 +88,12 @@ namespace xk
 			return nullptr;
 		}
 
-		/** Finds the @ref cg_element(s) with matching type.
+		/** Finds the @ref invokee(s) with matching type.
 		 *	@param pType	The type to look for
 		 *	@param pIndex	Use this parameter to get the n-th element of the given type
 		 *	\returns An element of the given type or nullptr
 		 */
-		cg_element* element_by_type(const std::type_info& pType, uint32_t pIndex) override
+		invokee* element_by_type(const std::type_info& pType, uint32_t pIndex) override
 		{
 			uint32_t nth = 0;
 			for (auto* element : mElements)
@@ -114,7 +114,7 @@ namespace xk
 		void add_pending_elements()
 		{
 			// Make a copy of all the elements to be added to not interfere with erase-operations:
-			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			auto toBeAdded = mElementsToBeAdded;
 			guard.unlock();
 			for (auto el : toBeAdded) {
@@ -126,7 +126,7 @@ namespace xk
 		void remove_pending_elements()
 		{
 			// Make a copy of all the elements to be added to not interfere with erase-operations:
-			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::unique_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			auto toBeRemoved = mElementsToBeRemoved;
 			guard.unlock();
 			for (auto el : toBeRemoved) {
@@ -254,17 +254,17 @@ namespace xk
 		}
 
 	public:
-		void add_element(cg_element& pElement) override
+		void add_element(invokee& pElement) override
 		{
-			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			mElementsToBeAdded.push_back(&pElement);
 		}
 
-		void add_element_immediately(cg_element& pElement) override
+		void add_element_immediately(invokee& pElement) override
 		{
-			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			// Find right place to insert:
-			auto it = std::lower_bound(std::begin(mElements), std::end(mElements), &pElement, [](const cg_element* left, const cg_element* right) { return left->execution_order() < right->execution_order(); });
+			auto it = std::lower_bound(std::begin(mElements), std::end(mElements), &pElement, [](const invokee* left, const invokee* right) { return left->execution_order() < right->execution_order(); });
 			mElements.insert(it, &pElement);
 			// 1. initialize
 			pElement.initialize();
@@ -272,15 +272,15 @@ namespace xk
 			mElementsToBeAdded.erase(std::remove(std::begin(mElementsToBeAdded), std::end(mElementsToBeAdded), &pElement), std::end(mElementsToBeAdded));
 		}
 
-		void remove_element(cg_element& pElement) override
+		void remove_element(invokee& pElement) override
 		{
-			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			mElementsToBeRemoved.push_back(&pElement);
 		}
 
-		void remove_element_immediately(cg_element& pElement, bool pIsBeingDestructed = false) override
+		void remove_element_immediately(invokee& pElement, bool pIsBeingDestructed = false) override
 		{
-			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel executors, this is neccessary!
+			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			if (!pIsBeingDestructed) {
 				assert(std::find(std::begin(mElements), std::end(mElements), &pElement) != mElements.end());
 				// 9. finalize
@@ -291,7 +291,7 @@ namespace xk
 				mElementsToBeRemoved.erase(std::remove(std::begin(mElementsToBeRemoved), std::end(mElementsToBeRemoved), &pElement), std::end(mElementsToBeRemoved));
 			}
 			else {
-				LOG_DEBUG(fmt::format("Removing element with name[{}] and address[{}] issued from cg_element's destructor",
+				LOG_DEBUG(fmt::format("Removing element with name[{}] and address[{}] issued from invokee's destructor",
 										 pElement.name(),
 										 fmt::ptr(&pElement)));
 			}
@@ -424,9 +424,9 @@ namespace xk
 		timer_interface* mTimer;
 		invoker_interface* mInvoker;
 		std::vector<window*> mWindows;
-		std::vector<cg_element*> mElements;
-		std::vector<cg_element*> mElementsToBeAdded;
-		std::vector<cg_element*> mElementsToBeRemoved;
+		std::vector<invokee*> mElements;
+		std::vector<invokee*> mElementsToBeAdded;
+		std::vector<invokee*> mElementsToBeRemoved;
 
 		std::array<input_buffer, 2> mInputBuffers;
 		int32_t mInputBufferForegroundIndex;

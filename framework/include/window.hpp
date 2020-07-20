@@ -5,8 +5,8 @@ namespace xk
 {
 	class window : public window_base
 	{
-		friend class generic_glfw;
-		friend class vulkan;
+		friend class context_generic_glfw;
+		friend class context_vulkan;
 	public:
 
 		using frame_id_t = int64_t;

@@ -8,7 +8,7 @@ namespace xk
 
 	class model_t
 	{
-		friend class vulkan;
+		friend class context_vulkan;
 		
 	public:
 		using aiProcessFlagsType = unsigned int;

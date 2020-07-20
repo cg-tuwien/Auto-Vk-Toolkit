@@ -277,7 +277,7 @@ namespace xk
 	std::vector<ak::semaphore> window::remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
-		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
+		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
 		
 		// Find all to remove
 		auto to_remove = std::remove_if(
@@ -298,7 +298,7 @@ namespace xk
 	std::vector<ak::command_buffer> window::clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
-		// This shall never be called from the cg_element callbacks as being invoked through a parallel executor.
+		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
 
 		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
 		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
@@ -363,11 +363,11 @@ namespace xk
 		//  Potential problems:
 		//	 - How to handle the fences? Is waitIdle enough?
 		//	 - A problem might be the multithreaded access to this function... hmm... or is it??
-		//      => Now would be the perfect time to think about how to handle parallel executors
+		//      => Now would be the perfect time to think about how to handle parallel invokers
 		//		   Only Command Buffer generation should be parallelized anyways, submission should 
 		//		   be done on ONE thread, hence access to this method would be syncronized inherently, right?!
 		//
-		//	What about the following: Tie an instance of cg_element to ONE AND EXACTLY ONE window*?!
+		//	What about the following: Tie an instance of invokee to ONE AND EXACTLY ONE window*?!
 		//	 => Then, the render method would create a command_buffer, which is then gathered (per window!) and passed on to this method.
 		//
 		//

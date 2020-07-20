@@ -10,8 +10,8 @@ namespace xk
 	 */
 	class input_buffer
 	{
-		friend class generic_glfw;
-		friend class vulkan;
+		friend class context_generic_glfw;
+		friend class context_vulkan;
 
 	public:
 		/** Resets all the input values to a state representing no input.

@@ -17,7 +17,7 @@ namespace xk
 
 	class window_base
 	{
-		friend class generic_glfw;
+		friend class context_generic_glfw;
 	public:
 		window_base();
 		window_base(window_base&&) noexcept;

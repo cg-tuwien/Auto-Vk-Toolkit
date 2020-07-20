@@ -10,7 +10,7 @@ namespace xk
 	//  - Q     = move down
 	//  - Shift = move faster
 	//  - Ctrl  = move slower
-	class quake_camera : public camera, public cg_element
+	class quake_camera : public camera, public invokee
 	{
 	public:
 		quake_camera();

@@ -3,16 +3,16 @@
 
 namespace xk
 {
-	class imgui_manager : public cg_element
+	class imgui_manager : public invokee
 	{
 	public:
 		/**	Create an ImGui manager element.
 		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui".
-		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other cg_elements.
+		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other invokees.
 		 *									Therefore, use a high execution order. Default value is 100000.
 		 */
 		imgui_manager(ak::queue& aQueueToSubmitTo, std::string aName = "imgui", std::optional<ak::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
-			: cg_element(std::move(aName))
+			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mExecutionOrder{ aExecutionOrder }
 			, mUserInteractionEnabled{ true }

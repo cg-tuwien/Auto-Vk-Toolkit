@@ -151,4 +151,26 @@ namespace xk
 		assert(nullptr != aWindow);
 		return vk::Extent3D{ aWindow->resolution().x, aWindow->resolution().y, 1u };
 	}
+
+	glm::mat4 to_mat(const VkTransformMatrixKHR& aRowMajor3x4Matrix)
+	{
+		glm::mat4 result(1.0f);
+		
+		result[0][0] = aRowMajor3x4Matrix.matrix[0][0];
+		result[1][0] = aRowMajor3x4Matrix.matrix[0][1];
+		result[2][0] = aRowMajor3x4Matrix.matrix[0][2];
+		result[3][0] = aRowMajor3x4Matrix.matrix[0][3];
+
+		result[0][1] = aRowMajor3x4Matrix.matrix[1][0];
+		result[1][1] = aRowMajor3x4Matrix.matrix[1][1];
+		result[2][1] = aRowMajor3x4Matrix.matrix[1][2];
+		result[3][1] = aRowMajor3x4Matrix.matrix[1][3];
+
+		result[0][2] = aRowMajor3x4Matrix.matrix[2][0];
+		result[1][2] = aRowMajor3x4Matrix.matrix[2][1];
+		result[2][2] = aRowMajor3x4Matrix.matrix[2][2];
+		result[3][2] = aRowMajor3x4Matrix.matrix[2][3];
+
+		return result;
+	}
 }

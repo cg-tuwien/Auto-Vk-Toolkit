@@ -10,15 +10,15 @@ namespace xk
 	 *	stuff, like window creation etc.,  it relies on GLFW and inherits
 	 *	@ref generic_glfw.
 	 */
-	class vulkan : public generic_glfw, public ak::root
+	class context_vulkan : public context_generic_glfw, public ak::root
 	{
 	public:
-		vulkan() = default;
-		vulkan(const vulkan&) = delete;
-		vulkan(vulkan&&) = delete;
-		vulkan& operator=(const vulkan&) = delete;
-		vulkan& operator=(vulkan&&) = delete;
-		~vulkan();
+		context_vulkan() = default;
+		context_vulkan(const context_vulkan&) = delete;
+		context_vulkan(context_vulkan&&) = delete;
+		context_vulkan& operator=(const context_vulkan&) = delete;
+		context_vulkan& operator=(context_vulkan&&) = delete;
+		~context_vulkan();
 
 		// Checks a VkResult return type and handles it according to the current Vulkan-Hpp config
 		static void check_vk_result(VkResult err);
@@ -186,7 +186,7 @@ namespace xk
 		// A mutex which protects the vulkan context from concurrent access from different threads
 		// e.g. during parallel recording of command buffers.
 		// It is only used in some functions, which are expected to be called during runtime (i.e.
-		// during `cg_element::update` or cg_element::render` calls), not during initialization.
+		// during `invokee::update` or invokee::render` calls), not during initialization.
 		static std::mutex sConcurrentAccessMutex;
 
 		settings mSettings;

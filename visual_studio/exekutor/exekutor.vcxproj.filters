@@ -120,9 +120,6 @@
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp">
       <Filter>exekutor_include\timers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\sequential_executor.hpp">
-      <Filter>exekutor_include\invokers</Filter>
-    </ClInclude>
     <ClInclude Include="cg_stdafx.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
@@ -339,9 +336,6 @@
     <ClInclude Include="..\..\framework\include\setup.hpp">
       <Filter>exekutor_include\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\cg_element.hpp">
-      <Filter>exekutor_include\base</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
       <Filter>exekutor_include\base</Filter>
     </ClInclude>
@@ -410,6 +404,12 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\ak\shader_binding_table.hpp">
       <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\invokee.hpp">
+      <Filter>exekutor_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\sequential_invoker.hpp">
+      <Filter>exekutor_include\invokers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
