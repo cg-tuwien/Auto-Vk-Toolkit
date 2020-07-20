@@ -145,4 +145,10 @@ namespace xk
 		}
 		return default_depth_format();
 	}
+
+	vk::Extent3D for_each_pixel(window* aWindow)
+	{
+		assert(nullptr != aWindow);
+		return vk::Extent3D{ aWindow->resolution().x, aWindow->resolution().y, 1u };
+	}
 }

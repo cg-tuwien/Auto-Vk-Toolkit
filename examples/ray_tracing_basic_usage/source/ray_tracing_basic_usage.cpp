@@ -74,6 +74,8 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 			ak::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
+		mPipeline->print_shader_binding_table_groups();
+
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), mainWnd->aspect_ratio(), 0.5f, 100.0f);
@@ -153,22 +155,14 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
-		// Define the offsets into the shader binding table and then, issue the "trace rays" call:
-		//const auto sbtHandle = mPipeline->shader_binding_table_handle();
-		//const auto sbtOffsetSize = mPipeline->table_offset_size();
-		//const auto sbtEntrySize = mPipeline->table_entry_size();
-		//const auto sbtSize = mPipeline->table_size();
-		//auto raygen  = vk::StridedBufferRegionKHR{sbtHandle, 0,                 sbtEntrySize, sbtSize};
-		//auto raymiss = vk::StridedBufferRegionKHR{sbtHandle, 2 * sbtOffsetSize, sbtEntrySize, sbtSize};
-		//auto rayhit  = vk::StridedBufferRegionKHR{sbtHandle, 1 * sbtOffsetSize, sbtEntrySize, sbtSize};
-		//auto callable= vk::StridedBufferRegionKHR{nullptr, 0, 0, 0};
-		//cmdbfr->handle().traceRaysKHR(
-		//	&raygen, &raymiss, &rayhit, &callable, 
-		//	mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1,
-		//	xk::context().dynamic_dispatch()
-		//);
-		cmdbfr->trace_rays(mPipeline, xk::context().dynamic_dispatch(), 0, 0, 0, {}, mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1);
-
+		cmdbfr->trace_rays(
+			xk::for_each_pixel(mainWnd),
+			mPipeline->shader_binding_table(),
+			ak::using_raygen_group_at_index(0),
+			ak::using_miss_group_at_index(0),
+			ak::using_hit_group_at_index(0)
+		);
+		
 		// Sync ray tracing with transfer:
 		cmdbfr->establish_global_memory_barrier(
 			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::transfer,

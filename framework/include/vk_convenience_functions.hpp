@@ -19,6 +19,7 @@ namespace xk
 	vk::Format default_depth_stencil_format() noexcept;
 	vk::Format format_from_window_color_buffer(window* aWindow);
 	vk::Format from_window_depth_buffer(window* aWindow);
+	vk::Extent3D for_each_pixel(window* aWindow);
 }
 
 namespace ak // Inject into ak::

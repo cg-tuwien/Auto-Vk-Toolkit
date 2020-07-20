@@ -136,6 +136,8 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 			ak::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
 			ak::binding(1, 0, mTLAS[0])                                     // Just take any, this is just to define the layout
 		);
+		
+		mPipeline->print_shader_binding_table_groups();
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -272,8 +274,14 @@ public: // v== ak::cg_element overrides which will be invoked by the framework =
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 
 		// Do it:
-		cmdbfr->trace_rays(mPipeline, xk::context().dynamic_dispatch(), 0, 0, 0, {}, mainWnd->swap_chain_extent().width, mainWnd->swap_chain_extent().height, 1);
-
+		cmdbfr->trace_rays(
+			xk::for_each_pixel(mainWnd),
+			mPipeline->shader_binding_table(),
+			ak::using_raygen_group_at_index(0),
+			ak::using_miss_group_at_index(0),
+			ak::using_hit_group_at_index(0)
+		);
+		
 		// Sync ray tracing with transfer:
 		cmdbfr->establish_global_memory_barrier(
 			ak::pipeline_stage::ray_tracing_shaders,                       ak::pipeline_stage::transfer,

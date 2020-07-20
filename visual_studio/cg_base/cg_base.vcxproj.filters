@@ -408,6 +408,9 @@
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp">
       <Filter>exekutor_include\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

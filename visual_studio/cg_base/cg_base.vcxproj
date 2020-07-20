@@ -113,6 +113,7 @@
     <ClInclude Include="..\..\auto_vulkan\include\ak\semaphore.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader.hpp" />
+    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_info.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp" />
     <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache.hpp" />
