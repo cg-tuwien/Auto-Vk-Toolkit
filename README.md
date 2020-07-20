@@ -1,18 +1,6 @@
-# cg_base Rendering Framework
+# 'Exekutor' Rendering Framework featuring 'Auto-Vk' Vulkan Convenience Layer
 
-cg_base is a modern C++ rendering framework, abstracting several rendering APIs without sacrificing on understandability and offering some nifty features to get you into gears quickly. 
-
-cg_base's core principles are:
-* Accelerate low-level graphics development.
-* Abstract different rendering APIs in a manner which does not sacrifice significantly on performance, while providing a high level of comfort.
-* Don't be a black-box, but instead make the underlying API-calls easy to observe.
-* With the above points, be helpful in learning a new graphics API (e.g. learn Vulkan with a OpenGL background).
-* Embrace bleeding edge techology and concepts, like C++17 and Real-Time Ray Tracing.
-* Be fun and easy to use while helping to produce high quality code.
-
-Support for the following rendering APIs is currently in development:
-* Vulkan
-* OpenGL 4.5
+*Exekutor* is a modern C++17-based rendering framework for the Vulkan 1.2 API. It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 
 # Installation
 
@@ -21,7 +9,7 @@ Currently, only Windows is supported as a development platform. The project setu
 Requirements:
 * Windows 10 
 * Visual Studio 2019 with a Windows 10 SDK installed
-* Vulkan SDK 1.1.130.0 or newer
+* Vulkan SDK 1.2.141.0 or newer
 
 Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md)
 
