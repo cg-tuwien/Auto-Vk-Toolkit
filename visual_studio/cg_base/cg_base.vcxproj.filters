@@ -31,10 +31,10 @@
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp">
       <Filter>exekutor_src\user_interface</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vulkan\src\ak.cpp">
+    <ClCompile Include="..\..\auto_vk\src\ak.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vulkan\src\sync.cpp">
+    <ClCompile Include="..\..\auto_vk\src\sync.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\input_buffer.cpp">
@@ -144,181 +144,181 @@
     <ClInclude Include="..\..\framework\include\cursor.hpp">
       <Filter>exekutor_include\user_interface</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\commands.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\commands.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\vk_utils.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\vk_utils.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline_config.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\graphics_pipeline_config.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_set.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\framebuffer.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\framebuffer.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\bottom_level_acceleration_structure.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\bottom_level_acceleration_structure.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\graphics_pipeline.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\graphics_pipeline.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\ray_tracing_pipeline.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\renderpass.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\shader.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\top_level_acceleration_structure.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\top_level_acceleration_structure.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\compute_pipeline.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_view.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\buffer_view.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\binding_data.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\binding_data.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\bindings.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\bindings.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\sync.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\sync.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\command_buffer.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\command_buffer.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\fence.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\fence.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\semaphore.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\semaphore.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_info.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\shader_info.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ak.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\ak.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image_view.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image_view.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image_sampler.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image_sampler.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\sampler.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\sampler.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ak_error.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\ak_error.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\cpp_utils.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\cpp_utils.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\usage_desc.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\usage_desc.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\on_store.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\on_store.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\usage_type.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\usage_type.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_order.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image_color_channel_order.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image_usage.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image_usage.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\memory_usage.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\memory_usage.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\on_load.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\on_load.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\attachment.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\attachment.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\filter_mode.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\filter_mode.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\border_handling_mode.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\border_handling_mode.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\image_color_channel_format.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\image_color_channel_format.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ak_log.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\ak_log.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\queue.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\queue.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\geometry_instance.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\geometry_instance.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_pool.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_pool.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\command_pool.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\command_pool.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\acceleration_structure_size_requirements.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\acceleration_structure_size_requirements.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\pipeline_stage.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\pipeline_stage.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_type.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\shader_type.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\renderpass_sync.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\renderpass_sync.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\ray_tracing_pipeline_config.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\ray_tracing_pipeline_config.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\compute_pipeline_config.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\compute_pipeline_config.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\aabb.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\aabb.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\memory_access.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\memory_access.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\input_description.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\input_description.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\vulkan_helper_functions.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\vulkan_helper_functions.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\buffer.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\buffer_meta.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\buffer_meta.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_alloc_request.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_alloc_request.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_set_layout.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_set_layout.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\set_of_descriptor_set_layouts.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\set_of_descriptor_set_layouts.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\vertex_index_buffer_pair.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\vertex_index_buffer_pair.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
@@ -387,16 +387,16 @@
     <ClInclude Include="..\..\framework\include\exekutor.hpp">
       <Filter>exekutor_include\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\root_example_implementation.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\root_example_implementation.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\push_constants.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\push_constants.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\descriptor_cache.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_cache.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\format_for.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\format_for.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\invoker_interface.hpp">
@@ -408,7 +408,7 @@
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp">
       <Filter>exekutor_include\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vulkan\include\ak\shader_binding_table.hpp">
+    <ClInclude Include="..\..\auto_vk\include\ak\shader_binding_table.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
   </ItemGroup>
