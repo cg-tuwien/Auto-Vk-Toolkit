@@ -1,7 +1,8 @@
-# *Exekutor* Vulkan rendering framework featuring *Auto-Vk*
+# Exekutor + Auto-Vk
 
 *Exekutor* is a modern C++17-based rendering framework for the Vulkan 1.2 API.      
-It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
+It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.    
+To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
 # Installation
 
