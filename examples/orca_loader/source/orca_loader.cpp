@@ -184,7 +184,7 @@ public: // v== ak::invokee overrides which will be invoked by the framework ==v
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
 			ak::attachment::declare(xk::format_from_window_color_buffer(xk::context().main_window()), ak::on_load::clear, ak::color(0),		ak::on_store::store),	 // But not in presentable format, because ImGui comes after
-			ak::attachment::declare(xk::from_window_depth_buffer(xk::context().main_window()), ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care),
+			ak::attachment::declare(xk::format_from_window_depth_buffer(xk::context().main_window()), ak::on_load::clear, ak::depth_stencil(), ak::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			ak::push_constant_binding_data { ak::shader_type::vertex, 0, sizeof(transformation_matrices) },
