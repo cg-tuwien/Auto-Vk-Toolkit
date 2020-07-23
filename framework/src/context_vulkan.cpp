@@ -448,6 +448,18 @@ namespace xk
 			requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
+		auto validationFeatures = vk::ValidationFeaturesEXT{};
+		if (mSettings.mValidationLayers.mFeaturesToEnable.size() > 0) {
+			validationFeatures
+				.setEnabledValidationFeatureCount(static_cast<uint32_t>(mSettings.mValidationLayers.mFeaturesToEnable.size()))
+				.setPEnabledValidationFeatures(mSettings.mValidationLayers.mFeaturesToEnable.data());
+		}
+		if (mSettings.mValidationLayers.mFeaturesToDisable.size() > 0) {
+			validationFeatures
+				.setDisabledValidationFeatureCount(static_cast<uint32_t>(mSettings.mValidationLayers.mFeaturesToDisable.size()))
+				.setPDisabledValidationFeatures(mSettings.mValidationLayers.mFeaturesToDisable.data());
+		}
+
 		// Gather all previously prepared info for instance creation and put in one struct:
 		auto instCreateInfo = vk::InstanceCreateInfo()
 			.setPApplicationInfo(&appInfo)
@@ -455,6 +467,11 @@ namespace xk
 			.setPpEnabledExtensionNames(requiredExtensions.data())
 			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
+
+		if (validationFeatures.disabledValidationFeatureCount > 0u || validationFeatures.enabledValidationFeatureCount > 0u) {
+			instCreateInfo.setPNext(&validationFeatures);
+		}
+		
 		// Create it, errors will result in an exception.
 		mInstance = vk::createInstance(instCreateInfo);
 		mDynamicDispatch.init((VkInstance)mInstance, vkGetInstanceProcAddr);

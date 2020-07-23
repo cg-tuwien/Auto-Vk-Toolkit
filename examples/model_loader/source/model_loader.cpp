@@ -293,7 +293,7 @@ int main() // <== Starting point ==
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = xk::context().create_queue(vk::QueueFlagBits::eCompute, ak::queue_selection_preference::specialized_queue);
+		auto& singleQueue = xk::context().create_queue({}, ak::queue_selection_preference::versatile_queue, mainWnd);
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
 		

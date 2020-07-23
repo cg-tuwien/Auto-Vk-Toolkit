@@ -70,7 +70,39 @@ namespace xk
 			return *this;
 		}
 
+		validation_layers& enable_feature(vk::ValidationFeatureEnableEXT aFeature)
+		{
+			auto it = std::find(std::begin(mFeaturesToEnable), std::end(mFeaturesToEnable), aFeature);
+			if (std::end(mFeaturesToEnable) == it) {
+				mFeaturesToEnable.push_back(aFeature);
+			}
+			return *this;
+		}
+
+		validation_layers& disable_feature(vk::ValidationFeatureEnableEXT aFeature)
+		{
+			mFeaturesToEnable.erase(std::remove(std::begin(mFeaturesToEnable), std::end(mFeaturesToEnable), aFeature), std::end(mFeaturesToEnable));
+			return *this;
+		}
+
+		validation_layers& enable_feature(vk::ValidationFeatureDisableEXT aFeature)
+		{
+			mFeaturesToDisable.erase(std::remove(std::begin(mFeaturesToDisable), std::end(mFeaturesToDisable), aFeature), std::end(mFeaturesToDisable));
+			return *this;
+		}
+
+		validation_layers& disable_feature(vk::ValidationFeatureDisableEXT aFeature)
+		{
+			auto it = std::find(std::begin(mFeaturesToDisable), std::end(mFeaturesToDisable), aFeature);
+			if (std::end(mFeaturesToDisable) == it) {
+				mFeaturesToDisable.push_back(aFeature);
+			}
+			return *this;
+		}
+
 		std::vector<const char*> mLayers;
+		std::vector<vk::ValidationFeatureEnableEXT> mFeaturesToEnable;
+		std::vector<vk::ValidationFeatureDisableEXT> mFeaturesToDisable;
 		bool mEnableInRelease;
 	};
 
