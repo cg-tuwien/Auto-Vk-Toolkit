@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	enum struct projection_type
 	{
@@ -94,7 +94,7 @@ namespace xk
 
 		glm::mat4 mProjectionMatrix;
 
-		xk::projection_type mProjectionType;
+		gvk::projection_type mProjectionType;
 		float mNear;
 		float mFar;
 		float mFov;		// perspective only

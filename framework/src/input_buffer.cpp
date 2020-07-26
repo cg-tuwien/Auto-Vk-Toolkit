@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	void input_buffer::reset(std::optional<window> pWindow) // TODO: Where is this used??
 	{

@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	composition_interface* composition_interface::sCurrentComposition;
 }

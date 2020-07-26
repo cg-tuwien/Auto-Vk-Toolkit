@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Material struct which hold all the concrete data, i.e. 
 	 *	in addition to the data in material config also all the 
@@ -10,18 +10,18 @@ namespace xk
 	struct material
 	{
 		material_config mMaterialConfig;
-		ak::image_sampler mDiffuseTexImageSampler;
-		ak::image_sampler mSpecularTexImageSampler;
-		ak::image_sampler mAmbientTexImageSampler;
-		ak::image_sampler mEmissiveTexImageSampler;
-		ak::image_sampler mHeightTexImageSampler;
-		ak::image_sampler mNormalsTexImageSampler;
-		ak::image_sampler mShininessTexImageSampler;
-		ak::image_sampler mOpacityTexImageSampler;
-		ak::image_sampler mDisplacementTexImageSampler;
-		ak::image_sampler mReflectionTexImageSampler;
-		ak::image_sampler mLightmapTexImageSampler;
-		ak::image_sampler mExtraTexImageSampler;
+		avk::image_sampler mDiffuseTexImageSampler;
+		avk::image_sampler mSpecularTexImageSampler;
+		avk::image_sampler mAmbientTexImageSampler;
+		avk::image_sampler mEmissiveTexImageSampler;
+		avk::image_sampler mHeightTexImageSampler;
+		avk::image_sampler mNormalsTexImageSampler;
+		avk::image_sampler mShininessTexImageSampler;
+		avk::image_sampler mOpacityTexImageSampler;
+		avk::image_sampler mDisplacementTexImageSampler;
+		avk::image_sampler mReflectionTexImageSampler;
+		avk::image_sampler mLightmapTexImageSampler;
+		avk::image_sampler mExtraTexImageSampler;
 	};
 
 	/** Compares the two `material`s for equality.
@@ -102,14 +102,14 @@ namespace xk
 
 namespace std // Inject hash for `cgb::material` into std::
 {
-	template<> struct hash<xk::material>
+	template<> struct hash<gvk::material>
 	{
-		std::size_t operator()(xk::material const& o) const noexcept
+		std::size_t operator()(gvk::material const& o) const noexcept
 		{
 			auto& config = o.mMaterialConfig;
 
 			std::size_t h = 0;
-			ak::hash_combine(h,
+			avk::hash_combine(h,
 				config.mDiffuseReflectivity,
 				config.mAmbientReflectivity,
 				config.mSpecularReflectivity,
@@ -157,7 +157,7 @@ namespace std // Inject hash for `cgb::material` into std::
 				config.mExtraTexOffsetTiling
 			);
 			if (!config.mIgnoreCpuOnlyDataForEquality) {
-				ak::hash_combine(h,
+				avk::hash_combine(h,
 					config.mShadingModel,
 					config.mWireframeMode,
 					config.mTwosided,

@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	class imgui_manager : public invokee
 	{
@@ -11,7 +11,7 @@ namespace xk
 		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other invokees.
 		 *									Therefore, use a high execution order. Default value is 100000.
 		 */
-		imgui_manager(ak::queue& aQueueToSubmitTo, std::string aName = "imgui", std::optional<ak::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui", std::optional<avk::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mExecutionOrder{ aExecutionOrder }
@@ -43,11 +43,11 @@ namespace xk
 		bool is_user_interaction_enabled() const { return mUserInteractionEnabled; }
 
 	private:
-		ak::queue* mQueue;
-		ak::descriptor_pool mDescriptorPool;
-		ak::command_pool mCommandPool;
-		std::optional<ak::renderpass> mRenderpass;
-		std::vector<ak::unique_function<void()>> mCallback;
+		avk::queue* mQueue;
+		avk::descriptor_pool mDescriptorPool;
+		avk::command_pool mCommandPool;
+		std::optional<avk::renderpass> mRenderpass;
+		std::vector<avk::unique_function<void()>> mCallback;
 		int mExecutionOrder;
 		int mMouseCursorPreviousValue;
 		bool mUserInteractionEnabled;

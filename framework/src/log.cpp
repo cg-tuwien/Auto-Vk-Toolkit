@@ -1,4 +1,4 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
 #include <Windows.h>
@@ -6,16 +6,16 @@
 #include <sstream>
 #endif
 
-namespace xk
+namespace gvk
 {
-	void set_console_output_color(xk::log_type level, xk::log_importance importance)
+	void set_console_output_color(gvk::log_type level, gvk::log_importance importance)
 	{
 #ifdef _WIN32
 		static auto std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		switch (level) {
-		case xk::log_type::error:
+		case gvk::log_type::error:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xCF); // white on red
 				break;
 			default:
@@ -23,9 +23,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::warning:
+		case gvk::log_type::warning:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xE0); // black on yellow
 				break;
 			default:
@@ -33,9 +33,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::verbose:
+		case gvk::log_type::verbose:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0x80); // black on gray
 				break;
 			default:
@@ -43,9 +43,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::debug:
+		case gvk::log_type::debug:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xA0); // black on green
 				break;
 			default:
@@ -53,9 +53,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::debug_verbose:
+		case gvk::log_type::debug_verbose:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0x20); // black on dark green
 				break;
 			default:
@@ -63,9 +63,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::system:
+		case gvk::log_type::system:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xDF); // white on magenta
 				break;
 			default:
@@ -75,7 +75,7 @@ namespace xk
 			break;
 		default:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xF0); // black on white
 				break;
 			default:
@@ -87,14 +87,14 @@ namespace xk
 #endif // WIN32
 	}
 
-	void set_console_output_color_for_stacktrace(xk::log_type level, xk::log_importance importance)
+	void set_console_output_color_for_stacktrace(gvk::log_type level, gvk::log_importance importance)
 	{
 #ifdef _WIN32
 		static auto std_output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		switch (level) {
-		case xk::log_type::error:
+		case gvk::log_type::error:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xC7); 
 				break;
 			default:
@@ -102,9 +102,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::warning:
+		case gvk::log_type::warning:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xE7); 
 				break;
 			default:
@@ -112,9 +112,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::verbose:
+		case gvk::log_type::verbose:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0x87); 
 				break;
 			default:
@@ -122,9 +122,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::debug:
+		case gvk::log_type::debug:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xA2);
 				break;
 			default:
@@ -132,9 +132,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::debug_verbose:
+		case gvk::log_type::debug_verbose:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0x28); 
 				break;
 			default:
@@ -142,9 +142,9 @@ namespace xk
 				break;
 			}
 			break;
-		case xk::log_type::system:
+		case gvk::log_type::system:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xD7); 
 				break;
 			default:
@@ -154,7 +154,7 @@ namespace xk
 			break;
 		default:
 			switch (importance) {
-			case xk::log_importance::important:
+			case gvk::log_importance::important:
 				SetConsoleTextAttribute(std_output_handle, 0xF8); 
 				break;
 			default:
@@ -271,7 +271,7 @@ namespace xk
 #else
 	void dispatch_log(log_pack pToBeLogged)
 	{
-		xk::set_console_output_color(pToBeLogged.mLogType, pToBeLogged.mLogImportance);
+		gvk::set_console_output_color(pToBeLogged.mLogType, pToBeLogged.mLogImportance);
 		std::cout << pToBeLogged.mMessage;
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
 		if (pToBeLogged.mLogType == log_type::error) {
@@ -279,7 +279,7 @@ namespace xk
 			std::cout << get_current_callstack();
 		}
 #endif
-		xk::reset_console_output_color();
+		gvk::reset_console_output_color();
 	}
 #endif
 

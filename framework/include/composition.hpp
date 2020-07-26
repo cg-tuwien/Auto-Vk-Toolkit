@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/**	A composition brings together all of the separate components, which there are
 	 *	 - A timer
@@ -215,7 +215,7 @@ namespace xk
 					please_swap_input_buffers(thiz);
 
 					// Sync (wait for fences and so) per window BEFORE executing render callbacks
-					xk::context().execute_for_each_window([](window* wnd){
+					gvk::context().execute_for_each_window([](window* wnd){
 						wnd->sync_before_render();
 					});
 
@@ -226,7 +226,7 @@ namespace xk
 					thiz->mInvoker->execute_render_gizmos(thiz->mElements);
 					
 					// Render per window
-					xk::context().execute_for_each_window([](window* wnd){
+					gvk::context().execute_for_each_window([](window* wnd){
 						wnd->render_frame();
 					});
 				}
@@ -352,9 +352,9 @@ namespace xk
 					mInputBufferSwapPending = false;
 
 					int width = 0, height = 0;
-				    glfwGetFramebufferSize(xk::context().main_window()->handle()->mHandle, &width, &height);
+				    glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
 				    while (width == 0 || height == 0) {
-				        glfwGetFramebufferSize(xk::context().main_window()->handle()->mHandle, &width, &height);
+				        glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
 				        glfwWaitEvents();
 				    }
 					

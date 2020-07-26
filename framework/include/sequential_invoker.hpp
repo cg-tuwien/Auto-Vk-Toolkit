@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/**	@brief Handle all @ref invokee sequentially!
 	 *

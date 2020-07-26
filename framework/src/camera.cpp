@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	camera::camera()
 		: mProjectionMatrix{ 1.0f }

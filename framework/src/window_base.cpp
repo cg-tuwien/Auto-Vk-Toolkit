@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	uint32_t window_base::mNextWindowId = 0u;
 
@@ -172,7 +172,7 @@ namespace xk
 	{
 		assert(handle());
 		context().dispatch_to_main_thread([this, aCursorMode]() {
-			xk::context().activate_cursor(this, aCursorMode);
+			gvk::context().activate_cursor(this, aCursorMode);
 			mCursorMode = aCursorMode;
 			// Also update the cursor position, because window-coordinates and raw-coordinates can be different
 			glfwGetCursorPos(handle()->mHandle, &mCursorPosition.x, &mCursorPosition.y);

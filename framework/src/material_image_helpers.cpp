@@ -1,15 +1,15 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 
-	std::tuple<std::vector<material_gpu_data>, std::vector<ak::image_sampler>> convert_for_gpu_usage(
-		const std::vector<xk::material_config>& aMaterialConfigs, 
+	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
+		const std::vector<gvk::material_config>& aMaterialConfigs, 
 		bool aLoadTexturesInSrgb,
-		ak::image_usage aImageUsage,
-		ak::filter_mode aTextureFilterMode, 
-		ak::border_handling_mode aBorderHandlingMode,
-		ak::sync aSyncHandler)
+		avk::image_usage aImageUsage,
+		avk::filter_mode aTextureFilterMode, 
+		avk::border_handling_mode aBorderHandlingMode,
+		avk::sync aSyncHandler)
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
@@ -56,7 +56,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
 			}
 			else {
-				auto path = ak::clean_up_path(mc.mDiffuseTex);
+				auto path = avk::clean_up_path(mc.mDiffuseTex);
 				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
 				if (aLoadTexturesInSrgb) {
 					srgbTextures.insert(path);
@@ -68,7 +68,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mSpecularTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
 			}
 
 			gm.mAmbientTexIndex				= -1;							 
@@ -76,7 +76,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
 			}
 			else {
-				auto path = ak::clean_up_path(mc.mAmbientTex);
+				auto path = avk::clean_up_path(mc.mAmbientTex);
 				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
 				if (aLoadTexturesInSrgb) {
 					srgbTextures.insert(path);
@@ -88,7 +88,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
 			}
 
 			gm.mHeightTexIndex				= -1;							 
@@ -96,7 +96,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mHeightTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
 			}
 
 			gm.mNormalsTexIndex				= -1;							 
@@ -104,7 +104,7 @@ namespace xk
 				straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
 			}
 
 			gm.mShininessTexIndex			= -1;							 
@@ -112,7 +112,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mShininessTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
 			}
 
 			gm.mOpacityTexIndex				= -1;							 
@@ -120,7 +120,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mOpacityTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
 			}
 
 			gm.mDisplacementTexIndex		= -1;							 
@@ -128,7 +128,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
 			}
 
 			gm.mReflectionTexIndex			= -1;							 
@@ -136,7 +136,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mReflectionTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
 			}
 
 			gm.mLightmapTexIndex			= -1;							 
@@ -144,7 +144,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mLightmapTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
 			}
 
 			gm.mExtraTexIndex				= -1;							 
@@ -152,7 +152,7 @@ namespace xk
 				whiteTexUsages.push_back(&gm.mExtraTexIndex);
 			}
 			else {
-				texNamesToUsages[ak::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
+				texNamesToUsages[avk::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
 			}
 																			 
 			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
@@ -169,14 +169,14 @@ namespace xk
 			gm.mExtraTexOffsetTiling		= mc.mExtraTexOffsetTiling		 ;
 		}
 
-		std::vector<ak::image_sampler> imageSamplers;
+		std::vector<avk::image_sampler> imageSamplers;
 		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
 		imageSamplers.reserve(numSamplers);
 
-		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> ak::sync {
+		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> avk::sync {
 			++lSyncCount;
 			if (lSyncCount < numSamplers) {
-				return ak::sync::auxiliary_with_barriers(aSyncHandler, ak::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
+				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
 			}
 			assert (lSyncCount == numSamplers);
 			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
@@ -187,9 +187,9 @@ namespace xk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, ak::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync())
 					),
-					context().create_sampler(ak::filter_mode::nearest_neighbor, ak::border_handling_mode::repeat)
+					context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat)
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -203,9 +203,9 @@ namespace xk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, ak::memory_usage::device, aImageUsage, getSync())
+						create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync())
 					),
-					context().create_sampler(ak::filter_mode::nearest_neighbor, ak::border_handling_mode::repeat)
+					context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat)
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -223,7 +223,7 @@ namespace xk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_image_from_file(pair.first, true, potentiallySrgb, 4, ak::memory_usage::device, aImageUsage, getSync())
+						create_image_from_file(pair.first, true, potentiallySrgb, 4, avk::memory_usage::device, aImageUsage, getSync())
 					),
 					context().create_sampler(aTextureFilterMode, aBorderHandlingMode)
 				)
@@ -246,9 +246,9 @@ namespace xk
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
-				xk::append_indices_and_vertex_data(
-					xk::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
-					xk::additional_vertex_data(positionsData,	[&]() { return modelRef.get().positions_for_mesh(meshIndex);			} )
+				gvk::append_indices_and_vertex_data(
+					gvk::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
+					gvk::additional_vertex_data(positionsData,	[&]() { return modelRef.get().positions_for_mesh(meshIndex);			} )
 				);
 			}
 		}
@@ -256,22 +256,22 @@ namespace xk
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<ak::buffer, ak::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, ak::sync aSyncHandler)
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
 	{
 		auto [positionsData, indicesData] = get_vertices_and_indices(aModelsAndSelectedMeshes);
 
 		auto positionsBuffer = context().create_buffer(
-			ak::memory_usage::device, aUsageFlags,
-			ak::vertex_buffer_meta::create_from_data(positionsData)
-				.describe_only_member(positionsData[0], 0, ak::content_description::position)
+			avk::memory_usage::device, aUsageFlags,
+			avk::vertex_buffer_meta::create_from_data(positionsData)
+				.describe_only_member(positionsData[0], 0, avk::content_description::position)
 		);
-		positionsBuffer->fill(positionsData.data(), 0, ak::sync::auxiliary_with_barriers(aSyncHandler, ak::sync::steal_before_handler_on_demand, {}));
+		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		auto indexBuffer = context().create_buffer(
-			ak::memory_usage::device, aUsageFlags,
-			ak::index_buffer_meta::create_from_data(indicesData)
+			avk::memory_usage::device, aUsageFlags,
+			avk::index_buffer_meta::create_from_data(indicesData)
 		);
 		indexBuffer->fill(indicesData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let indicesData go out of scope, since its data has been copied to a
@@ -294,13 +294,13 @@ namespace xk
 		return normalsData;
 	}
 	
-	ak::buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler)
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto normalsData = get_normals(aModelsAndSelectedMeshes);
 		
 		auto normalsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(normalsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(normalsData)
 		);
 		normalsBuffer->fill(normalsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let normalsData go out of scope, since its data has been copied to a
@@ -323,13 +323,13 @@ namespace xk
 		return tangentsData;
 	}
 	
-	ak::buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler)
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto tangentsData = get_tangents(aModelsAndSelectedMeshes);
 		
 		auto tangentsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(tangentsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(tangentsData)
 		);
 		tangentsBuffer->fill(tangentsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let tangentsData go out of scope, since its data has been copied to a
@@ -352,13 +352,13 @@ namespace xk
 		return bitangentsData;
 	}
 	
-	ak::buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, ak::sync aSyncHandler)
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto bitangentsData = get_bitangents(aModelsAndSelectedMeshes);
 		
 		auto bitangentsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(bitangentsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(bitangentsData)
 		);
 		bitangentsBuffer->fill(bitangentsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let bitangentsData go out of scope, since its data has been copied to a
@@ -381,13 +381,13 @@ namespace xk
 		return colorsData;
 	}
 	
-	ak::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, ak::sync aSyncHandler)
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
 	{
 		auto colorsData = get_colors(aModelsAndSelectedMeshes, aColorsSet);
 		
 		auto colorsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(colorsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(colorsData)
 		);
 		colorsBuffer->fill(colorsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let colorsData go out of scope, since its data has been copied to a
@@ -410,13 +410,13 @@ namespace xk
 		return texCoordsData;
 	}
 	
-	ak::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, ak::sync aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		
 		auto texCoordsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(texCoordsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(texCoordsData)
 		);
 		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
@@ -439,13 +439,13 @@ namespace xk
 		return texCoordsData;
 	}
 	
-	ak::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, ak::sync aSyncHandler)
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		
 		auto texCoordsBuffer = context().create_buffer(
-			ak::memory_usage::device, {},
-			ak::vertex_buffer_meta::create_from_data(texCoordsData)
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(texCoordsData)
 		);
 		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let texCoordsData go out of scope, since its data has been copied to a

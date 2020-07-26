@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	std::mutex window::sSubmitMutex;
 
@@ -31,13 +31,13 @@ namespace xk
 			if (!(srfFrmts.size() == 1 && srfFrmts[0].format == vk::Format::eUndefined)) {
 				for (const auto& e : srfFrmts) {
 					if (lSrgbFormatRequested) {
-						if (ak::is_srgb_format(e.format)) {
+						if (avk::is_srgb_format(e.format)) {
 							selSurfaceFormat = e;
 							break;
 						}
 					}
 					else {
-						if (!ak::is_srgb_format(e.format)) {
+						if (!avk::is_srgb_format(e.format)) {
 							selSurfaceFormat = e;
 							break;
 						}
@@ -54,7 +54,7 @@ namespace xk
 		}
 	}
 
-	void window::set_presentaton_mode(xk::presentation_mode aMode)
+	void window::set_presentaton_mode(gvk::presentation_mode aMode)
 	{
 		mPresentationModeSelector = [lPresMode = aMode](const vk::SurfaceKHR& surface) {
 			// Supported presentation modes must be queried from a device:
@@ -63,20 +63,20 @@ namespace xk
 			// Select a presentation mode:
 			auto selPresModeItr = presModes.end();
 			switch (lPresMode) {
-			case xk::presentation_mode::immediate:
+			case gvk::presentation_mode::immediate:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eImmediate);
 				break;
-			case xk::presentation_mode::relaxed_fifo:
+			case gvk::presentation_mode::relaxed_fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifoRelaxed);
 				break;
-			case xk::presentation_mode::fifo:
+			case gvk::presentation_mode::fifo:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eFifo);
 				break;
-			case xk::presentation_mode::mailbox:
+			case gvk::presentation_mode::mailbox:
 				selPresModeItr = std::find(std::begin(presModes), std::end(presModes), vk::PresentModeKHR::eMailbox);
 				break;
 			default:
-				throw xk::runtime_error("should not get here");
+				throw gvk::runtime_error("should not get here");
 			}
 			if (selPresModeItr == presModes.end()) {
 				LOG_WARNING_EM("No presentation mode specified or desired presentation mode not available => will select any presentation mode");
@@ -137,7 +137,7 @@ namespace xk
 		}
 	}
 
-	void window::set_additional_back_buffer_attachments(std::vector<ak::attachment> aAdditionalAttachments)
+	void window::set_additional_back_buffer_attachments(std::vector<avk::attachment> aAdditionalAttachments)
 	{
 		mAdditionalBackBufferAttachmentsGetter = [lAdditionalAttachments = std::move(aAdditionalAttachments)]() { return lAdditionalAttachments; };
 
@@ -164,7 +164,7 @@ namespace xk
 				sharedContex);
 			if (nullptr == handle) {
 				// No point in continuing
-				throw xk::runtime_error("Failed to create window with the title '" + mTitle + "'");
+				throw gvk::runtime_error("Failed to create window with the title '" + mTitle + "'");
 			}
 			mHandle = window_handle{ handle };
 			initialize_after_open();
@@ -195,7 +195,7 @@ namespace xk
 	{
 		if (!mPresentationModeSelector) {
 			// Set the default:
-			set_presentaton_mode(xk::presentation_mode::mailbox);
+			set_presentaton_mode(gvk::presentation_mode::mailbox);
 		}
 		// Determine the presentation mode:
 		return mPresentationModeSelector(aSurface);
@@ -242,7 +242,7 @@ namespace xk
 		return mNumberOfConcurrentFramesGetter();
 	}
 
-	std::vector<ak::attachment> window::get_additional_back_buffer_attachments()
+	std::vector<avk::attachment> window::get_additional_back_buffer_attachments()
 	{
 		if (!mAdditionalBackBufferAttachmentsGetter) {
 			return {};
@@ -252,7 +252,7 @@ namespace xk
 		}
 	}
 
-	void window::handle_lifetime(ak::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
+	void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex);
 		if (!aFrameId.has_value()) {
@@ -265,7 +265,7 @@ namespace xk
 		// ^ Prefer code duplication over recursive_mutex
 	}
 
-	void window::handle_lifetime(std::optional<ak::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId)
+	void window::handle_lifetime(std::optional<avk::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId)
 	{
 		if (!aCommandBuffer.has_value()) {
 			LOG_WARNING("std::optional<command_buffer> submitted and it has no value.");
@@ -274,7 +274,7 @@ namespace xk
 		handle_lifetime(std::move(aCommandBuffer.value()), aFrameId);
 	}
 
-	std::vector<ak::semaphore> window::remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId)
+	std::vector<avk::semaphore> window::remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
@@ -286,16 +286,16 @@ namespace xk
 				return std::get<frame_id_t>(tpl) <= maxTTL;
 			});
 		// return ownership of all the semaphores to remove to the caller
-		std::vector<ak::semaphore> moved_semaphores;
+		std::vector<avk::semaphore> moved_semaphores;
 		for (decltype(to_remove) it = to_remove; it != std::end(mPresentSemaphoreDependencies); ++it) {
-			moved_semaphores.push_back(std::move(std::get<ak::semaphore>(*it)));
+			moved_semaphores.push_back(std::move(std::get<avk::semaphore>(*it)));
 		}
 		// Erase and return
 		mPresentSemaphoreDependencies.erase(to_remove, std::end(mPresentSemaphoreDependencies));
 		return moved_semaphores;
 	}
 
-	std::vector<ak::command_buffer> window::clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId)
+	std::vector<avk::command_buffer> window::clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId)
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
@@ -308,7 +308,7 @@ namespace xk
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
 		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
 		auto eraseBegin = std::begin(mLifetimeHandledCommandBuffers);
-		std::vector<ak::command_buffer> removedBuffers;
+		std::vector<avk::command_buffer> removedBuffers;
 		if (std::end(mLifetimeHandledCommandBuffers) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
 			return removedBuffers;
 		}
@@ -316,7 +316,7 @@ namespace xk
 		auto eraseEnd = eraseBegin;
 		while (eraseEnd != std::end(mLifetimeHandledCommandBuffers) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
 			// return ownership of all the command_buffers to remove to the caller
-			removedBuffers.push_back(std::move(std::get<ak::command_buffer>(*eraseEnd)));
+			removedBuffers.push_back(std::move(std::get<avk::command_buffer>(*eraseEnd)));
 			++eraseEnd;
 		}
 		mLifetimeHandledCommandBuffers.erase(eraseBegin, eraseEnd);
@@ -464,12 +464,12 @@ namespace xk
 		}
 	}
 	
-	void window::add_queue_family_ownership(ak::queue& aQueue)
+	void window::add_queue_family_ownership(avk::queue& aQueue)
 	{
 		mQueueFamilyIndicesGetter.emplace_back([pQueue = &aQueue](){ return pQueue->family_index(); });
 	}
 
-	void window::set_present_queue(ak::queue& aPresentQueue)
+	void window::set_present_queue(avk::queue& aPresentQueue)
 	{
 		mPresentQueue = &aPresentQueue;
 	}		

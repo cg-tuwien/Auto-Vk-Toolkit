@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	std::unordered_map<material_config, std::vector<model_and_mesh_indices>> orca_scene_t::distinct_material_configs_for_all_models(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials)
 	{
@@ -16,17 +16,17 @@ namespace xk
 		return result;
 	}
 
-	ak::owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
+	avk::owning_resource<orca_scene_t> orca_scene_t::load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags)
 	{
 		std::ifstream stream(aPath, std::ifstream::in);
 		if (!stream.good() || !stream || stream.fail())
 		{
-			throw xk::runtime_error(fmt::format("Unable to load scene from path[{}]", aPath));
+			throw gvk::runtime_error(fmt::format("Unable to load scene from path[{}]", aPath));
 		}
 		std::string filecontents = std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 		if (filecontents.empty())
 		{
-			throw xk::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", aPath));
+			throw gvk::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", aPath));
 		}
 
 		nlohmann::json j = nlohmann::json::parse(filecontents);
@@ -150,9 +150,9 @@ namespace xk
 		}
 
 		// Load the models into memory:
-		auto fsceneBasePath = ak::extract_base_path(result.mLoadPath);
+		auto fsceneBasePath = avk::extract_base_path(result.mLoadPath);
 		for (auto& modelData : result.mModelData) {
-			modelData.mFullPathName = ak::combine_paths(fsceneBasePath, modelData.mFileName);
+			modelData.mFullPathName = avk::combine_paths(fsceneBasePath, modelData.mFileName);
 			modelData.mLoadedModel = model_t::load_from_file(modelData.mFullPathName, aAssimpFlags);
 		}
 		

@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	varying_update_timer::varying_update_timer()
 		: mStartTime(0.0),

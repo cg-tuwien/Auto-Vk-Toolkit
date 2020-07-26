@@ -1,9 +1,9 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
 #include <GLFW/glfw3.h>
 
-namespace xk
+namespace gvk
 {
 	/** Context-specific handle to a window.
 	 *  For this context, the window is handled via GLFW.
@@ -35,7 +35,7 @@ namespace xk
 					return monitor_handle{ monitors[i] };
 				}
 			}
-			throw xk::runtime_error("No secondary monitor found");
+			throw gvk::runtime_error("No secondary monitor found");
 		}
 
 		GLFWmonitor* mHandle;

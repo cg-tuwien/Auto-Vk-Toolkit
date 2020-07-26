@@ -1,4 +1,4 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -6,14 +6,14 @@
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
 #include <imgui_internal.h>
 
-namespace xk
+namespace gvk
 {
 	void imgui_manager::initialize()
 	{
 		LOG_DEBUG_VERBOSE("Setting up IMGUI...");
 
 		// Get the main window's handle:
-		auto* wnd = xk::context().main_window();
+		auto* wnd = gvk::context().main_window();
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -38,7 +38,7 @@ namespace xk
 	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
 		const uint32_t magicImguiFactor = 1000;
-		auto allocRequest = ak::descriptor_alloc_request{};
+		auto allocRequest = avk::descriptor_alloc_request{};
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampledImage,		 magicImguiFactor});
@@ -51,12 +51,12 @@ namespace xk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
 		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
-		mDescriptorPool = xk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
+		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 		
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
-		mCommandPool = xk::context().create_command_pool(mQueue->family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
+		mCommandPool = gvk::context().create_command_pool(mQueue->family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
 
 		// MinImageCount and ImageCount are related to the swapchain images. These are not Dear ImGui specific properties and your
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
@@ -64,29 +64,29 @@ namespace xk
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
 	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_frames_in_flight()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
 	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
-	    init_info.CheckVkResultFn = xk::context().check_vk_result;
+	    init_info.CheckVkResultFn = gvk::context().check_vk_result;
 
 		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
-			std::vector<ak::attachment> attachments;
-			attachments.push_back(ak::attachment::declare(format_from_window_color_buffer(wnd), ak::on_load::load, ak::color(0), ak::on_store::store_in_presentable_format));
+			std::vector<avk::attachment> attachments;
+			attachments.push_back(avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::load, avk::color(0), avk::on_store::store_in_presentable_format));
 			for (auto a : wnd->get_additional_back_buffer_attachments()) {
-				a.mLoadOperation = ak::on_load::dont_care;
-				a.mStoreOperation = ak::on_store::dont_care;
+				a.mLoadOperation = avk::on_load::dont_care;
+				a.mStoreOperation = avk::on_store::dont_care;
 				attachments.push_back(a);
 			}
 			mRenderpass = context().create_renderpass(
 				attachments,
-				[](ak::renderpass_sync& rpSync){
+				[](avk::renderpass_sync& rpSync){
 					if (rpSync.is_external_pre_sync()) {
-						rpSync.mSourceStage = ak::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = ak::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = ak::pipeline_stage::color_attachment_output;
-						rpSync.mDestinationMemoryDependency = ak::memory_access::color_attachment_read_access;
+						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
 					}
 					if (rpSync.is_external_post_sync()) {
-						rpSync.mSourceStage = ak::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = ak::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = ak::pipeline_stage::bottom_of_pipe;
+						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
 						rpSync.mDestinationMemoryDependency = {};
 					}
 				}
@@ -130,8 +130,8 @@ namespace xk
 	    //io.ClipboardUserData = g_Window;
 
 #if defined(_WIN32)
-		xk::context().dispatch_to_main_thread([](){
-		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(xk::context().main_window()->handle()->mHandle);
+		gvk::context().dispatch_to_main_thread([](){
+		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
 		});
 #endif		
 
@@ -151,10 +151,10 @@ namespace xk
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
-		auto wndSize = xk::context().main_window()->resolution(); // TODO: What about multiple windows?
+		auto wndSize = gvk::context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
-	    io.DeltaTime = xk::time().delta_time();
+	    io.DeltaTime = gvk::time().delta_time();
 
 		if (!mUserInteractionEnabled) {
 			return;
@@ -288,7 +288,7 @@ namespace xk
 			a(); // TODO: Invoke here or in update()?
 		}
 		
-		auto mainWnd = xk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
 		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
@@ -312,5 +312,5 @@ namespace xk
 		mUserInteractionEnabled = aEnableOrNot;
 	}
 
-	void set_renderpass(ak::renderpass aRenderpass);
+	void set_renderpass(avk::renderpass aRenderpass);
 }

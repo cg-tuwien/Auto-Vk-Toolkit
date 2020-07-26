@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	// A flying camera, controlled in a somewhat quake-style.
 	// Move the camera with WASD + Mouse!

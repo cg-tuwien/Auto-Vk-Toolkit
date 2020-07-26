@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Set a hint about which device to select. This could be, e.g., "Intel" or "RTX". */
 	struct physical_device_selection_hint
@@ -19,7 +19,7 @@ namespace xk
 	/** Set this to your application's version */
 	struct application_version
 	{
-		application_version(uint32_t aValue = ak::make_version(1u, 0u, 0u)) : mValue{ aValue } {}
+		application_version(uint32_t aValue = avk::make_version(1u, 0u, 0u)) : mValue{ aValue } {}
 		uint32_t mValue;
 	};
 

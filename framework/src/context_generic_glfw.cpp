@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	window* context_generic_glfw::sWindowInFocus = nullptr;
 	std::mutex context_generic_glfw::sInputMutex;
@@ -255,7 +255,7 @@ namespace xk
 		}
 
 		if (wnd.is_in_use()) {
-			throw new xk::logic_error("This window is in use and can not be closed at the moment.");
+			throw new gvk::logic_error("This window is in use and can not be closed at the moment.");
 		}
 
 		context().dispatch_to_main_thread([&wnd]() {
@@ -325,7 +325,7 @@ namespace xk
 				});
 
 			if (position == mWindows.end()) {
-				throw xk::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
+				throw gvk::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
 			}
 
 			mMainWindowIndex = std::distance(std::begin(mWindows), position);
@@ -508,7 +508,7 @@ namespace xk
 				std::remove_if(
 					std::begin(mEventHandlers), std::end(mEventHandlers),
 					[curState = mContextState](const auto& tpl) {
-					auto targetStates = std::get<xk::context_state>(tpl);
+					auto targetStates = std::get<gvk::context_state>(tpl);
 					if ((curState & targetStates) != curState) {
 						return false; // false => not done yet! Handler shall remain, because handler has not been invoked.
 					}

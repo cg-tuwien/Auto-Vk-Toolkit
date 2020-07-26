@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Base class (actually an "interface") which all concrete timer_interface 
 	 *	implementations have to implement in order to be usable with @ref run.

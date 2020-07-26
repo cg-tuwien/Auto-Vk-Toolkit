@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	struct model_and_mesh_indices
 	{
@@ -23,7 +23,7 @@ namespace xk
 		std::string mName;
 		std::vector<model_instance_data> mInstances;
 		std::string mFullPathName;
-		xk::model mLoadedModel;
+		gvk::model mLoadedModel;
 	};
 
 	struct direct_light_data
@@ -134,7 +134,7 @@ namespace xk
 		 */
 		std::unordered_map<material_config, std::vector<model_and_mesh_indices>> distinct_material_configs_for_all_models(bool aAlsoConsiderCpuOnlyDataForDistinctMaterials = false);
 
-		static ak::owning_resource<orca_scene_t> load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		static avk::owning_resource<orca_scene_t> load_from_file(const std::string& aPath, model_t::aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
 	private:
 		std::string mLoadPath;
@@ -147,7 +147,7 @@ namespace xk
 		std::vector<path_data> mPathsData;
 	};
 
-	using orca_scene = ak::owning_resource<orca_scene_t>;
+	using orca_scene = avk::owning_resource<orca_scene_t>;
 
 	// JSON helper functions:
 	static glm::vec3 convert_json_to_vec3(nlohmann::json& j);

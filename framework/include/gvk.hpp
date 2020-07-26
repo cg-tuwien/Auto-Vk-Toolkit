@@ -86,19 +86,19 @@
 #include <windows.h>
 #endif
 
-#include <ak/ak.hpp>
+#include <avk/avk.hpp>
 
 // -------------------- Exekutor includes --------------------
 #include "cgb_exceptions.hpp"
 #include "conversion_utils.hpp"
 
-#define AK_LOG_FATAL			LOG_ERROR_EM
-#define AK_LOG_ERROR			LOG_ERROR
-#define AK_LOG_WARNING			LOG_WARNING
-#define AK_LOG_INFO				LOG_INFO
-#define AK_LOG_VERBOSE			LOG_VERBOSE
-#define AK_LOG_DEBUG			LOG_DEBUG
-#define AK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
+#define AVK_LOG_FATAL			LOG_ERROR_EM
+#define AVK_LOG_ERROR			LOG_ERROR
+#define AVK_LOG_WARNING			LOG_WARNING
+#define AVK_LOG_INFO			LOG_INFO
+#define AVK_LOG_VERBOSE			LOG_VERBOSE
+#define AVK_LOG_DEBUG			LOG_DEBUG
+#define AVK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
 
 #include "context_state.hpp"
@@ -126,7 +126,7 @@
 #include "settings.hpp"
 #include "context_vulkan.hpp"
 
-namespace xk
+namespace gvk
 {
 #pragma region global data representing the currently active composition
 	/**	@brief Get the current timer, which represents the current game-/render-time

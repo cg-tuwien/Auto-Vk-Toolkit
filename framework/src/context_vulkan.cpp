@@ -1,8 +1,8 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
 #include <set>
 
-namespace xk
+namespace gvk
 {
 	std::vector<const char*> context_vulkan::sRequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -37,11 +37,11 @@ namespace xk
 
 	context_vulkan::~context_vulkan()
 	{
-		mContextState = xk::context_state::about_to_finalize;
+		mContextState = gvk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
 
-		ak::sync::sPoolToAllocCommandBuffersFrom = ak::command_pool{};
-		ak::sync::sQueueToUse = nullptr;
+		avk::sync::sPoolToAllocCommandBuffersFrom = avk::command_pool{};
+		avk::sync::sQueueToUse = nullptr;
 
 		mLogicalDevice.waitIdle();
 
@@ -80,7 +80,7 @@ namespace xk
 		// Destroy everything
 		mInstance.destroy();
 	
-		mContextState = xk::context_state::has_finalized;
+		mContextState = gvk::context_state::has_finalized;
 		context().work_off_event_handlers();
 	}
 
@@ -117,7 +117,7 @@ namespace xk
 		// and before physical device selection, because it can actually influence 
 		// the physical device selection.
 
-		mContextState = xk::context_state::initialization_begun;
+		mContextState = gvk::context_state::initialization_begun;
 		work_off_event_handlers();
 
 		// NOTE: Vulkan-init is not finished yet!
@@ -133,7 +133,7 @@ namespace xk
 		LOG_DEBUG_VERBOSE("Creating logical device...");
 		
 		// Just get any window:
-		auto* window = context().find_window([](xk::window* w) { 
+		auto* window = context().find_window([](gvk::window* w) { 
 			return w->handle().has_value() && static_cast<bool>(w->surface());
 		});
 
@@ -143,7 +143,7 @@ namespace xk
 			surface = &window->surface();
 		}
 
-		context().mContextState = xk::context_state::surfaces_created;
+		context().mContextState = gvk::context_state::surfaces_created;
 		work_off_event_handlers();
 
 		// Do we already have a physical device?
@@ -152,8 +152,8 @@ namespace xk
 
 		// If the user has not created any queue, create at least one
 		if (mQueues.empty()) {
-			auto familyIndex = ak::queue::select_queue_family_index(mPhysicalDevice, {}, ak::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
-			mQueues.emplace_back(ak::queue::prepare(mPhysicalDevice, familyIndex, 0));
+			auto familyIndex = avk::queue::select_queue_family_index(mPhysicalDevice, {}, avk::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
+			mQueues.emplace_back(avk::queue::prepare(mPhysicalDevice, familyIndex, 0));
 		}
 		
 		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
@@ -167,7 +167,7 @@ namespace xk
 			.setShadingRateCoarseSampleOrder(VK_TRUE);
 		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
 
-		auto queueCreateInfos = ak::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
+		auto queueCreateInfos = avk::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
 		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
 		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
 			std::get<0>(queueCreateInfos)[i].setPQueuePriorities(std::get<1>(queueCreateInfos)[i].data());
@@ -230,19 +230,19 @@ namespace xk
 		}
 
 		// TODO: Remove sync
-		ak::sync::sPoolToAllocCommandBuffersFrom = xk::context().create_command_pool(mQueues.front().family_index(), {});
-		ak::sync::sQueueToUse = &mQueues.front();
+		avk::sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
+		avk::sync::sQueueToUse = &mQueues.front();
 		
-		context().mContextState = xk::context_state::fully_initialized;
+		context().mContextState = gvk::context_state::fully_initialized;
 		work_off_event_handlers();
 
 	}
 
-	ak::command_pool& context_vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
+	avk::command_pool& context_vulkan::get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags)
 	{
 		std::scoped_lock<std::mutex> guard(sConcurrentAccessMutex);
 		auto it = std::find_if(std::begin(mCommandPools), std::end(mCommandPools),
-							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, ak::command_pool>& existing) {
+							   [lThreadId = std::this_thread::get_id(), lFamilyIdx = aQueueFamilyIndex, lFlags = aFlags] (const std::tuple<std::thread::id, avk::command_pool>& existing) {
 									auto& tid = std::get<0>(existing);
 									auto& q = std::get<1>(existing);
 									return tid == lThreadId && q->queue_family_index() == lFamilyIdx && lFlags == q->create_info().flags;
@@ -253,22 +253,22 @@ namespace xk
 		return std::get<1>(*it);
 	}
 
-	ak::command_pool& context_vulkan::get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags)
+	avk::command_pool& context_vulkan::get_command_pool_for(const avk::queue& aQueue, vk::CommandPoolCreateFlags aFlags)
 	{
 		return get_command_pool_for(aQueue.family_index(), aFlags);
 	}
 
-	ak::command_pool& context_vulkan::get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue)
+	avk::command_pool& context_vulkan::get_command_pool_for_single_use_command_buffers(const avk::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eTransient);
 	}
 	
-	ak::command_pool& context_vulkan::get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue)
+	avk::command_pool& context_vulkan::get_command_pool_for_reusable_command_buffers(const avk::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, {});
 	}
 	
-	ak::command_pool& context_vulkan::get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue)
+	avk::command_pool& context_vulkan::get_command_pool_for_resettable_command_buffers(const avk::queue& aQueue)
 	{
 		return get_command_pool_for(aQueue, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 	}
@@ -276,7 +276,7 @@ namespace xk
 	void context_vulkan::begin_composition()
 	{ 
 		dispatch_to_main_thread([]() {
-			context().mContextState = xk::context_state::composition_beginning;
+			context().mContextState = gvk::context_state::composition_beginning;
 			context().work_off_event_handlers();
 		});
 	}
@@ -284,7 +284,7 @@ namespace xk
 	void context_vulkan::end_composition()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = xk::context_state::composition_ending;
+			context().mContextState = gvk::context_state::composition_ending;
 			context().work_off_event_handlers();
 			
 			context().mLogicalDevice.waitIdle();
@@ -294,7 +294,7 @@ namespace xk
 	void context_vulkan::begin_frame()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = xk::context_state::frame_begun;
+			context().mContextState = gvk::context_state::frame_begun;
 			context().work_off_event_handlers();
 		});
 	}
@@ -302,7 +302,7 @@ namespace xk
 	void context_vulkan::update_stage_done()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = xk::context_state::frame_updates_done;
+			context().mContextState = gvk::context_state::frame_updates_done;
 			context().work_off_event_handlers();
 		});
 	}
@@ -310,12 +310,12 @@ namespace xk
 	void context_vulkan::end_frame()
 	{
 		dispatch_to_main_thread([]() {
-			context().mContextState = xk::context_state::frame_ended;
+			context().mContextState = gvk::context_state::frame_ended;
 			context().work_off_event_handlers();
 		});
 	}
 
-	ak::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, ak::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
+	avk::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, avk::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
 	{
 		assert(are_we_on_the_main_thread());
 		context().work_off_event_handlers();
@@ -338,10 +338,10 @@ namespace xk
 					return false;
 				}
 			}
-			auto queueFamily = ak::queue::select_queue_family_index(context().physical_device(), aRequiredFlags, aQueueSelectionPreference, surfaceSupport);
+			auto queueFamily = avk::queue::select_queue_family_index(context().physical_device(), aRequiredFlags, aQueueSelectionPreference, surfaceSupport);
 
 			// Do we already have queues with that queue family?
-			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const ak::queue& q) { return q.family_index() == queueFamily; });
+			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const avk::queue& q) { return q.family_index() == queueFamily; });
 #if _DEBUG
 			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
 			std::vector<int> check(num, 0);
@@ -355,7 +355,7 @@ namespace xk
 			}
 #endif
 			
-			nuQu = ak::queue::prepare(context().physical_device(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
+			nuQu = avk::queue::prepare(context().physical_device(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
 
 			return true;
 		});
@@ -385,7 +385,7 @@ namespace xk
 			LOG_DEBUG_VERBOSE("Running window surface creator event handler");
 
 			// Make sure it is the right window
-			auto* window = context().find_window([wnd](xk::window* w) {
+			auto* window = context().find_window([wnd](gvk::window* w) {
 				return w == wnd && w->handle().has_value();
 			});
 
@@ -395,7 +395,7 @@ namespace xk
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw xk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw gvk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
 			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
@@ -409,7 +409,7 @@ namespace xk
 			LOG_DEBUG_VERBOSE("Running swap chain creator event handler");
 
 			// Make sure it is the right window
-			auto* window = context().find_window([wnd](xk::window* w) { 
+			auto* window = context().find_window([wnd](gvk::window* w) { 
 				return w == wnd && w->handle().has_value() && static_cast<bool>(w->surface());
 			});
 
@@ -585,11 +585,11 @@ namespace xk
 				nullptr, 
 				&mDebugUtilsCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw xk::runtime_error("Failed to set up debug utils callback via vkCreateDebugUtilsMessengerEXT");
+				throw gvk::runtime_error("Failed to set up debug utils callback via vkCreateDebugUtilsMessengerEXT");
 			}
 		}
 		else {
-			throw xk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
+			throw gvk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugUtilsMessengerEXT.");
 		}
 #endif
 	}
@@ -660,11 +660,11 @@ namespace xk
 				nullptr,
 				&mDebugReportCallbackHandle);
 			if (VK_SUCCESS != result) {
-				throw xk::runtime_error("Failed to set up debug report callback via vkCreateDebugReportCallbackEXT");
+				throw gvk::runtime_error("Failed to set up debug report callback via vkCreateDebugReportCallbackEXT");
 			}
 		}
 		else {
-			throw xk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugReportCallbackEXT.");
+			throw gvk::runtime_error("Failed to vkGetInstanceProcAddr for vkCreateDebugReportCallbackEXT.");
 		}
 
 #endif
@@ -730,7 +730,7 @@ namespace xk
 		assert(mInstance);
 		auto devices = mInstance.enumeratePhysicalDevices();
 		if (devices.size() == 0) {
-			throw xk::runtime_error("Failed to find GPUs with Vulkan support.");
+			throw gvk::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 		const vk::PhysicalDevice* currentSelection = nullptr;
 		uint32_t currentScore = 0; // device score
@@ -758,7 +758,7 @@ namespace xk
 			const auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
 			
 			if (!mSettings.mPhysicalDeviceSelectionHint.mValue.empty()) {
-				score += ak::find_case_insensitive(deviceName, mSettings.mPhysicalDeviceSelectionHint.mValue, 0) != std::string::npos ? 1000 : 0;
+				score += avk::find_case_insensitive(deviceName, mSettings.mPhysicalDeviceSelectionHint.mValue, 0) != std::string::npos ? 1000 : 0;
 			}
 
 			// Check if extensions are required
@@ -794,14 +794,14 @@ namespace xk
 		// Handle failure:
 		if (nullptr == currentSelection) {
 			if (mSettings.mRequiredDeviceExtensions.mExtensions.size() > 0) {
-				throw xk::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
+				throw gvk::runtime_error("Could not find a suitable physical device, most likely because no device supported all required device extensions.");
 			}
-			throw xk::runtime_error("Could not find a suitable physical device.");
+			throw gvk::runtime_error("Could not find a suitable physical device.");
 		}
 
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
-		mContextState = xk::context_state::physical_device_selected;
+		mContextState = gvk::context_state::physical_device_selected;
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
@@ -822,7 +822,7 @@ namespace xk
 
 		auto surfaceFormat = aWindow->get_config_surface_format(aWindow->surface());
 
-		const ak::image_usage swapChainImageUsage = ak::image_usage::color_attachment			 | ak::image_usage::transfer_destination		| ak::image_usage::presentable;
+		const avk::image_usage swapChainImageUsage = avk::image_usage::color_attachment			 | avk::image_usage::transfer_destination		| avk::image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		aWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
@@ -847,7 +847,7 @@ namespace xk
 		
 		switch (queueFamilyIndices.size()) {
 		case 0:
-			throw xk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use add_queue_family_ownership().", aWindow->title()));
+			throw gvk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use add_queue_family_ownership().", aWindow->title()));
 		case 1:
 			aWindow->mImageCreateInfoSwapChain
 				.setSharingMode(vk::SharingMode::eExclusive)
@@ -902,8 +902,8 @@ namespace xk
 		}
 
 		// Create a renderpass for the back buffers
-		std::vector<ak::attachment> renderpassAttachments = {
-			ak::attachment::declare_for(aWindow->mSwapChainImageViews[0], ak::on_load::clear, ak::color(0), ak::on_store::dont_care)
+		std::vector<avk::attachment> renderpassAttachments = {
+			avk::attachment::declare_for(aWindow->mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::dont_care)
 		};
 		auto additionalAttachments = aWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
@@ -916,16 +916,16 @@ namespace xk
 			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
-			std::vector<ak::image_view> imageViews;
+			std::vector<avk::image_view> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
 			imageViews.push_back(imView); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = create_depth_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, ak::memory_usage::device, ak::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
+					auto depthView = create_depth_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
 					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(create_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, ak::memory_usage::device, ak::image_usage::general_color_attachment)));
+					imageViews.emplace_back(create_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
 				}
 			}
 
@@ -938,7 +938,7 @@ namespace xk
 			const auto n = bb->image_views().size();
 			assert(n == aWindow->get_renderpass().attachment_descriptions().size());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass().attachment_descriptions()[i].finalLayout, ak::sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass().attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
 			}
 		}
 

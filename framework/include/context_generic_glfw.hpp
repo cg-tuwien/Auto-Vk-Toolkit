@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	// ============================= forward declarations ===========================
 	class input_buffer;
@@ -175,7 +175,7 @@ namespace xk
 		auto state() const { return mContextState; }
 
 		template <typename F>
-		void add_event_handler(F action, xk::context_state when)
+		void add_event_handler(F action, gvk::context_state when)
 		{
 			mEventHandlers.emplace_back(std::move(action), when);
 		}
@@ -210,10 +210,10 @@ namespace xk
 		*
 		*	Event handlers are always executed on the main thread.
 		*/
-		std::list<std::tuple<event_handler_func, xk::context_state>> mEventHandlers;
+		std::list<std::tuple<event_handler_func, gvk::context_state>> mEventHandlers;
 
 		// Which state the context is currently in
-		xk::context_state mContextState = context_state::uninitialized;
+		gvk::context_state mContextState = context_state::uninitialized;
 
 		GLFWcursor* mArrowCursor = nullptr;
 		GLFWcursor* mIbeamCursor = nullptr;

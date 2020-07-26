@@ -15,11 +15,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\exekutor\exekutor.vcxproj">
-      <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\..\assets\sponza_duo.fscene" />
     <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rchit" />
     <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rgen" />
@@ -38,6 +33,11 @@
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
+      <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

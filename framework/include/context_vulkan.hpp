@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {	
 	// ============================== VULKAN CONTEXT ================================
 	/**	@brief Context for Vulkan
@@ -10,7 +10,7 @@ namespace xk
 	 *	stuff, like window creation etc.,  it relies on GLFW and inherits
 	 *	@ref generic_glfw.
 	 */
-	class context_vulkan : public context_generic_glfw, public ak::root
+	class context_vulkan : public context_generic_glfw, public avk::root
 	{
 	public:
 		context_vulkan() = default;
@@ -55,7 +55,7 @@ namespace xk
 		 *	@param		aQueueFamilyIndex		Command buffers allocated from the resulting pool must be sent to the given queue family
 		 *	@param		aFlags		Create-flags for the pool.
 		 */
-		ak::command_pool& get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
+		avk::command_pool& get_command_pool_for(uint32_t aQueueFamilyIndex, vk::CommandPoolCreateFlags aFlags);
 		
 		/** Gets a command pool for the given queue's queue family index.
 		 *	If the command pool does not exist already, it will be created.
@@ -65,27 +65,27 @@ namespace xk
 		 *							of the given queue.
 		 *	@param		aFlags		Create-flags for the pool.
 		 */
-		ak::command_pool& get_command_pool_for(const ak::queue& aQueue, vk::CommandPoolCreateFlags aFlags);
+		avk::command_pool& get_command_pool_for(const avk::queue& aQueue, vk::CommandPoolCreateFlags aFlags);
 
 		/**	Get a command pool with the "transient"-bit set, which is optimal for single-use command buffers.
 		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
 		 *							of the given queue.
 		 */
-		ak::command_pool& get_command_pool_for_single_use_command_buffers(const ak::queue& aQueue);
+		avk::command_pool& get_command_pool_for_single_use_command_buffers(const avk::queue& aQueue);
 		
 		/**	Get a command pool which is optimal for reusable command buffers.
 		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
 		 *							of the given queue.
 		 */
-		ak::command_pool& get_command_pool_for_reusable_command_buffers(const ak::queue& aQueue);
+		avk::command_pool& get_command_pool_for_reusable_command_buffers(const avk::queue& aQueue);
 		
 		/**	Get a command pool which is optimal for single-use command buffers.
 		 *	@param		aQueue		Command buffers allocated from the resulting pool must be sent to the queue family
 		 *							of the given queue.
 		 */
-		ak::command_pool& get_command_pool_for_resettable_command_buffers(const ak::queue& aQueue);
+		avk::command_pool& get_command_pool_for_resettable_command_buffers(const avk::queue& aQueue);
 
-		ak::queue& create_queue(vk::QueueFlags aRequiredFlags = {}, ak::queue_selection_preference aQueueSelectionPreference = ak::queue_selection_preference::versatile_queue, window* aPresentSupportForWindow = nullptr, float aQueuePriority = 0.5f);
+		avk::queue& create_queue(vk::QueueFlags aRequiredFlags = {}, avk::queue_selection_preference aQueueSelectionPreference = avk::queue_selection_preference::versatile_queue, window* aPresentSupportForWindow = nullptr, float aQueuePriority = 0.5f);
 		
 		/**	Creates a new window, but does not open it. Set the window's parameters
 		 *	according to your requirements before opening it!
@@ -206,12 +206,12 @@ namespace xk
 
 		// Command pools are created/stored per thread and per queue family index.
 		// Queue family indices are stored within the command_pool objects, thread indices in the tuple.
-		std::deque<std::tuple<std::thread::id, ak::command_pool>> mCommandPools;
+		std::deque<std::tuple<std::thread::id, avk::command_pool>> mCommandPools;
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
 
-		std::deque<ak::queue> mQueues;
+		std::deque<avk::queue> mQueues;
 	};
 
 }

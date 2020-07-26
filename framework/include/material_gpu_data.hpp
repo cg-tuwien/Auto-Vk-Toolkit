@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Material data in the right format to be uploaded to the GPU
 	 *	and to be used in a GPU buffer like a UBO or an SSBO.
@@ -129,12 +129,12 @@ namespace xk
 
 namespace std // Inject hash for `cgb::material_gpu_data` into std::
 {
-	template<> struct hash<xk::material_gpu_data>
+	template<> struct hash<gvk::material_gpu_data>
 	{
-		std::size_t operator()(xk::material_gpu_data const& o) const noexcept
+		std::size_t operator()(gvk::material_gpu_data const& o) const noexcept
 		{
 			std::size_t h = 0;
-			ak::hash_combine(h,
+			avk::hash_combine(h,
 				o.mDiffuseReflectivity,
 				o.mAmbientReflectivity,
 				o.mSpecularReflectivity,

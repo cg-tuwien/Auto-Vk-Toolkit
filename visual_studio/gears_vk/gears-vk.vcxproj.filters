@@ -1,0 +1,483 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
+      <Filter>gears-vk_src\external\FileWatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
+      <Filter>gears-vk_src\external\FileWatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="cg_stdafx.cpp">
+      <Filter>precompiled_headers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\imgui_manager.cpp">
+      <Filter>gears-vk_src\user_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\input_buffer.cpp">
+      <Filter>gears-vk_src\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp">
+      <Filter>gears-vk_src\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\varying_update_timer.cpp">
+      <Filter>gears-vk_src\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\composition_interface.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context_generic_glfw.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\context_vulkan.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\window.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\model.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\orca_scene.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\material_image_helpers.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\transform.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\camera.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\quake_camera.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\log.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\math_utils.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\window_base.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\composition.cpp">
+      <Filter>gears-vk_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk\src\ak.cpp">
+      <Filter>auto-vk_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk\src\sync.cpp">
+      <Filter>auto-vk_src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
+      <Filter>gears-vk_include\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\timer_frame_type.hpp">
+      <Filter>gears-vk_include\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\timer_interface.hpp">
+      <Filter>gears-vk_include\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\input_buffer.hpp">
+      <Filter>gears-vk_include\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\key_code.hpp">
+      <Filter>gears-vk_include\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\key_state.hpp">
+      <Filter>gears-vk_include\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\model.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\varying_update_timer.hpp">
+      <Filter>gears-vk_include\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_stdafx.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_targetver.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\orca_scene.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\lightsource.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\lightsource_gpu_data.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\imgui_manager.hpp">
+      <Filter>gears-vk_include\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cursor.hpp">
+      <Filter>gears-vk_include\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_generic_glfw.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_generic_glfw_types.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_vulkan.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\window.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\context_state.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\setup.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\composition.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\composition_interface.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_image_helpers.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_config.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_gpu_data.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\transform.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\log.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\camera.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\quake_camera.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\math_utils.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\window_base.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\invoker_interface.hpp">
+      <Filter>gears-vk_include\invokers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\settings.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\conversion_utils.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\invokee.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\sequential_invoker.hpp">
+      <Filter>gears-vk_include\invokers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\gvk.hpp">
+      <Filter>gears-vk_include\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\aabb.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\attachment.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_error.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_log.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\binding_data.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\bindings.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\border_handling_mode.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\bottom_level_acceleration_structure.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_member_format.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_view.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\command_buffer.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\command_pool.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\commands.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline_config.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\cpp_utils.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_alloc_request.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_cache.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_pool.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set_layout.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\fence.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\filter_mode.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\format_for.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\framebuffer.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\geometry_instance.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline_config.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\input_description.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_access.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_usage.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\on_load.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\push_constants.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\queue.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass_sync.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\root_example_implementation.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\set_of_descriptor_set_layouts.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\sync.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\usage_desc.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\usage_type.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="precompiled_headers">
+      <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto-vk_include">
+      <UniqueIdentifier>{9e5f3a01-c1b4-4952-a270-2a62a0bc3aa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto-vk_src">
+      <UniqueIdentifier>{568607b2-d6cb-4a02-9b26-0d96fab766de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include">
+      <UniqueIdentifier>{f0debc15-831c-4ce5-8aa8-b45e296d9848}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\user_interface">
+      <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\base">
+      <UniqueIdentifier>{26caf0b8-7ce7-43d3-9e8f-9b44e20fdbae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\timers">
+      <UniqueIdentifier>{bb4197cf-5a2e-439b-8c69-0f3197ed1abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\input">
+      <UniqueIdentifier>{13e34ef1-6c80-45ea-a246-44fbddb451b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\invokers">
+      <UniqueIdentifier>{55acfcc3-15f4-491b-8cfa-d768e751b37a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\data">
+      <UniqueIdentifier>{7e592d59-e1a9-4f56-a9d2-2fdb56a7075f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\utils">
+      <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src">
+      <UniqueIdentifier>{99cf0065-9330-4485-b7e0-b67aa6c775cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\external">
+      <UniqueIdentifier>{01ec6606-9462-4183-b896-331537dd7240}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\external\FileWatcher">
+      <UniqueIdentifier>{e42383c6-18d8-4c20-95ad-9d3f00c29b0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\user_interface">
+      <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\base">
+      <UniqueIdentifier>{20a5d664-c092-4504-91ac-42ba3437b7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\data">
+      <UniqueIdentifier>{e1a6a227-b044-42b8-ae5c-68f3bd93df72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\input">
+      <UniqueIdentifier>{26864eed-0286-4cb0-b966-c212bb6a9b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\timers">
+      <UniqueIdentifier>{1a6b27c5-b97b-4f6b-af5d-646a8543d57a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\utils">
+      <UniqueIdentifier>{c52831a5-f770-4498-84d8-f1957757ebad}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w)
@@ -99,7 +99,7 @@ namespace xk
 	}
 	
 	template <typename... Args>
-	static void execute(Args&&... args)
+	static void start(Args&&... args)
 	{
 		varying_update_timer defaultTimer;
 		sequential_invoker defaultInvoker;

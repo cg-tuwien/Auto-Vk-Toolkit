@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/**	@brief Override this base class for objects to update and/or render
 	 * 
@@ -53,7 +53,7 @@ namespace xk
 		virtual ~invokee()
 		{
 			// Make sure, this element gets removed from the composition
-			auto* cc = xk::current_composition();
+			auto* cc = gvk::current_composition();
 			if (nullptr != cc) {
 				cc->remove_element_immediately(*this, true);
 			}

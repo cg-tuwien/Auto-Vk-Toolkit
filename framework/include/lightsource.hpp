@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Type of a light source */
 	enum struct lightsource_type {
@@ -141,12 +141,12 @@ namespace xk
 
 namespace std
 {
-	template<> struct hash<xk::lightsource>
+	template<> struct hash<gvk::lightsource>
 	{
-		std::size_t operator()(xk::lightsource const& o) const noexcept
+		std::size_t operator()(gvk::lightsource const& o) const noexcept
 		{
 			std::size_t h = 0;
-			ak::hash_combine(h, 
+			avk::hash_combine(h, 
 				o.mAngleInnerCone,
 				o.mAngleOuterCone,
 				o.mAttenuationConstant,

@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	inline const std::array<float, 16>& to_array(const glm::mat4& aMatrix)
 	{

@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/** Contains the raw material config as read out by Assimp.
 	 *	Note however, that some fields will not be set by Assimp.
@@ -14,7 +14,7 @@ namespace xk
 			, mShadingModel{}
 			, mWireframeMode{ false }
 			, mTwosided{ false }
-			, mBlendMode{ ak::cfg::color_blending_config::disable() }
+			, mBlendMode{ avk::cfg::color_blending_config::disable() }
 			, mDiffuseReflectivity{ 1.f, 1.f, 1.f, 1.f }
 			, mAmbientReflectivity{ 1.f, 1.f, 1.f, 1.f }
 			, mSpecularReflectivity{ 1.f, 1.f, 1.f, 1.f }
@@ -75,7 +75,7 @@ namespace xk
 		std::string mShadingModel;
 		bool mWireframeMode;
 		bool mTwosided;
-		ak::cfg::color_blending_config mBlendMode;
+		avk::cfg::color_blending_config mBlendMode;
 
 		// Shader parameters:
 		glm::vec4 mDiffuseReflectivity;
@@ -209,12 +209,12 @@ namespace xk
 
 namespace std // Inject hash for `cgb::material_config` into std::
 {
-	template<> struct hash<xk::material_config>
+	template<> struct hash<gvk::material_config>
 	{
-		std::size_t operator()(xk::material_config const& o) const noexcept
+		std::size_t operator()(gvk::material_config const& o) const noexcept
 		{
 			std::size_t h = 0;
-			ak::hash_combine(h,
+			avk::hash_combine(h,
 				o.mDiffuseReflectivity,
 				o.mAmbientReflectivity,
 				o.mSpecularReflectivity,
@@ -262,7 +262,7 @@ namespace std // Inject hash for `cgb::material_config` into std::
 				o.mExtraTexOffsetTiling
 			);
 			if (!o.mIgnoreCpuOnlyDataForEquality) {
-				ak::hash_combine(h,
+				avk::hash_combine(h,
 					o.mShadingModel,
 					o.mWireframeMode,
 					o.mTwosided,

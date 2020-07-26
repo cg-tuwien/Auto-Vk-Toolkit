@@ -1,6 +1,6 @@
 #pragma once
 
-namespace xk
+namespace gvk
 {
 	// Define LOGGING_ON_SEPARATE_THREAD to have all the logging being transmitted and performed by a separate thread
 	#if !defined(NO_SEPARATE_LOGGING_THREAD)
@@ -48,16 +48,16 @@ namespace xk
 		std::string mStacktrace;
 	};
 	
-	extern void set_console_output_color(xk::log_type level, xk::log_importance importance);
-	extern void set_console_output_color_for_stacktrace(xk::log_type level, xk::log_importance importance);
+	extern void set_console_output_color(gvk::log_type level, gvk::log_importance importance);
+	extern void set_console_output_color_for_stacktrace(gvk::log_type level, gvk::log_importance importance);
 	extern void reset_console_output_color();
-	extern void dispatch_log(xk::log_pack pToBeLogged);
+	extern void dispatch_log(gvk::log_pack pToBeLogged);
 	
 	#if LOG_LEVEL > 0
-	#define LOG_ERROR(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::error, xk::log_importance::normal })
-	#define LOG_ERROR_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::error, xk::log_importance::important})
-	#define LOG_ERROR__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), xk::log_type::error, xk::log_importance::normal })
-	#define LOG_ERROR_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), xk::log_type::error, xk::log_importance::important })
+	#define LOG_ERROR(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::error, gvk::log_importance::normal })
+	#define LOG_ERROR_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::error, gvk::log_importance::important})
+	#define LOG_ERROR__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), gvk::log_type::error, gvk::log_importance::normal })
+	#define LOG_ERROR_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), gvk::log_type::error, gvk::log_importance::important })
 	#else
 	#define LOG_ERROR(msg)
 	#define LOG_ERROR_EM(msg)
@@ -66,10 +66,10 @@ namespace xk
 	#endif
 
 	#if LOG_LEVEL > 1
-	#define LOG_WARNING(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::warning, xk::log_importance::normal })
-	#define LOG_WARNING_EM(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::warning, xk::log_importance::important })
-	#define LOG_WARNING__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), xk::log_type::warning, xk::log_importance::normal })
-	#define LOG_WARNING_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), xk::log_type::warning, xk::log_importance::important })
+	#define LOG_WARNING(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::warning, gvk::log_importance::normal })
+	#define LOG_WARNING_EM(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::warning, gvk::log_importance::important })
+	#define LOG_WARNING__(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), gvk::log_type::warning, gvk::log_importance::normal })
+	#define LOG_WARNING_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), gvk::log_type::warning, gvk::log_importance::important })
 	#else 
 	#define LOG_WARNING(msg)
 	#define LOG_WARNING_EM(msg)
@@ -78,10 +78,10 @@ namespace xk
 	#endif
 
 	#if LOG_LEVEL > 2
-	#define LOG_INFO(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::info, xk::log_importance::normal })
-	#define LOG_INFO_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::info, xk::log_importance::important })
-	#define LOG_INFO__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), xk::log_type::info, xk::log_importance::normal })
-	#define LOG_INFO_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), xk::log_type::info, xk::log_importance::important })
+	#define LOG_INFO(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::info, gvk::log_importance::normal })
+	#define LOG_INFO_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::info, gvk::log_importance::important })
+	#define LOG_INFO__(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), gvk::log_type::info, gvk::log_importance::normal })
+	#define LOG_INFO_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), gvk::log_type::info, gvk::log_importance::important })
 	#else
 	#define LOG_INFO(msg)
 	#define LOG_INFO_EM(msg)
@@ -90,10 +90,10 @@ namespace xk
 	#endif
 
 	#if LOG_LEVEL > 3
-	#define LOG_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::normal })
-	#define LOG_VERBOSE_EM(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::important })
-	#define LOG_VERBOSE__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), xk::log_type::verbose, xk::log_importance::normal })
-	#define LOG_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), xk::log_type::verbose, xk::log_importance::important })
+	#define LOG_VERBOSE(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::verbose, gvk::log_importance::normal })
+	#define LOG_VERBOSE_EM(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::verbose, gvk::log_importance::important })
+	#define LOG_VERBOSE__(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), gvk::log_type::verbose, gvk::log_importance::normal })
+	#define LOG_VERBOSE_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), gvk::log_type::verbose, gvk::log_importance::important })
 	#else 
 	#define LOG_VERBOSE(msg)
 	#define LOG_VERBOSE_EM(msg)
@@ -102,10 +102,10 @@ namespace xk
 	#endif
 
 	#if LOG_LEVEL > 4
-	#define LOG_MEGA_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::verbose, xk::log_importance::important })
-	#define LOG_MEGA_VERBOSE__(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), xk::log_type::verbose, xk::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), xk::log_type::verbose, xk::log_importance::important })
+	#define LOG_MEGA_VERBOSE(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::verbose, gvk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::verbose, gvk::log_importance::important })
+	#define LOG_MEGA_VERBOSE__(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), gvk::log_type::verbose, gvk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), gvk::log_type::verbose, gvk::log_importance::important })
 	#else 
 	#define LOG_MEGA_VERBOSE(msg)
 	#define LOG_MEGA_VERBOSE_EM(msg)
@@ -114,10 +114,10 @@ namespace xk
 	#endif
 
 	#ifdef _DEBUG
-	#define LOG_DEBUG(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug, xk::log_importance::normal })
-	#define LOG_DEBUG_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug, xk::log_importance::important })
-	#define LOG_DEBUG__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), xk::log_type::debug, xk::log_importance::normal })
-	#define LOG_DEBUG_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), xk::log_type::debug, xk::log_importance::important })
+	#define LOG_DEBUG(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug, gvk::log_importance::normal })
+	#define LOG_DEBUG_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug, gvk::log_importance::important })
+	#define LOG_DEBUG__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), gvk::log_type::debug, gvk::log_importance::normal })
+	#define LOG_DEBUG_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), gvk::log_type::debug, gvk::log_importance::important })
 	#else
 	#define LOG_DEBUG(msg)
 	#define LOG_DEBUG_EM(msg)
@@ -126,10 +126,10 @@ namespace xk
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 3
-	#define LOG_DEBUG_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::important })
-	#define LOG_DEBUG_VERBOSE__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), xk::log_type::debug_verbose, xk::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), xk::log_type::debug_verbose, xk::log_importance::important })
+	#define LOG_DEBUG_VERBOSE(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug_verbose, gvk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug_verbose, gvk::log_importance::important })
+	#define LOG_DEBUG_VERBOSE__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), gvk::log_type::debug_verbose, gvk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), gvk::log_type::debug_verbose, gvk::log_importance::important })
 	#else
 	#define LOG_DEBUG_VERBOSE(msg)
 	#define LOG_DEBUG_VERBOSE_EM(msg)   
@@ -138,10 +138,10 @@ namespace xk
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 4
-	#define LOG_DEBUG_MEGA_VERBOSE(msg)		xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), xk::log_type::debug_verbose, xk::log_importance::important })
-	#define LOG_DEBUG_MEGA_VERBOSE__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), xk::log_type::debug_verbose, xk::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)	xk::dispatch_log(xk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), xk::log_type::debug_verbose, xk::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug_verbose, gvk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", ak::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug_verbose, gvk::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), gvk::log_type::debug_verbose, gvk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), gvk::log_type::debug_verbose, gvk::log_importance::important })
 	#else
 	#define LOG_DEBUG_MEGA_VERBOSE(msg)
 	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)   

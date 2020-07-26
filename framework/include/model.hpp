@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	using model_index_t = size_t;
 	using mesh_index_t = size_t;
@@ -20,9 +20,9 @@ namespace xk
 		model_t& operator=(const model_t&) = delete;
 		~model_t() = default;
 
-		static ak::owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
+		static avk::owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 		
-		static ak::owning_resource<model_t> load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
+		static avk::owning_resource<model_t> load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 
 		/** Returns this model's path where it has been loaded from */
 		auto path() const { return mModelPath; }
@@ -155,7 +155,7 @@ namespace xk
 		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const
 		{
-			throw xk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+			throw gvk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
 		}
 
 		/** Gets the number of indices for the mesh at the given index.
@@ -244,7 +244,7 @@ namespace xk
 		std::vector<lightsource> lights() const;
 
 		/** Returns all cameras stored in the model file */
-		std::vector<xk::camera> cameras() const;
+		std::vector<gvk::camera> cameras() const;
 
 	private:
 		void initialize_materials();
@@ -258,7 +258,7 @@ namespace xk
 		std::vector<std::optional<material_config>> mMaterialConfigPerMesh;
 	};
 
-	using model = ak::owning_resource<model_t>;
+	using model = avk::owning_resource<model_t>;
 
 
 	template <>
@@ -288,7 +288,7 @@ namespace xk
 				}
 				break;
 			default:
-				throw xk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
 			}
 		}
 		return result;
@@ -325,7 +325,7 @@ namespace xk
 				}
 				break;
 			default:
-				throw xk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
 			}
 		}
 		return result;
@@ -346,7 +346,7 @@ namespace xk
 		// Check whether all of the vertex data has the same length!
 		auto countOfNext = get_vertex_count(_Rest...);
 		if (countOfNext != _First.size()) {
-			throw xk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
+			throw gvk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
 		}
 #endif
 		return _First.size();

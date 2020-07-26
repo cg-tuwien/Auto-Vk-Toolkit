@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	class window : public window_base
 	{
@@ -37,7 +37,7 @@ namespace xk
 		void request_srgb_framebuffer(bool aRequestSrgb);
 
 		/** Sets the presentation mode for this window's swap chain. */
-		void set_presentaton_mode(xk::presentation_mode aMode);
+		void set_presentaton_mode(gvk::presentation_mode aMode);
 
 		/** Sets the number of samples for MSAA */
 		void set_number_of_samples(vk::SampleCountFlagBits aNumSamples);
@@ -53,7 +53,7 @@ namespace xk
 		/** Sets additional attachments which shall be added to the back buffer 
 		 *	in addition to the obligatory color attachment.  
 		 */
-		void set_additional_back_buffer_attachments(std::vector<ak::attachment> aAdditionalAttachments);
+		void set_additional_back_buffer_attachments(std::vector<avk::attachment> aAdditionalAttachments);
 
 		/** Creates or opens the window */
 		void open();
@@ -93,7 +93,7 @@ namespace xk
 
 		/**	Gets the descriptions of the additional back buffer attachments
 		 */
-		std::vector<ak::attachment> get_additional_back_buffer_attachments();
+		std::vector<avk::attachment> get_additional_back_buffer_attachments();
 
 		
 		/** Gets this window's surface */
@@ -125,7 +125,7 @@ namespace xk
 			return mSwapChainImageViews; 
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		ak::image_view_t& swap_chain_image_view_at_index(size_t aIdx) { 
+		avk::image_view_t& swap_chain_image_view_at_index(size_t aIdx) { 
 			return mSwapChainImageViews[aIdx]; 
 		}
 
@@ -134,7 +134,7 @@ namespace xk
 			return mBackBuffers; 
 		}
 		/** Gets this window's back buffer at the specified index. */
-		ak::framebuffer_t& backbuffer_at_index(size_t aIdx) { 
+		avk::framebuffer_t& backbuffer_at_index(size_t aIdx) { 
 			return mBackBuffers[aIdx]; 
 		}
 
@@ -195,11 +195,11 @@ namespace xk
 		}
 
 		/** Returns the swap chain image view for the current frame. */
-		ak::image_view_t& current_image_view() {
+		avk::image_view_t& current_image_view() {
 			return mSwapChainImageViews[current_image_index()];
 		}
 		/** Returns the swap chain image view for the previous frame. */
-		ak::image_view_t& previous_image_view() {
+		avk::image_view_t& previous_image_view() {
 			return mSwapChainImageViews[previous_image_index()];
 		}
 
@@ -207,11 +207,11 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		ak::fence_t& fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+		avk::fence_t& fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
 			return mFramesInFlightFences[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the fence for the current frame. */
-		ak::fence_t& current_fence() {
+		avk::fence_t& current_fence() {
 			return mFramesInFlightFences[current_in_flight_index()];
 		}
 
@@ -219,11 +219,11 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		ak::semaphore_t& image_available_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+		avk::semaphore_t& image_available_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
 			return mImageAvailableSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the "image available"-semaphore for the current frame. */
-		ak::semaphore_t& current_image_available_semaphore() {
+		avk::semaphore_t& current_image_available_semaphore() {
 			return mImageAvailableSemaphores[current_in_flight_index()];
 		}
 
@@ -231,11 +231,11 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		ak::semaphore_t& initiate_present_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+		avk::semaphore_t& initiate_present_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
 			return mInitiatePresentSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the "initiate present"-semaphore for the current frame. */
-		ak::semaphore_t& current_initiate_present_semaphore() {
+		avk::semaphore_t& current_initiate_present_semaphore() {
 			return mInitiatePresentSemaphores[current_in_flight_index()];
 		}
 
@@ -247,7 +247,7 @@ namespace xk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		void add_render_finished_semaphore_for_frame(ak::semaphore aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
+		void add_render_finished_semaphore_for_frame(avk::semaphore aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
 			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), std::move(aSemaphore));
 		}
 		/** Adds the given semaphore as an additional present-dependency to the current frame.
@@ -255,7 +255,7 @@ namespace xk
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
 		 */
-		void add_render_finished_semaphore_for_current_frame(ak::semaphore aSemaphore) {
+		void add_render_finished_semaphore_for_current_frame(avk::semaphore aSemaphore) {
 			mPresentSemaphoreDependencies.emplace_back(current_frame(), std::move(aSemaphore));
 		}
 
@@ -266,20 +266,20 @@ namespace xk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void handle_lifetime(ak::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
+		void handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
 
 		/**	Convenience-overload to handle_lifetime() */
-		void handle_lifetime(std::optional<ak::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
+		void handle_lifetime(std::optional<avk::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
 		 */
-		std::vector<ak::semaphore> remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId);
+		std::vector<avk::semaphore> remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId);
 
 		/** Remove all the "single use" command buffers for the given frame, also clear command buffer references.
 		 *	The command buffers are moved out of the internal storage and returned to the caller.
 		 */
-		std::vector<ak::command_buffer> clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId);
+		std::vector<avk::command_buffer> clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId);
 
 		/**
 		 *	Called BEFORE all the render callbacks are invoked.
@@ -299,7 +299,7 @@ namespace xk
 
 		/** Gets a const reference to the backbuffer's render pass
 		 */
-		const ak::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
+		const avk::renderpass_t& get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -311,16 +311,16 @@ namespace xk
 		 */
 		auto command_buffer_lifetime_handler(std::optional<frame_id_t> aFrameId = {})
 		{
-			return [this, aFrameId](ak::command_buffer aCommandBufferToLifetimeHandle){
+			return [this, aFrameId](avk::command_buffer aCommandBufferToLifetimeHandle){
 				handle_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);
 			};
 		}
 
 		/** Add a queue which family will be added to shared ownership of the swap chain images. */
-		void add_queue_family_ownership(ak::queue& aQueue);
+		void add_queue_family_ownership(avk::queue& aQueue);
 
 		/** Set the queue that shall handle presenting. You MUST set it if you want to show any rendered images in this window! */
-		void set_present_queue(ak::queue& aPresentQueue);
+		void set_present_queue(avk::queue& aPresentQueue);
 
 		/** Returns whether or not the current frame's image available semaphore has already been consumed. */
 		bool has_consumed_current_image_available_semaphore() const {
@@ -328,9 +328,9 @@ namespace xk
 		}
 		
 		/** Get a reference to the image available semaphore of the current frame. */
-		ak::semaphore_t& consume_current_image_available_semaphore() {
+		avk::semaphore_t& consume_current_image_available_semaphore() {
 			if (!mCurrentFrameImageAvailableSemaphore.has_value()) {
-				throw xk::runtime_error("Current frame's image available semaphore has already been consumed. Must be used EXACTLY once. Do not try to get it multiple times!");
+				throw gvk::runtime_error("Current frame's image available semaphore has already been consumed. Must be used EXACTLY once. Do not try to get it multiple times!");
 			}
 			auto ref = mCurrentFrameImageAvailableSemaphore.value();
 			mCurrentFrameImageAvailableSemaphore.reset();
@@ -346,27 +346,27 @@ namespace xk
 		bool mShallBeResizable = false;
 		
 		// A function which returns the surface format for this window's surface
-		ak::unique_function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
+		avk::unique_function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
 
 		// A function which returns the desired presentation mode for this window's surface
-		ak::unique_function<vk::PresentModeKHR(const vk::SurfaceKHR&)> mPresentationModeSelector;
+		avk::unique_function<vk::PresentModeKHR(const vk::SurfaceKHR&)> mPresentationModeSelector;
 
 		// A function which returns the MSAA sample count for this window's surface
-		ak::unique_function<vk::SampleCountFlagBits()> mNumberOfSamplesGetter;
+		avk::unique_function<vk::SampleCountFlagBits()> mNumberOfSamplesGetter;
 
 		// A function which returns the MSAA state for this window's surface
-		ak::unique_function<vk::PipelineMultisampleStateCreateInfo()> mMultisampleCreateInfoBuilder;
+		avk::unique_function<vk::PipelineMultisampleStateCreateInfo()> mMultisampleCreateInfoBuilder;
 
 		// A function which returns the desired number of presentable images in the swap chain
-		ak::unique_function<uint32_t()> mNumberOfPresentableImagesGetter;
+		avk::unique_function<uint32_t()> mNumberOfPresentableImagesGetter;
 
 		// A function which returns the number of images which can be rendered into concurrently
 		// According to this number, the number of semaphores and fences will be determined.
-		ak::unique_function<uint32_t()> mNumberOfConcurrentFramesGetter;
+		avk::unique_function<uint32_t()> mNumberOfConcurrentFramesGetter;
 
 		// A function which returns attachments which shall be attached to the back buffer
 		// in addition to the obligatory color attachment.
-		ak::unique_function<std::vector<ak::attachment>()> mAdditionalBackBufferAttachmentsGetter;
+		avk::unique_function<std::vector<avk::attachment>()> mAdditionalBackBufferAttachmentsGetter;
 #pragma endregion
 
 #pragma region swap chain data for this window surface
@@ -388,40 +388,40 @@ namespace xk
 		// Image data of the swap chain images
 		vk::ImageCreateInfo mImageCreateInfoSwapChain;
 		// All the image views of the swap chain
-		std::vector<ak::image_view> mSwapChainImageViews; // ...but the image views do!
+		std::vector<avk::image_view> mSwapChainImageViews; // ...but the image views do!
 #pragma endregion
 
 #pragma region indispensable sync elements
 		// Fences to synchronize between frames 
-		std::vector<ak::fence> mFramesInFlightFences; 
+		std::vector<avk::fence> mFramesInFlightFences; 
 		// Semaphores to wait for an image to become available 
-		std::vector<ak::semaphore> mImageAvailableSemaphores; 
+		std::vector<avk::semaphore> mImageAvailableSemaphores; 
 		// Semaphores to signal when the current frame may be presented
-		std::vector<ak::semaphore> mInitiatePresentSemaphores; 
+		std::vector<avk::semaphore> mInitiatePresentSemaphores; 
 		// Fences to make sure that no two images are written into concurrently
 		std::vector<int> mImagesInFlightFenceIndices;
 
 		// Semaphores to be waited on before presenting the image PER FRAME.
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
-		std::vector<std::tuple<frame_id_t, ak::semaphore>> mPresentSemaphoreDependencies;
+		std::vector<std::tuple<frame_id_t, avk::semaphore>> mPresentSemaphoreDependencies;
 #pragma endregion
 
 		// The renderpass used for the back buffers
-		ak::renderpass mBackBufferRenderpass;
+		avk::renderpass mBackBufferRenderpass;
 
 		// The backbuffers of this window
-		std::vector<ak::framebuffer> mBackBuffers;
+		std::vector<avk::framebuffer> mBackBuffers;
 
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
 		// This container handles (single use) command buffers' lifetimes.
 		// A command buffer's lifetime lasts until the specified int64_t frame-id + number_of_in_flight_frames()
-		std::deque<std::tuple<frame_id_t, ak::command_buffer>> mLifetimeHandledCommandBuffers;
+		std::deque<std::tuple<frame_id_t, avk::command_buffer>> mLifetimeHandledCommandBuffers;
 
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
-		ak::queue* mPresentQueue = nullptr;
+		avk::queue* mPresentQueue = nullptr;
 
 		// Current frame's image index
 		uint32_t mCurrentFrameImageIndex;
@@ -429,6 +429,6 @@ namespace xk
 		uint32_t mPreviousFrameImageIndex;
 
 		// Must be consumed EXACTLY ONCE per frame
-		std::optional<std::reference_wrapper<ak::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
+		std::optional<std::reference_wrapper<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
 	};
 }

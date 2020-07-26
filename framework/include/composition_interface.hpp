@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	// Forward-declare invokee
 	class invokee;
@@ -120,7 +120,7 @@ namespace xk
 		{
 			if (nullptr != sCurrentComposition && sCurrentComposition->is_running())
 			{
-				throw xk::runtime_error("There is already an active composition_interface which is still running.");
+				throw gvk::runtime_error("There is already an active composition_interface which is still running.");
 			}
 			// It's okay.
 			sCurrentComposition = aNewComposition;

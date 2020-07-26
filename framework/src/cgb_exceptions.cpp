@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	runtime_error::runtime_error (const std::string& what_arg) : std::runtime_error(what_arg)
 	{

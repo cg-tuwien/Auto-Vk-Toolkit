@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/**	@brief Basic timer_interface which only supports time steps with varying delta time
 	 *

@@ -60,78 +60,76 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\auto_vk\include\ak\aabb.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\acceleration_structure_size_requirements.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\ak.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\ak_error.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\ak_log.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\attachment.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\bindings.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\binding_data.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\border_handling_mode.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\bottom_level_acceleration_structure.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\buffer_meta.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\buffer_view.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\buffer.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\commands.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\command_buffer.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\command_pool.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\compute_pipeline.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\compute_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\cpp_utils.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_alloc_request.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_pool.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_set.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_set_layout.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\fence.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\filter_mode.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\format_for.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\framebuffer.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\geometry_instance.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\graphics_pipeline.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\graphics_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image_color_channel_format.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image_color_channel_order.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image_sampler.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image_usage.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\image_view.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\input_description.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\memory_access.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\memory_usage.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\on_load.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\on_store.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\pipeline_stage.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\push_constants.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\queue.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\ray_tracing_pipeline.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\ray_tracing_pipeline_config.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\renderpass.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\renderpass_sync.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\root_example_implementation.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\sampler.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\semaphore.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\set_of_descriptor_set_layouts.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\shader.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\shader_binding_table.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\shader_info.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\shader_type.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\descriptor_cache.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\sync.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\top_level_acceleration_structure.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\usage_desc.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\usage_type.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\vertex_index_buffer_pair.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\vk_utils.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\ak\vulkan_helper_functions.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\aabb.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\attachment.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_error.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_log.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\bindings.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\binding_data.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\border_handling_mode.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\bottom_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_member_format.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_view.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\commands.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\command_buffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\command_pool.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\cpp_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_alloc_request.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_cache.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_pool.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set_layout.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\fence.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\filter_mode.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\format_for.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\framebuffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\geometry_instance.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\input_description.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_access.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_usage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\on_load.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\push_constants.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\queue.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass_sync.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\root_example_implementation.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\set_of_descriptor_set_layouts.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\sync.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\usage_desc.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\usage_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
-    <ClInclude Include="..\..\framework\include\exekutor.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\..\framework\include\gvk.hpp" />
     <ClInclude Include="..\..\framework\include\invokee.hpp" />
     <ClInclude Include="..\..\framework\include\composition.hpp" />
     <ClInclude Include="..\..\framework\include\composition_interface.hpp" />
@@ -184,7 +182,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>cgb</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>exekutor</ProjectName>
+    <ProjectName>gears-vk</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">
@@ -238,19 +236,19 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>exekutor</TargetName>
+    <TargetName>gears-vk</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>exekutor</TargetName>
+    <TargetName>gears-vk</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
-    <TargetName>exekutor</TargetName>
+    <TargetName>gears-vk</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
     <ClCompile>

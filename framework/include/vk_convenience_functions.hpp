@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	vk::Format default_rgb8_4comp_format() noexcept;
 	vk::Format default_rgb8_3comp_format() noexcept;
@@ -23,7 +23,7 @@ namespace xk
 	glm::mat4 to_mat(const VkTransformMatrixKHR& aRowMajor3x4Matrix);
 }
 
-namespace ak // Inject into ak::
+namespace avk // Inject into avk::
 {
 	// f32
 	template <>	inline vk::Format format_for<glm::vec<4, glm::f32, glm::defaultp>>()	{ return vk::Format::eR32G32B32A32Sfloat; }

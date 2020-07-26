@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	quake_camera::quake_camera()
 		: mRotationSpeed(0.001f)

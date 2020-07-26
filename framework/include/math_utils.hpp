@@ -1,7 +1,7 @@
 #pragma once
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	/// Helper method to get up-down and left-right rotation angles from a given direction
 	glm::vec2 get_angles_from_direction_yaw_pitch(const glm::vec3& direction);

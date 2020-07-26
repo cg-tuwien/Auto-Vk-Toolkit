@@ -1,6 +1,6 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 
-namespace xk
+namespace gvk
 {
 	fixed_update_timer::fixed_update_timer() :
 		mTimeSinceStart(0.0),

@@ -1,30 +1,30 @@
-#include <exekutor.hpp>
+#include <gvk.hpp>
 #include <sstream>
 
-namespace xk
+namespace gvk
 {
 
-	ak::owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
+	avk::owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
 	{
 		model_t result;
-		result.mModelPath = ak::clean_up_path(aPath);
+		result.mModelPath = avk::clean_up_path(aPath);
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw xk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+			throw gvk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
 		}
 		result.initialize_materials();
 		return result;
 	}
 	
-	ak::owning_resource<model_t> model_t::load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags)
+	avk::owning_resource<model_t> model_t::load_from_memory(const std::string& aMemory, aiProcessFlagsType aAssimpFlags)
 	{
 		model_t result;
 		result.mModelPath = "";
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFileFromMemory(aMemory.c_str(), aMemory.size(), aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw xk::runtime_error("Loading model from memory failed.");
+			throw gvk::runtime_error("Loading model from memory failed.");
 		}
 		result.initialize_materials();
 		return result;
@@ -157,8 +157,8 @@ namespace xk
 		}
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_BLEND_FUNC, blendMode)) {
 			result.mBlendMode = blendMode == aiBlendMode_Additive
-				? ak::cfg::color_blending_config::enable_additive_for_all_attachments()
-				: ak::cfg::color_blending_config::enable_alpha_blending_for_all_attachments();
+				? avk::cfg::color_blending_config::enable_additive_for_all_attachments()
+				: avk::cfg::color_blending_config::enable_alpha_blending_for_all_attachments();
 		}
 
 		// Shader parameters:
@@ -206,67 +206,67 @@ namespace xk
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mDiffuseTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mDiffuseTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SPECULAR, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mSpecularTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mSpecularTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_AMBIENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mAmbientTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mAmbientTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_EMISSIVE, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mEmissiveTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mEmissiveTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_HEIGHT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mHeightTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mHeightTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_NORMALS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mNormalsTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mNormalsTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SHININESS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mShininessTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mShininessTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_OPACITY, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mOpacityTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mOpacityTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DISPLACEMENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mDisplacementTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mDisplacementTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_REFLECTION, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mReflectionTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mReflectionTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_LIGHTMAP, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
-			result.mLightmapTex = ak::combine_paths(ak::extract_base_path(mModelPath), strVal.data);
+			result.mLightmapTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
 		}
 
 		mMaterialConfigPerMesh[aMeshIndex] = result; // save
@@ -539,13 +539,13 @@ namespace xk
 		return result;
 	}
 
-	std::vector<xk::camera> model_t::cameras() const
+	std::vector<gvk::camera> model_t::cameras() const
 	{
-		std::vector<xk::camera> result;
+		std::vector<gvk::camera> result;
 		result.reserve(mScene->mNumCameras);
 		for (int i = 0; i < mScene->mNumCameras; ++i) {
 			aiCamera* aiCam = mScene->mCameras[i];
-			auto cgbCam = xk::camera();
+			auto cgbCam = gvk::camera();
 			cgbCam.set_aspect_ratio(aiCam->mAspect);
 			cgbCam.set_far_plane_distance(aiCam->mClipPlaneFar);
 			cgbCam.set_near_plane_distance(aiCam->mClipPlaneNear);
