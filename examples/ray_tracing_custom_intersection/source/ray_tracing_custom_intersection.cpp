@@ -45,8 +45,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	
 	void initialize() override
 	{
-		mInitTime = std::chrono::high_resolution_clock::now();
-
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 		
@@ -69,42 +67,40 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle()
 		);
 		
-		auto pyrBlas = gvk::context().create_bottom_level_acceleration_structure({ 
-			avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } )
-		}, false);
-		pyrBlas.enable_shared_ownership();
-		mBLASs.push_back(pyrBlas);
-		mBLASs.back()->build({ avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } });
+		//auto pyrBlas = gvk::context().create_bottom_level_acceleration_structure({ 
+		//	avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } )
+		//}, false);
+		//pyrBlas.enable_shared_ownership();
+		//mBLAS.push_back(pyrBlas);
+		//mBLAS.back()->build({ avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } });
 
-		mGeometryInstances.push_back(
-			gvk::context().create_geometry_instance( pyrBlas )
-		);
+		//mGeometryInstances.push_back(
+		//	gvk::context().create_geometry_instance( pyrBlas )
+		//);
+
+		mAabbs[0] = avk::aabb{ { -0.5f, -0.5f, -0.5f }, {  0.5f,  0.5f,  0.5f } };
+		mAabbs[1] = avk::aabb{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } };
+		mAabbs[2] = avk::aabb{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } };
 		
-		std::vector<avk::aabb> aabbs = {
-			{ { -0.5f, -0.5f, -0.5f }, {  0.5f,  0.5f,  0.5f } },
-			{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } },
-			{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } },
-		};
-		
-		auto blas = gvk::context().create_bottom_level_acceleration_structure({ avk::acceleration_structure_size_requirements::from_aabbs(aabbs) }, true);
-		// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
-		// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
-		blas.enable_shared_ownership();
-		mBLASs.push_back(blas); // No need to move, because a BLAS is now represented by a shared pointer internally. We could, though.
-		mBLASs.back()->build({ aabbs });
-
-		mGeometryInstances.push_back(
-			gvk::context().create_geometry_instance( blas )
-		);
-
 		auto* mainWnd = gvk::context().main_window();
 		auto fif = mainWnd->number_of_frames_in_flight();
 		for (decltype(fif) i = 0; i < fif; ++i) {
-			// Each TLAS owns every BLAS (this will only work, if the BLASs themselves stay constant, i.e. read access
-			auto tlas = gvk::context().create_top_level_acceleration_structure(mGeometryInstances.size());
-			// Build the TLAS, ...
-			tlas->build(mGeometryInstances);
-			mTLAS.push_back(std::move(tlas));
+			auto& bLast = mBLAS.emplace_back();
+			auto& tLast = mTLAS.emplace_back();
+			
+			for (decltype(fif) j=0; j < 3; ++j) {
+				bLast[j] = gvk::context().create_bottom_level_acceleration_structure({ avk::acceleration_structure_size_requirements::from_aabbs(1u) }, true);
+				bLast[j]->build({ mAabbs[j] });
+
+				if (0 == i) {
+					mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( bLast[j] ).set_transform_column_major(gvk::to_array(glm::mat4{1.0f})) );
+					mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( bLast[j] ).set_transform_column_major(gvk::to_array(glm::mat4{1.0f})) );
+				}
+			}
+
+			assert (6 == mGeometryInstances.size());
+			tLast = gvk::context().create_top_level_acceleration_structure(mGeometryInstances.size());
+			tLast->build(mGeometryInstances);
 		}
 		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
@@ -167,6 +163,25 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+
+				ImGui::Separator();
+				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.6f, 1.f), "Modify Bottom Level Acceleration Structures:");
+				for (int i=0; i < 3; ++i) {
+					ImGui::DragFloat3(fmt::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMinBounds), 0.01f);
+					ImGui::DragFloat3(fmt::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMaxBounds), 0.01f);
+				}
+				
+				ImGui::Separator();
+				ImGui::TextColored(ImVec4(0.8f, 0.0f, 0.6f, 1.f), "Modify Top Level Acceleration Structures:");
+				for (int i=0; i < 6; ++i) {
+					ImGui::DragFloat3(fmt::format("Instance[{}].translation", i).c_str(), *reinterpret_cast<float(*)[3]>(&mTranslations[i]), 0.01f);
+				}
+
+				ImGui::Separator();
+
+				ImGui::Checkbox("Update Bottom Level Acceleration Structures", &mUpdateBlas);
+				ImGui::Checkbox("Update Top Level Acceleration Structures", &mUpdateTlas);
+				
 				ImGui::End();
 			});
 		}
@@ -174,61 +189,45 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		static int counter = 0;
-		if (++counter == 4) {
-			auto current = std::chrono::high_resolution_clock::now();
-			auto time_span = current - mInitTime;
-			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
-			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
-		}
-
 		auto* mainWnd = gvk::context().main_window();
 
-		// Arrow Keys || Page Up/Down Keys => Move the TLAS
-		static int64_t updateUntilFrame = -1;
-		if (gvk::input().key_down(gvk::key_code::left) || gvk::input().key_down(gvk::key_code::right) || gvk::input().key_down(gvk::key_code::page_down) || gvk::input().key_down(gvk::key_code::page_up) || gvk::input().key_down(gvk::key_code::up) || gvk::input().key_down(gvk::key_code::down)) {
-			// Make sure to update all of the in-flight TLASs, otherwise we'll get some geometry jumping:
-			updateUntilFrame = mainWnd->current_frame() + mainWnd->number_of_frames_in_flight() - 1;
+		static gvk::window::frame_id_t updateBlasUntilFrame = -1;
+		static gvk::window::frame_id_t updateTlasUntilFrame = -1;
+		if (mUpdateBlas) {
+			updateBlasUntilFrame = mainWnd->current_frame() + mainWnd->number_of_frames_in_flight() - 1;
 		}
-		if (mainWnd->current_frame() <= updateUntilFrame)
-		{
-			auto inFlightIndex = mainWnd->in_flight_index_for_frame();
-			
-			auto x = (gvk::input().key_down(gvk::key_code::left)      ? -gvk::time().delta_time() : 0.0f)
-					+(gvk::input().key_down(gvk::key_code::right)     ?  gvk::time().delta_time() : 0.0f);
-			auto y = (gvk::input().key_down(gvk::key_code::page_down) ? -gvk::time().delta_time() : 0.0f)
-					+(gvk::input().key_down(gvk::key_code::page_up)   ?  gvk::time().delta_time() : 0.0f);
-			auto z = (gvk::input().key_down(gvk::key_code::up)        ? -gvk::time().delta_time() : 0.0f)
-					+(gvk::input().key_down(gvk::key_code::down)      ?  gvk::time().delta_time() : 0.0f);
-			auto speed = 1000.0f;
-			
-			// Change the position of one of the current TLASs BLAS, and update-build the TLAS.
-			// The changes do not affect the BLAS, only the instance-data that the TLAS stores to each one of the BLAS.
-			//
-			// 1. Change every other instance:
-			bool evenOdd = true;
-			for (auto& geomInst : mGeometryInstances) {
-				evenOdd = !evenOdd;
-				if (evenOdd) { continue; }
-				geomInst.set_transform_column_major(gvk::to_array( glm::translate(
-					glm::vec3{ geomInst.mTransform.matrix[0][3], geomInst.mTransform.matrix[1][3], geomInst.mTransform.matrix[2][3] } + glm::vec3{x, y, z} * speed) 
-				));
+		if (mUpdateTlas) {
+			updateTlasUntilFrame = mainWnd->current_frame() + mainWnd->number_of_frames_in_flight() - 1;
+		}
+		
+		if (mUpdateBlas || mainWnd->current_frame() <= updateBlasUntilFrame) {
+			const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+			for (size_t i=0; i < mBLAS[inFlightIndex].size(); ++i) {
+				mBLAS[inFlightIndex][i]->build(avk::make_vector(mAabbs[i]), {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 			}
-			//
-			// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			mTLAS[inFlightIndex]->update(mGeometryInstances, {}, avk::sync::with_barriers(
-				mainWnd->command_buffer_lifetime_handler(),
-				{}, // Nothing to wait for
-				[](avk::command_buffer_t& commandBuffer, avk::pipeline_stage srcStage, std::optional<avk::write_memory_access> srcAccess){
-					// We want this update to be as efficient/as tight as possible
-					commandBuffer.establish_global_memory_barrier_rw(
-						srcStage, avk::pipeline_stage::ray_tracing_shaders, // => ray tracing shaders must wait on the building of the acceleration structure
-						srcAccess, avk::memory_access::acceleration_structure_read_access // TLAS-update's memory must be made visible to ray tracing shader's caches (so they can read from)
-					);
-				}
-			));
+		}
+
+		if (mUpdateTlas || mainWnd->current_frame() <= updateTlasUntilFrame) {
+			const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+			for (size_t i=0; i < mGeometryInstances.size(); ++i) {
+				mGeometryInstances[i].mTransform.matrix[0][3] = mTranslations[i][0];
+				mGeometryInstances[i].mTransform.matrix[1][3] = mTranslations[i][1];
+				mGeometryInstances[i].mTransform.matrix[2][3] = mTranslations[i][2];
+			}
+			mTLAS[inFlightIndex]->build(mGeometryInstances, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+			
+			//// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
+			//mTLAS[inFlightIndex]->update(mGeometryInstances, {}, avk::sync::with_barriers(
+			//	mainWnd->command_buffer_lifetime_handler(),
+			//	{}, // Nothing to wait for
+			//	[](avk::command_buffer_t& commandBuffer, avk::pipeline_stage srcStage, std::optional<avk::write_memory_access> srcAccess){
+			//		// We want this update to be as efficient/as tight as possible
+			//		commandBuffer.establish_global_memory_barrier_rw(
+			//			srcStage, avk::pipeline_stage::ray_tracing_shaders, // => ray tracing shaders must wait on the building of the acceleration structure
+			//			srcAccess, avk::memory_access::acceleration_structure_read_access // TLAS-update's memory must be made visible to ray tracing shader's caches (so they can read from)
+			//		);
+			//	}
+			//));
 		}
 
 		if (gvk::input().key_pressed(gvk::key_code::space)) {
@@ -308,14 +307,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	}
 
 private: // v== Member variables ==v
-	std::chrono::high_resolution_clock::time_point mInitTime;
+	bool mUpdateBlas = false;
+	bool mUpdateTlas = false;
+	std::array<avk::aabb, 3> mAabbs;
+	std::array<glm::vec3, 6> mTranslations;
 
 	avk::queue* mQueue;
 	avk::descriptor_cache mDescriptorCache;
 	
-	// Multiple BLAS, concurrently used by all the (three?) TLASs:
-	std::vector<avk::bottom_level_acceleration_structure> mBLASs;
-	// Geometry instance data which store the instance data per BLAS
+	// Multiple BLAS:
+	std::vector<std::array<avk::bottom_level_acceleration_structure, 3>> mBLAS;
+	// Geometry instance data which store the instance data per BLAS:
 	std::vector<avk::geometry_instance> mGeometryInstances;
 	// Multiple TLAS, one for each frame in flight:
 	std::vector<avk::top_level_acceleration_structure> mTLAS;

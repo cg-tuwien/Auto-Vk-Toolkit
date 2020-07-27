@@ -86,12 +86,6 @@
 #include <windows.h>
 #endif
 
-#include <avk/avk.hpp>
-
-// -------------------- Exekutor includes --------------------
-#include "cgb_exceptions.hpp"
-#include "conversion_utils.hpp"
-
 #define AVK_LOG_FATAL			LOG_ERROR_EM
 #define AVK_LOG_ERROR			LOG_ERROR
 #define AVK_LOG_WARNING			LOG_WARNING
@@ -100,6 +94,12 @@
 #define AVK_LOG_DEBUG			LOG_DEBUG
 #define AVK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
+
+#include <avk/avk.hpp>
+
+// -------------------- Exekutor includes --------------------
+#include "cgb_exceptions.hpp"
+#include "conversion_utils.hpp"
 
 #include "context_state.hpp"
 
