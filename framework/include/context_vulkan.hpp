@@ -32,7 +32,8 @@ namespace gvk
 				.setVertexPipelineStoresAndAtomics(VK_TRUE)
 				.setFragmentStoresAndAtomics(VK_TRUE)
 				.setShaderStorageImageExtendedFormats(VK_TRUE)
-				.setSampleRateShading(VK_TRUE),
+				.setSampleRateShading(VK_TRUE)
+				.setFillModeNonSolid(VK_TRUE),
 			vk::PhysicalDeviceVulkan12Features aVulkan12Features = vk::PhysicalDeviceVulkan12Features()
 				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
 				.setRuntimeDescriptorArray(VK_TRUE)
