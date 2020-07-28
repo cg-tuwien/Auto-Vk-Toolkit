@@ -9,96 +9,122 @@ class ray_tracing_custom_intersection_app : public gvk::invokee
 
 	// Define a struct for our vertex input data:
 	struct Vertex {
-	    glm::vec3 pos;
-	    glm::vec3 color;
-	};
-
-	// Vertex data for drawing a pyramid:
-	const std::vector<Vertex> mVertexData = {
-		// pyramid front
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{ 0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
-		{{-0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
-		// pyramid right
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{ 0.3f,  0.5f, 0.8f},  {0.6f, 0.6f, 0.6f}},
-		{{ 0.3f,  0.5f, 0.2f},  {0.6f, 0.6f, 0.6f}},
-		// pyramid back
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{-0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
-		{{ 0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
-		// pyramid left
-		{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
-		{{-0.3f,  0.5f, 0.2f},  {0.4f, 0.4f, 0.4f}},
-		{{-0.3f,  0.5f, 0.8f},  {0.4f, 0.4f, 0.4f}},
-	};
-
-	// Indices for the faces (triangles) of the pyramid:
-	const std::vector<uint16_t> mIndices = {
-		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
+	    glm::vec3 mPosition;
+	    glm::vec3 mColor;
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	ray_tracing_custom_intersection_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}
-	
+
+
+	void set_bottom_level_aabb_data()
+	{
+		mAabbs[0] = avk::aabb{ { -0.5f, -0.5f, -0.5f }, {  0.5f,  0.5f,  0.5f } };
+		mAabbs[1] = avk::aabb{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } };
+		mAabbs[2] = avk::aabb{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } };
+	}
+
+	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure_t& aBlas, glm::vec3 aTranslation) {
+		mTranslations[aIndex + 0] =  aTranslation;
+		mTranslations[aIndex + 1] = -aTranslation;
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
+	}
+
+	void set_bottom_level_pyramid_data()
+	{
+		mPyramidVertices = {
+			// pyramid front
+			{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+			{{ 0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
+			{{-0.3f,  0.5f, 0.2f},  {0.5f, 0.5f, 0.5f}},
+			// pyramid right
+			{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+			{{ 0.3f,  0.5f, 0.8f},  {0.6f, 0.6f, 0.6f}},
+			{{ 0.3f,  0.5f, 0.2f},  {0.6f, 0.6f, 0.6f}},
+			// pyramid back
+			{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+			{{-0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
+			{{ 0.3f,  0.5f, 0.8f},  {0.5f, 0.5f, 0.5f}},
+			// pyramid left
+			{{ 0.0f, -0.5f, 0.5f},  {1.0f, 0.0f, 0.0f}},
+			{{-0.3f,  0.5f, 0.2f},  {0.4f, 0.4f, 0.4f}},
+			{{-0.3f,  0.5f, 0.8f},  {0.4f, 0.4f, 0.4f}},
+		};
+		mPyramidIndices = {
+			 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
+		};
+	}
+
+	void build_pyramid_buffers()
+	{
+		auto& vtxBfr = mPyramidVertexBuffers.emplace_back( gvk::context().create_buffer(
+			avk::memory_usage::host_coherent, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, 0, avk::content_description::position)
+		));
+		vtxBfr->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
+		
+		auto& idxBfr = mPyramidIndexBuffers.emplace_back( gvk::context().create_buffer(
+			avk::memory_usage::host_coherent, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+			avk::index_buffer_meta::create_from_data(mPyramidIndices)
+		));
+		idxBfr->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
+	}
+
 	void initialize() override
 	{
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 		
-		// Add a pyramid:
-		auto pyrVert = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
-			avk::vertex_buffer_meta::create_from_data(mVertexData).describe_member(&Vertex::pos, 0, avk::content_description::position)
-		);
-		pyrVert->fill(
-			mVertexData.data(), 0,
-			avk::sync::wait_idle()
-		);
-		
-		auto pyrIndex = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
-			avk::index_buffer_meta::create_from_data(mIndices)
-		);
-		pyrIndex->fill(
-			mIndices.data(), 0,
-			avk::sync::wait_idle()
-		);
-		
-		//auto pyrBlas = gvk::context().create_bottom_level_acceleration_structure({ 
-		//	avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } )
-		//}, false);
-		//pyrBlas.enable_shared_ownership();
-		//mBLAS.push_back(pyrBlas);
-		//mBLAS.back()->build({ avk::vertex_index_buffer_pair{ pyrVert, pyrIndex } });
-
-		//mGeometryInstances.push_back(
-		//	gvk::context().create_geometry_instance( pyrBlas )
-		//);
-
-		mAabbs[0] = avk::aabb{ { -0.5f, -0.5f, -0.5f }, {  0.5f,  0.5f,  0.5f } };
-		mAabbs[1] = avk::aabb{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } };
-		mAabbs[2] = avk::aabb{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } };
-		
 		auto* mainWnd = gvk::context().main_window();
-		auto fif = mainWnd->number_of_frames_in_flight();
-		for (decltype(fif) i = 0; i < fif; ++i) {
+		auto fif = static_cast<size_t>(mainWnd->number_of_frames_in_flight());
+		for (size_t i = 0; i < fif; ++i) {
+			// ------------ Add AABBs to bottom-level acceleration structures: --------------
+			if (0 == i /* only once */ ) {
+				set_bottom_level_aabb_data();
+			}
+			
 			auto& bLast = mBLAS.emplace_back();
 			auto& tLast = mTLAS.emplace_back();
 			
-			for (decltype(fif) j=0; j < 3; ++j) {
-				bLast[j] = gvk::context().create_bottom_level_acceleration_structure({ avk::acceleration_structure_size_requirements::from_aabbs(1u) }, true);
+			for (size_t j=0; j < 3; ++j) {
+				bLast[j] = gvk::context().create_bottom_level_acceleration_structure(
+					{ avk::acceleration_structure_size_requirements::from_aabbs(1u) }, 
+					true /* allow updates */
+				);
 				bLast[j]->build({ mAabbs[j] });
 
 				if (0 == i) {
-					mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( bLast[j] ).set_transform_column_major(gvk::to_array(glm::mat4{1.0f})) );
-					mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( bLast[j] ).set_transform_column_major(gvk::to_array(glm::mat4{1.0f})) );
+					add_geometry_instances_for_bottom_level_acc_structure(2*j, bLast[j], glm::vec3{ 0.0f, 0.0f, -3.0f });
 				}
 			}
 
-			assert (6 == mGeometryInstances.size());
+			// ------------ Add pyramid to bottom-level acceleration structures: -------------
+			if (0 == i /* only once */ ) {
+				// Create the data:
+				set_bottom_level_pyramid_data();
+			}
+			// Create the buffers:
+			build_pyramid_buffers();
+
+			// Put data into an acceleration structure:
+			const size_t pyrOffset = 3;
+			for (size_t j=0; j < 2; ++j) {
+				bLast[pyrOffset + j] = gvk::context().create_bottom_level_acceleration_structure(
+					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } ) },
+					true /* allow updates */
+				);
+				bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } });
+			}
+			
+			if (0 == i /* only once */ ) {
+				add_geometry_instances_for_bottom_level_acc_structure(2*pyrOffset, bLast[pyrOffset], glm::vec3{ 0.0f, -3.0f, 0.0f });
+			}
+
+			// ----------- Build the top-level acceleration structure (for this frame in flight): -------------
+			assert (8 == mGeometryInstances.size());
 			tLast = gvk::context().create_top_level_acceleration_structure(mGeometryInstances.size());
 			tLast->build(mGeometryInstances);
 		}
@@ -166,14 +192,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.6f, 1.f), "Modify Bottom Level Acceleration Structures:");
-				for (int i=0; i < 3; ++i) {
+				for (int i=0; i < mAabbs.size(); ++i) {
 					ImGui::DragFloat3(fmt::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMinBounds), 0.01f);
 					ImGui::DragFloat3(fmt::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMaxBounds), 0.01f);
 				}
-				
+				ImGui::DragFloat3("Pyramid Spire", *reinterpret_cast<float(*)[3]>(&mPyramidVertices[0].mPosition), 0.01f);
+
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.8f, 0.0f, 0.6f, 1.f), "Modify Top Level Acceleration Structures:");
-				for (int i=0; i < 6; ++i) {
+				for (int i=0; i < mTranslations.size(); ++i) {
 					ImGui::DragFloat3(fmt::format("Instance[{}].translation", i).c_str(), *reinterpret_cast<float(*)[3]>(&mTranslations[i]), 0.01f);
 				}
 
@@ -203,7 +230,18 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (mUpdateBlas || mainWnd->current_frame() <= updateBlasUntilFrame) {
 			const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 			for (size_t i=0; i < mBLAS[inFlightIndex].size(); ++i) {
-				mBLAS[inFlightIndex][i]->build(avk::make_vector(mAabbs[i]), {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+				if (i < 3) { // 3 AABBs
+					mBLAS[inFlightIndex][i]->build({ mAabbs[i] }, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+				}
+				else { // 1 triangle mesh
+					for (int i=3; i < mPyramidVertices.size(); i+=3) {
+						mPyramidVertices[i].mPosition = mPyramidVertices[0].mPosition;
+					}
+					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
+					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
+					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[inFlightIndex], mPyramidIndexBuffers[inFlightIndex] } });
+					//                         ^  switch to update() once the (annoying) validation layer error message is fixed
+				}
 			}
 		}
 
@@ -215,19 +253,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				mGeometryInstances[i].mTransform.matrix[2][3] = mTranslations[i][2];
 			}
 			mTLAS[inFlightIndex]->build(mGeometryInstances, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
-			
-			//// 2. Update the TLAS for the current inFlightIndex, copying the changed BLAS-data into an internal buffer:
-			//mTLAS[inFlightIndex]->update(mGeometryInstances, {}, avk::sync::with_barriers(
-			//	mainWnd->command_buffer_lifetime_handler(),
-			//	{}, // Nothing to wait for
-			//	[](avk::command_buffer_t& commandBuffer, avk::pipeline_stage srcStage, std::optional<avk::write_memory_access> srcAccess){
-			//		// We want this update to be as efficient/as tight as possible
-			//		commandBuffer.establish_global_memory_barrier_rw(
-			//			srcStage, avk::pipeline_stage::ray_tracing_shaders, // => ray tracing shaders must wait on the building of the acceleration structure
-			//			srcAccess, avk::memory_access::acceleration_structure_read_access // TLAS-update's memory must be made visible to ray tracing shader's caches (so they can read from)
-			//		);
-			//	}
-			//));
+			//                      ^  switch to update() once the (annoying) validation layer error message is fixed
 		}
 
 		if (gvk::input().key_pressed(gvk::key_code::space)) {
@@ -307,26 +333,33 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	}
 
 private: // v== Member variables ==v
-	bool mUpdateBlas = false;
-	bool mUpdateTlas = false;
-	std::array<avk::aabb, 3> mAabbs;
-	std::array<glm::vec3, 6> mTranslations;
-
 	avk::queue* mQueue;
 	avk::descriptor_cache mDescriptorCache;
-	
-	// Multiple BLAS:
-	std::vector<std::array<avk::bottom_level_acceleration_structure, 3>> mBLAS;
-	// Geometry instance data which store the instance data per BLAS:
-	std::vector<avk::geometry_instance> mGeometryInstances;
-	// Multiple TLAS, one for each frame in flight:
-	std::vector<avk::top_level_acceleration_structure> mTLAS;
-
 	std::vector<avk::image_view> mOffscreenImageViews;
-
 	avk::ray_tracing_pipeline mPipeline;
 	gvk::quake_camera mQuakeCam;
 
+	// Bottom level acceleration structure data:
+	std::array<avk::aabb, 3> mAabbs;
+	std::vector<Vertex> mPyramidVertices;
+	std::vector<uint16_t> mPyramidIndices;
+
+	// Bottom level acceleration structures (3 AABBs + 1 pyramid) -- and all of that per frame in flight.
+	std::vector<avk::buffer> mPyramidVertexBuffers;
+	std::vector<avk::buffer> mPyramidIndexBuffers;
+	std::vector<std::array<avk::bottom_level_acceleration_structure, 5>> mBLAS;
+
+	// Geometry instance data per every bottom level acceleration structure (3 AABBs + 1 pyramid) x2 (i.e. 2 instances each)
+	std::vector<avk::geometry_instance> mGeometryInstances;
+	
+	// Top level acceleration structure containing 4x2 geometry instances -- per frame in flight.
+	std::vector<avk::top_level_acceleration_structure> mTLAS;
+
+	// Settings from the UI:
+	bool mUpdateBlas = false;
+	bool mUpdateTlas = false;
+	std::array<glm::vec3, 8> mTranslations; // Each AABB x2 + two pyramids
+	
 }; // ray_tracing_custom_intersection_app
 
 int main() // <== Starting point ==
@@ -368,5 +401,3 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-
-
