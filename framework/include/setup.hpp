@@ -99,6 +99,20 @@ namespace gvk
 	}
 	
 	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
+	{
+		fu(phdf);
+		add_config(s, phdf, v12f, t, i, e, w, args...);
+	}
+	
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan12Features&)> fu, Args&... args)
+	{
+		fu(v12f);
+		add_config(s, phdf, v12f, t, i, e, w, args...);
+	}
+	
+	template <typename... Args>
 	static void start(Args&&... args)
 	{
 		varying_update_timer defaultTimer;
