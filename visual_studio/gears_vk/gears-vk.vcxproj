@@ -60,7 +60,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\auto_vk\include\avk\aabb.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\attachment.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\avk.hpp" />

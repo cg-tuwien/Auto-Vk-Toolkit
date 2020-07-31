@@ -21,9 +21,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void set_bottom_level_aabb_data()
 	{
-		mAabbs[0] = avk::aabb{ { -0.5f, -0.5f, -0.5f }, {  0.5f,  0.5f,  0.5f } };
-		mAabbs[1] = avk::aabb{ {  1.0f,  1.0f,  1.0f }, {  3.0f,  3.0f,  3.0f } };
-		mAabbs[2] = avk::aabb{ { -3.0f, -2.0f, -1.0f }, { -2.0f, -1.0f,  0.0f } };
+		mAabbs[0] = VkAabbPositionsKHR{ /* min: */ -0.5f, -0.5f, -0.5f, /* max: */  0.5f,  0.5f,  0.5f };
+		mAabbs[1] = VkAabbPositionsKHR{ /* min: */  1.0f,  1.0f,  1.0f, /* max: */  3.0f,  3.0f,  3.0f };
+		mAabbs[2] = VkAabbPositionsKHR{ /* min: */ -3.0f, -2.0f, -1.0f, /* max: */ -2.0f, -1.0f,  0.0f };
 	}
 
 	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure_t& aBlas, glm::vec3 aTranslation) {
@@ -193,8 +193,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.6f, 1.f), "Modify Bottom Level Acceleration Structures:");
 				for (int i=0; i < mAabbs.size(); ++i) {
-					ImGui::DragFloat3(fmt::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMinBounds), 0.01f);
-					ImGui::DragFloat3(fmt::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].mMaxBounds), 0.01f);
+					ImGui::DragFloat3(fmt::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].minX), 0.01f);
+					ImGui::DragFloat3(fmt::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].maxX), 0.01f);
 				}
 				ImGui::DragFloat3("Pyramid Spire", *reinterpret_cast<float(*)[3]>(&mPyramidVertices[0].mPosition), 0.01f);
 
@@ -340,7 +340,7 @@ private: // v== Member variables ==v
 	gvk::quake_camera mQuakeCam;
 
 	// Bottom level acceleration structure data:
-	std::array<avk::aabb, 3> mAabbs;
+	std::array<VkAabbPositionsKHR, 3> mAabbs;
 	std::vector<Vertex> mPyramidVertices;
 	std::vector<uint16_t> mPyramidIndices;
 

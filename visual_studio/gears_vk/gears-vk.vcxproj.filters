@@ -219,9 +219,6 @@
     <ClInclude Include="..\..\framework\include\gvk.hpp">
       <Filter>gears-vk_include\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\aabb.hpp">
-      <Filter>auto-vk_include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
