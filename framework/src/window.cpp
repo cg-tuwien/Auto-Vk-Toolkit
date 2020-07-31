@@ -126,7 +126,7 @@ namespace gvk
 		}
 	}
 
-	void window::set_number_of_concurrent_frames(uint32_t aNumConcurrent)
+	void window::set_number_of_concurrent_frames(window::frame_id_t aNumConcurrent)
 	{
 		mNumberOfConcurrentFramesGetter = [lNumConcurrent = aNumConcurrent]() { return lNumConcurrent; };
 
@@ -234,7 +234,7 @@ namespace gvk
 		return mNumberOfPresentableImagesGetter();
 	}
 
-	uint32_t window::get_config_number_of_concurrent_frames()
+	window::frame_id_t window::get_config_number_of_concurrent_frames()
 	{
 		if (!mNumberOfConcurrentFramesGetter) {
 			return get_config_number_of_presentable_images();

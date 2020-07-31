@@ -48,7 +48,7 @@ namespace gvk
 		/** Sets the number of images which can be rendered into concurrently,
 		 *	i.e. the number of "frames in flight"
 		 */
-		void set_number_of_concurrent_frames(uint32_t aNumConcurrent);
+		void set_number_of_concurrent_frames(frame_id_t aNumConcurrent);
 
 		/** Sets additional attachments which shall be added to the back buffer 
 		 *	in addition to the obligatory color attachment.  
@@ -89,7 +89,7 @@ namespace gvk
 		/** Get the number of concurrent frames.
 		*	If no value is explicitely set, the same number as the number of presentable images will be returned.
 		*/
-		uint32_t get_config_number_of_concurrent_frames();
+		frame_id_t get_config_number_of_concurrent_frames();
 
 		/**	Gets the descriptions of the additional back buffer attachments
 		 */
@@ -362,7 +362,7 @@ namespace gvk
 
 		// A function which returns the number of images which can be rendered into concurrently
 		// According to this number, the number of semaphores and fences will be determined.
-		avk::unique_function<uint32_t()> mNumberOfConcurrentFramesGetter;
+		avk::unique_function<frame_id_t()> mNumberOfConcurrentFramesGetter;
 
 		// A function which returns attachments which shall be attached to the back buffer
 		// in addition to the obligatory color attachment.
