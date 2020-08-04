@@ -93,7 +93,8 @@ namespace gvk
 	void context_vulkan::initialize(
 		settings aSettings,
 		vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
-		vk::PhysicalDeviceVulkan12Features aVulkan12Features
+		vk::PhysicalDeviceVulkan12Features aVulkan12Features,
+		vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 	)
 	{
 		mSettings = std::move(aSettings);
@@ -183,13 +184,10 @@ namespace gvk
 	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
 		deviceVulkan12Features.setPNext(&deviceFeatures);
 
-	    auto deviceRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{};
 		if (ray_tracing_extension_requested()) {
+			aRayTracingFeatures.setPNext(&deviceFeatures);
+			deviceVulkan12Features.setPNext(&aRayTracingFeatures);
 			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-			deviceRayTracingFeatures
-				.setPNext(&deviceFeatures)
-				.setRayTracing(VK_TRUE);
-			deviceVulkan12Features.setPNext(&deviceRayTracingFeatures);
 		}
 		
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
