@@ -263,7 +263,7 @@ namespace gvk
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::vertex_buffer_meta::create_from_data(positionsData)
-				.describe_only_member(positionsData[0], 0, avk::content_description::position)
+				.describe_only_member(positionsData[0], avk::content_description::position)
 		);
 		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a

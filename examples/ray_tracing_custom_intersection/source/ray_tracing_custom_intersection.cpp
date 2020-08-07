@@ -62,7 +62,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	{
 		auto& vtxBfr = mPyramidVertexBuffers.emplace_back( gvk::context().create_buffer(
 			avk::memory_usage::host_coherent, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
-			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, 0, avk::content_description::position)
+			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, avk::content_description::position)
 		));
 		vtxBfr->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
 		

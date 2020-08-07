@@ -59,11 +59,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
-			avk::vertex_input_location(0, &Vertex::pos),								// Describe the position vertex attribute
-			avk::vertex_input_location(1, &Vertex::color),							// Describe the color vertex attribute
-			avk::vertex_shader("shaders/passthrough.vert"),							// Add a vertex shader
-			avk::fragment_shader("shaders/color.frag"),								// Add a fragment shader
-			avk::cfg::front_face::define_front_faces_to_be_clockwise(),				// Front faces are in clockwise order
+			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos)   -> to_location(0),	// Describe the position vertex attribute
+			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::color) -> to_location(1), // Describe the color vertex attribute
+			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
+			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
+			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),	// Align viewport with main window's resolution
 			colorAttachmentDescription,
 			depthAttachmentDescription

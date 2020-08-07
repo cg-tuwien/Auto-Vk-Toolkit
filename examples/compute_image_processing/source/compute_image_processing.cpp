@@ -101,8 +101,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Create our rasterization graphics pipeline with the required configuration:
 		mGraphicsPipeline = gvk::context().create_graphics_pipeline_for(
-			avk::vertex_input_location(0, &Vertex::pos),
-			avk::vertex_input_location(1, &Vertex::uv),
+			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos) -> to_location(0),
+			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::uv)  -> to_location(1),
 			"shaders/texture.vert",
 			"shaders/texture.frag",
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
