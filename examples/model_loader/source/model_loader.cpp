@@ -148,9 +148,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			avk::push_constant_binding_data { avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			avk::binding(0, 0, mImageSamplers),
-			avk::binding(0, 1, mViewProjBuffer),
-			avk::binding(1, 0, mMaterialBuffer)
+			avk::descriptor_binding(0, 0, mImageSamplers),
+			avk::descriptor_binding(0, 1, mViewProjBuffer),
+			avk::descriptor_binding(1, 0, mMaterialBuffer)
 		);
 
 		// Add the camera to the composition (and let it handle the updates)
@@ -187,9 +187,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
-			avk::binding(0, 0, mImageSamplers),
-			avk::binding(0, 1, mViewProjBuffer),
-			avk::binding(1, 0, mMaterialBuffer)
+			avk::descriptor_binding(0, 0, mImageSamplers),
+			avk::descriptor_binding(0, 1, mViewProjBuffer),
+			avk::descriptor_binding(1, 0, mMaterialBuffer)
 		}));
 
 		for (auto& drawCall : mDrawCalls) {

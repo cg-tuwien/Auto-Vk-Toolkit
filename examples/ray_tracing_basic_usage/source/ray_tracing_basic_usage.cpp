@@ -70,8 +70,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			),
 			// Define push constants and descriptor bindings:
 			avk::push_constant_binding_data { avk::shader_type::ray_generation | avk::shader_type::closest_hit, 0, sizeof(push_const_data) },
-			avk::binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
-			avk::binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
+			avk::descriptor_binding(0, 0, mOffscreenImageViews[0]->as_storage_image()), // Just take any, this is just to define the layout
+			avk::descriptor_binding(1, 0, mTLAS[0])				 // Just take any, this is just to define the layout
 		);
 
 		mPipeline->print_shader_binding_table_groups();
@@ -144,8 +144,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		cmdbfr->begin_recording();
 		cmdbfr->bind_pipeline(mPipeline);
 		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({  
-			avk::binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
-			avk::binding(1, 0, mTLAS[inFlightIndex])
+			avk::descriptor_binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
+			avk::descriptor_binding(1, 0, mTLAS[inFlightIndex])
 		}));
 
 		// Set the push constants:
