@@ -595,7 +595,7 @@ namespace CgbPostBuildHelper
             // Started from the visual_studio/executables/ directory, it would just SILENTLY fail.
             // Removing the following Task.Run and having the code execute synchronously finally 
             // revealed the error. *facepalm*
-            Task.Run(() =>
+            var task = Task.Run(() =>
             {
                 Trace.TraceInformation($"Handling new invocation for {config.VcxprojPath}");
                 Trace.Flush();
@@ -802,6 +802,8 @@ namespace CgbPostBuildHelper
                 // Do the things which must be done on the UI thread:
                 UpdateViewAfterHandledInvocationAndStartFileSystemWatchers(CgbEventType.Build, config, deployments, fileDeployments, windowsToShowFor);
 			});
+
+			task.Wait(TimeSpan.FromSeconds(10));
 		}
 
 		public void HandleFileEvent(string filePath, CgbAppInstanceVM inst, ObservableCollection<WatchedFileVM> files)
