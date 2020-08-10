@@ -45,10 +45,10 @@ namespace gvk
 				.setRayTracing(VK_TRUE)
 		);
 		
-		vk::Instance vulkan_instance() const { return mInstance; }
-		vk::PhysicalDevice physical_device() override { return mPhysicalDevice; }
-		vk::Device device() override { return mLogicalDevice; }
-		vk::DispatchLoaderDynamic dynamic_dispatch() override { return mDynamicDispatch; }
+		vk::Instance& vulkan_instance() { return mInstance; }
+		vk::PhysicalDevice& physical_device() override { return mPhysicalDevice; }
+		vk::Device& device() override { return mLogicalDevice; }
+		vk::DispatchLoaderDynamic& dynamic_dispatch() override { return mDynamicDispatch; }
 		
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 

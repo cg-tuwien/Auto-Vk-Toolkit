@@ -203,11 +203,11 @@ namespace gvk
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
 		// Create a dynamic dispatch loader for extensions
-		context().mDynamicDispatch = vk::DispatchLoaderDynamic(
+		context().mDynamicDispatch = vk::DispatchLoaderDynamic{
 			context().vulkan_instance(), 
 			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
 			context().device()
-		);
+		};
 
 		mContextState = context_state::device_created;
 		work_off_event_handlers();
