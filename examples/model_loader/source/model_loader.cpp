@@ -56,7 +56,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					gvk::additional_index_data(	newElement.mIndices,	[&]() { return sponza->indices_for_mesh<uint32_t>(index);								} ),
 					gvk::additional_vertex_data(newElement.mPositions,	[&]() { return sponza->positions_for_mesh(index);							} ),
 					gvk::additional_vertex_data(newElement.mTexCoords,	[&]() { return sponza->texture_coordinates_for_mesh<glm::vec2>(index, 0);	} ),
-					gvk::additional_vertex_data(newElement.mNormals,		[&]() { return sponza->normals_for_mesh(index);								} )
+					gvk::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
 				);
 			}
 			
