@@ -18,6 +18,8 @@ using CgbPostBuildHelper.Deployers;
 using System.Windows.Input;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.IO.Pipes;
+using EnvDTE;
 
 namespace CgbPostBuildHelper
 {
@@ -137,6 +139,8 @@ namespace CgbPostBuildHelper
 		{
 			EndAllWatches();
 
+			ShutdownNamedPipeServer();
+
 			_myDispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
 			{
 				var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.0) };
@@ -149,9 +153,60 @@ namespace CgbPostBuildHelper
 			}));
 		}
 
+        #region Status Named Pipe
+
+        private readonly object _namedPipeSync = new object();
+		private bool _shutDownPipeServer = false;
+		private string _applicationStatus = string.Empty;
+
+		public void ShutdownNamedPipeServer()
+        {
+			lock(_namedPipeSync)
+            {
+				_applicationStatus = "Shutting down...";
+				_shutDownPipeServer = true;
+            }
+        }
+
+		public void NamedPipeServer()
+        {
+			while(!_shutDownPipeServer)
+			{ 
+			    using (NamedPipeServerStream pipeServer = new NamedPipeServerStream("Gears-Vk Application Status Pipe", PipeDirection.Out))
+			    {
+    				// Wait for a client to connect
+    				Console.Write("Waiting for client connection...");
+                
+                    pipeServer.WaitForConnection();
+
+				    Console.WriteLine("Client connected.");
+				    try
+				    {
+						
+					    using (StreamWriter sw = new StreamWriter(pipeServer))
+					    {
+						    sw.AutoFlush = true;
+							lock(_namedPipeSync)
+                            {
+						        sw.WriteLine(_applicationStatus);
+                            }
+					    }
+				    }
+				    // Catch the IOException that is raised if the pipe is broken
+				    // or disconnected.
+				    catch (IOException e)
+				    {
+					    Console.WriteLine("ERROR: {0}", e.Message);
+				    }
+                }
+			}
+		}
+
+        #endregion
+
 		public void StartAnimateIcon()
 		{
-			// Sync across threads by invoking it on the dispatcher
+            // Sync across threads by invoking it on the dispatcher
 			_myDispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
 			{
 				if (null != _iconAnimationTimer)
@@ -161,13 +216,13 @@ namespace CgbPostBuildHelper
 				}
 
 				_iconAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(70.0) };
-				_iconAnimationTimer.Start();
 				_iconAnimationTimer.Tick += (sender, args) =>
 				{
 					_iconAnimationIndex = (_iconAnimationIndex + 1) % _icons.Length;
 					_taskbarIcon.Icon = _icons[_iconAnimationIndex];
 				};
 				_animationRefCount = 1;
+				_iconAnimationTimer.Start();
 			}));
 		}
 
@@ -186,7 +241,23 @@ namespace CgbPostBuildHelper
 				_iconAnimationTimer = null;
 				_iconAnimationIndex = 0;
 				_taskbarIcon.Icon = _icons[_iconAnimationIndex];
-			}));
+
+				// Reset application status after a while:
+				var resetTimer = new DispatcherTimer(DispatcherPriority.Normal);
+				resetTimer.Tick += (sender, args) =>
+                {
+					resetTimer.Stop(); // Execute only once.. but after a delay!
+					lock (_namedPipeSync)
+					{
+				        if (null == _iconAnimationTimer || _animationRefCount > 0)
+                        {
+                            _applicationStatus = string.Empty;
+                        }
+					}
+				};
+				resetTimer.Interval = TimeSpan.FromSeconds(0.5);
+				resetTimer.Start();
+            }));
 		}
 
 		public void CloseMessagesListLater(bool setAliveTime)
@@ -253,6 +324,11 @@ namespace CgbPostBuildHelper
 			IFileDeployment savedForUseInException = null;
 			try
 			{
+				lock (_namedPipeSync)
+				{
+					_applicationStatus = $"Deploying files from '{new FileInfo(config.VcxprojPath).Name}' (currently working on '{new FileInfo(filePath).Name}')...";
+				}
+
 				savedForUseInException = null;
 				CgbUtils.PrepareDeployment(
 					config,
@@ -576,7 +652,12 @@ namespace CgbPostBuildHelper
 		/// <param name="p">All the parameters passed by that invocation/post build step</param>
 		public void HandleNewInvocation(InvocationParams config)
 		{
-            StartAnimateIcon();
+			lock (_namedPipeSync)
+			{
+				_applicationStatus = $"Analyzing files to deploy from '{new FileInfo(config.VcxprojPath).Name}'...";
+			}
+
+			StartAnimateIcon();
 
             // A story of a pathetic developer who learned that exceptions on background
             // threads are just swallowed and are going into Nirvana:
@@ -801,9 +882,16 @@ namespace CgbPostBuildHelper
 
                 // Do the things which must be done on the UI thread:
                 UpdateViewAfterHandledInvocationAndStartFileSystemWatchers(CgbEventType.Build, config, deployments, fileDeployments, windowsToShowFor);
+
+				lock (_namedPipeSync)
+				{
+					if (_applicationStatus.Contains(new FileInfo(config.VcxprojPath).Name))
+                    {
+						_applicationStatus = string.Empty;
+                    }
+				}
 			});
 
-			task.Wait(TimeSpan.FromSeconds(10));
 		}
 
 		public void HandleFileEvent(string filePath, CgbAppInstanceVM inst, ObservableCollection<WatchedFileVM> files)

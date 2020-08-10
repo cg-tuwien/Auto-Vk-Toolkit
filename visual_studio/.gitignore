@@ -29,11 +29,5 @@ examples/**/[Bb]in/
 ~$*.ppt*
 ~$*.pot*
 
-# Ignore files produced by LaTeX
-/_additional_documents/*/*.aux
-/_additional_documents/*/*.bbl
-/_additional_documents/*/*.blg
-/_additional_documents/*/*.log
-/_additional_documents/*/*.out
-/_additional_documents/*/*.pdf
-/_additional_documents/*/*.synctex.gz
+# Ignore the BUILT version of the post build helper tool
+tools/executables/cgb_post_build_helper.exe

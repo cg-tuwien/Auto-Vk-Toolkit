@@ -53,6 +53,10 @@ namespace CgbPostBuildHelper
 			{
 				ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown
 			};
+
+			// Start a background thread for the named pipe server:
+			Task.Run(() => _wpfApp.NamedPipeServer());
+
 			if (e.CommandLine.Count > 0)
 			{
 				try
@@ -72,6 +76,8 @@ namespace CgbPostBuildHelper
 
 		protected override void OnShutdown()
 		{
+			_wpfApp.ShutdownNamedPipeServer();
+
 			foreach (var inst in _wpfApp.AllInstances)
 			{
 				_wpfApp.ClearAllFileWatchers(inst);
