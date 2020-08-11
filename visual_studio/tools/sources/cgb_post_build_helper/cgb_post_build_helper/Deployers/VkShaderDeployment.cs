@@ -19,7 +19,7 @@ namespace CgbPostBuildHelper.Deployers
 	{
 		private static readonly string VulkanSdkPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 		private static readonly string GlslangValidatorPath = Path.Combine(VulkanSdkPath, @"Bin\glslangValidator.exe");
-		private static readonly string GlslangValidatorParams = " -V -o \"{1}\" \"{0}\"";
+		private static readonly string GlslangValidatorParams = " --target-env vulkan1.2 -o \"{1}\" \"{0}\"";
 		private static readonly Regex LineNumberRegex = new Regex(@":(\d+)", RegexOptions.Compiled);
 
 		public override void SetInputParameters(InvocationParams config, string filterPath, FileInfo inputFile, string outputFilePath)
@@ -84,11 +84,13 @@ namespace CgbPostBuildHelper.Deployers
 				proc.Start();
 				while (!proc.StandardOutput.EndOfStream)
 				{
-					processLine(proc.StandardOutput.ReadLine());
+                    var line = proc.StandardOutput.ReadLine();
+                    processLine(line);
 				}
 				while (!proc.StandardError.EndOfStream)
 				{
-					processLine(proc.StandardOutput.ReadLine());
+					var line = proc.StandardOutput.ReadLine();
+					processLine(line);
 				}
 			}
 
