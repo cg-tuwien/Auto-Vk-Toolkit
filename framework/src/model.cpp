@@ -321,7 +321,9 @@ namespace gvk
 		result.reserve(n);
 		if (nullptr == paiMesh->mNormals) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
-			result.emplace_back(0.f, 0.f, 1.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(0.f, 0.f, 1.f);
+			}
 		}
 		else {
 			// We've got normals. Proceed as planned.
@@ -340,7 +342,9 @@ namespace gvk
 		result.reserve(n);
 		if (nullptr == paiMesh->mTangents) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
-			result.emplace_back(1.f, 0.f, 0.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(1.f, 0.f, 0.f);
+			}
 		}
 		else {
 			// We've got tangents. Proceed as planned.
@@ -359,7 +363,9 @@ namespace gvk
 		result.reserve(n);
 		if (nullptr == paiMesh->mBitangents) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
-			result.emplace_back(0.f, 1.f, 0.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(0.f, 1.f, 0.f);
+			}
 		}
 		else {
 			// We've got bitangents. Proceed as planned.
@@ -379,12 +385,84 @@ namespace gvk
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_COLOR_SETS);
 		if (nullptr == paiMesh->mColors[aSet]) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
-			result.emplace_back(1.f, 0.f, 1.f, 1.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(1.f, 0.f, 1.f, 1.f);
+			}
 		}
 		else {
 			// We've got colors[_Set]. Proceed as planned.
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(paiMesh->mColors[aSet][i][0], paiMesh->mColors[aSet][i][1], paiMesh->mColors[aSet][i][2], paiMesh->mColors[aSet][i][3]);
+			}
+		}
+		return result;
+	}
+
+	std::vector<glm::vec4> model_t::bone_weights_for_mesh(mesh_index_t aMeshIndex) const
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::vec4> result;
+		result.reserve(n);
+		if (!paiMesh->HasBones()) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(1.f, 0.f, 0.f, 0.f);
+			}
+		}
+		else {
+			// read bone indices and weights for bone animation
+			std::vector<std::vector<std::tuple<uint32_t, float>>> vTempWeightsPerVertex(paiMesh->mNumVertices);
+			for (unsigned int j = 0; j < paiMesh->mNumBones; j++) 
+			{
+				const aiBone * pBone = paiMesh->mBones[j];
+				for (uint32_t b = 0; b < pBone->mNumWeights; b++) 
+				{
+					vTempWeightsPerVertex[pBone->mWeights[b].mVertexId].emplace_back(j, pBone->mWeights[b].mWeight);
+				}
+			}
+			
+			// We've got bone weights. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				auto& weights = result.emplace_back(0.0f, 0.0f, 0.0f, 0.0f);
+				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
+					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
+				}
+			}
+		}
+		return result;
+	}
+
+	std::vector<glm::uvec4> model_t::bone_indices_for_mesh(mesh_index_t aMeshIndex) const
+	{
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+		auto n = paiMesh->mNumVertices;
+		std::vector<glm::uvec4> result;
+		result.reserve(n);
+		if (!paiMesh->HasBones()) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return (0,0,0,0) bone indices for each vertex.", aMeshIndex));
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(0u, 0u, 0u, 0u);
+			}
+		}
+		else {
+			// read bone indices and weights for bone animation
+			std::vector<std::vector<std::tuple<uint32_t, float>>> vTempWeightsPerVertex(paiMesh->mNumVertices);
+			for (unsigned int j = 0; j < paiMesh->mNumBones; j++) 
+			{
+				const aiBone * pBone = paiMesh->mBones[j];
+				for (uint32_t b = 0; b < pBone->mNumWeights; b++) 
+				{
+					vTempWeightsPerVertex[pBone->mWeights[b].mVertexId].emplace_back(j, pBone->mWeights[b].mWeight);
+				}
+			}
+			
+			// We've got bone weights. Proceed as planned.
+			for (decltype(n) i = 0; i < n; ++i) {
+				auto& weights = result.emplace_back(0u, 0u, 0u, 0u);
+				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
+					weights[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
+				}
 			}
 		}
 		return result;
@@ -488,6 +566,26 @@ namespace gvk
 		return result;
 	}
 
+	std::vector<glm::vec4> model_t::bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
+	{
+		std::vector<glm::vec4> result;
+		for (auto meshIndex : aMeshIndices) {
+			auto tmp = bone_weights_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+	
+	std::vector<glm::uvec4> model_t::bone_indices_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
+	{
+		std::vector<glm::uvec4> result;
+		for (auto meshIndex : aMeshIndices) {
+			auto tmp = bone_indices_for_mesh(meshIndex);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+		}
+		return result;
+	}
+
 	std::vector<lightsource> model_t::lights() const
 	{
 		std::vector<lightsource> result;
@@ -567,6 +665,25 @@ namespace gvk
 			result.push_back(cgbCam);
 		}
 		return result;
+	}
+
+	model_t::animation_clip_data model_t::load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const
+	{
+		assert(mScene);
+		assert(aEndTimeTicks > aStartTimeTicks);
+		assert(aStartTimeTicks >= 0.0);
+		if (!mScene->HasAnimations()) {
+			throw avk::runtime_error("Model has no animations");
+		}
+		if (aAnimationIndex > mScene->mNumAnimations) {
+			throw avk::runtime_error("Requested animation index out of bounds");
+		}
+
+		double ticksPerSec = mScene->mAnimations[aAnimationIndex]->mTicksPerSecond;
+		double durationTicks = mScene->mAnimations[aAnimationIndex]->mDuration;
+		double endTicks = glm::min(aEndTimeTicks, durationTicks);
+
+		return animation_clip_data{ aAnimationIndex, ticksPerSec, aStartTimeTicks, endTicks };
 	}
 
 	std::optional<glm::mat4> model_t::transformation_matrix_traverser_for_camera(const aiCamera* aCamera, const aiNode* aNode, const aiMatrix4x4& aM) const

@@ -154,8 +154,10 @@ namespace gvk
 		/** Checks if the given physical device supports the shading rate image feature
 		 */
 		bool supports_shading_rate_image(const vk::PhysicalDevice& device);
+		bool supports_mesh_shader(const vk::PhysicalDevice& device);
 
 		bool shading_rate_image_extension_requested();
+		bool mesh_shader_extension_requested();
 		bool ray_tracing_extension_requested();
 		
 		/** Checks whether the given physical device supports all the required extensions,

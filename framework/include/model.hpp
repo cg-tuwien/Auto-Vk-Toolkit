@@ -11,6 +11,14 @@ namespace gvk
 		friend class context_vulkan;
 		
 	public:
+		struct animation_clip_data
+		{
+			unsigned int mAnimationIndex;
+			double mTicksPerSecond;
+			double mStartTicks;
+			double mEndTicks;
+		};
+		
 		using aiProcessFlagsType = unsigned int;
 
 		model_t() = default;
@@ -19,6 +27,8 @@ namespace gvk
 		model_t& operator=(model_t&&) noexcept = default;
 		model_t& operator=(const model_t&) = delete;
 		~model_t() = default;
+
+		const auto* handle() const { return mScene; }
 
 		static avk::owning_resource<model_t> load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags = aiProcess_Triangulate);
 		
@@ -135,6 +145,24 @@ namespace gvk
 		 */
 		std::vector<glm::vec4> colors_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const;
 
+		/** Gets all the bone weights for the mesh at the given index.
+		 *	If the mesh has no bone weights, a vector filled with values is
+		 *	returned regardless. All the values will be set to (1,0,0,0) in this case.
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@return		Vector of bone weights, converted to `glm::vec4`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
+		std::vector<glm::vec4> bone_weights_for_mesh(mesh_index_t aMeshIndex) const;
+
+		/** Gets all the bone indices for the mesh at the given index.
+		 *	If the mesh has no bone indices, a vector filled with values is
+		 *	returned regardless. All the values will be set to (0,0,0,0) in this case.
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@return		Vector of bone indices, converted to `glm::uvec4`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
+		std::vector<glm::uvec4> bone_indices_for_mesh(mesh_index_t aMeshIndex) const;
+
 		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index
 		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@param		aSet			Index to a specific set of texture coordinates
@@ -217,6 +245,8 @@ namespace gvk
 		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 		std::vector<glm::vec3> bitangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 		std::vector<glm::vec4> colors_for_meshes(std::vector<mesh_index_t> aMeshIndices, int aSet = 0) const;
+		std::vector<glm::vec4> bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::uvec4> bone_indices_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 
 		template <typename T>
 		std::vector<T> texture_coordinates_for_meshes(std::vector<mesh_index_t> _MeshIndices, int _Set = 0) const
@@ -245,6 +275,9 @@ namespace gvk
 
 		/** Returns all cameras stored in the model file */
 		std::vector<gvk::camera> cameras() const;
+
+		/** Load an animation clip's data */
+		animation_clip_data load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const;
 
 	private:
 		void initialize_materials();

@@ -367,14 +367,14 @@ namespace gvk
 		return bitangentsBuffer;
 	}
 
-	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet)
+	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
-				insert_into(colorsData, modelRef.get().colors_for_mesh(meshIndex, _ColorsSet));
+				insert_into(colorsData, modelRef.get().colors_for_mesh(meshIndex, aColorsSet));
 			}
 		}
 
@@ -394,6 +394,64 @@ namespace gvk
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return colorsBuffer;
+	}
+
+	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	{
+		std::vector<glm::vec4> boneWeightsData;
+
+		for (auto& pair : aModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(boneWeightsData, modelRef.get().bone_weights_for_mesh(meshIndex));
+			}
+		}
+
+		return boneWeightsData;
+	}
+	
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	{
+		auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes);
+		
+		auto boneWeightsBuffer = context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(boneWeightsData)
+		);
+		boneWeightsBuffer->fill(boneWeightsData.data(), 0, std::move(aSyncHandler));
+		// It is fine to let boneWeightsData go out of scope, since its data has been copied to a
+		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		return boneWeightsBuffer;
+	}
+
+	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	{
+		std::vector<glm::uvec4> boneIndicesData;
+
+		for (auto& pair : aModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(boneIndicesData, modelRef.get().bone_indices_for_mesh(meshIndex));
+			}
+		}
+
+		return boneIndicesData;
+	}
+	
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	{
+		auto boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes);
+		
+		auto boneIndicesBuffer = context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(boneIndicesData)
+		);
+		boneIndicesBuffer->fill(boneIndicesData.data(), 0, std::move(aSyncHandler));
+		// It is fine to let boneIndicesData go out of scope, since its data has been copied to a
+		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		return boneIndicesBuffer;
 	}
 
 	std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)

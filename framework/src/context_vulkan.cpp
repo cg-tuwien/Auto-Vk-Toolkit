@@ -163,10 +163,17 @@ namespace gvk
 		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
 	
 		// Always prepare the shading rate image features descriptor, but only use it if the extension has been requested
-		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV()
+		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV{}
 			.setShadingRateImage(VK_TRUE)
 			.setShadingRateCoarseSampleOrder(VK_TRUE);
 		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
+
+		// Always prepare the mesh shader feature descriptor, but only use it if the extension has been requested
+		auto meshShaderFeatureNV = VkPhysicalDeviceMeshShaderFeaturesNV{};
+		meshShaderFeatureNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+		meshShaderFeatureNV.taskShader = VK_TRUE;
+		meshShaderFeatureNV.meshShader = VK_TRUE;
+		auto activateMeshShaderFeature = mesh_shader_extension_requested() && supports_mesh_shader(context().physical_device());
 
 		auto queueCreateInfos = avk::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
 		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
@@ -188,6 +195,11 @@ namespace gvk
 			aRayTracingFeatures.setPNext(&deviceFeatures);
 			deviceVulkan12Features.setPNext(&aRayTracingFeatures);
 			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+		}
+
+		if (activateMeshShaderFeature) {
+			meshShaderFeatureNV.pNext = deviceVulkan12Features.pNext;
+			deviceVulkan12Features.setPNext(&meshShaderFeatureNV);
 		}
 		
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
@@ -679,10 +691,19 @@ namespace gvk
 	bool context_vulkan::supports_shading_rate_image(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
-		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV();
+		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV{};
 		supportedExtFeatures.pNext = &shadingRateImageFeatureNV;
 		device.getFeatures2(&supportedExtFeatures);
 		return shadingRateImageFeatureNV.shadingRateImage && shadingRateImageFeatureNV.shadingRateCoarseSampleOrder && supportedExtFeatures.features.shaderStorageImageExtendedFormats;
+	}
+
+	bool context_vulkan::supports_mesh_shader(const vk::PhysicalDevice& device)
+	{
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto meshShaderFeaturesNV = vk::PhysicalDeviceMeshShaderFeaturesNV{};
+		supportedExtFeatures.pNext = &meshShaderFeaturesNV;
+		device.getFeatures2(&supportedExtFeatures);
+		return meshShaderFeaturesNV.meshShader == VK_TRUE && meshShaderFeaturesNV.taskShader == VK_TRUE;
 	}
 
 	bool context_vulkan::shading_rate_image_extension_requested()
@@ -690,6 +711,12 @@ namespace gvk
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}
+
+	bool context_vulkan::mesh_shader_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_MESH_SHADER_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}	
 
 	bool context_vulkan::ray_tracing_extension_requested()
 	{
