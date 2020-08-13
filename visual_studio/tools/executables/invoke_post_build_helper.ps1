@@ -4,22 +4,32 @@ $postBuildExePath = Join-Path -Path $PSScriptRoot -ChildPath $exeName
 # Check if the tool is available:
 if (-Not (Test-Path $postBuildExePath))
 {
-	if ($args[0] -eq "-msbuild" -and $args.Length -gt 2) 
+	if ($args[0].ToLower() -eq "-msbuild" -and $args.Length -gt 2) 
 	{
 		try 
 		{
 			$msbuildPath = Join-Path -Path $args[1] -ChildPath "MSBuild.exe" 
+			$nugetPath = Join-Path -Path $PSScriptRoot -ChildPath "nuget.exe"
 			$postBuildSlnPath = Join-Path -Path $PSScriptRoot -ChildPath "..\sources\cgb_post_build_helper\cgb_post_build_helper.sln"
 			Write-Output "$exeName not found => going to build it from $postBuildSlnPath ..."
+			Write-Output ""
 			Write-Output "Note 1: If the build takes too long (more than 10 sec.), please cancel it (Build -> Cancel) and build again."
 			Write-Output "Note 2: If the build fails, please open '$postBuildSlnPath' and build the C# project manually (just select the 'Release' configuration and build)."
+			Write-Output ""
+			Write-Output "First, restoring NuGet packages ... (Please allow nuget.exe to run if prompted)"
+			Start-Process -Wait -WindowStyle Hidden -FilePath $nugetPath -ArgumentList "restore", $postBuildSlnPath
+			Write-Output "Going to invoke: ""$msbuildPath"" ""$postBuildSlnPath"" /property:Configuration=Release"
 			Start-Process -Wait -WindowStyle Hidden -FilePath $msbuildPath -ArgumentList $postBuildSlnPath, '/property:Configuration=Release'
 		}
 		catch 
 		{
-			Write-Output "Building post build helper failed."
-			# $_
+			Write-Output "Building the post build helper caused an exception."
+			$_
 		}
+	}
+	else 
+	{
+		Write-Output "Incomplete parameters or wrong order of parameters! The '-msbuild' parameter followed by the path to MSBuild.exe must be passed first!"
 	}
 	if (-Not (Test-Path $postBuildExePath))
 	{
@@ -36,8 +46,8 @@ if (-Not (Test-Path $postBuildExePath))
 		}
 		catch 
 		{
-			Write-Output "Copying fallback_cgb_post_build_helper.exe -> $exeName failed."
-			# $_
+			Write-Output "Copying the files caused an exception"
+			$_
 		}
 	}
 }
@@ -74,3 +84,4 @@ for ($i=0; $i -le $maxLoop; $i++)
 		Write-Output "The post build helper is still busy, but we're not going to wait any longer."
 	}
 }
+Write-Output ""

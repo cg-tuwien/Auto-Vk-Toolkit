@@ -109,26 +109,26 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::culling_mode::disabled,
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
-			avk::descriptor_binding(0, mUbo),
-			avk::descriptor_binding(1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
+			avk::descriptor_binding(0, 0, mUbo),
+			avk::descriptor_binding(0, 1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
 		);
 
 		// Create 3 compute pipelines:
 		mComputePipelines.resize(3);
 		mComputePipelines[0] = gvk::context().create_compute_pipeline_for(
 			"shaders/emboss.comp",
-			avk::descriptor_binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
-			avk::descriptor_binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
+			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 		mComputePipelines[1] = gvk::context().create_compute_pipeline_for(
 			"shaders/edgedetect.comp",
-			avk::descriptor_binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
-			avk::descriptor_binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
+			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 		mComputePipelines[2] = gvk::context().create_compute_pipeline_for(
 			"shaders/sharpen.comp",
-			avk::descriptor_binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
-			avk::descriptor_binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
+			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
@@ -171,16 +171,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			commandBuffer->handle().setViewport(0, 1, &vpLeft);
 
 			commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-				avk::descriptor_binding(0, mUbo),
-				avk::descriptor_binding(1, mInputImageAndSampler)
+				avk::descriptor_binding(0, 0, mUbo),
+				avk::descriptor_binding(0, 1, mInputImageAndSampler)
 			}));
 			commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
 
 			// Draw right viewport (post compute)
 			commandBuffer->handle().setViewport(0, 1, &vpRight);
 			commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-				avk::descriptor_binding(0, mUbo),
-				avk::descriptor_binding(1, mTargetImageAndSampler)
+				avk::descriptor_binding(0, 0, mUbo),
+				avk::descriptor_binding(0, 1, mTargetImageAndSampler)
 			}));
 			commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
 
@@ -263,8 +263,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Set the descriptors of the uniform buffer
 			cmdbfr->bind_pipeline(mComputePipelines[computeIndex]);
 			cmdbfr->bind_descriptors(mComputePipelines[computeIndex]->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-				avk::descriptor_binding(0, mInputImageAndSampler->get_image_view()->as_storage_image()),
-				avk::descriptor_binding(1, mTargetImageAndSampler->get_image_view()->as_storage_image())
+				avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image()),
+				avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 			}));
 			cmdbfr->handle().dispatch(mInputImageAndSampler->width() / 16, mInputImageAndSampler->height() / 16, 1);
 
