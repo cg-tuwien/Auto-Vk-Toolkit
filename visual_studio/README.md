@@ -2,13 +2,13 @@
 
 The Visual Studio projects can be used for resource management and there is a post build helper tool (cgb_post_build_helper) which mainly handles deployment of the resource files to the target folder. Its executable is located under `tools/cgb_post_build_helper.exe`
 
-In general, the main repository contains one solution file: [`cg_base.sln`](./cg_base.sln) which references multiple Visual Studio project files (`*.vcxproj`). Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
+In general, the main repository contains one solution file: [`gears-vk.sln`](./gears-vk.sln) which references multiple Visual Studio project files (`*.vcxproj`). Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
 
-The examples' `*.vcxproj` files are located in the [`examples` subfolder of the `visual_studio` folder](./examples), but their source code is located in the [`examples` folder in the repository's root](../examples). All examples reference the [`cg_base` library](./cg_base/) which contains the framework's code. A lot of the Visual Studio project configuration is handled via property files which are located under [`props`](./props).
+The examples' `*.vcxproj` files are located in the [`examples` subfolder of the `visual_studio` folder](./examples), but their source code is located in the [`examples` folder in the repository's root](../examples). All examples reference the [`gears_vk` library](./gears_vk/) which contains the framework's code. A lot of the Visual Studio project configuration is handled via property files which are located under [`props`](./props).
 
 ## Creating a New Project
 
-In order to create a new project that uses the **cg_base** framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan builds or `linked_libs_debug.props` for Debug builds. The example configurations are fully configures for proper usage.
+In order to create a new project that uses the **Gears-Vk** framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan builds or `linked_libs_debug.props` for Debug builds. The example configurations are fully configures for proper usage.
 
 A more convenient way to create a new project could be to use the `create_new_project.exe` tool, located under [`tools/executables`](./tools/executables). It allows to copy the settings from an existing project (like one of the examples) and effectively duplicates and renames a selected project.
 
@@ -97,11 +97,11 @@ Sometimes, Visual Studio won't store the exact filter path immediately in the `*
 
 Make sure that the `<Filter>` element is present and set to the correct value. In this case, the element's name is `<None>` because the file has been configured to `"Does not participate in build"`.
 
-## CGB Post Build Helper 
+## Post Build Helper 
 
 `cgb_post_build_helper.exe` is a helper tool which is executed upon successful building of a project. It deploys all the referenced assets (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory. It also deploys all the dependent assets. These could be all the textures which are referenced by a 3D model file.
 
-cgb_post_build_helper will provide a tray icon, informing about the deployment process and providing lists of deployed files. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it.
+The Post Build Helper will provide a tray icon, informing about the deployment process and providing lists of deployed files. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it.
 
 As an example: The [`orca_loader` example](./examples/orca_loader), should deploy 72 assets to the target directory, although only four assets and shaders are referenced. The sponza 3D model references many textures, all of which are deployed to the target folder as well. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target folder.
 
@@ -109,46 +109,46 @@ As an example: The [`orca_loader` example](./examples/orca_loader), should deplo
 
 If the `orca_loader` example does not deploy 72 assets, please check the hints in section about troubleshooting below.
 
-### Known Issues and Troubleshooting w.r.t. CGB Post Build Helper
+### Known Issues and Troubleshooting w.r.t. the Post Build Helper
 
 #### Application could not start at first try (maybe due to missing DLLs)
 
-cgb_post_build_helper runs asynchronously to not block Visual Studio. This has the side effect that deployment can still be in progress when the application is already starting. Please build your project and wait until cgb_post_build_helper's tray icon shows no more animated dots, before starting your application!
+The Post Build Helper runs asynchronously to not block Visual Studio. This has the side effect that deployment can still be in progress when the application is already starting. Please build your project and wait until the Post Build Helper's tray icon shows no more animated dots, before starting your application!
 
 #### Error message about denied access to DLL files (DLLs are not re-deployed)
 
-This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents cgb_post_build_helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/cg_base/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the CGB Post Build Helper).
+This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents the Post Build Helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the Post Build Helper).
 
 #### Too few resources are being deployed
 
-Sometimes, cgb_post_build_helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing some type of access. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
+Sometimes, the Post Build Helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing some type of access. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
 
 For example, you might be subject to this problem if you build the `orca_loader` example and only 6 (or fewer) files are deployed to the target directory instead of 72 files.
 
 Please try one or all of the following approaches to solve that problem:
 
-1. Restart cgb_post_build_helper:
-    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
+1. Restart the Post Build Helper:
+    1. Close Post Build Helper by right-clicking the tray icon and executing `Exit`. 
 	2. Navigate to the [`tools/executables`](./tools/executables) directory and start `cgb_post_build_helper.exe` manually.
 	3. If Windows warns you about the unknown source of this tool, please select to run anyways and permanently trust this executable.
-2. Start cgb_post_build_helper in with administrator rights:
-    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit`. 
+2. Start the Post Build Helper in with administrator rights:
+    1. Close the Post Build Helper by right-clicking the tray icon and executing `Exit`. 
 	2. Navigate to the [`tools/executables`](./tools/executables) directory, right-click on `cgb_post_build_helper.exe`, and select `"Run as administrator"`
-3. Build cgb_post_build_helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
-    1. Close cgb_post_build_helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
+3. Build the Post Build Helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
+    1. Close the Post Build Helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
 	2. Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`tools/sources/cgb_post_build_helper`](./tools/sources/cgb_post_build_helper)
 	3. Select the `Release` build and build the project.
-	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing cgb_post_build_helper as a post build step from the examples.
+	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing the Post Build Helper as a post build step from the examples.
 	
-At least the third approach should solve the problem. (If not, please create an [Issue](https://github.com/cg-tuwien/cg_base/issues) and describe your situation in detail.)
+At least the third approach should solve the problem. (If not, please create an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and describe your situation in detail.)
 
-#### Slow performance when showing lists within CGB Post Build Helper
+#### Slow performance when showing lists within the Post Build Helper
 
-Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`. A new instance of CGB Post Build Helper will start at the next build. Please note, however, that all the existing lists will be gone after exiting CGB Post Build Helper. They are not persisted.
+Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`. A new instance of the Post Build Helper will start at the next build. Please note, however, that all the existing lists will be gone after exiting the Post Build Helper. They are not persisted.
 
 ### Settings
 
-cgb_post_build_helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
+The Post Build Helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
 
 <img src="./docs/images/settings_post_build_helper.png" width="399"/>
 
