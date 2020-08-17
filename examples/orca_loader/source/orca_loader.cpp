@@ -346,7 +346,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Exekutor + Auto-Vk Example: ORCA Loader"),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: ORCA Loader"),
 			mainWnd,
 			app,
 			ui

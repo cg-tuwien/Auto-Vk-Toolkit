@@ -206,7 +206,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Exekutor + Auto-Vk Example: Vertex Buffers"),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: Vertex Buffers"),
 			mainWnd,
 			app,
 			ui

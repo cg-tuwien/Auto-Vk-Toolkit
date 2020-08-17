@@ -383,7 +383,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Exekutor + Auto-Vk Example: Real-Time Ray Tracing - Custom Intersection Example"),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Custom Intersection Example"),
 			gvk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)

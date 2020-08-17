@@ -43,7 +43,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		// On H pressed,
 		if (gvk::input().key_pressed(gvk::key_code::h)) {
 			// log a message:
-			LOG_INFO_EM("Hello Exekutor! Hello Auto-Vk!");
+			LOG_INFO_EM("Hello Gears-Vk! Hello Auto-Vk!");
 		}
 
 		// On C pressed,
@@ -113,7 +113,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Hello, Exekutor + Auto-Vk World!"),
+			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
 			mainWnd,
 			app,
 			ui

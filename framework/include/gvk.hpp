@@ -97,7 +97,7 @@
 
 #include <avk/avk.hpp>
 
-// -------------------- Exekutor includes --------------------
+// -------------------- Gears-Vk includes --------------------
 #include "cgb_exceptions.hpp"
 #include "conversion_utils.hpp"
 

@@ -12,7 +12,7 @@ namespace gvk
 	/** Set this to your application's name */
 	struct application_name
 	{
-		application_name(std::string aValue = "Vulkan application powered by Exekutor and Auto-Vk") : mValue{ std::move(aValue) } {}
+		application_name(std::string aValue = "Vulkan application powered by Gears-Vk and Auto-Vk") : mValue{ std::move(aValue) } {}
 		std::string mValue;
 	};
 

@@ -342,7 +342,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Exekutor + Auto-Vk Example: Compute Image Effects Example"),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: Compute Image Effects Example"),
 			mainWnd,
 			app,
 			ui

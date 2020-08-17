@@ -439,7 +439,7 @@ namespace gvk
 	{
 		// Information about the application for the instance creation call
 		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
-										   "Exekutor", VK_MAKE_VERSION(0, 1, 0), // TODO: Real version of cg_base
+										   "Gears-Vk", VK_MAKE_VERSION(0, 1, 0), // TODO: Real version of Gears-Vk
 										   VK_API_VERSION_1_2);
 
 		// GLFW requires several extensions to interface with the window system. Query them.
