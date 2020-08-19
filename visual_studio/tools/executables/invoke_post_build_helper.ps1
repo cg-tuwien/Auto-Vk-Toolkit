@@ -1,8 +1,10 @@
 $exeName = "cgb_post_build_helper.exe"
 $postBuildExePath = Join-Path -Path $PSScriptRoot -ChildPath $exeName
+$taskbarDllName = "Hardcodet.Wpf.TaskbarNotification.dll"
+$taskbarDllPath = Join-Path -Path $PSScriptRoot -ChildPath $taskbarDllName
 
 # Check if the tool is available:
-if (-Not (Test-Path $postBuildExePath))
+if ((-Not (Test-Path $postBuildExePath)) -or (-Not (Test-Path $taskbarDllPath)))
 {
 	if ($args[0].ToLower() -eq "-msbuild" -and $args.Length -gt 2) 
 	{
@@ -11,7 +13,7 @@ if (-Not (Test-Path $postBuildExePath))
 			$msbuildPath = Join-Path -Path $args[1] -ChildPath "MSBuild.exe" 
 			$nugetPath = Join-Path -Path $PSScriptRoot -ChildPath "nuget.exe"
 			$postBuildSlnPath = Join-Path -Path $PSScriptRoot -ChildPath "..\sources\cgb_post_build_helper\cgb_post_build_helper.sln"
-			Write-Output "$exeName not found => going to build it from $postBuildSlnPath ..."
+			Write-Output "$exeName or $taskbarDllName not found => going to build Post Build Helper it from $postBuildSlnPath ..."
 			Write-Output ""
 			Write-Output "Note 1: If the build takes too long (more than 10 sec.), please cancel it (Build -> Cancel) and build again."
 			Write-Output "Note 2: If the build fails, please open '$postBuildSlnPath' and build the C# project manually (just select the 'Release' configuration and build)."
@@ -31,7 +33,7 @@ if (-Not (Test-Path $postBuildExePath))
 	{
 		Write-Output "Incomplete parameters or wrong order of parameters! The '-msbuild' parameter followed by the path to MSBuild.exe must be passed first!"
 	}
-	if (-Not (Test-Path $postBuildExePath))
+	if ((-Not (Test-Path $postBuildExePath)) -or (-Not (Test-Path $taskbarDllPath)))
 	{
 		try 
 		{
@@ -40,9 +42,8 @@ if (-Not (Test-Path $postBuildExePath))
 			Copy-Item $srcExe -Destination $postBuildExePath
 
 			$srcDll = Join-Path -Path $PSScriptRoot -ChildPath "fallback.Hardcodet.Wpf.TaskbarNotification.dll"
-			$dstDll = Join-Path -Path $PSScriptRoot -ChildPath "Hardcodet.Wpf.TaskbarNotification.dll"
 			Write-Output "Also going to copy Hardcodet.Wpf.TaskbarNotification.dll from $srcDll ..."
-			Copy-Item $srcDll -Destination $dstDll
+			Copy-Item $srcDll -Destination $taskbarDllPath
 		}
 		catch 
 		{
