@@ -23,7 +23,7 @@ if (-Not (Test-Path $postBuildExePath))
 		}
 		catch 
 		{
-			Write-Output "Building the post build helper caused an exception."
+			Write-Output "Building the Post Build Helper caused an exception."
 			$_
 		}
 	}
@@ -57,21 +57,31 @@ if (-Not (Test-Path $postBuildExePath))
 #Write-Output $outPath
 #$args | Out-File -FilePath $outPath
 
-# Invoke the post build helper tool:
+# Invoke the Post Build Helper tool:
 Start-Process -FilePath $postBuildExePath -ArgumentList $args -WorkingDirectory $PSScriptRoot
 
-Write-Output "Post build helper has been invoked. Now waiting for the deployment of assets and shaders..."
+Write-Output "Post Build Helper has been invoked. Now waiting for the deployment of assets and shaders..."
 $maxLoop = 10
+$readSomethingAtLeastOnce = $false;
 for ($i=0; $i -le $maxLoop; $i++)
 {
-	$pipe = new-object System.IO.Pipes.NamedPipeClientStream '.','Gears-Vk Application Status Pipe','In'
-	$pipe.Connect()
-	$sr = new-object System.IO.StreamReader $pipe
-	$messageReceived = $sr.ReadLine();
-	$sr.Dispose()
-	$pipe.Dispose()
+	try 
+	{
+		$pipe = new-object System.IO.Pipes.NamedPipeClientStream '.','Gears-Vk Application Status Pipe','In'
+		$pipe.Connect()
+		$sr = new-object System.IO.StreamReader $pipe
+		$messageReceived = $sr.ReadLine();
+		$sr.Dispose()
+		$pipe.Dispose()
+	}
+	catch 
+	{
+		Write-Output "Failed to connect to Post Build Helper"
+		$_
+	}
 
-	if ([string]::IsNullOrEmpty($messageReceived)) 
+	$readSomethingAtLeastOnce = $readSomethingAtLeastOnce -or ($null -ne $messageReceived)
+	if ($readSomethingAtLeastOnce -and $null -ne $messageReceived -and "" -eq $messageReceived)
 	{
 		break
 	}
@@ -81,7 +91,7 @@ for ($i=0; $i -le $maxLoop; $i++)
 
 	if ($i -eq $maxLoop) 
 	{
-		Write-Output "The post build helper is still busy, but we're not going to wait any longer."
+		Write-Output "The Post Build Helper is still busy, but we're not going to wait any longer."
 	}
 }
 Write-Output ""
