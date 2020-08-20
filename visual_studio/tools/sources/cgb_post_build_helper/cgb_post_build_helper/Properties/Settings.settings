@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="AlwaysDeployReleaseDlls" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="AlwaysCopyNeverSymlink" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
