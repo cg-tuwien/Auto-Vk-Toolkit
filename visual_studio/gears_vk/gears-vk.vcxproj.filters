@@ -249,9 +249,6 @@
     <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\buffer_member_format.hpp">
-      <Filter>auto-vk_include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>

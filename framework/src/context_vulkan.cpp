@@ -130,6 +130,7 @@ namespace gvk
 
 		// Select the best suitable physical device which supports all requested extensions
 		context().pick_physical_device();
+		work_off_event_handlers();
 
 		LOG_DEBUG_VERBOSE("Creating logical device...");
 		
@@ -351,16 +352,16 @@ namespace gvk
 			auto queueFamily = avk::queue::select_queue_family_index(context().physical_device(), aRequiredFlags, aQueueSelectionPreference, surfaceSupport);
 
 			// Do we already have queues with that queue family?
-			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const avk::queue& q) { return q.family_index() == queueFamily; });
+			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const avk::queue& q) { return q.is_prepared() && q.family_index() == queueFamily; });
 #if _DEBUG
 			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
 			std::vector<int> check(num, 0);
-			for (size_t i = 0; i < mQueues.size(); ++i) {
+			for (size_t i = 0; i < num; ++i) {
 				if (mQueues[i].family_index() == queueFamily) {
 					check[mQueues[i].queue_index()]++;
 				}
 			}
-			for (size_t i = 0; i < mQueues.size(); ++i) {
+			for (size_t i = 0; i < num; ++i) {
 				assert(check[i] == 1);
 			}
 #endif

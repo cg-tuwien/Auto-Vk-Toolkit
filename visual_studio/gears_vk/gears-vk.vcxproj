@@ -70,7 +70,6 @@
     <ClInclude Include="..\..\auto_vk\include\avk\border_handling_mode.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\bottom_level_acceleration_structure.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\avk\buffer_member_format.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\buffer_view.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\commands.hpp" />
