@@ -81,7 +81,10 @@ for ($i=0; $i -le $maxLoop; $i++)
 		$_
 	}
 
-	$readSomethingAtLeastOnce = $readSomethingAtLeastOnce -or ($null -ne $messageReceived)
+	# Wait until the Post Build Helper was active at least once (indicated by a 
+	# message that actually contained some status), but don't wait longer than
+	# a maximum of 5 seconds for the first actual status message to arrive.
+	$readSomethingAtLeastOnce = $readSomethingAtLeastOnce -or ($null -ne $messageReceived -and $messageReceived.Length -gt 0) -or $i -ge 5
 	if ($readSomethingAtLeastOnce -and $null -ne $messageReceived -and "" -eq $messageReceived)
 	{
 		break
