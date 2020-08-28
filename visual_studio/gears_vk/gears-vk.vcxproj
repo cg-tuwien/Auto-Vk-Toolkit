@@ -103,6 +103,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\push_constants.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\query_pool.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\queue.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp" />

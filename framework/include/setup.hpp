@@ -118,7 +118,24 @@ namespace gvk
 		fu(rtf);
 		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
 	}
-	
+
+	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
+	 *
+	 *	You may pass the following configuration parameters:
+	 *	- physical_device_selection_hint&								... To declare which physical device shall be used.
+	 *	- application_name&												... To declare the name of this application
+	 *	- application_version&											... To declare the application version
+	 *	- required_instance_extensions&									... A struct to configure required instance extensions which must be supported by the Vulkan instance and shall be activated.
+	 *	- validation_layers&											... A struct to configure validation layers and validation layer features which shall be activated/deactivated.
+	 *	- required_device_extensions&									... A struct to configure required device extensions which must be supported by the device.
+	 *	- timer_interface& or timer_interface*							... Pointer or reference to timer class which handles gvk::time(). The timer must outlive the runtime of start().
+	 *	- invoker_interface& or invoker_interface*						... Pointer or reference to an invoker which invokes all the invokee's members. The invoker must outlive the runtime of start().
+	 *	- window*														... A window that shall be usable during the runtime of start().
+	 *	- invokee& or invokee*											... Pointer or reference to an invokee which outlives the runtime of start().
+	 *	- std::function<void(vk::PhysicalDeviceFeatures&)>				... A function which can be used to modify the vk::PhysicalDeviceFeatures. Modify the values of the passed vk::PhysicalDeviceFeatues directly!
+	 *	- std::function<void(vk::PhysicalDeviceVulkan12Features&)>		... A function which can be used to modify the vk::PhysicalDeviceVulkan12Features. Modify the values of the passed vk::PhysicalDeviceVulkan12Features directly!
+	 *	- std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)>	... A function which can be used to modify the vk::PhysicalDeviceRayTracingFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingFeaturesKHR directly!
+	 */
 	template <typename... Args>
 	static void start(Args&&... args)
 	{

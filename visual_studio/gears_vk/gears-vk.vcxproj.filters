@@ -411,6 +411,9 @@
     <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\query_pool.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">
