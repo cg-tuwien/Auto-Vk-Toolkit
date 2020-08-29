@@ -37,7 +37,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		auto orca = gvk::orca_scene_t::load_from_file("S:\\ORCA\\EmeraldSquare\\EmeraldSquare_Day.fscene");
+		auto orca = gvk::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
