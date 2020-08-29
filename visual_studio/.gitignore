@@ -31,4 +31,8 @@ examples/**/[Bb]in/
 
 # Ignore the BUILT version of the post build helper tool
 tools/executables/cgb_post_build_helper.exe
+tools/executables/AssimpNet.dll
+tools/executables/Newtonsoft.Json.dll
+tools/executables/EnvDTE.dll
+tools/executables/EnvDTE80.dll
 tools/executables/Hardcodet.Wpf.TaskbarNotification.dll
