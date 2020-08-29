@@ -78,6 +78,8 @@
 #include <glm/gtx/transform2.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <gli/load.hpp> // load DDS, KTX or KMG textures from files or memory.
+
 // -------------------- windows include ---------------------
 #ifdef _WIN32
 // Include that after the assimp includes due to some conflict

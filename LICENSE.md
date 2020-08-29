@@ -45,6 +45,11 @@ See [`external/universal/include/GLFW/glfw3.h`](external/universal/include/GLFW/
 GLAD, Copyright (c) David Herberth, is licensed under the MIT license:     
 See [`external/release/include/glad/glad.h`](external/release/include/glad/glad.h) or https://github.com/Dav1dde/glad/blob/master/LICENSE for full license details.
 
+**GLI**
+
+GLI, Copyright (c) G-Truc Creation, is licensed under The Happy Bunny License and MIT License:        
+See [`external/universal/include/gli/gli.hpp`](external/universal/include/gli/gli.hpp) or https://github.com/g-truc/gli/blob/master/manual.md#section0 for full license details.
+
 **GLM**
 
 GLM, Copyright (c) G-Truc Creation, is licensed under The Happy Bunny License and MIT License:        

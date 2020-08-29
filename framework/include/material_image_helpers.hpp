@@ -52,14 +52,35 @@ namespace gvk
 		return img;
 	}
 
-	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
 		avk::buffer stagingBuffer;
 		int width = 0;
 		int height = 0;
 
+		// ============ Compressed formats (DDS) ==========
+		if (avk::is_block_compressed_format(aFormat)) {
+			if (!aAlreadyLoadedGliTexture.has_value()) {
+				aAlreadyLoadedGliTexture = gli::load(aPath);
+			}
+			auto& gliTex = aAlreadyLoadedGliTexture.value();
+
+			if (gliTex.target() != gli::TARGET_2D) {
+				throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as 2D image. Can't load it.", aPath));
+			}
+
+			width  = gliTex.extent()[0];
+			height = gliTex.extent()[1];
+
+			stagingBuffer = context().create_buffer(
+				avk::memory_usage::host_coherent,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(gliTex.size())
+			);
+			stagingBuffer->fill(gliTex.data(), 0, avk::sync::not_required());
+		}
 		// ============ RGB 8-bit formats ==========
-		if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
+		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
 
 			stbi_set_flip_vertically_on_load(true);
 			int desiredColorChannels = STBI_rgb_alpha;
@@ -128,7 +149,6 @@ namespace gvk
 			
 			stbi_image_free(pixels);
 		}
-		// ========= TODO: Support DDS loader, maybe also further loaders
 		else {
 			throw gvk::runtime_error("No loader for the given image format implemented.");
 		}
@@ -161,8 +181,58 @@ namespace gvk
 	
 	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		vk::Format imFmt;
-		if (aLoadHdrIfPossible) {
+		std::optional<vk::Format> imFmt = {};
+
+		std::optional<gli::texture> gliTex = gli::load(aPath);
+		if (!gliTex.value().empty()) {
+			auto gliFmt = gliTex.value().format();
+			switch (gliFmt) {
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+			case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
+				imFmt = vk::Format::eBc1RgbUnormBlock;
+				break;
+			case gli::format::FORMAT_RGB_DXT1_SRGB_BLOCK8:
+				imFmt = vk::Format::eBc1RgbSrgbBlock;
+				break;
+			case gli::format::FORMAT_RGBA_DXT1_UNORM_BLOCK8:
+				imFmt = vk::Format::eBc1RgbaUnormBlock;
+				break;
+			case gli::format::FORMAT_RGBA_DXT1_SRGB_BLOCK8:
+				imFmt = vk::Format::eBc1RgbaSrgbBlock;
+				break;
+			case gli::format::FORMAT_RGBA_DXT3_UNORM_BLOCK16:
+				imFmt = vk::Format::eBc2UnormBlock;
+				break;
+			case gli::format::FORMAT_RGBA_DXT3_SRGB_BLOCK16:
+				imFmt = vk::Format::eBc2SrgbBlock; 
+				break;
+			case gli::format::FORMAT_RGBA_DXT5_UNORM_BLOCK16:
+				imFmt = vk::Format::eBc3UnormBlock;
+				break;
+			case gli::format::FORMAT_RGBA_DXT5_SRGB_BLOCK16:
+				imFmt = vk::Format::eBc3SrgbBlock;
+				break;
+			case gli::format::FORMAT_R_ATI1N_UNORM_BLOCK8:
+				imFmt = vk::Format::eBc4UnormBlock;
+				break;
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#RGTC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+			case gli::format::FORMAT_R_ATI1N_SNORM_BLOCK8:
+				imFmt = vk::Format::eBc4SnormBlock;
+				break;
+			case gli::format::FORMAT_RG_ATI2N_UNORM_BLOCK16:
+				imFmt = vk::Format::eBc5UnormBlock;
+				break;
+			case gli::format::FORMAT_RG_ATI2N_SNORM_BLOCK16:
+				imFmt = vk::Format::eBc5SnormBlock;
+			}
+		}
+		else {
+			gliTex.reset();
+		}
+		
+		if (!imFmt.has_value() && aLoadHdrIfPossible) {
 			if (stbi_is_hdr(aPath.c_str())) {
 				switch (aPreferredNumberOfTextureComponents) {
 				case 4:
@@ -182,10 +252,10 @@ namespace gvk
 					imFmt = default_rgb16f_4comp_format();
 					break;
 				}
-				return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 			}
 		}
-		if (aLoadSrgbIfApplicable) {
+		
+		if (!imFmt.has_value() && aLoadSrgbIfApplicable) {
 			switch (aPreferredNumberOfTextureComponents) {
 			case 4:
 				imFmt = gvk::default_srgb_4comp_format();
@@ -204,27 +274,34 @@ namespace gvk
 				imFmt = gvk::default_srgb_4comp_format();
 				break;
 			}
-			return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 		}
-		switch (aPreferredNumberOfTextureComponents) {
-		case 4:
-			imFmt = gvk::default_rgb8_4comp_format();
-			break;
-		// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
-		case 3:
-			imFmt = gvk::default_rgb8_3comp_format();
-			break;
-		case 2:
-			imFmt = gvk::default_rgb8_2comp_format();
-			break;
-		case 1:
-			imFmt = gvk::default_rgb8_1comp_format();
-			break;
-		default:
-			imFmt = gvk::default_rgb8_4comp_format();
-			break;
+
+		if (!imFmt.has_value()) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+			// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = gvk::default_rgb8_3comp_format();
+				break;
+			case 2:
+				imFmt = gvk::default_rgb8_2comp_format();
+				break;
+			case 1:
+				imFmt = gvk::default_rgb8_1comp_format();
+				break;
+			default:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+			}
 		}
-		return create_image_from_file(aPath, imFmt, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+
+		if (!imFmt.has_value()) {
+			throw gvk::runtime_error(fmt::format("Could not determine the image format of image '{}'", aPath));
+		}
+		
+		return create_image_from_file(aPath, imFmt.value(), aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
 	}
 	
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(

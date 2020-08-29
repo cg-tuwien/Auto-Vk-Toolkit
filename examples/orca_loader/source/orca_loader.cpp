@@ -37,7 +37,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
 		// Load an ORCA scene from file:
-		auto orca = gvk::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
+		auto orca = gvk::orca_scene_t::load_from_file("S:\\ORCA\\EmeraldSquare\\EmeraldSquare_Day.fscene");
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
@@ -146,7 +146,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
 			allMatConfigs, false,
-			avk::image_usage::general_texture,
+			avk::image_usage::general_image,	// TODO: use general_texture again once MIP-mapping for compressed textures has been fixed
 			avk::filter_mode::anisotropic_16x,
 			avk::border_handling_mode::repeat,
 			avk::sync::wait_idle()
