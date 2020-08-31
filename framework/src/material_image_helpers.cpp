@@ -152,7 +152,11 @@ namespace gvk
 				whiteTexUsages.push_back(&gm.mExtraTexIndex);
 			}
 			else {
-				texNamesToUsages[avk::clean_up_path(mc.mExtraTex)].push_back(&gm.mExtraTexIndex);
+				auto path = avk::clean_up_path(mc.mExtraTex);
+				texNamesToUsages[path].push_back(&gm.mExtraTexIndex);
+				if (aLoadTexturesInSrgb) {
+					srgbTextures.insert(path);
+				}
 			}
 																			 
 			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
