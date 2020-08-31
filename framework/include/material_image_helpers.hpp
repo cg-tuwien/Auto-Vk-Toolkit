@@ -171,7 +171,25 @@ namespace gvk
 		// 3. Transition image layout to its target layout and handle lifetime of things via sync
 		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
-		img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		if (avk::is_block_compressed_format(aFormat)) {
+			assert (aAlreadyLoadedGliTexture.has_value());
+			// 1st level is contained in stagingBuffer
+			//  => TODO: get further levels from the GliTexture and upload them!
+			//
+			//		for(std::size_t Level = 0; Level < Texture.levels(); ++Level)
+			//		{
+			//			glm::tvec3<GLsizei> Extent(Texture.extent(Level));
+			//			glCompressedTexSubImage2D(
+			//				Target, static_cast<GLint>(Level), 0, 0, Extent.x, Extent.y,
+			//				Format.Internal, static_cast<GLsizei>(Texture.size(Level)), Texture.data(0, 0, Level));
+			//		}
+			//
+			//  
+		}
+		else {
+			// For uncompressed formats, create MIP-maps via BLIT:
+			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
 
 		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
 		auto result = aSyncHandler.submit_and_sync();
