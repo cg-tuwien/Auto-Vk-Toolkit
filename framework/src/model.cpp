@@ -667,7 +667,7 @@ namespace gvk
 		return result;
 	}
 
-	model_t::animation_clip_data model_t::load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const
+	animation_clip_data model_t::load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const
 	{
 		assert(mScene);
 		assert(aEndTimeTicks > aStartTimeTicks);

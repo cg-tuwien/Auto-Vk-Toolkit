@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
+#include <stack>
 #include <functional>
 #include <memory>
 #include <iostream>
@@ -77,6 +78,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform2.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 #include <gli/load.hpp> // load DDS, KTX or KMG textures from files or memory.
 
