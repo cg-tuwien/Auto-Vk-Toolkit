@@ -130,6 +130,24 @@ namespace gvk
 		std::vector<animated_node> mAnimationData;
 	};
 
+
+
+
+	static std::string three_mat_to_string(const glm::mat4& pMatrix1, const glm::mat4& pMatrix2, const glm::mat4& pMatrix3)
+	{
+		char buf[1024];
+		sprintf_s(buf, 1024,
+			"\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n",
+			pMatrix1[0][0], pMatrix1[0][1], pMatrix1[0][2], pMatrix1[0][3],	   pMatrix2[0][0], pMatrix2[0][1], pMatrix2[0][2], pMatrix2[0][3],	  pMatrix3[0][0], pMatrix3[0][1], pMatrix3[0][2], pMatrix3[0][3],
+			pMatrix1[1][0], pMatrix1[1][1], pMatrix1[1][2], pMatrix1[1][3],	   pMatrix2[1][0], pMatrix2[1][1], pMatrix2[1][2], pMatrix2[1][3],	  pMatrix3[1][0], pMatrix3[1][1], pMatrix3[1][2], pMatrix3[1][3],
+			pMatrix1[2][0], pMatrix1[2][1], pMatrix1[2][2], pMatrix1[2][3],	   pMatrix2[2][0], pMatrix2[2][1], pMatrix2[2][2], pMatrix2[2][3],	  pMatrix3[2][0], pMatrix3[2][1], pMatrix3[2][2], pMatrix3[2][3],
+			pMatrix1[3][0], pMatrix1[3][1], pMatrix1[3][2], pMatrix1[3][3],	   pMatrix2[3][0], pMatrix2[3][1], pMatrix2[3][2], pMatrix2[3][3],	  pMatrix3[3][0], pMatrix3[3][1], pMatrix3[3][2], pMatrix3[3][3]
+		);
+		return buf;
+	}
+	
+
+	
 	class model_t
 	{
 		friend class context_vulkan;
@@ -515,8 +533,9 @@ namespace gvk
 				glm::mat4* mTargetStoragePointer;
 				glm::mat4 mMeshRootMatrix;
 			};
-			std::unordered_map<aiNode*, boneMatrixInfo> boneToMatrixInfo; // TODO: Is this REALLY unique across all meshes or should it be std::vector<std::unordered_map<...>> i.e. a node can affect multiple meshes
+			std::vector<std::unordered_map<aiNode*, boneMatrixInfo>> boneToMatrixInfo;
 			for (size_t i = 0; i < aMeshIndices.size(); ++i) {
+				auto& bmi = boneToMatrixInfo.emplace_back();
 				auto mi = aMeshIndices[i];
 
 				glm::mat4 meshRootMatrix = transformation_matrix_for_mesh(mi);
@@ -531,8 +550,8 @@ namespace gvk
 						continue;
 					}
 
-					assert (!boneToMatrixInfo.contains(it->second)); // Must be uniquely associable to one mesh, otherwise the logic is flawed <===== TODO: true?
-					boneToMatrixInfo[it->second] = boneMatrixInfo {
+					assert (!bmi.contains(it->second));
+					bmi[it->second] = boneMatrixInfo {
 						to_mat4(bone->mOffsetMatrix),
 						aBeginningOfTargetStorage + i * aStride + bi,
 						meshRootMatrix
@@ -582,11 +601,11 @@ namespace gvk
 				auto* parent = bNode->mParent;
 				while (nullptr != parent) {
 					if (!isNodeModifiedByBones(parent)) {
-						assert (isNodeAlreadyAdded(parent).has_value());
 						parentTransform = parent->mTransformation * parentTransform;
 						parent = parent->mParent;
 					}
 					else {
+						assert (isNodeAlreadyAdded(parent).has_value());
 						parent = nullptr; // stop if the parent is animated
 					}
 				}
@@ -647,12 +666,13 @@ namespace gvk
 
 				// See if we have an inverse bind pose matrix for this node:
 				assert(nodeMap.find(to_string(bChannel->mNodeName))->second == bNode);
-				auto it = boneToMatrixInfo.find(bNode);
-				// TODO: If std::unordered_map<aiNode*, boneMatrixInfo> boneToMatrixInfo; is turned into std::vector<std::unordered_map<aiNode*, boneMatrixInfo>>, there must be a loop:
-				if (std::end(boneToMatrixInfo) != it) {
-					anode.mInverseBindPoseMatrix.emplace_back(it->second.mInverseBindPoseMatrix);
-					anode.mBoneMatrixTargets.emplace_back(it->second.mTargetStoragePointer);
-					anode.mInverseMeshRootMatrix.emplace_back(glm::inverse(it->second.mMeshRootMatrix));
+				for (int i = 0; i < boneToMatrixInfo.size(); ++i) {
+					auto it = boneToMatrixInfo[i].find(bNode);
+					if (std::end(boneToMatrixInfo[i]) != it) {
+						anode.mInverseBindPoseMatrix.emplace_back(it->second.mInverseBindPoseMatrix);
+						anode.mBoneMatrixTargets.emplace_back(it->second.mTargetStoragePointer);
+						anode.mInverseMeshRootMatrix.emplace_back(glm::inverse(it->second.mMeshRootMatrix));
+					}					
 				}
 			};
 
@@ -716,17 +736,19 @@ namespace gvk
 		template <typename T>
 		std::tuple<size_t, size_t> find_positions_in_keys(const T& aCollection, double aTime)
 		{
-			size_t pos1 = 0, pos2 = 0;
-			while (aCollection[pos1].mTime > aTime && pos1 < aCollection.size() - 1) {
+			const auto maxIndex = aCollection.size() - 1;
+			
+			size_t pos1 = 0;
+			while (pos1 + 1 <= maxIndex && aCollection[pos1 + 1].mTime <= aTime) {
 				++pos1;
 			}
-			if (aCollection.size() > 1) {
-				pos2 = pos1 + 1;
-				while (aCollection[pos2].mTime < aTime && pos2 < aCollection.size() - 1) {
-					LOG_WARNING(fmt::format("Now that's strange: keys[{}].mTime {} > {}, despite keys[{}].mTime {} <= {}", pos2, aCollection[pos2].mTime, aTime, pos1, aCollection[pos1].mTime, aTime));
-					++pos2;
-				}
+			
+			size_t pos2 = pos1 + (pos1 < maxIndex ? 1 : 0);
+			while (pos2 + 1 < maxIndex && aCollection[pos2 + 1].mTime < aTime) {
+				LOG_WARNING(fmt::format("Now that's strange: keys[{}].mTime {} < {}, despite keys[{}].mTime {} <= {}", pos2 + 1, aCollection[pos2 + 1].mTime, aTime, pos1, aCollection[pos1].mTime, aTime));
+				++pos2;
 			}
+			
 			return std::make_tuple(pos1, pos2);
 		}
 
@@ -787,6 +809,10 @@ namespace gvk
 					glm::mat4 boneMatrix = aniNode.mInverseBindPoseMatrix[i] * aniNode.mTransform * aniNode.mInverseMeshRootMatrix[i];
 					// Store into target:
 					*aniNode.mBoneMatrixTargets[i] = boneMatrix;
+
+					LOG_INFO(fmt::format("M=====> Mesh(?)-Index[{}], Bone-Index[{}]", i, size_t(aniNode.mBoneMatrixTargets[i] - std::get<glm::mat4*>(aAnimation.mMeshIndicesAndTargetStorage[0])) ));
+					LOG_INFO(gvk::three_mat_to_string(aniNode.mInverseBindPoseMatrix[i], aniNode.mTransform, aniNode.mInverseMeshRootMatrix[i]));
+					LOG_INFO(gvk::to_string(*aniNode.mBoneMatrixTargets[i]));
 				}
 			}
 		}
@@ -807,70 +833,70 @@ namespace gvk
 
 
 	template <>
-	inline std::vector<glm::vec2> model_t::texture_coordinates_for_mesh<glm::vec2>(mesh_index_t _MeshIndex, int _Set) const
+	inline std::vector<glm::vec2> model_t::texture_coordinates_for_mesh<glm::vec2>(mesh_index_t aMeshIndex, int aSet) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec2> result;
 		result.reserve(n);
-		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
-		if (nullptr == paiMesh->mTextureCoords[_Set]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", _MeshIndex, _Set));
+		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[aSet]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
 			result.emplace_back(0.f, 0.f);
 		}
 		else {
-			const auto nuv = num_uv_components_for_mesh(_MeshIndex, _Set);
+			const auto nuv = num_uv_components_for_mesh(aMeshIndex, aSet);
 			switch (nuv) {
 			case 1:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], 0.f);
 				}
 				break;
 			case 2:
 			case 3:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1]);
+					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], paiMesh->mTextureCoords[aSet][i][1]);
 				}
 				break;
 			default:
-				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
 	}
 
 	template <>
-	inline std::vector<glm::vec3> model_t::texture_coordinates_for_mesh<glm::vec3>(mesh_index_t _MeshIndex, int _Set) const
+	inline std::vector<glm::vec3> model_t::texture_coordinates_for_mesh<glm::vec3>(mesh_index_t aMeshIndex, int aSet) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[_MeshIndex];
+		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
 		result.reserve(n);
-		assert(_Set >= 0 && _Set < AI_MAX_NUMBER_OF_TEXTURECOORDS);
-		if (nullptr == paiMesh->mTextureCoords[_Set]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", _MeshIndex, _Set));
+		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
+		if (nullptr == paiMesh->mTextureCoords[aSet]) {
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
 			result.emplace_back(0.f, 0.f, 0.f);
 		}
 		else {
-			const auto nuv = num_uv_components_for_mesh(_MeshIndex, _Set);
+			const auto nuv = num_uv_components_for_mesh(aMeshIndex, aSet);
 			switch (nuv) {
 			case 1:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], 0.f, 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], 0.f, 0.f);
 				}
 				break;
 			case 2:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1], 0.f);
+					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], paiMesh->mTextureCoords[aSet][i][1], 0.f);
 				}
 				break;
 			case 3:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[_Set][i][0], paiMesh->mTextureCoords[_Set][i][1], paiMesh->mTextureCoords[_Set][i][2]);
+					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], paiMesh->mTextureCoords[aSet][i][1], paiMesh->mTextureCoords[aSet][i][2]);
 				}
 				break;
 			default:
-				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, _MeshIndex, _Set));
+				throw gvk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
@@ -878,40 +904,40 @@ namespace gvk
 
 	/** Helper function used by `cgb::append_indices_and_vertex_data` */
 	template <typename Vert>
-	size_t get_vertex_count(const Vert& _First)
+	size_t get_vertex_count(const Vert& aFirst)
 	{
-		return _First.size();
+		return aFirst.size();
 	}
 
 	/** Helper function used by `cgb::append_indices_and_vertex_data` */
 	template <typename Vert, typename... Verts>
-	size_t get_vertex_count(const Vert& _First, const Verts&... _Rest)
+	size_t get_vertex_count(const Vert& aFirst, const Verts&... aRest)
 	{
 #if defined(_DEBUG) 
 		// Check whether all of the vertex data has the same length!
-		auto countOfNext = get_vertex_count(_Rest...);
-		if (countOfNext != _First.size()) {
-			throw gvk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, _First.size()));
+		auto countOfNext = get_vertex_count(aRest...);
+		if (countOfNext != aFirst.size()) {
+			throw gvk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, aFirst.size()));
 		}
 #endif
-		return _First.size();
+		return aFirst.size();
 	}
 
-	/** Inserts the elements from the collection `_ToInsert` into the collection `_Destination`. */
+	/** Inserts the elements from the collection `aToInsert` into the collection `aDestination`. */
 	template <typename V>
-	void insert_into(V& _Destination, const V& _ToInsert)
+	void insert_into(V& aDestination, const V& aToInsert)
 	{
-		_Destination.insert(std::end(_Destination), std::begin(_ToInsert), std::end(_ToInsert));
+		aDestination.insert(std::end(aDestination), std::begin(aToInsert), std::end(aToInsert));
 	}
 
-	/** Inserts the elements from the collection `_ToInsert` into the collection `_Destination` and adds `_ToAdd` to them. */
+	/** Inserts the elements from the collection `aToInsert` into the collection `aDestination` and adds `aToAdd` to them. */
 	template <typename V, typename A>
-	void insert_into_and_add(V& _Destination, const V& _ToInsert, A _ToAdd)
+	void insert_into_and_add(V& aDestination, const V& aToInsert, A aToAdd)
 	{
-		_Destination.reserve(_Destination.size() + _ToInsert.size());
-		auto addValType = static_cast<typename V::value_type>(_ToAdd);
-		for (auto& e : _ToInsert) {
-			_Destination.push_back(e + addValType);
+		aDestination.reserve(aDestination.size() + aToInsert.size());
+		auto addValType = static_cast<typename V::value_type>(aToAdd);
+		for (auto& e : aToInsert) {
+			aDestination.push_back(e + addValType);
 		}
 	}
 
@@ -934,31 +960,31 @@ namespace gvk
 	 *
 	 */
 	template <typename... Vert, typename... Getter, typename Ind, typename IndGetter>
-	void append_indices_and_vertex_data(std::tuple<Ind&, IndGetter> _IndDstAndGetter, std::tuple<Vert&, Getter>... _VertDstAndGetterPairs)
+	void append_indices_and_vertex_data(std::tuple<Ind&, IndGetter> aIndDstAndGetter, std::tuple<Vert&, Getter>... aVertDstAndGetterPairs)
 	{
 		// Count vertices BEFORE appending!
-		auto vertexCount = get_vertex_count(std::get<0>(_VertDstAndGetterPairs)...);
+		auto vertexCount = get_vertex_count(std::get<0>(aVertDstAndGetterPairs)...);
 		// Append all the vertex data:
-		(insert_into(/* Existing vector: */ std::get<0>(_VertDstAndGetterPairs), /* Getter: */ std::move(std::get<1>(_VertDstAndGetterPairs)())), ...);
+		(insert_into(/* Existing vector: */ std::get<0>(aVertDstAndGetterPairs), /* Getter: */ std::move(std::get<1>(aVertDstAndGetterPairs)())), ...);
 		// Append the index data:
-		insert_into_and_add(std::get<0>(_IndDstAndGetter), std::get<1>(_IndDstAndGetter)(), vertexCount);
+		insert_into_and_add(std::get<0>(aIndDstAndGetter), std::get<1>(aIndDstAndGetter)(), vertexCount);
 		//insert_into_and_add(_A, _B(), vertexCount);
 	}
 
 	/** This is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
 	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
 	 */
-	template <class... _Types>
-	_NODISCARD constexpr std::tuple<_Types&&...> additional_vertex_data(_Types&&... _Args) noexcept {
-		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
+	template <class... Types>
+	_NODISCARD constexpr std::tuple<Types&&...> additional_vertex_data(Types&&... aArgs) noexcept {
+		return std::forward_as_tuple(std::forward<Types>(aArgs)...);
 	}
 
 	/** This is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
 	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
 	 */
-	template <class... _Types>
-	_NODISCARD constexpr std::tuple<_Types&&...> additional_index_data(_Types&&... _Args) noexcept {
-		return std::forward_as_tuple(std::forward<_Types>(_Args)...);
+	template <class... Types>
+	_NODISCARD constexpr std::tuple<Types&&...> additional_index_data(Types&&... aArgs) noexcept {
+		return std::forward_as_tuple(std::forward<Types>(aArgs)...);
 	}
 
 	///** This is a convenience function and is actually just an alias to `std::forward_as_tuple`. It does not add any functionality,
