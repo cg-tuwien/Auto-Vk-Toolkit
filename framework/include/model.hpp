@@ -133,15 +133,15 @@ namespace gvk
 
 
 
-	static std::string three_mat_to_string(const glm::mat4& pMatrix1, const glm::mat4& pMatrix2, const glm::mat4& pMatrix3)
+	static std::string five_mat_to_string(const glm::mat4& pMatrix1, const glm::mat4& pMatrix2, const glm::mat4& pMatrix3, const glm::mat4& pMatrix4, const glm::mat4& pMatrix5)
 	{
 		char buf[1024];
 		sprintf_s(buf, 1024,
-			"\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t\t%.3f\t%.3f\t%.3f\t%.3f  \n",
-			pMatrix1[0][0], pMatrix1[0][1], pMatrix1[0][2], pMatrix1[0][3],	   pMatrix2[0][0], pMatrix2[0][1], pMatrix2[0][2], pMatrix2[0][3],	  pMatrix3[0][0], pMatrix3[0][1], pMatrix3[0][2], pMatrix3[0][3],
-			pMatrix1[1][0], pMatrix1[1][1], pMatrix1[1][2], pMatrix1[1][3],	   pMatrix2[1][0], pMatrix2[1][1], pMatrix2[1][2], pMatrix2[1][3],	  pMatrix3[1][0], pMatrix3[1][1], pMatrix3[1][2], pMatrix3[1][3],
-			pMatrix1[2][0], pMatrix1[2][1], pMatrix1[2][2], pMatrix1[2][3],	   pMatrix2[2][0], pMatrix2[2][1], pMatrix2[2][2], pMatrix2[2][3],	  pMatrix3[2][0], pMatrix3[2][1], pMatrix3[2][2], pMatrix3[2][3],
-			pMatrix1[3][0], pMatrix1[3][1], pMatrix1[3][2], pMatrix1[3][3],	   pMatrix2[3][0], pMatrix2[3][1], pMatrix2[3][2], pMatrix2[3][3],	  pMatrix3[3][0], pMatrix3[3][1], pMatrix3[3][2], pMatrix3[3][3]
+			"\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f  \n\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f  \n",
+			pMatrix1[0][0], pMatrix1[0][1], pMatrix1[0][2], pMatrix1[0][3],	   pMatrix2[0][0], pMatrix2[0][1], pMatrix2[0][2], pMatrix2[0][3],	  pMatrix3[0][0], pMatrix3[0][1], pMatrix3[0][2], pMatrix3[0][3],	  pMatrix4[0][0], pMatrix4[0][1], pMatrix4[0][2], pMatrix4[0][3],	  pMatrix5[0][0], pMatrix5[0][1], pMatrix5[0][2], pMatrix5[0][3],
+			pMatrix1[1][0], pMatrix1[1][1], pMatrix1[1][2], pMatrix1[1][3],	   pMatrix2[1][0], pMatrix2[1][1], pMatrix2[1][2], pMatrix2[1][3],	  pMatrix3[1][0], pMatrix3[1][1], pMatrix3[1][2], pMatrix3[1][3],	  pMatrix4[1][0], pMatrix4[1][1], pMatrix4[1][2], pMatrix4[1][3],	  pMatrix5[1][0], pMatrix5[1][1], pMatrix5[1][2], pMatrix5[1][3],
+			pMatrix1[2][0], pMatrix1[2][1], pMatrix1[2][2], pMatrix1[2][3],	   pMatrix2[2][0], pMatrix2[2][1], pMatrix2[2][2], pMatrix2[2][3],	  pMatrix3[2][0], pMatrix3[2][1], pMatrix3[2][2], pMatrix3[2][3],	  pMatrix4[2][0], pMatrix4[2][1], pMatrix4[2][2], pMatrix4[2][3],	  pMatrix5[2][0], pMatrix5[2][1], pMatrix5[2][2], pMatrix5[2][3],
+			pMatrix1[3][0], pMatrix1[3][1], pMatrix1[3][2], pMatrix1[3][3],	   pMatrix2[3][0], pMatrix2[3][1], pMatrix2[3][2], pMatrix2[3][3],	  pMatrix3[3][0], pMatrix3[3][1], pMatrix3[3][2], pMatrix3[3][3], 	  pMatrix4[3][0], pMatrix4[3][1], pMatrix4[3][2], pMatrix4[3][3],  	  pMatrix5[3][0], pMatrix5[3][1], pMatrix5[3][2], pMatrix5[3][3]
 		);
 		return buf;
 	}
@@ -723,6 +723,10 @@ namespace gvk
 					boneAnimatedParents.pop();
 				}
 				addAnimatedNode(modifiedByBones[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+
+
+				// TODO: Look througth the data in animation or keep track of which bone matrices WILL BE SET during animation.
+				//       For all the others, calculate and set the static transform!
 			}
 
 			return result;
@@ -773,7 +777,7 @@ namespace gvk
 				auto [tpos1, tpos2] = find_positions_in_keys(aniNode.mPositionKeys, timeInTicks);
 				auto tf = get_interpolation_factor(aniNode.mPositionKeys[tpos1], aniNode.mPositionKeys[tpos2], timeInTicks);
 				auto translation = glm::lerp(aniNode.mPositionKeys[tpos1].mValue, aniNode.mPositionKeys[tpos2].mValue, tf);
-				
+
 				// Rotation:
 				size_t rpos1 = tpos1, rpos2 = tpos2;
 				if (!aniNode.mSameRotationAndPositionKeyTimes) {
@@ -803,15 +807,15 @@ namespace gvk
 				assert (n == aniNode.mInverseMeshRootMatrix.size());
 				for (size_t i = 0; i < n; ++i) {
 					// Construction of the bone matrix for this node:
-					//  1. transform from object space into mesh space
-					//  2. apply the current node's transform (brings it into bone space)
-					//  3. transform from bone space into mesh space
-					glm::mat4 boneMatrix = aniNode.mInverseBindPoseMatrix[i] * aniNode.mTransform * aniNode.mInverseMeshRootMatrix[i];
+					//  1. Bring vertex into bone space
+					//  2. Apply transformaton in bone space
+					//  3. Convert transformed vertex back to mesh space
+					glm::mat4 boneMatrix = aniNode.mInverseMeshRootMatrix[i] * aniNode.mTransform * aniNode.mInverseBindPoseMatrix[i];
 					// Store into target:
 					*aniNode.mBoneMatrixTargets[i] = boneMatrix;
 
 					LOG_INFO(fmt::format("M=====> Mesh(?)-Index[{}], Bone-Index[{}]", i, size_t(aniNode.mBoneMatrixTargets[i] - std::get<glm::mat4*>(aAnimation.mMeshIndicesAndTargetStorage[0])) ));
-					LOG_INFO(gvk::three_mat_to_string(aniNode.mInverseBindPoseMatrix[i], aniNode.mTransform, aniNode.mInverseMeshRootMatrix[i]));
+					LOG_INFO(gvk::five_mat_to_string(aniNode.mInverseBindPoseMatrix[i], aniNode.mTransform, aniNode.mParentTransform, localTransform, aniNode.mInverseMeshRootMatrix[i]));
 					LOG_INFO(gvk::to_string(*aniNode.mBoneMatrixTargets[i]));
 				}
 			}
