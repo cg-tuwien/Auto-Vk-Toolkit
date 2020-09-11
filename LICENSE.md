@@ -55,6 +55,16 @@ See [`external/universal/include/gli/gli.hpp`](external/universal/include/gli/gl
 GLM, Copyright (c) G-Truc Creation, is licensed under The Happy Bunny License and MIT License:        
 See [`external/universal/include/glm/glm.hpp`](external/universal/include/glm/glm.hpp) or http://glm.g-truc.net/copying.txt for full license details.
 
+**ImGui**
+
+Copyright (c) 2014-2020 Omar Cornut, licensed under the MIT License:     
+See [`external/universal/include/imgui.h`](external/universal/include/imgui.h) or https://github.com/ocornut/imgui/blob/master/LICENSE.txt 
+
+**imgui-filebrowser**
+
+Copyright (c) 2019-2020 Zhuang Guan, licensed under the MIT License:     
+See [`examples/orca_loader/source/imfilebrowser.h`](examples/orca_loader/source/imfilebrowser.h) or https://github.com/AirGuanZ/imgui-filebrowser/blob/master/LICENSE
+
 **STB**
 
 STB, Copyright (c) by Sean Barrett, licensed under the MIT License and released into the Public Domain.     
