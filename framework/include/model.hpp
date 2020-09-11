@@ -110,6 +110,8 @@ namespace gvk
 		 *	same size, can and should be processed in lockstep.
 		 */
 		std::vector<glm::mat4> mInverseMeshRootMatrix;
+
+		std::vector<mesh_index_t> mMeshIndex;
 	};
 
 	struct animation
@@ -436,11 +438,11 @@ namespace gvk
 			return std::string(aAssimpString.C_Str());
 		}
 
-		void add_to_node_map(std::unordered_map<std::string, aiNode*>& aNodeMap, aiNode* aNode)
+		void add_all_to_node_map(std::unordered_map<std::string, aiNode*>& aNodeMap, aiNode* aNode)
 		{
 			aNodeMap[to_string(aNode->mName)] = aNode;
 			for (unsigned int i = 0; i < aNode->mNumChildren; ++i) {
-				add_to_node_map(aNodeMap, aNode->mChildren[i]);
+				add_all_to_node_map(aNodeMap, aNode->mChildren[i]);
 			}
 		}
 
@@ -470,58 +472,13 @@ namespace gvk
 			}
 			result.mMaxNumBoneMatrices = aMaxNumBoneMatrices.value();
 
+			// --------------------------- helper collections ------------------------------------
 			// Contains mappings of bone/node names to aiNode* pointers:
-			std::unordered_map<std::string, aiNode*> nodeMap;
-			add_to_node_map(nodeMap, mScene->mRootNode);
+			std::unordered_map<std::string, aiNode*> mapNameToNode;
+			add_all_to_node_map(mapNameToNode, mScene->mRootNode);
 
-			// Gather some information about the nodes:
-			//  - Is the node even required?
-			//  - Is the node being animated through bone animation or does it remain static within the given animation?
-			//std::unordered_set<aiNode*> requiredForAnimation;
-			std::unordered_map<aiNode*, aiNodeAnim*> modifiedByBones;
-			// Evaluate the data from the animation and fill ^those two maps.
-			assert(aAnimationIndex >= 0u && aAnimationIndex <= mScene->mNumAnimations);
-			auto* ani = mScene->mAnimations[aAnimationIndex];
-			for (unsigned int i = 0; i < ani->mNumChannels; ++i) {
-				auto* channel = ani->mChannels[i];
-
-				auto it = nodeMap.find(to_string(channel->mNodeName));
-				if (it == std::end(nodeMap)) {
-					LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
-					continue;
-				}
-
-				if (channel->mNumPositionKeys + channel->mNumRotationKeys + channel->mNumScalingKeys > 0) {
-					//requiredForAnimation.insert(it->second);
-					modifiedByBones[it->second] = channel;
-					//// Also mark all its parent nodes as required for animation (but not modified by bones!):
-					//auto* parent = it->second->mParent;
-					//while (nullptr != parent) {
-					//	requiredForAnimation.insert(parent);
-					//	parent = parent->mParent;
-					//}
-				}
-			}
-
-			//// Checks whether the given node is required for this animation (by searching it in requiredForAnimation)
-			//auto isNodeRequiredForAnimation = [&](aiNode* bNode) {
-			//	const auto it = requiredForAnimation.find(bNode);
-			//	if (std::end(requiredForAnimation) != it) {
-			//		assert( *it == bNode );
-			//		return true;
-			//	}
-			//	return false;
-			//};
-
-			// Checks whether the given node is modified by bones a.k.a. bone-animated (by searching it in modifiedByBones)
-			auto isNodeModifiedByBones = [&](aiNode* bNode) -> bool {
-				const auto it = modifiedByBones.find(bNode);
-				if (std::end(modifiedByBones) != it) {
-					assert( it->first == bNode );
-					return true;
-				}
-				return false;
-			};
+			// Which node is modified by bone animation? => Only those with an entry in this map:
+			std::unordered_map<aiNode*, aiNodeAnim*> mapNodeToBoneAnimation;
 
 			// Prepare mesh-specific things:
 			//  - Store the inverse bind pose matrices for each requested mesh's node/bone
@@ -529,46 +486,36 @@ namespace gvk
 			//  - Store the root transform matrix (mesh space)
 			struct boneMatrixInfo
 			{
+				unsigned int mBoneIndex;
 				glm::mat4 mInverseBindPoseMatrix;
 				glm::mat4* mTargetStoragePointer;
 				glm::mat4 mMeshRootMatrix;
 			};
-			std::vector<std::unordered_map<aiNode*, boneMatrixInfo>> boneToMatrixInfo;
-			for (size_t i = 0; i < aMeshIndices.size(); ++i) {
-				auto& bmi = boneToMatrixInfo.emplace_back();
-				auto mi = aMeshIndices[i];
-
-				glm::mat4 meshRootMatrix = transformation_matrix_for_mesh(mi);
-				
-				assert(mi >= 0u && mi < mScene->mNumMeshes);
-				for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
-					auto* bone = mScene->mMeshes[mi]->mBones[bi];
-
-					auto it = nodeMap.find(to_string(bone->mName));
-					if (it == std::end(nodeMap)) {
-						LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
-						continue;
-					}
-
-					assert (!bmi.contains(it->second));
-					bmi[it->second] = boneMatrixInfo {
-						to_mat4(bone->mOffsetMatrix),
-						aBeginningOfTargetStorage + i * aStride + bi,
-						meshRootMatrix
-					};
-				}
-			}
-
-			// ---------------------------------------------
-			// AND NOW: Construct the animated_nodes "tree"
+			// Matrix information per bone per mesh:
+			std::vector<std::unordered_map<aiNode*, boneMatrixInfo>> mapsBoneToMatrixInfo;
+			
+			// Which bones have been added per mesh:
+			std::vector<std::vector<bool>> flagsBonesAddedAsAniNodes; // TODO: could maybe be removed if not required any longer
 
 			// At which index has which node been inserted (relevant mostly for keeping track of parent-nodes):
-			std::map<aiNode*, size_t> animatedNodeToIndex;
+			std::map<aiNode*, size_t> mapNodeToAniNodeIndex;
+			// -----------------------------------------------------------------------------------
+
+			// -------------------------------- helper lambdas -----------------------------------
+			// Checks whether the given node is modified by bones a.k.a. bone-animated (by searching it in mapNodeToBoneAnimation)
+			auto isNodeModifiedByBones = [&](aiNode* bNode) -> bool {
+				const auto it = mapNodeToBoneAnimation.find(bNode);
+				if (std::end(mapNodeToBoneAnimation) != it) {
+					assert( it->first == bNode );
+					return true;
+				}
+				return false;
+			};
 
 			// Helper lambda for checking whether a node has already been added and if so, returning its index
 			auto isNodeAlreadyAdded = [&](aiNode* bNode) -> std::optional<size_t> {
-				auto it = animatedNodeToIndex.find(bNode);
-				if (std::end(animatedNodeToIndex) != it) {
+				auto it = mapNodeToAniNodeIndex.find(bNode);
+				if (std::end(mapNodeToAniNodeIndex) != it) {
 					return it->second;
 				}
 				return {};
@@ -616,16 +563,18 @@ namespace gvk
 			auto addAnimatedNode = [&](aiNodeAnim* bChannel, aiNode* bNode, std::optional<size_t> bAnimatedParentIndex, const glm::mat4& bUnanimatedParentTransform)
 			{
 				auto& anode = result.mAnimationData.emplace_back();
-				animatedNodeToIndex[bNode] = result.mAnimationData.size() - 1;
-				
-				for (unsigned int i = 0; i < bChannel->mNumPositionKeys; ++i) {
-					anode.mPositionKeys.emplace_back(position_key{ bChannel->mPositionKeys[i].mTime, to_vec3(bChannel->mPositionKeys[i].mValue) });
-				}
-				for (unsigned int i = 0; i < bChannel->mNumRotationKeys; ++i) {
-					anode.mRotationKeys.emplace_back(rotation_key{ bChannel->mRotationKeys[i].mTime, to_quat(bChannel->mRotationKeys[i].mValue) });
-				}
-				for (unsigned int i = 0; i < bChannel->mNumScalingKeys; ++i) {
-					anode.mScalingKeys.emplace_back(scaling_key{ bChannel->mScalingKeys[i].mTime, to_vec3(bChannel->mScalingKeys[i].mValue) });
+				mapNodeToAniNodeIndex[bNode] = result.mAnimationData.size() - 1;
+
+				if (nullptr != bChannel) {
+					for (unsigned int i = 0; i < bChannel->mNumPositionKeys; ++i) {
+						anode.mPositionKeys.emplace_back(position_key{ bChannel->mPositionKeys[i].mTime, to_vec3(bChannel->mPositionKeys[i].mValue) });
+					}
+					for (unsigned int i = 0; i < bChannel->mNumRotationKeys; ++i) {
+						anode.mRotationKeys.emplace_back(rotation_key{ bChannel->mRotationKeys[i].mTime, to_quat(bChannel->mRotationKeys[i].mValue) });
+					}
+					for (unsigned int i = 0; i < bChannel->mNumScalingKeys; ++i) {
+						anode.mScalingKeys.emplace_back(scaling_key{ bChannel->mScalingKeys[i].mTime, to_vec3(bChannel->mScalingKeys[i].mValue) });
+					}
 				}
 
 				// Tidy-up the keys:
@@ -663,26 +612,106 @@ namespace gvk
 				
 				anode.mAnimatedParentIndex = bAnimatedParentIndex;
 				anode.mParentTransform = bUnanimatedParentTransform;
+				if (anode.mAnimatedParentIndex.has_value()) {
+					assert (!(
+						result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[0][0] == 0.0f &&
+						result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[1][1] == 0.0f &&
+						result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[2][2] == 0.0f &&
+						result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[3][3] == 0.0f
+					));
+					anode.mTransform = result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform * anode.mParentTransform;
+				}
+				else {
+					anode.mTransform = anode.mParentTransform;
+				}
 
 				// See if we have an inverse bind pose matrix for this node:
-				assert(nodeMap.find(to_string(bChannel->mNodeName))->second == bNode);
-				for (int i = 0; i < boneToMatrixInfo.size(); ++i) {
-					auto it = boneToMatrixInfo[i].find(bNode);
-					if (std::end(boneToMatrixInfo[i]) != it) {
+				assert(nullptr == bChannel || mapNameToNode.find(to_string(bChannel->mNodeName))->second == bNode);
+				for (int i = 0; i < mapsBoneToMatrixInfo.size(); ++i) {
+					auto it = mapsBoneToMatrixInfo[i].find(bNode);
+					if (std::end(mapsBoneToMatrixInfo[i]) != it) {
 						anode.mInverseBindPoseMatrix.emplace_back(it->second.mInverseBindPoseMatrix);
 						anode.mBoneMatrixTargets.emplace_back(it->second.mTargetStoragePointer);
 						anode.mInverseMeshRootMatrix.emplace_back(glm::inverse(it->second.mMeshRootMatrix));
+						anode.mMeshIndex.emplace_back(aMeshIndices[i]);
+						flagsBonesAddedAsAniNodes[i][it->second.mBoneIndex] = true;
 					}					
 				}
 			};
+			// -----------------------------------------------------------------------------------
 
+			// Evaluate the data from the animation and fill mapNodeToBoneAnimation.
+			assert(aAnimationIndex >= 0u && aAnimationIndex <= mScene->mNumAnimations);
+			auto* ani = mScene->mAnimations[aAnimationIndex];
+			for (unsigned int i = 0; i < ani->mNumChannels; ++i) {
+				auto* channel = ani->mChannels[i];
+
+				auto it = mapNameToNode.find(to_string(channel->mNodeName));
+				if (it == std::end(mapNameToNode)) {
+					LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+					continue;
+				}
+
+				//if (channel->mNumPositionKeys + channel->mNumRotationKeys + channel->mNumScalingKeys > 0) {
+					//requiredForAnimation.insert(it->second);
+					mapNodeToBoneAnimation[it->second] = channel;
+					//// Also mark all its parent nodes as required for animation (but not modified by bones!):
+					//auto* parent = it->second->mParent;
+					//while (nullptr != parent) {
+					//	requiredForAnimation.insert(parent);
+					//	parent = parent->mParent;
+					//}
+				//}
+			}
+
+			//// Checks whether the given node is required for this animation (by searching it in requiredForAnimation)
+			//auto isNodeRequiredForAnimation = [&](aiNode* bNode) {
+			//	const auto it = requiredForAnimation.find(bNode);
+			//	if (std::end(requiredForAnimation) != it) {
+			//		assert( *it == bNode );
+			//		return true;
+			//	}
+			//	return false;
+			//};
+
+			for (size_t i = 0; i < aMeshIndices.size(); ++i) {
+				auto& bmi = mapsBoneToMatrixInfo.emplace_back();
+				auto mi = aMeshIndices[i];
+
+				glm::mat4 meshRootMatrix = transformation_matrix_for_mesh(mi);
+				
+				assert(mi >= 0u && mi < mScene->mNumMeshes);
+				flagsBonesAddedAsAniNodes.emplace_back(static_cast<size_t>(mScene->mMeshes[mi]->mNumBones), false); // Vector with a flag for each bone
+
+				// For each bone, create boneMatrixInfo:
+				for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
+					auto* bone = mScene->mMeshes[mi]->mBones[bi];
+					
+					auto it = mapNameToNode.find(to_string(bone->mName));
+					if (it == std::end(mapNameToNode)) {
+						LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
+						continue;
+					}
+
+					assert (!bmi.contains(it->second));
+					bmi[it->second] = boneMatrixInfo {
+						bi,
+						to_mat4(bone->mOffsetMatrix),
+						aBeginningOfTargetStorage + i * aStride + bi,
+						meshRootMatrix
+					};
+				}
+			}
+
+			// ---------------------------------------------
+			// AND NOW: Construct the animated_nodes "tree"
 #if _DEBUG
 			{
 				std::vector<aiNode*> sanityCheck;
 				for (unsigned int i = 0; i < ani->mNumChannels; ++i) {
 					auto* channel = ani->mChannels[i];
-					auto it = nodeMap.find(to_string(channel->mNodeName));
-					if (it == std::end(nodeMap)) {
+					auto it = mapNameToNode.find(to_string(channel->mNodeName));
+					if (it == std::end(mapNameToNode)) {
 						sanityCheck.push_back(it->second);
 					}
 				}
@@ -698,8 +727,8 @@ namespace gvk
 			for (unsigned int i = 0; i < ani->mNumChannels; ++i) {
 				auto* channel = ani->mChannels[i];
 
-				auto it = nodeMap.find(to_string(channel->mNodeName));
-				if (it == std::end(nodeMap)) {
+				auto it = mapNameToNode.find(to_string(channel->mNodeName));
+				if (it == std::end(mapNameToNode)) {
 					LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 					continue;
 				}
@@ -718,15 +747,47 @@ namespace gvk
 				// First, add the stack of parents, then add the node itself
 				while (!boneAnimatedParents.empty()) {
 					auto parentToBeAdded = boneAnimatedParents.top();
-					assert( modifiedByBones.contains(parentToBeAdded) );
-					addAnimatedNode(modifiedByBones[parentToBeAdded], parentToBeAdded, getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
+					assert( mapNodeToBoneAnimation.contains(parentToBeAdded) );
+					addAnimatedNode(mapNodeToBoneAnimation[parentToBeAdded], parentToBeAdded, getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
 					boneAnimatedParents.pop();
 				}
-				addAnimatedNode(modifiedByBones[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+				addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+			}
 
+			// TODO: Look througth the data in animation or keep track of which bone matrices WILL BE SET during animation.
+			//       For all the others, calculate and set the static transform!
+			assert (flagsBonesAddedAsAniNodes.size() == aMeshIndices.size());
+			for (size_t i = 0; i < aMeshIndices.size(); ++i) {
+				const auto mi = aMeshIndices[i];
+				glm::mat4 meshRootMatrix = transformation_matrix_for_mesh(mi);
+				const auto inverseMeshRootMatrix = glm::inverse(meshRootMatrix);
+				
+				// Set the bone matrices that are not affected by animation ONCE/NOW:
+				for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
+					if (flagsBonesAddedAsAniNodes[i][bi]) {
+						continue;
+					}
+					
+					auto* bone = mScene->mMeshes[mi]->mBones[bi];
+					auto it = mapNameToNode.find(to_string(bone->mName));
+					assert (std::end(mapNameToNode) != it);
+					auto aniParent = getAnimatedParentIndex(it->second);
+					auto uniParent = getUnanimatedParentTransform(it->second);
+					
+					//auto transformMatrix = uniParent;
+					//if (aniParent.has_value()) {
+					//	transformMatrix = result.mAnimationData[aniParent.value()].mTransform * uniParent;
+					//}
+					//const auto inverseBindPoseMatrix = to_mat4(bone->mOffsetMatrix);
+					//const auto constBoneMatrix = inverseMeshRootMatrix * transformMatrix * inverseBindPoseMatrix;
+					//
+					//*(aBeginningOfTargetStorage + i * aStride + bi) = constBoneMatrix;
 
-				// TODO: Look througth the data in animation or keep track of which bone matrices WILL BE SET during animation.
-				//       For all the others, calculate and set the static transform!
+					addAnimatedNode( // TODO: maybe doch nit add dummy keys to positions but rather make a if?!
+						nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
+						it->second, aniParent, uniParent
+					);
+				}
 			}
 
 			return result;
@@ -776,7 +837,7 @@ namespace gvk
 				// Translation/position:
 				auto [tpos1, tpos2] = find_positions_in_keys(aniNode.mPositionKeys, timeInTicks);
 				auto tf = get_interpolation_factor(aniNode.mPositionKeys[tpos1], aniNode.mPositionKeys[tpos2], timeInTicks);
-				auto translation = glm::lerp(aniNode.mPositionKeys[tpos1].mValue, aniNode.mPositionKeys[tpos2].mValue, tf);
+				auto translation = glm::lerp(aniNode.mPositionKeys[tpos1].mValue, aniNode.mPositionKeys[tpos2].mValue, tf); // TODO: bounds check
 
 				// Rotation:
 				size_t rpos1 = tpos1, rpos2 = tpos2;
@@ -784,7 +845,7 @@ namespace gvk
 					std::tie(rpos1, rpos2) = find_positions_in_keys(aniNode.mRotationKeys, timeInTicks);
 				}
 				auto rf = get_interpolation_factor(aniNode.mRotationKeys[rpos1], aniNode.mRotationKeys[rpos2], timeInTicks);
-				auto rotation = glm::lerp(aniNode.mRotationKeys[rpos1].mValue, aniNode.mRotationKeys[rpos2].mValue, rf);
+				auto rotation = glm::lerp(aniNode.mRotationKeys[rpos1].mValue, aniNode.mRotationKeys[rpos2].mValue, rf); // TODO: bounds check
 
 				// Scaling:
 				size_t spos1 = tpos1, spos2 = tpos2;
@@ -792,7 +853,7 @@ namespace gvk
 					std::tie(spos1, spos2) = find_positions_in_keys(aniNode.mScalingKeys, timeInTicks);
 				}
 				auto sf = get_interpolation_factor(aniNode.mScalingKeys[spos1], aniNode.mScalingKeys[spos2], timeInTicks);
-				auto scaling = glm::lerp(aniNode.mScalingKeys[spos1].mValue, aniNode.mScalingKeys[spos2].mValue, sf);
+				auto scaling = glm::lerp(aniNode.mScalingKeys[spos1].mValue, aniNode.mScalingKeys[spos2].mValue, sf); // TODO: bounds check
 
 				auto localTransform = matrix_from_transforms(translation, rotation, scaling);
 				if (aniNode.mAnimatedParentIndex.has_value()) {
@@ -814,9 +875,9 @@ namespace gvk
 					// Store into target:
 					*aniNode.mBoneMatrixTargets[i] = boneMatrix;
 
-					LOG_INFO(fmt::format("M=====> Mesh(?)-Index[{}], Bone-Index[{}]", i, size_t(aniNode.mBoneMatrixTargets[i] - std::get<glm::mat4*>(aAnimation.mMeshIndicesAndTargetStorage[0])) ));
-					LOG_INFO(gvk::five_mat_to_string(aniNode.mInverseBindPoseMatrix[i], aniNode.mTransform, aniNode.mParentTransform, localTransform, aniNode.mInverseMeshRootMatrix[i]));
-					LOG_INFO(gvk::to_string(*aniNode.mBoneMatrixTargets[i]));
+					//LOG_INFO(fmt::format("M=====> Mesh(?)-Index[{}], Bone-Index[{}]", i, size_t(aniNode.mBoneMatrixTargets[i] - std::get<glm::mat4*>(aAnimation.mMeshIndicesAndTargetStorage[0])) ));
+					//LOG_INFO(gvk::five_mat_to_string(aniNode.mInverseBindPoseMatrix[i], aniNode.mTransform, aniNode.mParentTransform, localTransform, aniNode.mInverseMeshRootMatrix[i]));
+					//LOG_INFO(gvk::to_string(*aniNode.mBoneMatrixTargets[i]));
 				}
 			}
 		}
