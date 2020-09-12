@@ -29,6 +29,7 @@
     <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\examples\orca_loader\source\imfilebrowser.h" />
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>

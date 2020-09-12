@@ -199,14 +199,14 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			// Copy:
 			auto transferCmdBuffer = avk::copy_image_to_another(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_by_return());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(*transferCmdBuffer);
+			mQueue->submit(*transferCmdBuffer, std::optional<std::reference_wrapper<avk::semaphore_t>>{});
 			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
 		}
 		else {
 			// Blit:
 			auto transferCmdBuffer = avk::blit_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_by_return());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(*transferCmdBuffer);
+			mQueue->submit(*transferCmdBuffer, std::optional<std::reference_wrapper<avk::semaphore_t>>{});
 			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
 		}
 	}

@@ -39,5 +39,6 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\examples\orca_loader\source\imfilebrowser.h" />
   </ItemGroup>
 </Project>

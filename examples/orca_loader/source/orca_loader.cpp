@@ -1,5 +1,7 @@
 #include <gvk.hpp>
 #include <imgui.h>
+// Use ImGui::FileBrowser from here: https://github.com/AirGuanZ/imgui-filebrowser
+#include "imfilebrowser.h"
 #include <glm/gtx/euler_angles.hpp>
 
 class orca_loader_app : public gvk::invokee
@@ -22,79 +24,42 @@ class orca_loader_app : public gvk::invokee
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	orca_loader_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
+		, mFileBrowser{ ImGuiFileBrowserFlags_EnterNewFilename }
 	{}
-	
-	void initialize() override
-	{
-		mInitTime = std::chrono::high_resolution_clock::now();
-		
-		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCache = gvk::context().create_descriptor_cache();
-		
-		// Load a model from file:
-		auto sponza = gvk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
-		// Get all the different materials of the model:
-		auto distinctMaterialsSponza = sponza->distinct_material_configs();
 
+	// Loads an ORCA scene from file by performing the following steps:
+	//  - Destroy the resources representing the currently loaded scene in n frames
+	//    (where n is the number of frames in flight). The resources to be destroyed are:
+	//     - mDrawCalls
+	//     - mMaterialBuffer
+	//     - mImageSamplers
+	//  - Load ORCA scene from file, creating the resources anew:
+	//     - mDrawCalls
+	//     - mMaterialBuffer
+	//     - mImageSamplers
+	void load_orca_scene(const std::string& aPathToOrcaScene)
+	{
+		// Clean up the current resources, before creating new ones:
+		mOldDrawCalls = std::move(mDrawCalls);
+		mOldImageSamplers =  std::move(mImageSamplers);
+		mOldMaterialBuffer = std::move(mMaterialBuffer);
+		mOldPipeline = std::move(mPipeline);
+		// In #number_of_frames_in_flight() into the future, it will be safe to delete the old resources in render()!
+		// In update() it is not because the fence-wait that ensures that the resources are not used anymore, happens between update() and render().
+		mDestroyOldResourcesInFrame = gvk::context().main_window()->current_frame() + gvk::context().main_window()->number_of_frames_in_flight(); 
+		
 		// Load an ORCA scene from file:
-		auto orca = gvk::orca_scene_t::load_from_file("assets/sponza_duo.fscene");
+		auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
-
-		// Merge them all together:
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<gvk::material_config> allMatConfigs;
-		for (const auto& pair : distinctMaterialsSponza) {
-			allMatConfigs.push_back(pair.first);
-			auto matIndex = allMatConfigs.size() - 1;
-
-			auto& newElement = mDrawCalls.emplace_back();
-			newElement.mMaterialIndex = static_cast<int>(matIndex);
-			newElement.mModelMatrix = glm::scale(glm::vec3(0.01f));
-			
-			// Compared to the "model_loader" example, we are taking a more optimistic appproach here.
-			// By not using `ak::append_indices_and_vertex_data` directly, we have no guarantee that
-			// all vectors of vertex-data are of the same length. 
-			// Instead, here we use the (possibly more convenient) `ak::get_combined*` functions and
-			// just optimistically assume that positions, texture coordinates, and normals are all of
-			// the same length.
-
-			// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-			auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
-				{ gvk::make_models_and_meshes_selection(sponza, pair.second) }, {}, 
-				avk::sync::wait_idle()
-			);
-			newElement.mPositionsBuffer = std::move(positionsBuffer);
-			newElement.mIndexBuffer = std::move(indicesBuffer);
-
-			// Get a buffer containing all texture coordinates for all submeshes with this material
-			newElement.mTexCoordsBuffer = gvk::create_2d_texture_coordinates_buffer(
-				{ gvk::make_models_and_meshes_selection(sponza, pair.second) }, 0,
-				avk::sync::wait_idle()
-			);
-
-			// Get a buffer containing all normals for all submeshes with this material
-			newElement.mNormalsBuffer = gvk::create_normals_buffer(
-				{ gvk::make_models_and_meshes_selection(sponza, pair.second) }, 
-				avk::sync::wait_idle()
-			);
-		}
-		// Same for the ORCA scene:
+		mDrawCalls.clear();
 		for (const auto& pair : distinctMaterialsOrca) {
-			// See if we've already encountered this material in the loop above
-			auto it = std::find(std::begin(allMatConfigs), std::end(allMatConfigs), pair.first);
-			size_t matIndex;
-			if (allMatConfigs.end() == it) {
-				// Couldn't find => insert new material
-				allMatConfigs.push_back(pair.first);
-				matIndex = allMatConfigs.size() - 1;
-			}
-			else {
-				// Found the material => use the existing material
-				matIndex = std::distance(std::begin(allMatConfigs), it);
-			}
+			allMatConfigs.push_back(pair.first);
+			const int matIndex = static_cast<int>(allMatConfigs.size()) - 1;
 
 			// The data in distinctMaterialsOrca encompasses all of the ORCA scene's models.
 			for (const auto& indices : pair.second) {
@@ -102,13 +67,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto& modelData = orca->model_at_index(indices.mModelIndex);
 				// ... specifically, to its instances:
 				
-				// (Generally, we can't combine the vertex data in this case with the vertex
-				//  data of other models if we have to draw multiple instances; because in 
-				//  the case of multiple instances, only the to-be-instanced geometry must
-				//  be accessible independently of the other geometry.
-				//  Therefore, in this example, we take the approach of building separate 
-				//  buffers for everything which could potentially be instanced.)
-
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
 					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {},
@@ -133,7 +91,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
-					newElement.mMaterialIndex = static_cast<int>(matIndex);
+					newElement.mMaterialIndex = matIndex;
 					newElement.mModelMatrix = gvk::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
 					newElement.mPositionsBuffer = positionsBuffer;
 					newElement.mIndexBuffer = indicesBuffer;
@@ -152,11 +110,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle()
 		);
 
-		mViewProjBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, {},
-			avk::uniform_buffer_meta::create_from_data(glm::mat4())
-		);
-		
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_coherent, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
@@ -192,6 +145,21 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(4, 4, mImageSamplers),
 			avk::descriptor_binding(7, 9, mMaterialBuffer) 
 		);
+	}
+	
+	void initialize() override
+	{
+		mInitTime = std::chrono::high_resolution_clock::now();
+		
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = gvk::context().create_descriptor_cache();
+		
+		mViewProjBuffer = gvk::context().create_buffer(
+			avk::memory_usage::host_coherent, {},
+			avk::uniform_buffer_meta::create_from_data(glm::mat4())
+		);
+		
+		load_orca_scene("assets/sponza_duo.fscene");
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -199,6 +167,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		gvk::current_composition()->add_element(mQuakeCam);
 
+		// UI:
+	    mFileBrowser.SetTitle("Select ORCA scene file");
+		mFileBrowser.SetTypeFilters({ ".fscene" });
+		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
@@ -210,14 +182,73 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
 				ImGui::DragFloat3("Rotate Objects", glm::value_ptr(mRotateObjects), 0.005f, -glm::pi<float>(), glm::pi<float>());
 				ImGui::DragFloat3("Rotate Scene", glm::value_ptr(mRotateScene), 0.005f, -glm::pi<float>(), glm::pi<float>());
-				ImGui::End();
+				ImGui::Separator();
+
+	            if(ImGui::Button("Load ORCA scene...")) {
+	                mFileBrowser.Open();
+	            }		        
+		        mFileBrowser.Display();
+		        
+		        if(mFileBrowser.HasSelected())
+		        {
+		            load_orca_scene(mFileBrowser.GetSelected().string());
+		            mFileBrowser.ClearSelected();
+		        }
+
+		        ImGui::End();
+				
 			});
 		}
 	}
 
+	void update() override
+	{
+		static int counter = 0;
+		if (++counter == 4) {
+			auto current = std::chrono::high_resolution_clock::now();
+			auto time_span = current - mInitTime;
+			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
+			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
+			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
+			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
+		}
+
+		if (gvk::input().key_pressed(gvk::key_code::h)) {
+			// Log a message:
+			LOG_INFO_EM("Hello cg_base!");
+		}
+		if (gvk::input().key_pressed(gvk::key_code::c)) {
+			// Center the cursor:
+			auto resolution = gvk::context().main_window()->resolution();
+			gvk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+		}
+		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+			// Stop the current composition:
+			gvk::current_composition()->stop();
+		}
+		if (gvk::input().key_pressed(gvk::key_code::f1)) {
+			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+			if (mQuakeCam.is_enabled()) {
+				mQuakeCam.disable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
+			}
+			else {
+				mQuakeCam.enable();
+				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
+			}
+		}
+	}
+	
 	void render() override
 	{
 		auto mainWnd = gvk::context().main_window();
+		if (mDestroyOldResourcesInFrame.has_value() && mDestroyOldResourcesInFrame.value() == mainWnd->current_frame()) {
+			mOldDrawCalls.clear();
+			mOldImageSamplers.clear();
+			mOldMaterialBuffer.reset();
+			mOldPipeline.reset();
+			mDestroyOldResourcesInFrame.reset();
+		}
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
@@ -264,44 +295,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mainWnd->handle_lifetime(std::move(cmdbfr));
 	}
 
-	void update() override
-	{
-		static int counter = 0;
-		if (++counter == 4) {
-			auto current = std::chrono::high_resolution_clock::now();
-			auto time_span = current - mInitTime;
-			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
-			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
-		}
-
-		if (gvk::input().key_pressed(gvk::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
-		}
-		if (gvk::input().key_pressed(gvk::key_code::c)) {
-			// Center the cursor:
-			auto resolution = gvk::context().main_window()->resolution();
-			gvk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
-		}
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
-			// Stop the current composition:
-			gvk::current_composition()->stop();
-		}
-		if (gvk::input().key_pressed(gvk::key_code::f1)) {
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
-			if (mQuakeCam.is_enabled()) {
-				mQuakeCam.disable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
-			}
-			else {
-				mQuakeCam.enable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
-			}
-		}
-	}
-	
 private: // v== Member variables ==v
 
 	std::chrono::high_resolution_clock::time_point mInitTime;
@@ -310,15 +303,24 @@ private: // v== Member variables ==v
 	avk::descriptor_cache mDescriptorCache;
 
 	avk::buffer mViewProjBuffer;
-	avk::buffer mMaterialBuffer;
-	std::vector<avk::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
+	std::vector<avk::image_sampler> mImageSamplers;
+	avk::buffer mMaterialBuffer;
 	avk::graphics_pipeline mPipeline;
+
+	std::optional<gvk::window::frame_id_t> mDestroyOldResourcesInFrame;
+	std::vector<data_for_draw_call> mOldDrawCalls;
+	std::vector<avk::image_sampler> mOldImageSamplers;
+	std::optional<avk::buffer> mOldMaterialBuffer;
+	std::optional<avk::graphics_pipeline> mOldPipeline;
+	
 	gvk::quake_camera mQuakeCam;
 
 	glm::vec3 mRotateObjects;
 	glm::vec3 mRotateScene;
+
+	ImGui::FileBrowser mFileBrowser;
 	
 }; // model_loader_app
 
