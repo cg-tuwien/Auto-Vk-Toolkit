@@ -25,6 +25,7 @@
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\framework\src\animation.cpp" />
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
     <ClCompile Include="..\..\framework\src\composition.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
@@ -125,6 +126,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp" />
+    <ClInclude Include="..\..\framework\include\animation.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
@@ -154,6 +156,7 @@
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
+    <ClInclude Include="..\..\framework\include\model_types.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
     <ClInclude Include="..\..\framework\include\settings.hpp" />

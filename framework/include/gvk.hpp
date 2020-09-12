@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
+#include <stack>
 #include <functional>
 #include <memory>
 #include <iostream>
@@ -77,6 +78,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform2.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 #include <gli/load.hpp> // load DDS, KTX or KMG textures from files or memory.
 #include <gli/core/flip.hpp>
@@ -176,6 +178,8 @@ namespace gvk
 #include "material.hpp"
 #include "lightsource.hpp"
 #include "lightsource_gpu_data.hpp"
+#include "model_types.hpp"
+#include "animation.hpp"
 #include "model.hpp"
 #include "orca_scene.hpp"
 #include "material_image_helpers.hpp"
