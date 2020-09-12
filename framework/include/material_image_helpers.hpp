@@ -54,7 +54,7 @@ namespace gvk
 
 	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
-		avk::buffer stagingBuffer;
+		std::vector<avk::buffer> stagingBuffers;
 		int width = 0;
 		int height = 0;
 
@@ -72,12 +72,12 @@ namespace gvk
 			width  = gliTex.extent()[0];
 			height = gliTex.extent()[1];
 
-			stagingBuffer = context().create_buffer(
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
 				avk::memory_usage::host_coherent,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(gliTex.size())
-			);
-			stagingBuffer->fill(gliTex.data(), 0, avk::sync::not_required());
+			));
+			sb->fill(gliTex.data(), 0, avk::sync::not_required());
 		}
 		// ============ RGB 8-bit formats ==========
 		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
@@ -105,12 +105,12 @@ namespace gvk
 				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", aPath));
 			}
 
-			stagingBuffer = context().create_buffer(
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
 				avk::memory_usage::host_coherent,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
-			);
-			stagingBuffer->fill(pixels, 0, avk::sync::not_required());
+			));
+			sb->fill(pixels, 0, avk::sync::not_required());
 
 			stbi_image_free(pixels);
 		}
@@ -140,12 +140,12 @@ namespace gvk
 				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", aPath));
 			}
 
-			stagingBuffer = context().create_buffer(
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
 				avk::memory_usage::host_coherent,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
-			);
-			stagingBuffer->fill(pixels, 0, avk::sync::not_required());
+			));
+			sb->fill(pixels, 0, avk::sync::not_required());
 			
 			stbi_image_free(pixels);
 		}
@@ -164,32 +164,53 @@ namespace gvk
 		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
 		
 		// 2. Copy buffer to image
-		copy_buffer_to_image(stagingBuffer, img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																										// TODO: Verify the above ^ comment
-		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
-		
-		// 3. Transition image layout to its target layout and handle lifetime of things via sync
-		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-
+		assert(stagingBuffers.size() == 1);
+		avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																																				// TODO: Verify the above ^ comment
 		if (avk::is_block_compressed_format(aFormat)) {
 			assert (aAlreadyLoadedGliTexture.has_value());
 			// 1st level is contained in stagingBuffer
-			//  => TODO: get further levels from the GliTexture and upload them!
-			//
-			//		for(std::size_t Level = 0; Level < Texture.levels(); ++Level)
-			//		{
-			//			glm::tvec3<GLsizei> Extent(Texture.extent(Level));
-			//			glCompressedTexSubImage2D(
-			//				Target, static_cast<GLint>(Level), 0, 0, Extent.x, Extent.y,
-			//				Format.Internal, static_cast<GLsizei>(Texture.size(Level)), Texture.data(0, 0, Level));
-			//		}
-			//
-			//  
+			// 
+			// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+
+			auto& gliTex = aAlreadyLoadedGliTexture.value();
+			// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+			for(size_t level = 1; level < gliTex.levels(); ++level)
+			{
+#if _DEBUG
+				{
+					glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+					auto imgExtent = img->config().extent;
+					auto levelDivisor = std::pow(2u, level);
+					imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
+					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+					imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
+					assert (levelExtent.x == static_cast<int>(imgExtent.width ));
+					assert (levelExtent.y == static_cast<int>(imgExtent.height));
+					assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
+				}
+#endif
+
+				auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+					avk::memory_usage::host_coherent,
+					vk::BufferUsageFlagBits::eTransferSrc,
+					avk::generic_buffer_meta::create_from_size(gliTex.size(level))
+				));
+				sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
+
+				// Memory writes are not overlapping => no barriers should be fine.
+				avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			}
 		}
 		else {
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		}
+		
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
+
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 
 		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
 		auto result = aSyncHandler.submit_and_sync();
@@ -203,6 +224,12 @@ namespace gvk
 
 		std::optional<gli::texture> gliTex = gli::load(aPath);
 		if (!gliTex.value().empty()) {
+
+			// I have no idea what I'm doing... but see GLI_ASSERT in inline texture2d flip(texture2d const& Texture)!
+			if (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format())) { 
+				gliTex = gli::flip(gliTex.value());
+			}
+
 			auto gliFmt = gliTex.value().format();
 			switch (gliFmt) {
 			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC

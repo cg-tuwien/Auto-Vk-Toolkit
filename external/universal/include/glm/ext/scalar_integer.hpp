@@ -2,9 +2,8 @@
 /// @file glm/ext/scalar_integer.hpp
 ///
 /// @see core (dependence)
-/// @see ext_vector_integer (dependence)
 ///
-/// @defgroup gtc_round GLM_EXT_scalar_integer
+/// @defgroup ext_scalar_integer GLM_EXT_scalar_integer
 /// @ingroup ext
 ///
 /// Include <glm/ext/scalar_integer.hpp> to use the features of this extension.

@@ -4,7 +4,7 @@
 /// @see core (dependence)
 /// @see ext_vector_integer (dependence)
 ///
-/// @defgroup gtc_round GLM_EXT_vector_integer
+/// @defgroup ext_vector_integer GLM_EXT_vector_integer
 /// @ingroup ext
 ///
 /// Include <glm/ext/vector_integer.hpp> to use the features of this extension.

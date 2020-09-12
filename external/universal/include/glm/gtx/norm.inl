@@ -80,4 +80,16 @@ namespace detail
 		return pow(pow(abs(v.x), T(Depth)) + pow(abs(v.y), T(Depth)) + pow(abs(v.z), T(Depth)), T(1) / T(Depth));
 	}
 
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER T lMaxNorm(vec<3, T, Q> const& a, vec<3, T, Q> const& b)
+	{
+		return compMax(abs(b - a));
+	}
+
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER T lMaxNorm(vec<3, T, Q> const& v)
+	{
+		return compMax(abs(v));
+	}
+
 }//namespace glm

@@ -3,14 +3,14 @@
 #include <cassert>
 #include <cstddef>
 
-#define GLM_VERSION_MAJOR			0
-#define GLM_VERSION_MINOR			9
-#define GLM_VERSION_PATCH			9
-#define GLM_VERSION_REVISION		6
-#define GLM_VERSION					996
-#define GLM_VERSION_MESSAGE			"GLM: version 0.9.9.6"
+#define GLM_VERSION_MAJOR 0
+#define GLM_VERSION_MINOR 9
+#define GLM_VERSION_PATCH 9
+#define GLM_VERSION_REVISION 9
+#define GLM_VERSION 999
+#define GLM_VERSION_MESSAGE "GLM: version 0.9.9.9"
 
-#define GLM_SETUP_INCLUDED			GLM_VERSION
+#define GLM_SETUP_INCLUDED GLM_VERSION
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Active states
@@ -35,9 +35,9 @@
 ///////////////////////////////////////////////////////////////////////////////////
 // Build model
 
-#if defined(__arch64__) || defined(__LP64__) || defined(_M_X64) || defined(__ppc64__) || defined(__x86_64__)
+#if defined(_M_ARM64) || defined(__LP64__) || defined(_M_X64) || defined(__ppc64__) || defined(__x86_64__)
 #	define GLM_MODEL	GLM_MODEL_64
-#elif defined(__i386__) || defined(__ppc__)
+#elif defined(__i386__) || defined(__ppc__) || defined(__ILP32__) || defined(_M_ARM)
 #	define GLM_MODEL	GLM_MODEL_32
 #else
 #	define GLM_MODEL	GLM_MODEL_32
@@ -119,7 +119,7 @@
 #		define GLM_LANG (GLM_LANG_CXX2A | GLM_LANG_EXT)
 #	elif __cplusplus == 201703L || GLM_LANG_PLATFORM == 201703L
 #		define GLM_LANG (GLM_LANG_CXX17 | GLM_LANG_EXT)
-#	elif __cplusplus == 201402L || __cplusplus == 201500L || GLM_LANG_PLATFORM == 201402L
+#	elif __cplusplus == 201402L || __cplusplus == 201406L || __cplusplus == 201500L || GLM_LANG_PLATFORM == 201402L
 #		define GLM_LANG (GLM_LANG_CXX14 | GLM_LANG_EXT)
 #	elif __cplusplus == 201103L || GLM_LANG_PLATFORM == 201103L
 #		define GLM_LANG (GLM_LANG_CXX11 | GLM_LANG_EXT)
@@ -143,8 +143,7 @@
 #if GLM_PLATFORM == GLM_PLATFORM_ANDROID && !defined(GLM_LANG_STL11_FORCED)
 #	define GLM_HAS_CXX11_STL 0
 #elif GLM_COMPILER & GLM_COMPILER_CLANG
-#	if ((defined(_LIBCPP_VERSION) || defined(_MSC_VER)) && GLM_LANG & GLM_LANG_CXX11_FLAG) || \
-		defined(GLM_LANG_STL11_FORCED)
+#	if (defined(_LIBCPP_VERSION) || (GLM_LANG & GLM_LANG_CXX11_FLAG) || defined(GLM_LANG_STL11_FORCED))
 #		define GLM_HAS_CXX11_STL 1
 #	else
 #		define GLM_HAS_CXX11_STL 0
@@ -188,7 +187,7 @@
 #	define GLM_HAS_INITIALIZER_LISTS ((GLM_LANG & GLM_LANG_CXX0X_FLAG) && (\
 		((GLM_COMPILER & GLM_COMPILER_VC) && (GLM_COMPILER >= GLM_COMPILER_VC15)) || \
 		((GLM_COMPILER & GLM_COMPILER_INTEL) && (GLM_COMPILER >= GLM_COMPILER_INTEL14)) || \
-		((GLM_COMPILER & GLM_COMPILER_CUDA) && (GLM_COMPILER >= GLM_COMPILER_CUDA75))))
+		((GLM_COMPILER & GLM_COMPILER_CUDA))))
 #endif
 
 // N2544 Unrestricted unions http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2544.pdf
@@ -199,7 +198,7 @@
 #else
 #	define GLM_HAS_UNRESTRICTED_UNIONS (GLM_LANG & GLM_LANG_CXX0X_FLAG) && (\
 		(GLM_COMPILER & GLM_COMPILER_VC) || \
-		((GLM_COMPILER & GLM_COMPILER_CUDA) && (GLM_COMPILER >= GLM_COMPILER_CUDA75)))
+		((GLM_COMPILER & GLM_COMPILER_CUDA)))
 #endif
 
 // N2346
@@ -270,7 +269,7 @@
 #	define GLM_HAS_ALIGNOF ((GLM_LANG & GLM_LANG_CXX0X_FLAG) && (\
 		((GLM_COMPILER & GLM_COMPILER_INTEL) && (GLM_COMPILER >= GLM_COMPILER_INTEL15)) || \
 		((GLM_COMPILER & GLM_COMPILER_VC) && (GLM_COMPILER >= GLM_COMPILER_VC14)) || \
-		((GLM_COMPILER & GLM_COMPILER_CUDA) && (GLM_COMPILER >= GLM_COMPILER_CUDA70))))
+		((GLM_COMPILER & GLM_COMPILER_CUDA))))
 #endif
 
 // N2235 Generalized Constant Expressions http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2235.pdf
@@ -296,9 +295,11 @@
 //
 #if GLM_HAS_CONSTEXPR
 # if (GLM_COMPILER & GLM_COMPILER_CLANG)
-#	define GLM_HAS_IF_CONSTEXPR __has_feature(cxx_if_constexpr)
-# elif (GLM_COMPILER & GLM_COMPILER_GCC) 
-#	define GLM_HAS_IF_CONSTEXPR (__cplusplus >= 201703L)
+#	if __has_feature(cxx_if_constexpr)
+#		define GLM_HAS_IF_CONSTEXPR 1
+#	else
+# 		define GLM_HAS_IF_CONSTEXPR 0
+#	endif
 # elif (GLM_LANG & GLM_LANG_CXX17_FLAG)
 # 	define GLM_HAS_IF_CONSTEXPR 1
 # else
@@ -446,16 +447,12 @@
 #define GLM_SWIZZLE_OPERATOR		1
 #define GLM_SWIZZLE_FUNCTION		2
 
-#if defined(GLM_FORCE_XYZW_ONLY)
-#	undef GLM_FORCE_SWIZZLE
-#endif
-
 #if defined(GLM_SWIZZLE)
 #	pragma message("GLM: GLM_SWIZZLE is deprecated, use GLM_FORCE_SWIZZLE instead.")
 #	define GLM_FORCE_SWIZZLE
 #endif
 
-#if defined(GLM_FORCE_SWIZZLE) && (GLM_LANG & GLM_LANG_CXXMS_FLAG)
+#if defined(GLM_FORCE_SWIZZLE) && (GLM_LANG & GLM_LANG_CXXMS_FLAG) && !defined(GLM_FORCE_XYZW_ONLY)
 #	define GLM_CONFIG_SWIZZLE GLM_SWIZZLE_OPERATOR
 #elif defined(GLM_FORCE_SWIZZLE)
 #	define GLM_CONFIG_SWIZZLE GLM_SWIZZLE_FUNCTION

@@ -104,7 +104,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
 			allMatConfigs, false,
-			avk::image_usage::general_image,	// TODO: use general_texture again once MIP-mapping for compressed textures has been fixed
+			avk::image_usage::general_texture,	// TODO: use general_texture again once MIP-mapping for compressed textures has been fixed
 			avk::filter_mode::anisotropic_16x,
 			avk::border_handling_mode::repeat,
 			avk::sync::wait_idle()

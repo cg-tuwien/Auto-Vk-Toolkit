@@ -79,6 +79,7 @@
 #include <glm/gtx/hash.hpp>
 
 #include <gli/load.hpp> // load DDS, KTX or KMG textures from files or memory.
+#include <gli/core/flip.hpp>
 
 // -------------------- windows include ---------------------
 #ifdef _WIN32
