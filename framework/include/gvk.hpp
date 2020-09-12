@@ -177,6 +177,8 @@ namespace gvk
 #include "material.hpp"
 #include "lightsource.hpp"
 #include "lightsource_gpu_data.hpp"
+#include "model_types.hpp"
+#include "animation.hpp"
 #include "model.hpp"
 #include "orca_scene.hpp"
 #include "material_image_helpers.hpp"

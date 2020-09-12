@@ -94,6 +94,9 @@
     <ClCompile Include="..\..\auto_vk\src\avk.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\animation.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -413,6 +416,12 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\query_pool.hpp">
       <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\animation.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\model_types.hpp">
+      <Filter>gears-vk_include\data</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
