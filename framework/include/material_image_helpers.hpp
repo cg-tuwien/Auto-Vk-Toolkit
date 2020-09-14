@@ -167,44 +167,47 @@ namespace gvk
 		assert(stagingBuffers.size() == 1);
 		avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																																				// TODO: Verify the above ^ comment
-		if (avk::is_block_compressed_format(aFormat)) {
-			assert (aAlreadyLoadedGliTexture.has_value());
-			// 1st level is contained in stagingBuffer
-			// 
-			// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+		// Are MIP-maps required?
+		if (img->config().mipLevels > 1u) {
+			if (avk::is_block_compressed_format(aFormat)) {
+				assert (aAlreadyLoadedGliTexture.has_value());
+				// 1st level is contained in stagingBuffer
+				// 
+				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
 
-			auto& gliTex = aAlreadyLoadedGliTexture.value();
-			// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
-			for(size_t level = 1; level < gliTex.levels(); ++level)
-			{
-#if _DEBUG
+				auto& gliTex = aAlreadyLoadedGliTexture.value();
+				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+				for(size_t level = 1; level < gliTex.levels(); ++level)
 				{
-					glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
-					auto imgExtent = img->config().extent;
-					auto levelDivisor = std::pow(2u, level);
-					imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
-					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-					imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
-					assert (levelExtent.x == static_cast<int>(imgExtent.width ));
-					assert (levelExtent.y == static_cast<int>(imgExtent.height));
-					assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
-				}
+#if _DEBUG
+					{
+						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+						auto imgExtent = img->config().extent;
+						auto levelDivisor = std::pow(2u, level);
+						imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
+						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+						imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
+						assert (levelExtent.x == static_cast<int>(imgExtent.width ));
+						assert (levelExtent.y == static_cast<int>(imgExtent.height));
+						assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
+					}
 #endif
 
-				auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-					avk::memory_usage::host_coherent,
-					vk::BufferUsageFlagBits::eTransferSrc,
-					avk::generic_buffer_meta::create_from_size(gliTex.size(level))
-				));
-				sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
+					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+						avk::memory_usage::host_coherent,
+						vk::BufferUsageFlagBits::eTransferSrc,
+						avk::generic_buffer_meta::create_from_size(gliTex.size(level))
+					));
+					sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
 
-				// Memory writes are not overlapping => no barriers should be fine.
-				avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+					// Memory writes are not overlapping => no barriers should be fine.
+					avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				}
 			}
-		}
-		else {
-			// For uncompressed formats, create MIP-maps via BLIT:
-			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			else {
+				// For uncompressed formats, create MIP-maps via BLIT:
+				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			}
 		}
 		
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
