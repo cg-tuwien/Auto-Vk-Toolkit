@@ -165,6 +165,23 @@ namespace gvk
 		 *	If the mesh has no colors for the given set index, a vector filled with values is
 		 *	returned regardless. You'll have to specify the type of UV-coordinates which you
 		 *	want to retrieve. Supported types are `glm::vec2` and `glm::vec3`.
+		 *	@param		aTransformFunc	A function that can be used to transform the texture coordinates
+		 *								while adding them to the resulting vector. This can be, e.g., to
+		 *								flip texture coordinates.
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aSet			Index to a specific set of UV-coordinates
+		 *	@return		Vector of UV-coordinates, converted to `T`
+		 *				of length `number_of_vertices_for_mesh()`
+		 */
+		template <typename T> std::vector<T> texture_coordinates_for_mesh(T(*aTransformFunc)(const T&), mesh_index_t aMeshIndex, int aSet = 0) const
+		{
+			throw gvk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+		}
+
+		/** Gets all the texture coordinates of a UV-set for the mesh at the given index.
+		 *	If the mesh has no colors for the given set index, a vector filled with values is
+		 *	returned regardless. You'll have to specify the type of UV-coordinates which you
+		 *	want to retrieve. Supported types are `glm::vec2` and `glm::vec3`.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@param		aSet			Index to a specific set of UV-coordinates
 		 *	@return		Vector of UV-coordinates, converted to `T`
@@ -172,7 +189,7 @@ namespace gvk
 		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(mesh_index_t aMeshIndex, int aSet = 0) const
 		{
-			throw gvk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+			return texture_coordinates_for_mesh<T>([](const T& aValue) { return aValue; }, aMeshIndex, aSet);
 		}
 
 		/** Gets the number of indices for the mesh at the given index.
@@ -339,7 +356,7 @@ namespace gvk
 
 
 	template <>
-	inline std::vector<glm::vec2> model_t::texture_coordinates_for_mesh<glm::vec2>(mesh_index_t aMeshIndex, int aSet) const
+	inline std::vector<glm::vec2> model_t::texture_coordinates_for_mesh<glm::vec2>(glm::vec2(*aTransformFunc)(const glm::vec2&), mesh_index_t aMeshIndex, int aSet) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -355,13 +372,13 @@ namespace gvk
 			switch (nuv) {
 			case 1:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], 0.f);
+					result.emplace_back(aTransformFunc(glm::vec2{ paiMesh->mTextureCoords[aSet][i][0], 0.f }));
 				}
 				break;
 			case 2:
 			case 3:
 				for (decltype(n) i = 0; i < n; ++i) {
-					result.emplace_back(paiMesh->mTextureCoords[aSet][i][0], paiMesh->mTextureCoords[aSet][i][1]);
+					result.emplace_back(aTransformFunc(glm::vec2{ paiMesh->mTextureCoords[aSet][i][0], paiMesh->mTextureCoords[aSet][i][1] }));
 				}
 				break;
 			default:

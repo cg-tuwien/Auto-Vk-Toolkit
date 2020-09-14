@@ -104,7 +104,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
-			allMatConfigs, false,
+			allMatConfigs, false, true,
 			avk::image_usage::read_only_image,
 			avk::filter_mode::bilinear,
 			avk::border_handling_mode::repeat,

@@ -6,6 +6,7 @@ namespace gvk
 	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
 		const std::vector<gvk::material_config>& aMaterialConfigs, 
 		bool aLoadTexturesInSrgb,
+		bool aFlipTextures,
 		avk::image_usage aImageUsage,
 		avk::filter_mode aTextureFilterMode, 
 		avk::border_handling_mode aBorderHandlingMode,
@@ -227,7 +228,7 @@ namespace gvk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					context().create_image_view(
-						create_image_from_file(pair.first, true, potentiallySrgb, 4, avk::memory_usage::device, aImageUsage, getSync())
+						create_image_from_file(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync())
 					),
 					context().create_sampler(aTextureFilterMode, aBorderHandlingMode)
 				)
@@ -475,6 +476,35 @@ namespace gvk
 	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
+		
+		auto texCoordsBuffer = context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(texCoordsData)
+		);
+		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
+		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
+		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		return texCoordsBuffer;
+	}
+
+	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	{
+		std::vector<glm::vec2> texCoordsData;
+
+		for (auto& pair : aModelsAndSelectedMeshes) {
+			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec2>([](const glm::vec2& aValue){ return glm::vec2{aValue.x, 1.0f - aValue.y}; }, meshIndex, aTexCoordSet));
+			}
+		}
+
+		return texCoordsData;
+	}
+	
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	{
+		auto texCoordsData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
 		
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},

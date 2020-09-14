@@ -52,7 +52,7 @@ namespace gvk
 		return img;
 	}
 
-	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
+	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
 		std::vector<avk::buffer> stagingBuffers;
 		int width = 0;
@@ -82,7 +82,7 @@ namespace gvk
 		// ============ RGB 8-bit formats ==========
 		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
 
-			stbi_set_flip_vertically_on_load(true);
+			stbi_set_flip_vertically_on_load(aFlip);
 			int desiredColorChannels = STBI_rgb_alpha;
 			
 			if (!avk::is_4component_format(aFormat)) { 
@@ -218,15 +218,14 @@ namespace gvk
 		return img;
 	}
 	
-	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
 		std::optional<vk::Format> imFmt = {};
 
 		std::optional<gli::texture> gliTex = gli::load(aPath);
 		if (!gliTex.value().empty()) {
 
-			// I have no idea what I'm doing... but see GLI_ASSERT in inline texture2d flip(texture2d const& Texture)!
-			if (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format())) { 
+			if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
 				gliTex = gli::flip(gliTex.value());
 			}
 
@@ -346,7 +345,7 @@ namespace gvk
 			throw gvk::runtime_error(fmt::format("Could not determine the image format of image '{}'", aPath));
 		}
 		
-		return create_image_from_file(aPath, imFmt.value(), aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
+		return create_image_from_file(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
 	}
 
 	/**	Takes a vector of gvk::material_config elements and converts it into a format that is usable
@@ -379,6 +378,7 @@ namespace gvk
 	 *	@param	aLoadTexturesInSrgb		If true, "diffuse textures", "ambient textures", and "extra textures"
 	 *									are assumed to be in sRGB format and will be loaded as such.
 	 *									All other textures will always be loaded in non-sRGB format.
+	 *	@param	aFlipTextures			Flip the images loaded from file vertically.
 	 *	@param	aImageUsage				Image usage for all the textures that are loaded.
 	 *	@param	aTextureFilterMode		Texture filter mode for all the textures that are loaded.
 	 *	@param	aBorderHandlingMode		Border handling mode for all the textures that are loaded.
@@ -393,6 +393,7 @@ namespace gvk
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb = false,
+		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
 		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
 		avk::border_handling_mode aBorderHandlingMode = avk::border_handling_mode::repeat,
@@ -448,6 +449,8 @@ namespace gvk
 	extern avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
 	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
 	extern avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
 	extern avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 

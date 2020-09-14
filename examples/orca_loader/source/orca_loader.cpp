@@ -76,7 +76,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_buffer(
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
 					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
 					avk::sync::wait_idle()
 				);
@@ -103,7 +103,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
-			allMatConfigs, false,
+			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
 			avk::border_handling_mode::repeat,

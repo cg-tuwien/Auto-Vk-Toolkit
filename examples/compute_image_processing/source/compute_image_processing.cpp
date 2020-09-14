@@ -75,7 +75,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = gvk::context().create_image_sampler(
-			gvk::context().create_image_view(gvk::create_image_from_file("assets/lion.png", false, false, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
+			gvk::context().create_image_view(gvk::create_image_from_file("assets/lion.png", false, false, true, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
 			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
 		);
 		const auto wdth = mInputImageAndSampler->width();

@@ -115,7 +115,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
-			allMatConfigs, false,
+			allMatConfigs, false, true,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear,
 			avk::border_handling_mode::repeat,
