@@ -445,7 +445,7 @@ namespace gvk
 	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
 	extern avk::buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
 	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet);
-	extern avk::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int _ColorsSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern avk::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 	extern std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
 	extern avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
 	extern std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes);
