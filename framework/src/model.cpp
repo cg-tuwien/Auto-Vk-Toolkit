@@ -687,12 +687,10 @@ namespace gvk
 	}
 
 	animation model_t::prepare_animation_for_meshes_into_strided_contiguous_memory(uint32_t aAnimationIndex,
-	                                                                                 std::vector<mesh_index_t>
-	                                                                                 aMeshIndices,
-	                                                                                 glm::mat4* aBeginningOfTargetStorage,
-	                                                                                 size_t aStride,
-	                                                                                 std::optional<size_t>
-	                                                                                 aMaxNumBoneMatrices)
+	                                                                               std::vector<mesh_index_t> aMeshIndices,
+	                                                                               glm::mat4* aBeginningOfTargetStorage,
+	                                                                               size_t aStride,
+	                                                                               std::optional<size_t> aMaxNumBoneMatrices)
 	{
 		if (!aMaxNumBoneMatrices.has_value()) {
 			aMaxNumBoneMatrices = aStride;
@@ -792,8 +790,7 @@ namespace gvk
 		};
 
 		// Helper-lambda to create an animated_node instance:
-		auto addAnimatedNode = [&](aiNodeAnim* bChannel, aiNode* bNode, std::optional<size_t> bAnimatedParentIndex,
-		                           const glm::mat4& bUnanimatedParentTransform){
+		auto addAnimatedNode = [&](aiNodeAnim* bChannel, aiNode* bNode, std::optional<size_t> bAnimatedParentIndex, const glm::mat4& bUnanimatedParentTransform){
 			auto& anode = result.mAnimationData.emplace_back();
 			mapNodeToAniNodeIndex[bNode] = result.mAnimationData.size() - 1;
 
@@ -881,9 +878,7 @@ namespace gvk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(
-					fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.",
-						to_string(channel->mNodeName), i));
+				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -925,8 +920,7 @@ namespace gvk
 
 				auto it = mapNameToNode.find(to_string(bone->mName));
 				if (it == std::end(mapNameToNode)) {
-					LOG_ERROR(
-						fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
+					LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
 					continue;
 				}
 
@@ -972,8 +966,7 @@ namespace gvk
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
 				LOG_ERROR(
-					fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.",
-						to_string(channel->mNodeName), i));
+					fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -984,9 +977,7 @@ namespace gvk
 				if (isNodeModifiedByBones(parent) && !isNodeAlreadyAdded(parent).has_value()) {
 					boneAnimatedParents.push(parent);
 					LOG_DEBUG(
-						fmt::format(
-							"Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet."
-							, parent->mName.C_Str(), node->mName.C_Str()));
+						fmt::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
 				}
 				parent = parent->mParent;
 			}
@@ -995,12 +986,10 @@ namespace gvk
 			while (!boneAnimatedParents.empty()) {
 				auto parentToBeAdded = boneAnimatedParents.top();
 				assert(mapNodeToBoneAnimation.contains(parentToBeAdded));
-				addAnimatedNode(mapNodeToBoneAnimation[parentToBeAdded], parentToBeAdded,
-				                getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
+				addAnimatedNode(mapNodeToBoneAnimation[parentToBeAdded], parentToBeAdded, getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
 				boneAnimatedParents.pop();
 			}
-			addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node),
-			                getUnanimatedParentTransform(node));
+			addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
 		}
 
 		// It could be that there are still bones for which we have not set up an animated_node entry and hence,
@@ -1012,7 +1001,8 @@ namespace gvk
 			const auto mi = aMeshIndices[i];
 
 			// Set the bone matrices that are not affected by animation ONCE/NOW:
-			for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
+			const auto nb = mScene->mMeshes[mi]->mNumBones;
+			for (unsigned int bi = 0; bi < nb; ++bi) {
 				if (flagsBonesAddedAsAniNodes[i][bi]) {
 					continue;
 				}

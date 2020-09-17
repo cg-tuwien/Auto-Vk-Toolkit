@@ -45,8 +45,7 @@ namespace gvk
 
 			// Calculate the node's global transform, using its local transform and the transforms of its parents:
 			if (anode.mAnimatedParentIndex.has_value()) {
-				anode.mTransform = mAnimationData[anode.mAnimatedParentIndex.value()].mTransform * anode.
-					mParentTransform * localTransform;
+				anode.mTransform = mAnimationData[anode.mAnimatedParentIndex.value()].mTransform * anode.mParentTransform * localTransform;
 			}
 			else {
 				anode.mTransform = anode.mParentTransform * localTransform;
@@ -59,8 +58,7 @@ namespace gvk
 				//  1. Bring vertex into bone space
 				//  2. Apply transformaton in bone space
 				//  3. Convert transformed vertex back to mesh space
-				glm::mat4 boneMatrix = anode.mBoneMeshTargets[i].mInverseMeshRootMatrix * anode.mTransform * anode.
-					mBoneMeshTargets[i].mInverseBindPoseMatrix;
+				glm::mat4 boneMatrix = anode.mBoneMeshTargets[i].mInverseMeshRootMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
 				// Store into target:
 				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = boneMatrix;
 			}
