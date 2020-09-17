@@ -689,8 +689,7 @@ namespace gvk
 	animation model_t::prepare_animation_for_meshes_into_strided_contiguous_memory(uint32_t aAnimationIndex,
 	                                                                                 std::vector<mesh_index_t>
 	                                                                                 aMeshIndices,
-	                                                                                 glm::mat4*
-	                                                                                 aBeginningOfTargetStorage,
+	                                                                                 glm::mat4* aBeginningOfTargetStorage,
 	                                                                                 size_t aStride,
 	                                                                                 std::optional<size_t>
 	                                                                                 aMaxNumBoneMatrices)
