@@ -27,16 +27,34 @@ namespace gvk
 		auto path() const { return mModelPath; }
 
 		/** Determine the transformation matrix for the mesh at the given index.
+		 *	This matrix is also called "mesh root matrix" => see `mesh_root_matrix`!
 		 *	@param		aMeshIndex		The index corresponding to the mesh
-		 *	@return		Transformation matrix of the given mesh, can be the identity
 		 */
 		glm::mat4 transformation_matrix_for_mesh(mesh_index_t aMeshIndex) const;
 
+		/** Same as the mesh transformation matrix => see `transformation_matrix_for_mesh`
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 */
+		glm::mat4 mesh_root_matrix(mesh_index_t aMeshIndex) const;
+
+		/**	Gets the number of bones that are associated to the given mesh index.
+		 */
+		size_t num_bones(mesh_index_t aMeshIndex) const;
+		
+		/**	Gets the inverse bind pose matrices for each bone assigned to the given mesh index.
+		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aMaxNumBones	The maximum number of inverse bind pose matrices to return, which can
+		 *								also be seen as the maximum number of bones to be considered.
+		 *								If a value is specified, the resulting vector's length will at most
+		 *								be aMaxNumBones, but it can be smaller if there are fewer bones.
+		 */
+		std::vector<glm::mat4> inverse_bind_pose_matrices(mesh_index_t aMeshIndex, unsigned int aMaxNumBones = std::numeric_limits<unsigned int>::max()) const;
+
 		/** Gets the name of the mesh at the given index (not to be confused with the material's name)
-		 *	@param		_MeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@return		Mesh name converted from Assimp's internal representation to std::string
 		 */
-		std::string name_of_mesh(mesh_index_t _MeshIndex) const;
+		std::string name_of_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets Assimp's internal material index for the given mesh index. 
 		 *	This value won't be useful if not operating directly on Assimp's internal materials.
@@ -299,8 +317,12 @@ namespace gvk
 		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
 		 */
 		animation prepare_animation_for_meshes_into_strided_contiguous_memory(
-			uint32_t aAnimationIndex, std::vector<mesh_index_t> aMeshIndices, glm::mat4* aBeginningOfTargetStorage,
-			size_t aStride, std::optional<size_t> aMaxNumBoneMatrices = {});
+			uint32_t aAnimationIndex, 
+			const std::vector<mesh_index_t>& aMeshIndices, 
+			glm::mat4* aBeginningOfTargetStorage, 
+			size_t aStride, 
+			std::optional<size_t> aMaxNumBoneMatrices = {}
+		);
 
 		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
 		 *	The bone matrices shall be written into contiguous memory without any space between the memory
@@ -311,9 +333,37 @@ namespace gvk
 		 *	@param	aBeginningOfTargetStorage	Memory address of the first bone matrix of the mesh with index aMeshIndices[0].
 		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
 		 */
-		animation prepare_animation_for_meshes_into_tightly_packed_contiguous_memory(uint32_t aAnimationIndex, std::vector<mesh_index_t> aMeshIndices, glm::mat4* aBeginningOfTargetStorage, size_t aMaxNumBoneMatrices)
+		animation prepare_animation_for_meshes_into_tightly_packed_contiguous_memory(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices, glm::mat4* aBeginningOfTargetStorage, size_t aMaxNumBoneMatrices)
 		{
-			return prepare_animation_for_meshes_into_strided_contiguous_memory(aAnimationIndex, std::move(aMeshIndices), aBeginningOfTargetStorage, aMaxNumBoneMatrices);
+			return prepare_animation_for_meshes_into_strided_contiguous_memory(aAnimationIndex, aMeshIndices, aBeginningOfTargetStorage, aMaxNumBoneMatrices);
+		}
+
+		/**	From a given (bone-matrix-)target-address and a stride (e.g. the maximum number of bone matrice),
+		 *	calculate the resulting mesh index, and bone index (both returned in the tuple in that order).
+		 *	This function can be helpful when used in conjunction with `model::prepare_animation_for_meshes_with_offsets` and the callback-function from `animation::animate`
+		 */
+		static std::tuple<mesh_index_t, size_t> calculate_mesh_and_bone_indices_from_target_address(glm::mat4* aTargetAddress, size_t aStride, glm::mat4* aBeginningOfTargetStorage = nullptr)
+		{
+			auto targetElement = static_cast<size_t>(aTargetAddress - aBeginningOfTargetStorage);
+			auto meshIndex = targetElement / aStride;
+			auto boneIndex = targetElement % aStride;
+			return std::make_tuple(static_cast<mesh_index_t>(meshIndex), static_cast<size_t>(boneIndex));
+		}
+		
+		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
+		 *	The target offsets are NOT pointing to real memory locations, but just start from 0 and are increased by sizeof(glm::mat4) for each
+		 *	bone matrix. The offsets of the bone matrices for the second mesh start at address 0 + sizeof(glm::mat4) * aMaxNumBoneMatrices
+		 *	In order to actually write bone matrices into their target location, you'll have to use the animation::animate overload where you can pass a custom callback function.
+		 *
+		 *	To calculate the original mesh and bone indices from a given target address, the function `model::calculate_mesh_and_bone_indices_from_target_address` might be helpful.
+		 *
+		 *	@param	aAnimationIndex				The animation index to create the animation data for
+		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
+		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
+		 */
+		animation prepare_animation_for_meshes_with_offsets(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices, size_t aMaxNumBoneMatrices)
+		{
+			return prepare_animation_for_meshes_into_tightly_packed_contiguous_memory(aAnimationIndex, aMeshIndices, nullptr, aMaxNumBoneMatrices);
 		}
 
 	private:

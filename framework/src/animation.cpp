@@ -2,7 +2,7 @@
 
 namespace gvk
 {
-	void animation::animate(const animation_clip_data& aClip, double mTime)
+	void animation::animate(const animation_clip_data& aClip, double aTime, void(*aBoneMatrixCalc)(glm::mat4*, const glm::mat4&, const glm::mat4&, const glm::mat4&))
 	{
 		if (aClip.mTicksPerSecond == 0.0) {
 			throw gvk::runtime_error("mTicksPerSecond may not be 0.0 => set a different value!");
@@ -11,7 +11,7 @@ namespace gvk
 			throw gvk::runtime_error("The animation index of the passed animation_clip_data is not the same that was used to create this animation.");
 		}
 
-		double timeInTicks = mTime * aClip.mTicksPerSecond;
+		double timeInTicks = aTime * aClip.mTicksPerSecond;
 
 		for (auto& anode : mAnimationData) {
 			// First, calculate the local transform
@@ -58,10 +58,41 @@ namespace gvk
 				//  1. Bring vertex into bone space
 				//  2. Apply transformaton in bone space
 				//  3. Convert transformed vertex back to mesh space
-				glm::mat4 boneMatrix = anode.mBoneMeshTargets[i].mInverseMeshRootMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
-				// Store into target:
-				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = boneMatrix;
+				// The callback function will store into target:
+				aBoneMatrixCalc(anode.mBoneMeshTargets[i].mBoneMatrixTarget, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix);
 			}
+		}
+	}
+
+	void animation::animate(const animation_clip_data& aClip, double aTime)
+	{
+		animate(aClip, aTime, [](glm::mat4* targetStorage, const glm::mat4& inverseMeshRootMatrix, const glm::mat4& nodeTransformMatrix, const glm::mat4& inverseBindPoseMatrix){
+			*targetStorage = inverseMeshRootMatrix * nodeTransformMatrix * inverseBindPoseMatrix;
+		});
+	}
+
+	void animation::animate(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace)
+	{
+		switch (aTargetSpace) {
+		case bone_matrices_space::mesh_space:
+			animate(aClip, aTime, [](glm::mat4* targetStorage, const glm::mat4& inverseMeshRootMatrix, const glm::mat4& nodeTransformMatrix, const glm::mat4& inverseBindPoseMatrix){
+				*targetStorage = inverseMeshRootMatrix * nodeTransformMatrix * inverseBindPoseMatrix;
+			});
+			break;
+		case bone_matrices_space::object_space:
+			animate(aClip, aTime, [](glm::mat4* targetStorage, const glm::mat4& inverseMeshRootMatrix, const glm::mat4& nodeTransformMatrix, const glm::mat4& inverseBindPoseMatrix){
+				// The nodeTransformMatrix yields the result in OBJECT SPACE again
+				*targetStorage = nodeTransformMatrix * inverseBindPoseMatrix;
+			});
+			break;
+		case bone_matrices_space::bone_space:
+			animate(aClip, aTime, [](glm::mat4* targetStorage, const glm::mat4& inverseMeshRootMatrix, const glm::mat4& nodeTransformMatrix, const glm::mat4& inverseBindPoseMatrix){
+				// The nodeTransformMatrix yields the result in OBJECT SPACE => transform again by inverseBindPoseMatrix to get it in BONE SPACE
+				*targetStorage = inverseBindPoseMatrix * nodeTransformMatrix * inverseBindPoseMatrix;
+			});
+			break;
+		default:
+			throw gvk::runtime_error("Unhandled target space value.");
 		}
 	}
 }

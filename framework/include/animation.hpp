@@ -111,8 +111,21 @@ namespace gvk
 		std::vector<bone_mesh_data> mBoneMeshTargets;
 	};
 
-	class model_t;
+	/** Represents possible spaces which the final bone matrices can be transformed into. */
+	enum struct bone_matrices_space
+	{
+		/** Mesh space is the space of a mesh's root node. This is the default. */
+		mesh_space,
+
+		/** Object space is the space of a model (within which meshes are positioned). */
+		object_space,
+
+		/** Bone space is the local space of a bone. */
+		bone_space
+	};
 	
+	class model_t;
+
 	/**	Class that represents one specific animation for one or multiple meshes
 	 */
 	class animation
@@ -120,7 +133,35 @@ namespace gvk
 		friend class model_t;
 		
 	public:
-		void animate(const animation_clip_data& aClip, double mTime);
+		/**	Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
+		 *
+		 *	@param	aClip				Animation clip to use for the animation
+		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 *	@param	aBoneMatrixCalc		Callback-function that receives the three matrices which can be relevant for computing the final bone matrix.
+		 *								This callback function MUST also write the bone matrix into the given target memory location (first parameter).
+		 *								The parameters of this callback-function are as follows:
+		 *								- First parameter:	Target pointer to the glm::mat4* memory where the RESULTING bone matrix MUST be written to.
+		 *								- Second parameter: the "inverse mesh root matrix" that transforms coordinates into mesh root space
+		 *								- Third parameter:	represents the "node transformation matrix" that represents a bone-transformation in bone-local space
+		 *								- Fourth parameter:	represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates into bone-local space
+		 *	@example [](glm::mat4* target, const glm::mat4& m1, const glm::mat4& m2, const glm::mat4& m3) { *target = m1 * m2 * m3; }
+		 */
+		void animate(const animation_clip_data& aClip, double aTime, void(*aBoneMatrixCalc)(glm::mat4*, const glm::mat4&, const glm::mat4&, const glm::mat4&));
+
+		/** Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
+		 *	The resulting bone matrices are transformed into mesh space (see also bone_matrices_space::mesh_space).
+		 *	@param	aClip				Animation clip to use for the animation
+		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 */
+		void animate(const animation_clip_data& aClip, double aTime);
+
+		/**	Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
+		 *	The space of the resulting bone matrices can be controlled with the third parameter.
+		 *	@param	aClip				Animation clip to use for the animation
+		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 *	@param	aTargetSpace		Desired target space for the bone matrices (see bone_matrices_space)
+		 */
+		void animate(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace);
 
 	private:
 		/** Helper function used during animate() to find two positions of key-elements

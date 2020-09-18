@@ -46,7 +46,7 @@ namespace gvk
 		for (unsigned int i = 0; i < aNode->mNumMeshes; i++)
 		{
 			if (aNode->mMeshes[i] == aMeshIndexToFind) {
-				return glm::transpose(glm::make_mat4(&nodeM.a1));
+				return to_mat4(nodeM);
 			}
 		}
 		// Not found => go deeper
@@ -66,15 +66,42 @@ namespace gvk
 		return transformation_matrix_traverser(static_cast<unsigned int>(aMeshIndex), mScene->mRootNode, aiMatrix4x4{}).value();
 	}
 
-	std::string model_t::name_of_mesh(mesh_index_t _MeshIndex) const
+	glm::mat4 model_t::mesh_root_matrix(mesh_index_t aMeshIndex) const
 	{
-		assert(mScene->mNumMeshes >= _MeshIndex);
-		return mScene->mMeshes[_MeshIndex]->mName.data;
+		return transformation_matrix_for_mesh(aMeshIndex);
+	}
+
+	size_t model_t::num_bones(mesh_index_t aMeshIndex) const
+	{
+		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
+		if (!mScene->mMeshes[aMeshIndex]->HasBones()) {
+			return 0;
+		}
+		return static_cast<size_t>(mScene->mMeshes[aMeshIndex]->mNumBones);
+	}
+	
+	std::vector<glm::mat4> model_t::inverse_bind_pose_matrices(mesh_index_t aMeshIndex, unsigned int aMaxNumBones) const
+	{
+		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
+		std::vector<glm::mat4> result;
+		if (mScene->mMeshes[aMeshIndex]->HasBones()) {
+			auto nb = mScene->mMeshes[aMeshIndex]->mNumBones;
+			for (decltype(nb) i = 0; i < nb && i < aMaxNumBones; ++i) {
+				result.push_back(to_mat4(mScene->mMeshes[aMeshIndex]->mBones[i]->mOffsetMatrix));
+			}
+		}
+		return result;
+	}
+
+	std::string model_t::name_of_mesh(mesh_index_t aMeshIndex) const
+	{
+		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
+		return mScene->mMeshes[aMeshIndex]->mName.data;
 	}
 
 	size_t model_t::material_index_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		assert(mScene->mNumMeshes >= aMeshIndex);
+		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
 		return mScene->mMeshes[aMeshIndex]->mMaterialIndex;
 	}
 
@@ -415,7 +442,7 @@ namespace gvk
 			std::vector<std::vector<std::tuple<uint32_t, float>>> vTempWeightsPerVertex(paiMesh->mNumVertices);
 			for (unsigned int j = 0; j < paiMesh->mNumBones; j++) 
 			{
-				const aiBone * pBone = paiMesh->mBones[j];
+				const aiBone* pBone = paiMesh->mBones[j];
 				for (uint32_t b = 0; b < pBone->mNumWeights; b++) 
 				{
 					vTempWeightsPerVertex[pBone->mWeights[b].mVertexId].emplace_back(j, pBone->mWeights[b].mWeight);
@@ -687,7 +714,7 @@ namespace gvk
 	}
 
 	animation model_t::prepare_animation_for_meshes_into_strided_contiguous_memory(uint32_t aAnimationIndex,
-	                                                                               std::vector<mesh_index_t> aMeshIndices,
+	                                                                               const std::vector<mesh_index_t>& aMeshIndices,
 	                                                                               glm::mat4* aBeginningOfTargetStorage,
 	                                                                               size_t aStride,
 	                                                                               std::optional<size_t> aMaxNumBoneMatrices)
