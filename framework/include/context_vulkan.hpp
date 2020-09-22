@@ -34,6 +34,7 @@ namespace gvk
 		vk::PhysicalDevice& physical_device() override { return mPhysicalDevice; }
 		vk::Device& device() override { return mLogicalDevice; }
 		vk::DispatchLoaderDynamic& dynamic_dispatch() override { return mDynamicDispatch; }
+		VmaAllocator& memory_allocator() override { return mMemoryAllocator; }
 		
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 
@@ -191,6 +192,7 @@ namespace gvk
 		vk::PhysicalDevice mPhysicalDevice;
 		vk::Device mLogicalDevice;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
+		VmaAllocator mMemoryAllocator;
 
 		// Vector of queue family indices
 		std::vector<uint32_t> mDistinctQueueFamilies;

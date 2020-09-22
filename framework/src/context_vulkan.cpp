@@ -243,6 +243,14 @@ namespace gvk
 		// TODO: Remove sync
 		avk::sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
 		avk::sync::sQueueToUse = &mQueues.front();
+
+		// With everything in place, create the memory allocator:
+		VmaAllocatorCreateInfo allocatorInfo = {};
+		allocatorInfo.physicalDevice = physical_device();
+		allocatorInfo.device = device();
+		allocatorInfo.instance = vulkan_instance();
+		
+		vmaCreateAllocator(&allocatorInfo, &mMemoryAllocator);
 		
 		context().mContextState = gvk::context_state::fully_initialized;
 		work_off_event_handlers();
