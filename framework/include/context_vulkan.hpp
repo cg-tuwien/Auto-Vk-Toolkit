@@ -154,6 +154,9 @@ namespace gvk
 		/** Pick the physical device which looks to be the most promising one */
 		void pick_physical_device();
 
+		/** Gets the right resolution for the given window, considering the window's size and surface capabilities */
+		glm::uvec2 get_resolution_for_window(window* aWindow);
+		
 		/** Creates the swap chain for the given window and surface with the given parameters
 		 *	@param aWindow		[in] The window to create the swap chain for
 		 */

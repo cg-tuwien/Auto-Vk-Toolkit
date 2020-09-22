@@ -336,8 +336,17 @@ namespace gvk
 			mCurrentFrameImageAvailableSemaphore.reset();
 			return ref;
 		}
+
+		/** Recreate the swap chain based on the current extent and return the old resources which
+		 *	will not be required anymore in #number_of_frames_in_flight() frames into the future.
+		 */
+		std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>> recreate_swap_chain();
 		
 	private:
+		// Helper method used in sync_before_render().
+		// If the swap chain must be re-created, it will recursively invoke itself.
+		void acquire_next_swap_chain_image_and_prepare_semaphores();
+		
 		// Helper method that fills the given 2 vectors with the present semaphore dependencies for the given frame-id
 		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, frame_id_t aFrameId) const;
 		
@@ -373,8 +382,12 @@ namespace gvk
 		// The frame counter/frame id/frame index/current frame number
 		frame_id_t mCurrentFrame;
 
+		// The image usage parameters for a swap chain
+		avk::image_usage mImageUsage;
 		// The window's surface
 		vk::UniqueSurfaceKHR mSurface;
+		// The swap chain create info
+		vk::SwapchainCreateInfoKHR mSwapChainCreateInfo;
 		// The swap chain for this surface
 		vk::UniqueSwapchainKHR mSwapChain;
 		// The swap chain's image format
@@ -430,5 +443,9 @@ namespace gvk
 
 		// Must be consumed EXACTLY ONCE per frame
 		std::optional<std::reference_wrapper<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
+
+		// TODO: Temp
+		std::vector<std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>> mOldResources;
+		
 	};
 }

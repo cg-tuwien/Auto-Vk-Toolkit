@@ -46,6 +46,7 @@
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
     <ClCompile Include="..\..\framework\src\quake_camera.cpp" />
     <ClCompile Include="..\..\framework\src\transform.cpp" />
+    <ClCompile Include="..\..\framework\src\updater.cpp" />
     <ClCompile Include="..\..\framework\src\varying_update_timer.cpp" />
     <ClCompile Include="..\..\framework\src\vk_convenience_functions.cpp" />
     <ClCompile Include="..\..\framework\src\window_base.cpp" />
@@ -165,6 +166,7 @@
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />
     <ClInclude Include="..\..\framework\include\timer_interface.hpp" />
     <ClInclude Include="..\..\framework\include\transform.hpp" />
+    <ClInclude Include="..\..\framework\include\updater.hpp" />
     <ClInclude Include="..\..\framework\include\varying_update_timer.hpp" />
     <ClInclude Include="..\..\framework\include\vk_convenience_functions.hpp" />
     <ClInclude Include="..\..\framework\include\window_base.hpp" />

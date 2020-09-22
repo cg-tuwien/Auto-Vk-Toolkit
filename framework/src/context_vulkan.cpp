@@ -831,7 +831,7 @@ namespace gvk
 		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
 	}
 
-	void context_vulkan::create_swap_chain_for_window(window* aWindow)
+	glm::uvec2 context_vulkan::get_resolution_for_window(window* aWindow)
 	{
 		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(aWindow->surface());
 
@@ -846,9 +846,16 @@ namespace gvk
 						 glm::uvec2(srfCaps.maxImageExtent.width, srfCaps.maxImageExtent.height))
 			: glm::uvec2(srfCaps.currentExtent.width, srfCaps.currentExtent.height);
 
+		return extent;
+	}
+
+	void context_vulkan::create_swap_chain_for_window(window* aWindow)
+	{
+		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(aWindow->surface());
+		auto extent = get_resolution_for_window(aWindow);
 		auto surfaceFormat = aWindow->get_config_surface_format(aWindow->surface());
 
-		const avk::image_usage swapChainImageUsage = avk::image_usage::color_attachment			 | avk::image_usage::transfer_destination		| avk::image_usage::presentable;
+		aWindow->mImageUsage = avk::image_usage::color_attachment			 | avk::image_usage::transfer_destination		| avk::image_usage::presentable;
 		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 		aWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 			.setImageType(vk::ImageType::e2D)
@@ -891,7 +898,7 @@ namespace gvk
 		}
 
 		// With all settings gathered, create the swap chain!
-		auto createInfo = vk::SwapchainCreateInfoKHR()
+		aWindow->mSwapChainCreateInfo = vk::SwapchainCreateInfoKHR{}
 			.setSurface(aWindow->surface())
 			.setMinImageCount(aWindow->get_config_number_of_presentable_images())
 			.setImageFormat(aWindow->mImageCreateInfoSwapChain.format)
@@ -909,10 +916,9 @@ namespace gvk
 			.setPQueueFamilyIndices(aWindow->mImageCreateInfoSwapChain.pQueueFamilyIndices);
 
 		// Finally, create the swap chain prepare a struct which stores all relevant data (for further use)
-		aWindow->mSwapChain = device().createSwapchainKHRUnique(createInfo);
-		//aWindow->mSwapChain = logical_device().createSwapchainKHR(createInfo);
+		aWindow->mSwapChain = device().createSwapchainKHRUnique(aWindow->mSwapChainCreateInfo);
 		aWindow->mSwapChainImageFormat = surfaceFormat.format;
-		aWindow->mSwapChainExtent = vk::Extent2D(extent.x, extent.y);
+		aWindow->mSwapChainExtent = aWindow->mSwapChainCreateInfo.imageExtent;
 		aWindow->mCurrentFrame = 0; // Start af frame 0
 
 		auto swapChainImages = device().getSwapchainImagesKHR(aWindow->swap_chain());
@@ -923,16 +929,16 @@ namespace gvk
 		aWindow->mSwapChainImageViews.reserve(imagesInFlight);
 		for (auto& imageHandle : swapChainImages) {
 			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			auto& ref = aWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, aWindow->mImageCreateInfoSwapChain, swapChainImageUsage, vk::ImageAspectFlagBits::eColor)));
+			auto& ref = aWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, aWindow->mImageCreateInfoSwapChain, aWindow->mImageUsage, vk::ImageAspectFlagBits::eColor)));
 			ref.enable_shared_ownership(); // Back buffers must be in shared ownership, because they are also stored in the renderpass (see below), and imgui_manager will also require it that way if it is enabled.
 		}
 
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(aWindow->mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::dont_care)
+			avk::attachment::declare_for(aWindow->mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::store)
 		};
 		auto additionalAttachments = aWindow->get_additional_back_buffer_attachments();
-		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments)),
+		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 		aWindow->mBackBufferRenderpass = create_renderpass(renderpassAttachments);
 		aWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
 
@@ -956,6 +962,7 @@ namespace gvk
 			}
 
 			aWindow->mBackBuffers.push_back(create_framebuffer(aWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			aWindow->mBackBuffers.back().enable_shared_ownership();
 		}
 		assert(aWindow->mBackBuffers.size() == imagesInFlight);
 

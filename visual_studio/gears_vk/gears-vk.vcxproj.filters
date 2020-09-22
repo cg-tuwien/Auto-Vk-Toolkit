@@ -97,6 +97,9 @@
     <ClCompile Include="..\..\framework\src\animation.cpp">
       <Filter>gears-vk_src\data</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\updater.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -422,6 +425,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\model_types.hpp">
       <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\updater.hpp">
+      <Filter>gears-vk_include\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

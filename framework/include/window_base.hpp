@@ -69,6 +69,10 @@ namespace gvk
 		 */
 		void set_resolution(window_size pExtent);
 
+		/**	Updates the resolution based on the current window size.
+		 */
+		void update_resolution();
+
 		/** Set a new title */
 		void set_title(std::string pTitle);
 
@@ -145,7 +149,7 @@ namespace gvk
 		glm::dvec2 mScrollPosition;
 
 		// The window's resolution
-		glm::uvec2 mResoltion;
+		glm::uvec2 mResolution;
 
 		// Whether or not the cursor is operating in disabled-mode
 		cursor mCursorMode;

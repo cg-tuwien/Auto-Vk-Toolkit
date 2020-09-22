@@ -189,4 +189,6 @@ namespace gvk
 
 #include "imgui_manager.hpp"
 
+#include "updater.hpp"
+
 // ReSharper restore CppUnusedIncludeDirective

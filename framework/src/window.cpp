@@ -333,46 +333,8 @@ namespace gvk
 		}
 	}
 
-	void window::sync_before_render()
+	void window::acquire_next_swap_chain_image_and_prepare_semaphores()
 	{
-		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
-		const auto ci = current_in_flight_index();
-		auto& cf = current_fence();
-		assert(cf.handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
-		cf.wait_until_signalled();
-		cf.reset();
-
-		// Keep house with the in-flight images:
-		//   However, we don't know which index this fence had been mapped to => we have to search
-		for (auto& mapping : mImagesInFlightFenceIndices) {
-			if (ci == mapping) {
-				mapping = -1;
-				break;
-			}
-		}
-
-		// At this point we are certain that the frame which has used the current fence before is done.
-		//  => Clean up the resources of that previous frame!
-		auto semaphoresToBeFreed = remove_all_present_semaphore_dependencies_for_frame(current_frame());
-		auto commandBuffersToBeFreed 	= clean_up_command_buffers_for_frame(current_frame());
-
-		//
-		//
-		//
-		//	TODO: Recreate swap chain probably somewhere here
-		//  Potential problems:
-		//	 - How to handle the fences? Is waitIdle enough?
-		//	 - A problem might be the multithreaded access to this function... hmm... or is it??
-		//      => Now would be the perfect time to think about how to handle parallel invokers
-		//		   Only Command Buffer generation should be parallelized anyways, submission should 
-		//		   be done on ONE thread, hence access to this method would be syncronized inherently, right?!
-		//
-		//	What about the following: Tie an instance of invokee to ONE AND EXACTLY ONE window*?!
-		//	 => Then, the render method would create a command_buffer, which is then gathered (per window!) and passed on to this method.
-		//
-		//
-		//
-
 		try
 		{
 			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
@@ -408,44 +370,72 @@ namespace gvk
 			mCurrentFrameImageAvailableSemaphore = std::ref(imgAvailableSem);
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date at presentKHR-call[{}]. Waiting for better times...", omg.what()));
+			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Waiting for better times...", omg.what(), current_frame()));
+			mOldResources.emplace_back(recreate_swap_chain());
+			acquire_next_swap_chain_image_and_prepare_semaphores();
 		}
+	}
+	
+	void window::sync_before_render()
+	{
+		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
+		const auto ci = current_in_flight_index();
+		auto& cf = current_fence();
+		assert(cf.handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
+		cf.wait_until_signalled();
+		cf.reset();
+
+		// Keep house with the in-flight images:
+		//   However, we don't know which index this fence had been mapped to => we have to search
+		for (auto& mapping : mImagesInFlightFenceIndices) {
+			if (ci == mapping) {
+				mapping = -1;
+				break;
+			}
+		}
+
+		// At this point we are certain that the frame which has used the current fence before is done.
+		//  => Clean up the resources of that previous frame!
+		auto semaphoresToBeFreed = remove_all_present_semaphore_dependencies_for_frame(current_frame());
+		auto commandBuffersToBeFreed 	= clean_up_command_buffers_for_frame(current_frame());
+
+		acquire_next_swap_chain_image_and_prepare_semaphores();
 	}
 	
 	void window::render_frame()
 	{
+		const auto& cf = current_fence();
+
+		// EXTERN -> WAIT 
+		std::vector<vk::Semaphore> renderFinishedSemaphores;
+		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages; 
+		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
+
+		if (!has_consumed_current_image_available_semaphore()) {
+			LOG_WARNING(fmt::format("Frame #{}: User has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!", current_frame()));
+			auto& imgAvailable = consume_current_image_available_semaphore();
+			renderFinishedSemaphores.push_back(imgAvailable.handle());
+			renderFinishedSemaphoreStages.push_back(imgAvailable.semaphore_wait_stage());
+		}
+
+		// TODO: What if the user has not submitted any renderFinishedSemaphores?
+		
+		// WAIT -> SIGNAL
+		auto& signalSemaphore = current_initiate_present_semaphore();
+
+		auto submitInfo = vk::SubmitInfo()
+			.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
+			.setPWaitSemaphores(renderFinishedSemaphores.data())
+			.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
+			.setCommandBufferCount(0u) // Submit ZERO command buffers :O
+			.setSignalSemaphoreCount(1u)
+			.setPSignalSemaphores(signalSemaphore.handle_addr());
+		// SIGNAL + FENCE, actually:
+		assert(mPresentQueue);
+		mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
+
 		try
 		{
-			const auto& cf = current_fence();
-
-			// EXTERN -> WAIT 
-			std::vector<vk::Semaphore> renderFinishedSemaphores;
-			std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages; 
-			fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
-
-			if (!has_consumed_current_image_available_semaphore()) {
-				LOG_WARNING(fmt::format("Frame #{}: User has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!", current_frame()));
-				auto& imgAvailable = consume_current_image_available_semaphore();
-				renderFinishedSemaphores.push_back(imgAvailable.handle());
-				renderFinishedSemaphoreStages.push_back(imgAvailable.semaphore_wait_stage());
-			}
-
-			// TODO: What if the user has not submitted any renderFinishedSemaphores?
-			
-			// WAIT -> SIGNAL
-			auto& signalSemaphore = current_initiate_present_semaphore();
-
-			auto submitInfo = vk::SubmitInfo()
-				.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
-				.setPWaitSemaphores(renderFinishedSemaphores.data())
-				.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
-				.setCommandBufferCount(0u) // Submit ZERO command buffers :O
-				.setSignalSemaphoreCount(1u)
-				.setPSignalSemaphores(signalSemaphore.handle_addr());
-			// SIGNAL + FENCE, actually:
-			assert(mPresentQueue);
-			mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
-
 			// SIGNAL -> PRESENT
 			auto presentInfo = vk::PresentInfoKHR()
 				.setWaitSemaphoreCount(1u)
@@ -456,12 +446,15 @@ namespace gvk
 				.setPResults(nullptr);
 			mPresentQueue->handle().presentKHR(presentInfo);
 			
-			// increment frame counter
-			++mCurrentFrame;
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date at presentKHR-call[{}]. Waiting for better times...", omg.what()));
+			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Waiting for better times...", omg.what(), current_frame()));
+			mOldResources.emplace_back(recreate_swap_chain());
+			// Just do nothing. Ignore the failure. This frame is lost.
 		}
+		
+		// increment frame counter
+		++mCurrentFrame;
 	}
 	
 	void window::add_queue_family_ownership(avk::queue& aQueue)
@@ -472,6 +465,83 @@ namespace gvk
 	void window::set_present_queue(avk::queue& aPresentQueue)
 	{
 		mPresentQueue = &aPresentQueue;
-	}		
-	
+	}
+
+	std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>> window::recreate_swap_chain()
+	{
+		update_resolution();
+		std::atomic_bool resolutionUpdated = false;
+		context().dispatch_to_main_thread([&resolutionUpdated]() { resolutionUpdated = true; });
+		context().signal_waiting_main_thread();
+		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }
+		
+		auto extent = context().get_resolution_for_window(this);
+		mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y));
+		mSwapChainCreateInfo
+			.setImageExtent(vk::Extent2D{ mImageCreateInfoSwapChain.extent.width, mImageCreateInfoSwapChain.extent.height })
+			.setOldSwapchain(mSwapChain.get());
+		mSwapChainExtent = mSwapChainCreateInfo.imageExtent;
+
+		// Create new swap chain:
+		context().device().waitIdle(); // TODO: Necessary?
+		auto newSwapChain = context().device().createSwapchainKHRUnique(mSwapChainCreateInfo);
+
+		// Get the (possibly new) images:
+		auto swapChainImages = context().device().getSwapchainImagesKHR(newSwapChain.get());
+		const auto imagesInFlight = swapChainImages.size();
+		assert(imagesInFlight == get_config_number_of_presentable_images()); // TODO: Can it happen that these two ever differ? If so => handle!
+		assert(imagesInFlight == mSwapChainImageViews.size());
+
+#if _DEBUG
+		assert(swap_chain_image_views().size() == imagesInFlight);
+		for (size_t i = 0; i < imagesInFlight; ++i) {
+			LOG_DEBUG(fmt::format("Swapchain image #{}: old handle=[{}], new handle=[{}]", i, fmt::ptr(static_cast<VkImage>(swap_chain_image_at_index(i).handle())), fmt::ptr(static_cast<VkImage>(swapChainImages[i]))));
+		}
+#endif
+		
+		// Create the new image views:
+		std::vector<avk::image_view> newImageViews(imagesInFlight);
+		for (size_t i = 0; i < imagesInFlight; ++i) {
+			auto& ref = newImageViews.emplace_back(context().create_image_view(context().wrap_image(swapChainImages[i], mImageCreateInfoSwapChain, mImageUsage, vk::ImageAspectFlagBits::eColor)));
+			ref.enable_shared_ownership();
+			std::swap(ref, mSwapChainImageViews[i]);
+		}
+		std::swap(newSwapChain, mSwapChain);
+
+		// Create a new renderpass for the back buffers:
+		std::vector<avk::attachment> renderpassAttachments = { // TODO: Maybe outsource this into a separate method and re-use between here and original swap chain creation?
+			avk::attachment::declare_for(mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::store)
+		};
+		auto additionalAttachments = get_additional_back_buffer_attachments();
+		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
+		auto newRenderpass = gvk::context().create_renderpass(renderpassAttachments);
+		newRenderpass.enable_shared_ownership();
+		std::swap(newRenderpass, mBackBufferRenderpass);
+
+		std::vector<avk::framebuffer> newFramebuffers(imagesInFlight);
+		for (size_t i = 0; i < imagesInFlight; ++i) {
+			auto& imView = mSwapChainImageViews[i]; // TODO: This is all pretty much copy&pasted from context_vulkan.cpp #947ff. => Refactor and re-use code!
+			auto imExtent = imView->get_image().config().extent;
+
+			// Create one image view per attachment
+			std::vector<avk::image_view> imageViews;
+			imageViews.reserve(renderpassAttachments.size());
+			imageViews.push_back(imView); // The color attachment is added in any case
+			for (auto& aa : additionalAttachments) {
+				if (aa.is_used_as_depth_stencil_attachment()) {
+					auto depthView = gvk::context().create_depth_image_view(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
+					imageViews.emplace_back(std::move(depthView));	     
+				}
+				else {
+					imageViews.emplace_back(gvk::context().create_image_view(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
+				}
+			}
+
+			auto& ref = newFramebuffers.emplace_back(gvk::context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			ref.enable_shared_ownership();
+			std::swap(ref, mBackBuffers[i]);
+		}
+		
+		return std::forward_as_tuple(std::move(newSwapChain), std::move(newImageViews), newRenderpass, newFramebuffers); // new == old by now
+	}	
 }

@@ -12,7 +12,7 @@ namespace gvk
 		, mIsInputEnabled(true)
 		, mRequestedSize{ 512, 512 }
 		, mCursorPosition{ 0.0, 0.0 }
-		, mResoltion{ 0, 0 }
+		, mResolution{ 0, 0 }
 		, mCursorMode{ cursor::arrow_cursor }
 	{
 	}
@@ -34,7 +34,7 @@ namespace gvk
 		, mIsInputEnabled(std::move(other.mIsInputEnabled))
 		, mRequestedSize(std::move(other.mRequestedSize))
 		, mCursorPosition(std::move(other.mCursorPosition))
-		, mResoltion(std::move(other.mResoltion))
+		, mResolution(std::move(other.mResolution))
 		, mCursorMode(std::move(other.mCursorMode))
 	{
 		other.mIsInUse = false;
@@ -44,7 +44,7 @@ namespace gvk
 		other.mMonitor = std::nullopt;
 		other.mIsInputEnabled = false;
 		other.mCursorPosition = { 0.0, 0.0 };
-		other.mResoltion = { 0, 0 };
+		other.mResolution = { 0, 0 };
 	}
 
 	window_base& window_base::operator= (window_base&& other) noexcept
@@ -57,7 +57,7 @@ namespace gvk
 		mIsInputEnabled = std::move(other.mIsInputEnabled);
 		mRequestedSize = std::move(other.mRequestedSize);
 		mCursorPosition = std::move(other.mCursorPosition);
-		mResoltion = std::move(other.mResoltion);
+		mResolution = std::move(other.mResolution);
 		mCursorMode = std::move(other.mCursorMode);
 
 		other.mIsInUse = false;
@@ -67,7 +67,7 @@ namespace gvk
 		other.mMonitor = std::nullopt;
 		other.mIsInputEnabled = false;
 		other.mCursorPosition = { 0.0, 0.0 };
-		other.mResoltion = { 0, 0 };
+		other.mResolution = { 0, 0 };
 
 		return *this;
 	}
@@ -109,6 +109,16 @@ namespace gvk
 		else {
 			mRequestedSize = pExtent;
 		}
+	}
+
+	void window_base::update_resolution()
+	{
+		assert(is_alive());
+		context().dispatch_to_main_thread([this]() {
+			int width = 0, height = 0;
+			glfwGetFramebufferSize(handle()->mHandle, &width, &height);
+			mResolution = glm::uvec2(width, height);
+		});
 	}
 
 	void window_base::set_title(std::string _Title)
@@ -165,7 +175,7 @@ namespace gvk
 
 	glm::uvec2 window_base::resolution() const
 	{
-		return mResoltion;
+		return mResolution;
 	}
 
 	void window_base::set_cursor_mode(cursor aCursorMode)

@@ -217,7 +217,7 @@ namespace gvk
 
 					int width, height;
 					glfwGetWindowSize(handle, &width, &height);
-					wnd->mResoltion = glm::uvec2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+					wnd->mResolution = glm::uvec2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 					glfwSetWindowSizeCallback(handle, glfw_window_size_callback);
 
 					return true; // done
@@ -431,7 +431,7 @@ namespace gvk
 	{
 		auto* wnd = context().window_for_handle(window);
 		assert(wnd);
-		wnd->mResoltion = glm::uvec2(width, height);
+		wnd->mResolution = glm::uvec2(width, height);
 	}
 
 	window* context_generic_glfw::window_for_handle(GLFWwindow* handle) const
