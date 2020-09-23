@@ -297,6 +297,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 
+		// TODO: Use a version of "submit_with_fence" (after sync-refactoring!) and ensure that
+		//       images are not used concurrently. On "radeon" it happens that the swap chain
+		//       provides only 2 images but we have 3 frames in flight => command buffers are
+		//       submitted again while they are still in use from the frame #current-3.
+		
 		// Submit one of the prepared command buffers:
 		mQueue->submit(mCmdBfrs[curIndex], imageAvailableSemaphore);
 	}

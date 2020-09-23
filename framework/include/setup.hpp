@@ -160,10 +160,10 @@ namespace gvk
 			.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
 			.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
 			.setDescriptorIndexing(VK_TRUE)
-			.setBufferDeviceAddress(VK_TRUE);
+			.setBufferDeviceAddress(VK_FALSE);
 
 		vk::PhysicalDeviceRayTracingFeaturesKHR rtf = vk::PhysicalDeviceRayTracingFeaturesKHR{}
-			.setRayTracing(VK_TRUE);
+			.setRayTracing(VK_FALSE);
 		
 		timer_interface* t = &defaultTimer;
 		invoker_interface* i = &defaultInvoker;

@@ -6,6 +6,10 @@ namespace gvk
 	/** Set a hint about which device to select. This could be, e.g., "Intel" or "RTX". */
 	struct physical_device_selection_hint
 	{
+		physical_device_selection_hint() {}
+		physical_device_selection_hint(std::string aValue) : mValue{ std::move(aValue) } {}
+		/** Set a filter text for physical device selection. */
+		physical_device_selection_hint& set_filter_text(std::string aValue) { mValue = aValue; return *this; }
 		std::string mValue = "";
 	};
 

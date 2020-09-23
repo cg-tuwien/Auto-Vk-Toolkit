@@ -242,6 +242,12 @@ int main() // <== Starting point ==
 				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
 				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
 				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues){
+				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
+			},
+			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures){
+				aRayTracingFeatures.setRayTracing(VK_TRUE);
+			},
 			mainWnd,
 			app,
 			ui

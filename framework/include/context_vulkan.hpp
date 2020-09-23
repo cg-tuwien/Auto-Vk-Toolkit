@@ -25,24 +25,9 @@ namespace gvk
 
 		void initialize(
 			settings aSettings,
-			vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures = vk::PhysicalDeviceFeatures{}
-				.setGeometryShader(VK_TRUE)
-				.setTessellationShader(VK_TRUE)
-				.setSamplerAnisotropy(VK_TRUE)
-				.setVertexPipelineStoresAndAtomics(VK_TRUE)
-				.setFragmentStoresAndAtomics(VK_TRUE)
-				.setShaderStorageImageExtendedFormats(VK_TRUE)
-				.setSampleRateShading(VK_TRUE)
-				.setFillModeNonSolid(VK_TRUE),
-			vk::PhysicalDeviceVulkan12Features aVulkan12Features = vk::PhysicalDeviceVulkan12Features{}
-				.setDescriptorBindingVariableDescriptorCount(VK_TRUE)
-				.setRuntimeDescriptorArray(VK_TRUE)
-				.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
-				.setDescriptorIndexing(VK_TRUE)
-				.setBufferDeviceAddress(VK_TRUE),
-			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures = vk::PhysicalDeviceRayTracingFeaturesKHR{}
-				.setRayTracing(VK_TRUE)
+			vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
+			vk::PhysicalDeviceVulkan12Features aVulkan12Features,
+			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 		);
 		
 		vk::Instance& vulkan_instance() { return mInstance; }
