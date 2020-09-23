@@ -254,7 +254,7 @@ namespace gvk
 
 	void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
 	{
-		std::scoped_lock<std::mutex> guard(sSubmitMutex);
+		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
 		if (!aFrameId.has_value()) {
 			aFrameId = current_frame();
 		}
@@ -272,6 +272,15 @@ namespace gvk
 			return;
 		}
 		handle_lifetime(std::move(aCommandBuffer.value()), aFrameId);
+	}
+
+	void window::handle_lifetime(outdated_swapchain_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId)
+	{
+		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
+		if (!aFrameId.has_value()) {
+			aFrameId = current_frame();
+		}
+		mOutdatedSwapChains.emplace_back(aFrameId.value(), std::move(aOutdatedSwapchain));
 	}
 
 	std::vector<avk::semaphore> window::remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId)
@@ -297,18 +306,21 @@ namespace gvk
 
 	std::vector<avk::command_buffer> window::clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId)
 	{
+		std::vector<avk::command_buffer> removedBuffers;
+		if (mLifetimeHandledCommandBuffers.empty()) {
+			return removedBuffers;
+		}
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
 
 		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
 		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
 		
-		// 2. SINGLE USE COMMAND BUFFERS
+		// 1. SINGLE USE COMMAND BUFFERS
 		// Can not use the erase-remove idiom here because that would invalidate iterators and references
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
 		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
 		auto eraseBegin = std::begin(mLifetimeHandledCommandBuffers);
-		std::vector<avk::command_buffer> removedBuffers;
 		if (std::end(mLifetimeHandledCommandBuffers) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
 			return removedBuffers;
 		}
@@ -323,6 +335,26 @@ namespace gvk
 		return removedBuffers;
 	}
 
+	void window::clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId)
+	{
+		if (mOutdatedSwapChains.empty()) {
+			return;
+		}
+
+		// Up to the frame with id 'maxTTL', all swap chain resources can be safely removed
+		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
+		
+		auto eraseBegin = std::begin(mOutdatedSwapChains);
+		if (std::end(mOutdatedSwapChains) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
+			return;
+		}
+		auto eraseEnd = eraseBegin;
+		while (eraseEnd != std::end(mOutdatedSwapChains) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
+			++eraseEnd;
+		}
+		mOutdatedSwapChains.erase(eraseBegin, eraseEnd);
+	}
+
 	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, frame_id_t aFrameId) const
 	{
 		for (const auto& [frameId, sem] : mPresentSemaphoreDependencies) {
@@ -335,15 +367,15 @@ namespace gvk
 
 	void window::acquire_next_swap_chain_image_and_prepare_semaphores()
 	{
+		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
+		auto& imgAvailableSem = image_available_semaphore_for_frame();
+
+		// Update previous image index before getting a new image index for the current frame:
+		mPreviousFrameImageIndex = mCurrentFrameImageIndex;
+			
 		try
 		{
-			// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
-			auto& imgAvailableSem = image_available_semaphore_for_frame();
-
-			// Update previous image index before getting a new image index for the current frame:
-			mPreviousFrameImageIndex = mCurrentFrameImageIndex;
-			
-			context().device().acquireNextImageKHR(
+			auto result = context().device().acquireNextImageKHR(
 				swap_chain(), // the swap chain from which we wish to acquire an image 
 				// At this point, I have to rant about the `timeout` parameter:
 				// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
@@ -354,26 +386,44 @@ namespace gvk
 				imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
 				nullptr,
 				&mCurrentFrameImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
+			if (vk::Result::eSuboptimalKHR == result) {
+				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");
+				handle_lifetime(recreate_swap_chain());
 
-			// It could be that the image index that has been returned is currently in flight.
-			// There's no guarantee that we'll always get a nice cycling through the indices.
-			// => Must handle this case!
-			assert(current_image_index() == mCurrentFrameImageIndex);
-			if (mImagesInFlightFenceIndices[current_image_index()] >= 0) {
-				LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
-				auto& xf = mFramesInFlightFences[mImagesInFlightFenceIndices[current_image_index()]];
-				xf->wait_until_signalled();
-				// But do not reset! Otherwise we will wait forever at the next wait_until_signalled that will happen for sure.
+				// Workaround for binary semaphores:
+				// Since the semaphore is in a wait state right now, we'll have to wait for it until we can use it again.
+				auto fen = context().create_fence();
+				mPresentQueue->handle().submit({ // TODO: This works, but is arguably not the greatest of all solutions... => Can it be done better with Timeline Semaphores? (Test on AMD!)
+					vk::SubmitInfo{}
+						.setCommandBufferCount(0u)
+						.setWaitSemaphoreCount(1u)
+						.setPWaitSemaphores(imgAvailableSem.handle_addr())
+						.setPWaitDstStageMask(imgAvailableSem.semaphore_wait_stage_addr())
+				}, fen->handle());
+				fen->wait_until_signalled();
+
+				acquire_next_swap_chain_image_and_prepare_semaphores();
 			}
-
-			// Set the image available semaphore to be consumed:
-			mCurrentFrameImageAvailableSemaphore = std::ref(imgAvailableSem);
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Waiting for better times...", omg.what(), current_frame()));
-			mOldResources.emplace_back(recreate_swap_chain());
+			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+			handle_lifetime(recreate_swap_chain());
 			acquire_next_swap_chain_image_and_prepare_semaphores();
 		}
+
+		// It could be that the image index that has been returned is currently in flight.
+		// There's no guarantee that we'll always get a nice cycling through the indices.
+		// => Must handle this case!
+		assert(current_image_index() == mCurrentFrameImageIndex);
+		if (mImagesInFlightFenceIndices[current_image_index()] >= 0) {
+			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
+			auto& xf = mFramesInFlightFences[mImagesInFlightFenceIndices[current_image_index()]];
+			xf->wait_until_signalled();
+			// But do not reset! Otherwise we will wait forever at the next wait_until_signalled that will happen for sure.
+		}
+
+		// Set the image available semaphore to be consumed:
+		mCurrentFrameImageAvailableSemaphore = std::ref(imgAvailableSem);
 	}
 	
 	void window::sync_before_render()
@@ -398,6 +448,7 @@ namespace gvk
 		//  => Clean up the resources of that previous frame!
 		auto semaphoresToBeFreed = remove_all_present_semaphore_dependencies_for_frame(current_frame());
 		auto commandBuffersToBeFreed 	= clean_up_command_buffers_for_frame(current_frame());
+		clean_up_outdated_swapchain_resources_for_frame(current_frame());
 
 		acquire_next_swap_chain_image_and_prepare_semaphores();
 	}
@@ -444,12 +495,16 @@ namespace gvk
 				.setPSwapchains(&swap_chain())
 				.setPImageIndices(&mCurrentFrameImageIndex)
 				.setPResults(nullptr);
-			mPresentQueue->handle().presentKHR(presentInfo);
+			auto result = mPresentQueue->handle().presentKHR(presentInfo);
+			if (vk::Result::eSuboptimalKHR == result) {
+				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");
+				handle_lifetime(recreate_swap_chain());
+			}
 			
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Waiting for better times...", omg.what(), current_frame()));
-			mOldResources.emplace_back(recreate_swap_chain());
+			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+			handle_lifetime(recreate_swap_chain());
 			// Just do nothing. Ignore the failure. This frame is lost.
 		}
 		
@@ -473,6 +528,7 @@ namespace gvk
 		std::atomic_bool resolutionUpdated = false;
 		context().dispatch_to_main_thread([&resolutionUpdated]() { resolutionUpdated = true; });
 		context().signal_waiting_main_thread();
+		mPresentQueue->handle().waitIdle();
 		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }
 		
 		auto extent = context().get_resolution_for_window(this);

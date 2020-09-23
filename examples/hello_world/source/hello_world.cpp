@@ -110,10 +110,10 @@ int main() // <== Starting point ==
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Hello World");
-		mainWnd->set_resolution({ 640, 880 });
+		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
-		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->set_number_of_concurrent_frames(1u);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);

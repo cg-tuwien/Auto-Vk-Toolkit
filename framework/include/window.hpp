@@ -10,6 +10,7 @@ namespace gvk
 	public:
 
 		using frame_id_t = int64_t;
+		using outdated_swapchain_t = std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
 		
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
@@ -271,6 +272,13 @@ namespace gvk
 		/**	Convenience-overload to handle_lifetime() */
 		void handle_lifetime(std::optional<avk::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
 
+		/** Pass the resources of an outdated swap chain and have its lifetime automatically handled.
+		 *	@param aOutdatedSwapchain	Resources to be moved into this function and to be lifetime-handled
+		 *	@param aFrameId				The frame these resources are associated with. They will be deleted
+		 *								in frame #current_frame() + number_number_of_frames_in_flight().
+		 */
+		void handle_lifetime(outdated_swapchain_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
+
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
 		 */
@@ -281,6 +289,9 @@ namespace gvk
 		 */
 		std::vector<avk::command_buffer> clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId);
 
+		/** Remove all the outdated swap chain resources which are safe to be removed in this frame. */
+		void clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId);
+		
 		/**
 		 *	Called BEFORE all the render callbacks are invoked.
 		 *	This is where fences are waited on and resources are freed.
@@ -433,6 +444,9 @@ namespace gvk
 		// A command buffer's lifetime lasts until the specified int64_t frame-id + number_of_in_flight_frames()
 		std::deque<std::tuple<frame_id_t, avk::command_buffer>> mLifetimeHandledCommandBuffers;
 
+		// This container handles old swap chain resources which are to be deleted at a certain future frame
+		std::deque<std::tuple<frame_id_t, outdated_swapchain_t>> mOutdatedSwapChains;
+
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
 		avk::queue* mPresentQueue = nullptr;
 
@@ -444,8 +458,5 @@ namespace gvk
 		// Must be consumed EXACTLY ONCE per frame
 		std::optional<std::reference_wrapper<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
 
-		// TODO: Temp
-		std::vector<std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>> mOldResources;
-		
 	};
 }
