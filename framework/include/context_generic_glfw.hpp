@@ -162,11 +162,14 @@ namespace gvk
 		 */
 		void work_off_event_handlers();
 
+		// Polls GLFW input events if there are any
+		void poll_input_events() const { glfwPollEvents(); }
+		
 		// Waits for GLFW input events and pauses the current (=main) thread
-		inline void wait_for_input_events() const { glfwWaitEvents(); }
+		void wait_for_input_events() const { glfwWaitEvents(); }
 
 		// Posts an event so that the waiting on the other thread is ended and the other thread continues
-		inline void signal_waiting_main_thread() const { glfwPostEmptyEvent(); }
+		void signal_waiting_main_thread() const { glfwPostEmptyEvent(); }
 
 		// Activates a specific type of cursor
 		void activate_cursor(window_base* aWindow, cursor aCursorType);

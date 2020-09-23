@@ -1,6 +1,8 @@
 #pragma once
 #include <gvk.hpp>
 
+#define SINGLE_THREADED 1
+
 namespace gvk
 {
 	/**	A composition brings together all of the separate components, which there are
@@ -138,17 +140,29 @@ namespace gvk
 		/** Signal the main thread to start swapping input buffers */
 		static void please_swap_input_buffers(composition* thiz)
 		{
+#if !SINGLE_THREADED
 			{
 				std::scoped_lock<std::mutex> guard(sCompMutex);
 				assert(false == thiz->mInputBufferSwapPending);
 				thiz->mInputBufferSwapPending = true;
 			}
 			context().signal_waiting_main_thread();
+#else
+			thiz->mInputBufferSwapPending = true;
+#endif
+		}
+
+		static void signal_input_buffers_have_been_swapped()
+		{
+#if !SINGLE_THREADED
+			sInputBufferCondVar.notify_one();
+#endif
 		}
 
 		/** Wait on the rendering thread until the main thread has swapped the input buffers */
 		static void wait_for_input_buffers_swapped(composition* thiz)
 		{
+#if !SINGLE_THREADED
 			using namespace std::chrono_literals;
 			
 			std::unique_lock<std::mutex> lk(sCompMutex);
@@ -173,6 +187,14 @@ namespace gvk
 //					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));
 //				}
 //#endif
+#endif
+		}
+
+		static void awake_main_thread()
+		{
+#if !SINGLE_THREADED
+			context().signal_waiting_main_thread(); // Wake up the main thread which is possibly waiting for events and let it do some work
+#endif
 		}
 
 		/** Rendering thread's main function */
@@ -181,13 +203,15 @@ namespace gvk
 			// Used to distinguish between "simulation" and "render"-frames
 			auto frameType = timer_frame_type::none;
 
+#if !SINGLE_THREADED
 			while (!thiz->mShouldStop)
 			{
+#endif
 				thiz->add_pending_elements();
 
 				// signal context
 				context().begin_frame();
-				context().signal_waiting_main_thread(); // Let the main thread do some work in the meantime
+				awake_main_thread(); // Let the main thread do some work in the meantime
 
 				frameType = thiz->mTimer->tick();
 
@@ -209,7 +233,7 @@ namespace gvk
 
 					// signal context
 					context().update_stage_done();
-					context().signal_waiting_main_thread(); // Let the main thread work concurrently
+					awake_main_thread(); // Let the main thread work concurrently
 
 					// Tell the main thread that we'd like to have the new input buffers from A) here:
 					please_swap_input_buffers(thiz);
@@ -234,7 +258,7 @@ namespace gvk
 				{
 					// signal context
 					context().update_stage_done();
-					context().signal_waiting_main_thread(); // Let the main thread work concurrently
+					awake_main_thread(); // Let the main thread work concurrently
 
 					// If not performed from inside the positive if-branch, tell the main thread of our 
 					// input buffer update desire here:
@@ -246,11 +270,12 @@ namespace gvk
 
 				// signal context
 				context().end_frame();
-				context().signal_waiting_main_thread(); // Let the main thread work concurrently
+				awake_main_thread(); // Let the main thread work concurrently
 
 				thiz->remove_pending_elements();
+#if !SINGLE_THREADED
 			}
-
+#endif
 		}
 
 	public:
@@ -328,15 +353,21 @@ namespace gvk
 			// game-/render-loop:
 			mIsRunning = true;
 
+#if !SINGLE_THREADED
 			// off it goes
 			std::thread renderThread(render_thread, this);
+#endif
 			
 			while (!mShouldStop)
 			{
 				context().work_off_all_pending_main_thread_actions();
 				context().work_off_event_handlers();
 
+#if !SINGLE_THREADED
 				std::unique_lock<std::mutex> lk(sCompMutex);
+#else
+				render_thread(this);
+#endif
 				if (mInputBufferSwapPending) {
 					auto* windowForCursorActions = context().window_in_focus();
 					// The buffer which has been updated becomes the buffer which will be consumed in the next frame
@@ -358,19 +389,28 @@ namespace gvk
 				        glfwWaitEvents();
 				    }
 					
+#if !SINGLE_THREADED
 					// resume render_thread:
 					lk.unlock();
-					sInputBufferCondVar.notify_one();
+#endif
+					signal_input_buffers_have_been_swapped();
 				}
 				else {
+#if !SINGLE_THREADED
 					lk.unlock();
+#endif
 				}
 
+#if !SINGLE_THREADED
 				context().wait_for_input_events();
+#else
+				context().poll_input_events();
+#endif
 			}
 
+#if !SINGLE_THREADED
 			renderThread.join();
-
+#endif
 
 			mIsRunning = false;
 
