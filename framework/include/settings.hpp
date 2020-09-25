@@ -52,12 +52,39 @@ namespace gvk
 	 */
 	struct validation_layers
 	{
-		validation_layers(const char* aLayerName = nullptr) : mEnableInRelease{ false }
+		validation_layers() : mEnableInRelease{ false }
 		{
 			mLayers.push_back("VK_LAYER_KHRONOS_validation");
-			if (nullptr != aLayerName) {
+		}
+
+		validation_layers& add_layer(const char* aLayerName)
+		{
+			auto it = std::find(std::begin(mLayers), std::end(mLayers), aLayerName);
+			if (std::end(mLayers) != it) {
 				mLayers.push_back(aLayerName);
 			}
+			else {
+				LOG_INFO(fmt::format("Validation layer '{}' had already been added.", aLayerName));
+			}
+			return *this;
+		}
+
+		validation_layers& remove_layer(const char* aLayerName)
+		{
+			auto it = std::find(std::begin(mLayers), std::end(mLayers), aLayerName);
+			if (std::end(mLayers) != it) {
+				mLayers.erase(it);
+			}
+			else {
+				LOG_INFO(fmt::format("Validation layer '{}' not found.", aLayerName));
+			}
+			return *this;
+		}
+
+		validation_layers& remove_all_layers()
+		{
+			mLayers.clear();
+			return *this;
 		}
 
 		validation_layers& add_extension(const char* aExtensionName)

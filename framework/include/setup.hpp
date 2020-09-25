@@ -36,13 +36,6 @@ namespace gvk
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, validation_layers& aValue, Args&... args)
-	{
-		s.mValidationLayers = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
-	}
-
-	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
 	{
 		s.mRequiredDeviceExtensions = aValue;
@@ -97,7 +90,14 @@ namespace gvk
 		e.push_back(aValue);
 		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
 	}
-	
+
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(validation_layers&)> fu, Args&... args)
+	{
+		fu(s.mValidationLayers);
+		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+	}
+
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
 	{
@@ -126,12 +126,12 @@ namespace gvk
 	 *	- application_name&												... To declare the name of this application
 	 *	- application_version&											... To declare the application version
 	 *	- required_instance_extensions&									... A struct to configure required instance extensions which must be supported by the Vulkan instance and shall be activated.
-	 *	- validation_layers&											... A struct to configure validation layers and validation layer features which shall be activated/deactivated.
 	 *	- required_device_extensions&									... A struct to configure required device extensions which must be supported by the device.
 	 *	- timer_interface& or timer_interface*							... Pointer or reference to timer class which handles gvk::time(). The timer must outlive the runtime of start().
 	 *	- invoker_interface& or invoker_interface*						... Pointer or reference to an invoker which invokes all the invokee's members. The invoker must outlive the runtime of start().
 	 *	- window*														... A window that shall be usable during the runtime of start().
 	 *	- invokee& or invokee*											... Pointer or reference to an invokee which outlives the runtime of start().
+	 *	- std::function<void(validation_layers&)						... A function which can be used to modify the struct containing config for validation layers and validation layer features
 	 *	- std::function<void(vk::PhysicalDeviceFeatures&)>				... A function which can be used to modify the vk::PhysicalDeviceFeatures. Modify the values of the passed vk::PhysicalDeviceFeatues directly!
 	 *	- std::function<void(vk::PhysicalDeviceVulkan12Features&)>		... A function which can be used to modify the vk::PhysicalDeviceVulkan12Features. Modify the values of the passed vk::PhysicalDeviceVulkan12Features directly!
 	 *	- std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)>	... A function which can be used to modify the vk::PhysicalDeviceRayTracingFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingFeaturesKHR directly!
