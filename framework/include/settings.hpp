@@ -59,19 +59,19 @@ namespace gvk
 
 		validation_layers& add_layer(const char* aLayerName)
 		{
-			auto it = std::find(std::begin(mLayers), std::end(mLayers), aLayerName);
-			if (std::end(mLayers) != it) {
+			auto it = std::find(std::begin(mLayers), std::end(mLayers), std::string(aLayerName));
+			if (std::end(mLayers) == it) {
 				mLayers.push_back(aLayerName);
 			}
 			else {
-				LOG_INFO(fmt::format("Validation layer '{}' had already been added.", aLayerName));
+				LOG_INFO(fmt::format("Validation layer '{}' was already added.", std::string(aLayerName)));
 			}
 			return *this;
 		}
 
 		validation_layers& remove_layer(const char* aLayerName)
 		{
-			auto it = std::find(std::begin(mLayers), std::end(mLayers), aLayerName);
+			auto it = std::find(std::begin(mLayers), std::end(mLayers), std::string(aLayerName));
 			if (std::end(mLayers) != it) {
 				mLayers.erase(it);
 			}
