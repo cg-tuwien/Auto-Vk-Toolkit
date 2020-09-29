@@ -4,99 +4,37 @@
 
 namespace gvk
 {
-	// TODO: Design-wise, these *_handler classes are somewhat ugly and perform the same work multiple times
-	//       It would probably be better to refactor the whole code so that it is not like the current version:
-	//
-	//			.on_swapchain_resized(which)
-	//				.update(what)
-	//				.update(what_else)
-	//
-	//       But instead like this:
-	//
-	//			.update(what)
-	//				.on_swapchain_resized(which);
-	//			.update(what
-	//				.on_swapchain_resized(which);
-	//
-	//		The point is to have the actual updater-code within class updater and not multiple times
-	//		in the separate *_handler classes.
-	//		There's a good chance that there are even better approaches.
-	//		
+	class updater;
+	using event_t = std::variant<std::shared_ptr<event>, files_changed_event, swapchain_changed_event, swapchain_resized_event>;
+	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline>;
 
-
-	
-	// Helper-class used in class updater that handles updates after "swapchain resized" events
-	class swapchain_resized_handler
+	struct update_and_determine_fired
 	{
-	public:
-		swapchain_resized_handler(window* aWindow);
-		
-		// Request updated for pipelines (to be used during setup):
-		swapchain_resized_handler& update(avk::graphics_pipeline aPipeline);
-
-		// To be called each frame:
-		void analyze_and_update();
-
-	private:
-		window* mWindow;
-		vk::Extent2D mPrevExtent;
-		// Lists of active resources that are handled and updated
-		std::vector<std::tuple<avk::graphics_pipeline>> mGraphicsPipelines;
-
-		// Tuples of <frame-id, resource> where the frame-id indicates in which frame a resource shall be destroyed
-		std::deque<std::tuple<gvk::window::frame_id_t, avk::graphics_pipeline>> mGraphicsPipelinesToBeDestroyed;
+		void operator()(std::shared_ptr<event>& e)	{ mFired = e->update(mEventData); }
+		void operator()(files_changed_event& e)		{ mFired = e.update(mEventData); }
+		void operator()(swapchain_changed_event& e)	{ mFired = e.update(mEventData); }
+		void operator()(swapchain_resized_event& e)	{ mFired = e.update(mEventData); }
+		event_data mEventData;
+		bool mFired = false;
 	};
 
-	// Helper-class used in class updater that handles updates after "swapchain changed" events
-	class swapchain_changed_handler
+	struct recreate_updatee
 	{
-	public:
-		swapchain_changed_handler(window* aWindow);
-		
-		// Request updated for pipelines (to be used during setup):
-		swapchain_changed_handler& update(avk::graphics_pipeline aPipeline);
-
-		// To be called each frame:
-		void analyze_and_update();
-
-	private:
-		window* mWindow;
-		VkImageView mPrevImageViewHandle;
-		
-		// Lists of active resources that are handled and updated
-		std::vector<std::tuple<avk::graphics_pipeline>> mGraphicsPipelines;
-
-		// Tuples of <frame-id, resource> where the frame-id indicates in which frame a resource shall be destroyed
-		std::deque<std::tuple<gvk::window::frame_id_t, avk::graphics_pipeline>> mGraphicsPipelinesToBeDestroyed;
+		void operator()(avk::graphics_pipeline& u);
+		void operator()(avk::compute_pipeline& u);
+		void operator()(avk::ray_tracing_pipeline& u);
+		event_data& mEventData;
+		std::optional<updatee_t> mUpdateeToCleanUp;
 	};
 
-	// Helper-class used in class updater that handles updates after "shader files changed" events
-	class shader_files_changed_handler : public FW::FileWatchListener
+	struct updater_config_proxy
 	{
-	public:
-		shader_files_changed_handler(std::vector<std::string> aPathsToWatch);
-		~shader_files_changed_handler();
+		template <typename... Updatees>
+		void update(Updatees... updatees);
 		
-		// Request updated for pipelines (to be used during setup):
-		shader_files_changed_handler& update(avk::graphics_pipeline aPipeline);
-
-		// To be called each frame:
-		void analyze_and_update();
-
-		void handleFileAction(FW::WatchID watchid, const FW::String& dir, const FW::String& filename, FW::Action action) override;
-	private:
-		window::frame_id_t mMaxConcurrentFrames;
-		window::frame_id_t mFrameCounter;
-		std::vector<std::string> mPathsToWatch;
-		
-		// Lists of active resources that are handled and updated
-		std::vector<std::tuple<avk::graphics_pipeline>> mGraphicsPipelines;
-
-		// Tuples of <frame-id, resource> where the frame-id indicates in which frame a resource shall be destroyed
-		std::deque<std::tuple<gvk::window::frame_id_t, avk::graphics_pipeline>> mGraphicsPipelinesToBeDestroyed;
-
-		FW::FileWatcher mFileWatcher;
-		std::vector<FW::WatchID> mWatchIds;
+		updater* mUpdater;
+		uint64_t mEventIndicesBitset;
+		window::frame_id_t mTtl;
 	};
 
 	// An updater that can handle different types of updates
@@ -108,23 +46,72 @@ namespace gvk
 		
 		void render() override;
 
-		swapchain_resized_handler& on_swapchain_resized(window* aWindow);
-		swapchain_changed_handler& on_swapchain_changed(window* aWindow);
-
-		template <typename T>
-		shader_files_changed_handler& on_shader_files_changed(const T& aPipeline)
+		template <typename E>
+		uint8_t get_event_index_and_possibly_add_event(E e)
 		{
-			std::vector<std::string> shaderLoadPaths;
-			const auto& shaders = aPipeline.shaders();
-			for (const auto& shader : shaders) {
-				shaderLoadPaths.emplace_back(shader.actual_load_path());
+			auto it = std::find_if(std::begin(mEvents), std::end(mEvents), [&e](auto& x){
+				if (!std::holds_alternative<E>(x)) {
+					return false;
+				}
+				return std::get<E>(x) == e;
+			});
+			if (std::end(mEvents) != it) {
+				return static_cast<uint8_t>(std::distance(std::begin(mEvents), it));
 			}
-			return mShaderFilesChangedHandlers.emplace_back(std::move(shaderLoadPaths));
+			if (mEvents.size() == cMaxEvents) {
+				throw gvk::runtime_error(fmt::format("There can not be more than {} events handled by one updater instance. Sorry.", cMaxEvents));
+			}
+			mEvents.emplace_back(std::move(e));
+			return static_cast<uint8_t>(mEvents.size() - 1);
 		}
 
+		window::frame_id_t get_ttl(std::shared_ptr<event>& e)	{ return 0; }
+		window::frame_id_t get_ttl(files_changed_event& e)		{ return 0; }
+		window::frame_id_t get_ttl(swapchain_changed_event& e)	{ return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_resized_event& e)	{ return e.get_window()->number_of_frames_in_flight(); }
+
+		template <typename... Events>
+		updater_config_proxy on(Events... events)
+		{
+			// determine ttl
+			window::frame_id_t ttl = 0;
+			((ttl = std::max(ttl, get_ttl(events))), ...);
+			if (0 == ttl) {
+				gvk::context().execute_for_each_window([&ttl](window* w){
+					ttl = std::max(ttl, w->number_of_frames_in_flight());
+				});
+			}
+			
+			updater_config_proxy result{this, 0u, ttl};
+			((result.mEventIndicesBitset |= (uint64_t{1} << get_event_index_and_possibly_add_event(std::move(events)))), ...);
+			return result;
+		}
+
+		void add_updatee(uint64_t aEventsBitset, updatee_t aUpdatee, window::frame_id_t aTtl);
+
 	private:
-		std::vector<swapchain_resized_handler> mSwapchainResizedHandlers;
-		std::vector<swapchain_changed_handler> mSwapchainChangedHandlers;
-		std::deque<shader_files_changed_handler> mShaderFilesChangedHandlers;
+		const size_t cMaxEvents = 64;
+		window::frame_id_t mCurrentUpdaterFrame = 0;
+
+		// List of events. Must not be something that moves elements around once initialized.
+		// (For some event-classes, it would work, but for some it does not, like for files_changed_event, which installs a callback to itself.)
+		std::deque<event_t> mEvents;
+
+		// List of resources to be updated + additional data. Contents of the tuple as follows:
+		//          [0]: event-mapping ... Which events cause this updatee to be updated
+		//          [1]: the updatee ..... The thing to be updated (i.e. have its guts swapped under the hood)
+		//          [2]: time to live .... Number of "frames" an updatee is kept alive before it is destroyed,
+		//			                       where "frames" actually means: updater's render() invocations.
+		std::vector<std::tuple<uint64_t, updatee_t, window::frame_id_t>> mUpdatees;
+
+		// List will be cleaned from the front. Resources will be cleaned if they have surpassed the frame-id
+		// stored in the tuple's first element. The resource to be deleted is stored in the tuple's second element.
+		std::deque<std::tuple<window::frame_id_t, updatee_t>> mUpdateesToCleanUp;
 	};
+
+	template <typename... Updatees>
+	void updater_config_proxy::update(Updatees... updatees)
+	{
+		(mUpdater->add_updatee(mEventIndicesBitset, updatees, mTtl), ...);
+	}
 }

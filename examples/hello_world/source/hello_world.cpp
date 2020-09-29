@@ -18,14 +18,17 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) // But not in presentable format, because ImGui comes after
 		);
 
+#if _DEBUG
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-
-		mUpdater.on_swapchain_resized(gvk::context().main_window()).update(mPipeline);
-
-		mUpdater.on_shader_files_changed(*mPipeline).update(mPipeline);
+		mUpdater.on(
+				gvk::swapchain_resized_event(gvk::context().main_window()),
+				gvk::shader_files_changed_event(mPipeline)
+			)
+			.update(mPipeline);
 		
 		gvk::current_composition()->add_element(mUpdater);
-
+#endif
+		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([](){
@@ -97,7 +100,9 @@ private: // v== Member variables ==v
 
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
+#if _DEBUG
 	gvk::updater mUpdater;
+#endif
 
 }; // draw_a_triangle_app
 

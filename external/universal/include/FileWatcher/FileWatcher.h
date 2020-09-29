@@ -95,6 +95,11 @@ namespace FW
 		///
 		FileWatcher();
 
+		FileWatcher(FileWatcher&& other) noexcept;
+		FileWatcher(const FileWatcher& other) = delete;
+		FileWatcher& operator=(FileWatcher&& other) noexcept;
+		FileWatcher& operator=(const FileWatcher& other) = delete;
+		
 		///
 		///
 		virtual ~FileWatcher();

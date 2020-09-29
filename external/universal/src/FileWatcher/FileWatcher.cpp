@@ -43,11 +43,27 @@ namespace FW
 		mImpl = new FILEWATCHER_IMPL();
 	}
 
+	FileWatcher::FileWatcher(FileWatcher&& other) noexcept
+	{
+		mImpl = other.mImpl;
+		other.mImpl = nullptr;
+	}
+	
+	FileWatcher& FileWatcher::operator=(FileWatcher&& other) noexcept
+	{
+		mImpl = other.mImpl;
+		other.mImpl = nullptr;
+		return *this;
+	}
+	
+	
 	//--------
 	FileWatcher::~FileWatcher()
 	{
-		delete mImpl;
-		mImpl = 0;
+		if (nullptr != mImpl) {
+			delete mImpl;
+		}
+		mImpl = nullptr;
 	}
 
 	//--------

@@ -98,7 +98,10 @@
       <Filter>gears-vk_src\data</Filter>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\updater.cpp">
-      <Filter>gears-vk_src\utils</Filter>
+      <Filter>gears-vk_src\updater</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\files_changed_event.cpp">
+      <Filter>gears-vk_src\updater</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -426,8 +429,23 @@
     <ClInclude Include="..\..\framework\include\model_types.hpp">
       <Filter>gears-vk_include\data</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\swapchain_resized_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\swapchain_changed_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\files_changed_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\framework\include\updater.hpp">
-      <Filter>gears-vk_include\utils</Filter>
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\event_data.hpp">
+      <Filter>gears-vk_include\updater</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -490,6 +508,12 @@
     </Filter>
     <Filter Include="gears-vk_src\utils">
       <UniqueIdentifier>{c52831a5-f770-4498-84d8-f1957757ebad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_include\updater">
+      <UniqueIdentifier>{0d850567-16cc-4bcc-a93d-64942590e522}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gears-vk_src\updater">
+      <UniqueIdentifier>{2dda539a-e6b0-4a2c-9780-d2135446e605}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

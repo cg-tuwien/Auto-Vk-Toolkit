@@ -2,229 +2,92 @@
 
 namespace gvk
 {
-	swapchain_resized_handler::swapchain_resized_handler(window* aWindow)
-		: mWindow{ aWindow }
-		, mPrevExtent{ aWindow->swap_chain_extent() }
-	{		
-	}
-	
-	swapchain_resized_handler& swapchain_resized_handler::update(avk::graphics_pipeline aPipeline)
+	void recreate_updatee::operator()(avk::graphics_pipeline& u)
 	{
-		mGraphicsPipelines.emplace_back(aPipeline);
-		return *this;
-	}
-
-	void swapchain_resized_handler::analyze_and_update()
-	{
-		auto curFrameId = mWindow->current_frame();
-		auto curExtent = mWindow->swap_chain_extent();
-
-		if (mPrevExtent != curExtent) {
-			for (auto& tpl : mGraphicsPipelines) {
-				auto newPipeline = gvk::context().create_graphics_pipeline_from_template(
-					std::get<avk::graphics_pipeline>(tpl),
-					[prevExtent = mPrevExtent, curExtent](avk::graphics_pipeline_t& aPreparedPipeline){
-						const float oldWidth = prevExtent.width;
-						const float oldHeight = prevExtent.height;
-						for (auto& vp : aPreparedPipeline.viewports()) {
-							if (std::abs(oldWidth - vp.width) < std::numeric_limits<float>::epsilon() && std::abs(oldHeight - vp.height) < std::numeric_limits<float>::epsilon()) {
-								vp.width = curExtent.width;
-								vp.height = curExtent.height;
-							}
-						}
-						for (auto& sc : aPreparedPipeline.scissors()) {
-							if (sc.extent == prevExtent) {
-								sc.extent = curExtent;
-							}
-						}
-					}
-				);
-				newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
-				std::swap(*newPipeline, *std::get<avk::graphics_pipeline>(tpl));
-				// bye bye
-				mGraphicsPipelinesToBeDestroyed.emplace_back(mWindow->current_frame() + mWindow->number_of_frames_in_flight(), std::move(newPipeline)); // new == old by now
-				// TODO: delete from mGraphicsPipelinesToBeDestroyed in #mWindow->number_of_frames_in_flight() frames into the future
+		auto newPipeline = gvk::context().create_graphics_pipeline_from_template(u, [&ed = mEventData](avk::graphics_pipeline_t& aPreparedPipeline){
+			for (auto& vp : aPreparedPipeline.viewports()) {
+				auto size = ed.get_extent_for_old_extent(vp.width, vp.height);
+				vp.width = std::get<0>(size);
+				vp.height = std::get<1>(size);
 			}
-		}
-
-		// See if we have any resources to clean up:
-		if (!mGraphicsPipelinesToBeDestroyed.empty()) {
-			// It should be safe to assume that all elements added to this vector are ordered w.r.t. the frame numbers where they may be destroyed
-			auto it = std::upper_bound(
-				std::begin(mGraphicsPipelinesToBeDestroyed), std::end(mGraphicsPipelinesToBeDestroyed),
-				curFrameId, [](window::frame_id_t fid, const auto& tpl){
-					return fid < std::get<window::frame_id_t>(tpl); 
-				}
-			);
-			mGraphicsPipelinesToBeDestroyed.erase(std::begin(mGraphicsPipelinesToBeDestroyed), it);
-		}
-		
-		mPrevExtent = curExtent;
-	}
-
-
-	swapchain_changed_handler::swapchain_changed_handler(window* aWindow)
-		: mWindow{ aWindow }
-		, mPrevImageViewHandle{ aWindow->swap_chain_image_view_at_index(0).handle() }
-	{		
-	}
-	
-	swapchain_changed_handler& swapchain_changed_handler::update(avk::graphics_pipeline aPipeline)
-	{
-		mGraphicsPipelines.emplace_back(aPipeline);
-		return *this;
-	}
-
-	void swapchain_changed_handler::analyze_and_update()
-	{
-		auto curFrameId = mWindow->current_frame();
-		auto curExtent = mWindow->swap_chain_extent();
-		auto curImageViewHandle = mWindow->swap_chain_image_view_at_index(0).handle();
-
-		if (mPrevImageViewHandle != curImageViewHandle) {
-		//
-		//
-		//   TODO: vvvv  All this code is mostly copy&pasted from swapchain_resized_handler => REFACTOR!  vvv
-		//
-		//
-			for (auto& tpl : mGraphicsPipelines) {
-				auto newPipeline = gvk::context().create_graphics_pipeline_from_template(
-					std::get<avk::graphics_pipeline>(tpl),
-					[curExtent](avk::graphics_pipeline_t& aPreparedPipeline){
-						for (auto& vp : aPreparedPipeline.viewports()) {
-							vp.width = curExtent.width; // TODO: Update ALL viewports? Can that be a good idea? Probably not... Q: How to find out what exactly to update?
-							vp.height = curExtent.height;
-						}
-						for (auto& sc : aPreparedPipeline.scissors()) {
-							sc.extent = curExtent; // TODO: Update ALL scissors? Can that be a good idea? Probably not... Q: How to find out what exactly to update?
-						}
-					}
-				);
-				newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
-				std::swap(*newPipeline, *std::get<avk::graphics_pipeline>(tpl));
-				// bye bye
-				mGraphicsPipelinesToBeDestroyed.emplace_back(mWindow->current_frame() + mWindow->number_of_frames_in_flight(), std::move(newPipeline)); // new == old by now
-				// TODO: delete from mGraphicsPipelinesToBeDestroyed in #mWindow->number_of_frames_in_flight() frames into the future
+			for (auto& sc : aPreparedPipeline.scissors()) {
+				sc.extent = ed.get_extent_for_old_extent(sc.extent);
 			}
-		}
-		
-		// See if we have any resources to clean up:
-		if (!mGraphicsPipelinesToBeDestroyed.empty()) {
-			// It should be safe to assume that all elements added to this vector are ordered w.r.t. the frame numbers where they may be destroyed
-			auto it = std::upper_bound(
-				std::begin(mGraphicsPipelinesToBeDestroyed), std::end(mGraphicsPipelinesToBeDestroyed),
-				curFrameId, [](window::frame_id_t fid, const auto& tpl){
-					return fid < std::get<window::frame_id_t>(tpl); 
-				}
-			);
-			mGraphicsPipelinesToBeDestroyed.erase(std::begin(mGraphicsPipelinesToBeDestroyed), it);
-		}
-		//
-		//
-		//   TODO: ^^^^  All this code is just copy&pasted from swapchain_resized_handler => REFACTOR!  ^^^^
-		//
-		//
-		
-		mPrevImageViewHandle = curImageViewHandle;
-	}
-
-	shader_files_changed_handler::shader_files_changed_handler(std::vector<std::string> aPathsToWatch)
-		: mMaxConcurrentFrames{ 1 }
-		, mFrameCounter{ 0 }
-		, mPathsToWatch{ std::move(aPathsToWatch) }
-	{
-		// Just iterate through all the windows to find out the maximum number of concurrent frames for our lifetime handling:
-		context().execute_for_each_window([this](window* w){
-			mMaxConcurrentFrames = std::max(mMaxConcurrentFrames, w->number_of_frames_in_flight());
 		});
-		
-		// File watcher operates on folders, not files => get all unique folders
-		std::set<std::string> uniqueFolders;
-		for (const auto& file : mPathsToWatch)
-		{
-			auto folder = avk::extract_base_path(file);
-			uniqueFolders.insert(folder);
-		}
-		// ...and pass them to the file watcher
-		for (const auto& folder : uniqueFolders)
-		{
-			mWatchIds.push_back(mFileWatcher.addWatch(folder, this));
-		}
+		newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
+		std::swap(*newPipeline, *u);
+		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
-
-	shader_files_changed_handler::~shader_files_changed_handler()
+	
+	void recreate_updatee::operator()(avk::compute_pipeline& u)
 	{
-		for (const auto& watchId : mWatchIds)
-		{
-			mFileWatcher.removeWatch(watchId);
-		}
+		auto newPipeline = gvk::context().create_compute_pipeline_from_template(u, [&ed = mEventData](avk::compute_pipeline_t& aPreparedPipeline){
+			// TODO: Something to alter here?
+		});
+		newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
+		std::swap(*newPipeline, *u);
+		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
-		
-	shader_files_changed_handler& shader_files_changed_handler::update(avk::graphics_pipeline aPipeline)
+	
+	void recreate_updatee::operator()(avk::ray_tracing_pipeline& u)
 	{
-		mGraphicsPipelines.emplace_back(aPipeline);
-		return *this;	
-	}
-
-	void shader_files_changed_handler::analyze_and_update()
-	{
-		mFileWatcher.update();
-
-		auto curFrameId = mFrameCounter;
-		
-		// See if we have any resources to clean up:
-		if (!mGraphicsPipelinesToBeDestroyed.empty()) {
-			// It should be safe to assume that all elements added to this vector are ordered w.r.t. the frame numbers where they may be destroyed
-			auto it = std::upper_bound(
-				std::begin(mGraphicsPipelinesToBeDestroyed), std::end(mGraphicsPipelinesToBeDestroyed),
-				curFrameId, [](window::frame_id_t fid, const auto& tpl){
-					return fid < std::get<window::frame_id_t>(tpl); 
-				}
-			);
-			mGraphicsPipelinesToBeDestroyed.erase(std::begin(mGraphicsPipelinesToBeDestroyed), it);
-		}
-
-		++mFrameCounter;
-	}
-
-	void shader_files_changed_handler::handleFileAction(FW::WatchID watchid, const FW::String& dir, const FW::String& filename, FW::Action action)
-	{
-		if (FW::Actions::Modified == action)
-		{
-			LOG_INFO(fmt::format("File '{}' in directory '{}' has been modified => going to re-create pipelines.", filename, dir));
-			
-			for (auto& tpl : mGraphicsPipelines) {
-				auto newPipeline = gvk::context().create_graphics_pipeline_from_template(std::get<avk::graphics_pipeline>(tpl));
-				newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
-				std::swap(*newPipeline, *std::get<avk::graphics_pipeline>(tpl));
-				// bye bye
-				mGraphicsPipelinesToBeDestroyed.emplace_back(mFrameCounter + mMaxConcurrentFrames, std::move(newPipeline)); // new == old by now
-			}
-		}
-		// don't care about the other cases
+		auto newPipeline = gvk::context().create_ray_tracing_pipeline_from_template(u, [&ed = mEventData](avk::ray_tracing_pipeline_t& aPreparedPipeline){
+			// TODO: Something to alter here?
+		});
+		newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
+		std::swap(*newPipeline, *u);
+		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
 
 	void updater::render()
 	{
-		for (auto& handler : mSwapchainResizedHandlers) {
-			handler.analyze_and_update();
+		// See if we have any resources to clean up:
+		if (!mUpdateesToCleanUp.empty()) {
+			// If there are different TTL values, it might happen that some resources are not cleaned at the earliest time, but a bit later.
+			auto it = std::upper_bound(
+				std::begin(mUpdateesToCleanUp), std::end(mUpdateesToCleanUp),
+				mCurrentUpdaterFrame, [](window::frame_id_t fid, const auto& tpl){
+					return fid < std::get<window::frame_id_t>(tpl); 
+				}
+			);
+			mUpdateesToCleanUp.erase(std::begin(mUpdateesToCleanUp), it);
 		}
-		for (auto& handler : mSwapchainChangedHandlers) {
-			handler.analyze_and_update();
+
+		// First of all, perform a static update due to strange FileWatcher behavior :-/
+		files_changed_event::update();
+		// Then perform the individual updates:
+		// 
+		// See which events have fired:
+		uint64_t eventsFired = 0;
+		assert(cMaxEvents >= mEvents.size());
+		update_and_determine_fired determinator{{}, false};
+		const auto n = std::min(cMaxEvents, mEvents.size());
+		for (size_t i = 0; i < n; ++i) {
+			determinator.mFired = false;
+			std::visit(determinator, mEvents[i]);
+			if (determinator.mFired) {
+				eventsFired |= (uint64_t{1} << i);
+			}
 		}
-		for (auto& handler : mShaderFilesChangedHandlers) {
-			handler.analyze_and_update();
+
+		// Update all who had at least one of their relevant events fire:
+		for (auto& tpl : mUpdatees) {
+			bool needsUpdate = (std::get<uint64_t>(tpl) & eventsFired) != 0;
+			if (needsUpdate) {
+				recreate_updatee recreator{determinator.mEventData, {}};
+				std::visit(recreator, std::get<updatee_t>(tpl));
+				if (recreator.mUpdateeToCleanUp.has_value()) {
+					mUpdateesToCleanUp.emplace_back(mCurrentUpdaterFrame + std::get<window::frame_id_t>(tpl), std::move(recreator.mUpdateeToCleanUp.value()));
+				}
+			}
 		}
+
+		++mCurrentUpdaterFrame;
 	}
 	
-	swapchain_resized_handler& updater::on_swapchain_resized(window* aWindow)
+	void updater::add_updatee(uint64_t aEventsBitset, updatee_t aUpdatee, window::frame_id_t aTtl)
 	{
-		return mSwapchainResizedHandlers.emplace_back(aWindow);
-	}
-
-	swapchain_changed_handler& updater::on_swapchain_changed(window* aWindow)
-	{
-		return mSwapchainChangedHandlers.emplace_back(aWindow);
+		mUpdatees.emplace_back(aEventsBitset, std::move(aUpdatee), aTtl);
 	}
 
 }

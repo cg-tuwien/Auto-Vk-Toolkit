@@ -195,6 +195,17 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		mPipeline->print_shader_binding_table_groups();
+
+#if _DEBUG
+		mPipeline.enable_shared_ownership(); // Make it usable with the updater
+		mUpdater.on(
+				gvk::swapchain_resized_event(gvk::context().main_window()),
+				gvk::shader_files_changed_event(mPipeline)
+			)
+			.update(mPipeline);
+		
+		gvk::current_composition()->add_element(mUpdater);
+#endif
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -374,14 +385,15 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mIndexBufferViews;
 	std::vector<avk::buffer_view> mTexCoordBufferViews;
 
-	std::vector<std::shared_ptr<avk::descriptor_set>> mDescriptorSet;
-
 	glm::vec3 mLightDir = {0.0f, -1.0f, 0.0f};
 	
 	avk::ray_tracing_pipeline mPipeline;
 	avk::graphics_pipeline mGraphicsPipeline;
 	gvk::quake_camera mQuakeCam;
-
+	
+#if _DEBUG
+	gvk::updater mUpdater;
+#endif
 }; // ray_tracing_triangle_meshes_app
 
 int main() // <== Starting point ==
@@ -390,6 +402,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Real-Time Ray Tracing - Triangle Meshes Example");
 		mainWnd->set_resolution({ 1920, 1080 });
+		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();

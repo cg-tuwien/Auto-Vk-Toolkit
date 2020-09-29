@@ -153,6 +153,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(1, 0, mMaterialBuffer)
 		);
 
+#if _DEBUG
+		mPipeline.enable_shared_ownership(); // Make it usable with the updater
+		mUpdater.on(
+				gvk::swapchain_resized_event(gvk::context().main_window()),
+				gvk::shader_files_changed_event(mPipeline)
+			)
+			.update(mPipeline);
+		
+		gvk::current_composition()->add_element(mUpdater);
+#endif
+
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
@@ -278,6 +289,10 @@ private: // v== Member variables ==v
 
 	glm::vec3 mScale;
 
+#if _DEBUG
+	gvk::updater mUpdater;
+#endif
+
 }; // model_loader_app
 
 int main() // <== Starting point ==
@@ -286,6 +301,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Model Loader");
 		mainWnd->set_resolution({ 640, 480 });
+		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments({ 
 			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
 		});
