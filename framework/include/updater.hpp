@@ -6,7 +6,7 @@ namespace gvk
 {
 	class updater;
 	using event_t = std::variant<std::shared_ptr<event>, files_changed_event, swapchain_changed_event, swapchain_resized_event>;
-	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline>;
+	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view>;
 
 	struct update_and_determine_fired
 	{
@@ -23,6 +23,8 @@ namespace gvk
 		void operator()(avk::graphics_pipeline& u);
 		void operator()(avk::compute_pipeline& u);
 		void operator()(avk::ray_tracing_pipeline& u);
+		void operator()(avk::image& u);
+		void operator()(avk::image_view& u);
 		event_data& mEventData;
 		std::optional<updatee_t> mUpdateeToCleanUp;
 	};

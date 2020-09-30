@@ -597,6 +597,17 @@ namespace gvk
 			ref.enable_shared_ownership();
 			std::swap(ref, mBackBuffers[i]);
 		}
+
+		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
+		for (auto& bb : mBackBuffers) {
+			const auto n = bb->image_views().size();
+			assert(n == get_renderpass().attachment_descriptions().size());
+			for (size_t i = 0; i < n; ++i) {
+				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass().attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
+			}
+		}
+
+		// TODO: There is so much copy&pasted => it needs some refactoring to re-use some of the code :-/
 		
 		return std::forward_as_tuple(std::move(newSwapChain), std::move(newImageViews), newRenderpass, newFramebuffers); // new == old by now
 	}	

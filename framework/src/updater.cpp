@@ -39,6 +39,48 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
 
+	void recreate_updatee::operator()(avk::image& u)
+	{
+		auto newImage = gvk::context().create_image_from_template(u, [&ed = mEventData](avk::image_t& aPreparedImage) {
+			if (aPreparedImage.depth() == 1u) {
+				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
+				aPreparedImage.config().extent.width  = newExtent.width;
+				aPreparedImage.config().extent.height = newExtent.height;
+			}
+			else {
+				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+			}
+		});
+		newImage.enable_shared_ownership();
+		newImage->transition_to_layout(); // Wait idle... what else could we do?
+		std::swap(*newImage, *u);
+		mUpdateeToCleanUp = std::move(newImage);
+	}
+
+	void recreate_updatee::operator()(avk::image_view& u)
+	{
+		auto currentLayout = u->get_image().current_layout();
+		
+		auto newImageView = gvk::context().create_image_view_from_template(u, [&ed = mEventData](avk::image_t& aPreparedImage) {
+			if (aPreparedImage.depth() == 1u) {
+				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
+				aPreparedImage.config().extent.width  = newExtent.width;
+				aPreparedImage.config().extent.height = newExtent.height;
+			}
+			else {
+				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+			}
+		}, [&ed = mEventData](avk::image_view_t& aPreparedImageView) {
+			// Nothing to do here
+		});
+		newImageView.enable_shared_ownership();
+		
+		newImageView->get_image().transition_to_layout(currentLayout); // Wait idle... what else could we do?
+
+		std::swap(*newImageView, *u);
+		mUpdateeToCleanUp = std::move(newImageView);
+	}
+	
 	void updater::render()
 	{
 		// See if we have any resources to clean up:

@@ -164,13 +164,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		const auto wdth = gvk::context().main_window()->resolution().x;
 		const auto hght = gvk::context().main_window()->resolution().y;
 		const auto frmt = gvk::format_from_window_color_buffer(mainWnd);
+
 		for (decltype(fif) i = 0; i < fif; ++i) {
-			mOffscreenImageViews.emplace_back(
-				gvk::context().create_image_view(
-					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
-				)
-			);
-			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler()));
+			auto offscreenImage = gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image);
+			offscreenImage->transition_to_layout({}, avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler()));
+			mOffscreenImageViews.emplace_back(gvk::context().create_image_view(std::move(offscreenImage)));
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		}
 
@@ -198,11 +196,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 #if _DEBUG
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-		mUpdater.on(
-				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
-			)
-			.update(mPipeline);
+
+		for (auto& oiv : mOffscreenImageViews) {
+			oiv.enable_shared_ownership();
+			mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
+		}
+		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		
 		gvk::current_composition()->add_element(mUpdater);
 #endif
