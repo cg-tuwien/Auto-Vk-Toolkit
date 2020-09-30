@@ -34,12 +34,12 @@
 				</TextBlock>
 				<TextBlock>
 					<Run Text="real-time rendering framework" />
-					<Run Text="cg_base," FontWeight="Bold"/>
+					<Run Text="Gears-Vk," FontWeight="Bold"/>
 					<Run Text="available at:" />
 				</TextBlock>
 				<TextBlock>
-					<Hyperlink NavigateUri="https://github.com/johannesugb/CG-Base" RequestNavigate="Hyperlink_RequestNavigate">
-						johannesugb/CG-Base on GitHub
+					<Hyperlink NavigateUri="https://github.com/cg-tuwien/Gears-Vk" RequestNavigate="Hyperlink_RequestNavigate">
+						github.com/cg-tuwien/Gears-Vk
 					</Hyperlink>
 				</TextBlock>
 			</StackPanel>
