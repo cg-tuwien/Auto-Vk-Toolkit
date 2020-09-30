@@ -68,10 +68,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		// Create a host-coherent buffer for the matrices
-		mUbo = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, {},
-			avk::uniform_buffer_meta::create_from_data(MatricesForUbo{})
-		);
+		auto fif = gvk::context().main_window()->number_of_frames_in_flight();
+		for (decltype(fif) i = 0; i < fif; ++i) {
+			mUbo.emplace_back(gvk::context().create_buffer(
+				avk::memory_usage::host_coherent, {},
+				avk::uniform_buffer_meta::create_from_data(MatricesForUbo{})
+			));
+		}
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = gvk::context().create_image_sampler(
@@ -109,8 +112,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::culling_mode::disabled,
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
-			avk::descriptor_binding(0, 0, mUbo),
-			avk::descriptor_binding(0, 1, mInputImageAndSampler) // Just take any image_sampler, as this is just used to describe the pipeline's layout.
+			avk::descriptor_binding(0, 0, mUbo[0]),	             // Just take any UBO, as this is just used to describe the pipeline's layout.
+			avk::descriptor_binding(0, 1, mInputImageAndSampler) 
 		);
 
 		// Create 3 compute pipelines:
@@ -148,58 +151,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 		
-		// We are going to pre-record command buffers.
-		// In this case: ONE PER BACKBUFFER, not per frame in flight!
-		const auto w = gvk::context().main_window()->swap_chain_extent().width;
-		const auto halfW = w * 0.5f;
-		const auto h = gvk::context().main_window()->swap_chain_extent().height;
-		const auto numBackbuffers = gvk::context().main_window()->number_of_swapchain_images();
-		for (size_t i = 0; i < numBackbuffers; ++i) {
-			auto* mainWnd = gvk::context().main_window();
-			auto& commandPool = gvk::context().get_command_pool_for_reusable_command_buffers(*mQueue);
-		
-			auto commandBuffer = commandPool->alloc_command_buffer();
-			commandBuffer->begin_recording();
-			
-			// Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
-			commandBuffer->establish_image_memory_barrier(
-				mTargetImageAndSampler->get_image_view()->get_image(),
-				avk::pipeline_stage::compute_shader, 
-				avk::pipeline_stage::fragment_shader,
-				avk::memory_access::shader_buffers_and_images_write_access, 
-				avk::memory_access::shader_buffers_and_images_read_access
-			);
-
-			// Prepare some stuff:
-			auto vpLeft = vk::Viewport{0.0f, 0.0f, halfW, static_cast<float>(h)};
-			auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
-
-			// Begin drawing:
-			commandBuffer->begin_render_pass_for_framebuffer(mGraphicsPipeline->get_renderpass(), mainWnd->backbuffer_at_index(i));
-			commandBuffer->bind_pipeline(mGraphicsPipeline);
-
-			// Draw left viewport:
-			commandBuffer->handle().setViewport(0, 1, &vpLeft);
-
-			commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-				avk::descriptor_binding(0, 0, mUbo),
-				avk::descriptor_binding(0, 1, mInputImageAndSampler)
-			}));
-			commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
-
-			// Draw right viewport (post compute)
-			commandBuffer->handle().setViewport(0, 1, &vpRight);
-			commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-				avk::descriptor_binding(0, 0, mUbo),
-				avk::descriptor_binding(0, 1, mTargetImageAndSampler)
-			}));
-			commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
-
-			commandBuffer->end_render_pass();
-			commandBuffer->end_recording();
-			mCmdBfrs.push_back(std::move(commandBuffer));
-		}
-		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
@@ -231,18 +182,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		// Update the UBO's data:
-		auto* mainWnd = gvk::context().main_window();
-		const auto w = mainWnd->swap_chain_extent().width;
-		const auto h = mainWnd->swap_chain_extent().height;
-		MatricesForUbo uboVS{};
-		uboVS.projection = glm::perspective(glm::radians(60.0f), w * 0.5f / h, 0.1f, 256.0f);
-		uboVS.model = glm::translate(glm::mat4{1.0f}, glm::vec3(0.0f, 0.0f, -3.0));
-		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(gvk::time().time_since_start() * mRotationSpeed * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		// Update the buffer:
-		mUbo->fill(&uboVS, 0, avk::sync::not_required());
-
 		// Handle some input:
 		if (gvk::input().key_pressed(gvk::key_code::num0)) {
 			// [0] => Copy the input image to the target image and use a semaphore to sync the next draw call
@@ -301,20 +240,72 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void render() override
 	{
-		auto mainWnd = gvk::context().main_window();
-		const auto curIndex = mainWnd->current_image_index();
+		// Update the UBO's data:
+		auto* mainWnd = gvk::context().main_window();
+		const auto w = mainWnd->swap_chain_extent().width;
+		const auto halfW = w * 0.5f;
+		const auto h = mainWnd->swap_chain_extent().height;
+		
+		MatricesForUbo uboVS{};
+		uboVS.projection = glm::perspective(glm::radians(60.0f), w * 0.5f / h, 0.1f, 256.0f);
+		uboVS.model = glm::translate(glm::mat4{1.0f}, glm::vec3(0.0f, 0.0f, -3.0));
+		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(gvk::time().time_since_start() * mRotationSpeed * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Update the buffer:
+		const auto ifi = mainWnd->current_in_flight_index();
+		mUbo[ifi]->fill(&uboVS, 0, avk::sync::not_required());
+		
+		const auto imgIndex = mainWnd->current_image_index();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-
-		// TODO: Use a version of "submit_with_fence" (after sync-refactoring!) and ensure that
-		//       images are not used concurrently. On "radeon" it happens that the swap chain
-		//       provides only 2 images but we have 3 frames in flight => command buffers are
-		//       submitted again while they are still in use from the frame #current-3.
 		
-		// Submit one of the prepared command buffers:
-		mQueue->submit(mCmdBfrs[curIndex], imageAvailableSemaphore);
+		// Record a command buffer and submit it:
+		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+	
+		auto commandBuffer = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		commandBuffer->begin_recording();
+		
+		// Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
+		commandBuffer->establish_image_memory_barrier(
+			mTargetImageAndSampler->get_image_view()->get_image(),
+			avk::pipeline_stage::compute_shader, 
+			avk::pipeline_stage::fragment_shader,
+			avk::memory_access::shader_buffers_and_images_write_access, 
+			avk::memory_access::shader_buffers_and_images_read_access
+		);
+
+		// Prepare some stuff:
+		auto vpLeft = vk::Viewport{0.0f, 0.0f, halfW, static_cast<float>(h)};
+		auto vpRight = vk::Viewport{halfW, 0.0f, halfW, static_cast<float>(h)};
+
+		// Begin drawing:
+		commandBuffer->begin_render_pass_for_framebuffer(mGraphicsPipeline->get_renderpass(), mainWnd->backbuffer_at_index(imgIndex));
+		commandBuffer->bind_pipeline(mGraphicsPipeline);
+
+		// Draw left viewport:
+		commandBuffer->handle().setViewport(0, 1, &vpLeft);
+
+		commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
+			avk::descriptor_binding(0, 0, mUbo[ifi]),
+			avk::descriptor_binding(0, 1, mInputImageAndSampler)
+		}));
+		commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
+
+		// Draw right viewport (post compute)
+		commandBuffer->handle().setViewport(0, 1, &vpRight);
+		commandBuffer->bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
+			avk::descriptor_binding(0, 0, mUbo[ifi]),
+			avk::descriptor_binding(0, 1, mTargetImageAndSampler)
+		}));
+		commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
+
+		commandBuffer->end_render_pass();
+		commandBuffer->end_recording();
+		
+		mQueue->submit(commandBuffer, imageAvailableSemaphore);
+		mainWnd->handle_lifetime(std::move(commandBuffer));
 	}
 
 private: // v== Member variables ==v
@@ -322,11 +313,10 @@ private: // v== Member variables ==v
 	avk::queue* mQueue;
 	avk::buffer mVertexBuffer;
 	avk::buffer mIndexBuffer;
-	avk::buffer mUbo;
+	std::vector<avk::buffer> mUbo;
 	avk::image_sampler mInputImageAndSampler;
 	avk::image_sampler mTargetImageAndSampler;
 	avk::descriptor_cache mDescriptorCache;
-	std::vector<avk::command_buffer> mCmdBfrs;
 
 	avk::graphics_pipeline mGraphicsPipeline;
 
