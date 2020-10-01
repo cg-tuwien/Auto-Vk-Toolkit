@@ -498,10 +498,11 @@ namespace CgbPostBuildHelper
 					{
 						// Before we move on, tear down all the previous file system watchers for this instance
 						ClearAllFileWatchers(inst);
-					
+
 						inst.Config = config;
 						// Proceed with an empty list because files could have changed:
 						inst.Files.Clear();
+						inst.DependencyMapping.Clear();
 					}
 				}
 
