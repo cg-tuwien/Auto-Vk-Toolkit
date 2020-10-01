@@ -50,14 +50,14 @@ namespace CgbPostBuildHelper.Deployers
 						var m = IncludeDirectiveRegex.Match(ln);
 						if (m.Success)
 						{
-							//FilesDeployed.Add(new FileDeploymentData 
-                            //{ 
-							//	DeploymentType = DeploymentType.Dependency,
-							//	FileType = FileType.Generic,
-							//	InputFilePath = Path.Combine(new FileInfo(_inputFile.FullName).DirectoryName, m.Groups[1].Value),
-							//	OutputFilePath = null
-                            //});
-						}
+                            FilesDeployed.Add(new FileDeploymentData
+                            {
+                                DeploymentType = DeploymentType.Dependency,
+                                FileType = FileType.Generic,
+                                InputFilePath = Path.Combine(new FileInfo(_inputFile.FullName).DirectoryName, m.Groups[1].Value),
+                                OutputFilePath = null
+                            });
+                        }
 
 					}
 				}

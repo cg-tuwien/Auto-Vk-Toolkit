@@ -101,6 +101,11 @@ namespace CgbPostBuildHelper.ViewModel
 		public ObservableCollection<FileDeploymentDataVM> Files { get; } = new ObservableCollection<FileDeploymentDataVM>();
 
 		/// <summary>
+		/// Mapping of 'Dependency'-type paths to Files
+		/// </summary>
+		public Dictionary<string, List<FileDeploymentDataVM>> DependencyMapping { get; } = new Dictionary<string, List<FileDeploymentDataVM>>();
+
+		/// <summary>
 		/// Number of entries in the Files list
 		/// </summary>
 		public int FilesCount => Files.Count;

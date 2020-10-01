@@ -69,7 +69,7 @@ namespace CgbPostBuildHelper.ViewModel
 			set => SetProperty(_model, m => m.FilterPath, value);
 		}
 
-		public string FilterPathPlusFileName => Path.Combine(FilterPath, new FileInfo(InputFilePath).Name);
+		public string FilterPathPlusFileName => Path.Combine(FilterPath ?? "?", new FileInfo(InputFilePath).Name);
 
 		/// <summary>
 		/// Which kind of file are we dealing with?
@@ -124,6 +124,8 @@ namespace CgbPostBuildHelper.ViewModel
 						return "New file (compiled or otherwise modified w.r.t. original)";
 					case DeploymentType.Copy:
 						return "Copy of the original";
+					case DeploymentType.Dependency:
+						return "File-Dependency";
 				}
 				return "?DeploymentType?";
 			}

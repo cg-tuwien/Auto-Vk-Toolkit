@@ -507,15 +507,47 @@ namespace CgbPostBuildHelper
 
 				// Create an event, add all those files, and handle all those messages
 				var evnt = new CgbEventVM(eventType);
+
+                foreach (var depl in deployments)
+                {
+					foreach (var fd in depl.FilesDeployed)
+                    {
+					    if (fd.DeploymentType == DeploymentType.Dependency)
+                        {
+                            if (CgbEventType.Build == eventType)
+                            {
+                                var dependees = (from x in depl.FilesDeployed where x != fd select new FileDeploymentDataVM(x, inst)).ToList();
+                                var np = CgbUtils.NormalizePath(fd.InputFilePath);
+                                if (inst.DependencyMapping.ContainsKey(np))
+                                {
+                                    inst.DependencyMapping[np].AddRange(dependees);
+                                }
+                                else
+                                {
+                                    inst.DependencyMapping.Add(np, dependees);
+									// We need it in the list of files once so that FileWatcher is being set up
+                                    inst.Files.Insert(0, new FileDeploymentDataVM(fd, inst));
+                                }
+                            }
+                        }
+                    }
+				}
+
 				var eventHasErrors = false;
 				var eventHasWarnings = false;
 				var eventHasInfos = false;
 				foreach (var fd in fileDeployments)
 				{
-					eventHasErrors = eventHasErrors || fd.Messages.ContainsMessagesOfType(MessageType.Error);
+                    eventHasErrors = eventHasErrors || fd.Messages.ContainsMessagesOfType(MessageType.Error);
 					eventHasWarnings = eventHasWarnings || fd.Messages.ContainsMessagesOfType(MessageType.Warning);
 					eventHasInfos = eventHasInfos || fd.Messages.ContainsMessagesOfType(MessageType.Information);
-					evnt.Files.Insert(0, new FileDeploymentDataVM(fd, inst));
+
+                    if (fd.DeploymentType == DeploymentType.Dependency)
+                    {
+						continue; // Already handled right above
+                    }
+
+                    evnt.Files.Insert(0, new FileDeploymentDataVM(fd, inst));
 
 					if (CgbEventType.Build == eventType)
 					{
@@ -524,6 +556,9 @@ namespace CgbPostBuildHelper
 				}
 				// Insert at the top
 				inst.AllEventsEver.Insert(0, evnt);
+
+				// Count all which are NOT a Dependency:
+				var numFileDeploymentsWithoutDependencies = (from x in fileDeployments where x.DeploymentType != DeploymentType.Dependency select x).Count();
 
 				// Create those tray-messages
 				if (eventHasErrors || eventHasWarnings)
@@ -560,15 +595,15 @@ namespace CgbPostBuildHelper
 
 					if (eventHasWarnings && eventHasErrors)
 					{
-						addErrorWarningsList(MessageType.Error, $"Deployed {fileDeployments.Count} files with ERRORS and WARNINGS.", "Build-Event Details including ERRORS and WARNINGS");
+						addErrorWarningsList(MessageType.Error, $"Deployed {numFileDeploymentsWithoutDependencies} files with ERRORS and WARNINGS.", "Build-Event Details including ERRORS and WARNINGS");
 					}
 					else if (eventHasWarnings)
 					{
-						addErrorWarningsList(MessageType.Warning, $"Deployed {fileDeployments.Count} files with WARNINGS.", "Build-Event Details including WARNINGS");
+						addErrorWarningsList(MessageType.Warning, $"Deployed {numFileDeploymentsWithoutDependencies} files with WARNINGS.", "Build-Event Details including WARNINGS");
 					}
 					else
 					{
-						addErrorWarningsList(MessageType.Error, $"Deployed {fileDeployments.Count} files with ERRORS.", "Build-Event Details including ERRORS");
+						addErrorWarningsList(MessageType.Error, $"Deployed {numFileDeploymentsWithoutDependencies} files with ERRORS.", "Build-Event Details including ERRORS");
 					}
 					ShowMessagesList();
 				}
@@ -582,7 +617,7 @@ namespace CgbPostBuildHelper
 						additionalInfo = " with INFOS";
 					}
 
-					AddToMessagesList(Message.Create(msgType, $"Deployed {fileDeployments.Count} files{additionalInfo}.", () =>
+					AddToMessagesList(Message.Create(msgType, $"Deployed {numFileDeploymentsWithoutDependencies} files{additionalInfo}.", () =>
 					{
 						var window = new View.WindowToTheTop
 						{
@@ -845,6 +880,7 @@ namespace CgbPostBuildHelper
                 foreach (var tpl in FilesAndFilters)
                 {
                     HandleFileToDeploy(config, tpl.Item1, tpl.Item2, deployments, fileDeployments, windowsToShowFor);
+					
                 }
                 Trace.TraceInformation($"stage 4 {config.VcxprojPath}");
 
@@ -919,12 +955,29 @@ namespace CgbPostBuildHelper
 				}
 
 				var nrmFilename = CgbUtils.NormalizePath(filePath);
-				if (!_toBeUpdated[inst].ContainsKey(nrmFilename))
+				var isDependency = inst.DependencyMapping.ContainsKey(nrmFilename);
+				var added = false;
+				if (isDependency)
+                {
+                    foreach (var fileDeploymentDataVm in inst.DependencyMapping[nrmFilename])
+                    {
+						var nrmDepp = CgbUtils.NormalizePath(fileDeploymentDataVm.InputFilePath);
+						if (!_toBeUpdated[inst].ContainsKey(nrmDepp))
+                        {
+                            // to be updated!!
+                            _toBeUpdated[inst].Add(nrmDepp, Tuple.Create(fileDeploymentDataVm.InputFilePath, fileDeploymentDataVm.FilterPath));
+                            added = true;
+                        }
+					}
+                }
+				else if (!_toBeUpdated[inst].ContainsKey(nrmFilename))
 				{
 					// to be updated!!
 					_toBeUpdated[inst].Add(nrmFilename, Tuple.Create( filePath, watchedFileEntry.FilterPath ));
+					added = true;
 				}
-				else
+				
+				if (!added)
 				{
 					// nothing to do
 					StopAnimateIcon();

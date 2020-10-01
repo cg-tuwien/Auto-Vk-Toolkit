@@ -68,6 +68,12 @@ namespace CgbPostBuildHelper.Model
 		/// the original source file.
 		/// </summary>
 		Symlink,
+
+		/// <summary>
+		/// A dependency to another deployment.
+		/// Used for #include files that are included from shader files.
+		/// </summary>
+		Dependency,
 	}
 
 	class FileDeploymentData
