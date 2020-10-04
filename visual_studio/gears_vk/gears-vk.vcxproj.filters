@@ -103,6 +103,9 @@
     <ClCompile Include="..\..\framework\src\files_changed_event.cpp">
       <Filter>gears-vk_src\updater</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\auto_vk\src\vm_mem_alloc.cpp">
+      <Filter>auto-vk_src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -446,6 +449,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\event_data.hpp">
       <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vma_handle.hpp">
+      <Filter>auto-vk_include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

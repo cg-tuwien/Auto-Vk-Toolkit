@@ -45,6 +45,8 @@ namespace gvk
 
 		mLogicalDevice.waitIdle();
 
+		vmaDestroyAllocator(mMemoryAllocator);
+		
 		//// Destroy all:
 		////  - swap chains,
 		////  - surfaces,
@@ -249,7 +251,9 @@ namespace gvk
 		allocatorInfo.physicalDevice = physical_device();
 		allocatorInfo.device = device();
 		allocatorInfo.instance = vulkan_instance();
-		
+		if (avk::contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) {
+			allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+		}
 		vmaCreateAllocator(&allocatorInfo, &mMemoryAllocator);
 		
 		context().mContextState = gvk::context_state::fully_initialized;
