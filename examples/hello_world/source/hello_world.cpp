@@ -9,6 +9,9 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	
 	void initialize() override
 	{
+		// Print some information about the available memory on the selected physical device:
+		gvk::context().print_available_memory_types();
+		
 		// Create a graphics pipeline:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::vertex_shader("shaders/a_triangle.vert"),
