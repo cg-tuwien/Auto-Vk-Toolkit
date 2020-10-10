@@ -453,6 +453,15 @@
     <ClInclude Include="..\..\auto_vk\include\avk\vma_handle.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\mem_handle.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\mapping_access.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

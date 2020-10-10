@@ -45,7 +45,9 @@ namespace gvk
 
 		mLogicalDevice.waitIdle();
 
+#if defined(AVK_USE_VMA)
 		vmaDestroyAllocator(mMemoryAllocator);
+#endif
 		
 		//// Destroy all:
 		////  - swap chains,
@@ -246,6 +248,7 @@ namespace gvk
 		avk::sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
 		avk::sync::sQueueToUse = &mQueues.front();
 
+#if defined(AVK_USE_VMA)
 		// With everything in place, create the memory allocator:
 		VmaAllocatorCreateInfo allocatorInfo = {};
 		allocatorInfo.physicalDevice = physical_device();
@@ -255,6 +258,9 @@ namespace gvk
 			allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 		}
 		vmaCreateAllocator(&allocatorInfo, &mMemoryAllocator);
+#else
+		mMemoryAllocator = std::make_tuple(physical_device(), device());
+#endif
 		
 		context().mContextState = gvk::context_state::fully_initialized;
 		work_off_event_handlers();

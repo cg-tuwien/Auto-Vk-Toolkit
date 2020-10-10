@@ -9,7 +9,7 @@ namespace gvk
 		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{avk::memory_access::transfer_read_access});
 
 		auto stagingBuffer = context().create_buffer(
-			avk::memory_usage::host_coherent,
+			AVK_STAGING_BUFFER_MEMORY_USAGE,
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(sizeof(aColor))
 		);
@@ -73,7 +73,7 @@ namespace gvk
 			height = gliTex.extent()[1];
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-				avk::memory_usage::host_coherent,
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(gliTex.size())
 			));
@@ -106,7 +106,7 @@ namespace gvk
 			}
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-				avk::memory_usage::host_coherent,
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
@@ -141,7 +141,7 @@ namespace gvk
 			}
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-				avk::memory_usage::host_coherent,
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
@@ -194,7 +194,7 @@ namespace gvk
 #endif
 
 					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-						avk::memory_usage::host_coherent,
+						AVK_STAGING_BUFFER_MEMORY_USAGE,
 						vk::BufferUsageFlagBits::eTransferSrc,
 						avk::generic_buffer_meta::create_from_size(gliTex.size(level))
 					));

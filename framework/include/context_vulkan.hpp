@@ -34,7 +34,11 @@ namespace gvk
 		vk::PhysicalDevice& physical_device() override { return mPhysicalDevice; }
 		vk::Device& device() override { return mLogicalDevice; }
 		vk::DispatchLoaderDynamic& dynamic_dispatch() override { return mDynamicDispatch; }
+#if defined(AVK_USE_VMA)
 		VmaAllocator& memory_allocator() override { return mMemoryAllocator; }
+#else
+		std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() override { return mMemoryAllocator; }
+#endif
 		
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 
@@ -192,7 +196,12 @@ namespace gvk
 		vk::PhysicalDevice mPhysicalDevice;
 		vk::Device mLogicalDevice;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
+		
+#if defined(AVK_USE_VMA)
 		VmaAllocator mMemoryAllocator;
+#else
+		std::tuple<vk::PhysicalDevice, vk::Device> mMemoryAllocator;
+#endif
 
 		// Vector of queue family indices
 		std::vector<uint32_t> mDistinctQueueFamilies;

@@ -100,6 +100,7 @@
 #define AVK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
 
+//#define AVK_USE_VMA
 #include <avk/avk.hpp>
 
 // -------------------- Gears-Vk includes --------------------

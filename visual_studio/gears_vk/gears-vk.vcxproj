@@ -101,8 +101,10 @@
     <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\input_description.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\mapping_access.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\memory_access.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\memory_usage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\mem_handle.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\on_load.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp" />
@@ -115,6 +117,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\renderpass_sync.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\root_example_implementation.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\set_of_descriptor_set_layouts.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\shader.hpp" />
