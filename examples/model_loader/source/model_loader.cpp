@@ -105,8 +105,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
 			allMatConfigs, false, true,
-			avk::image_usage::read_only_image,
-			avk::filter_mode::bilinear,
+			avk::image_usage::general_texture,
+			avk::filter_mode::trilinear,
 			avk::border_handling_mode::repeat,
 			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 		);
