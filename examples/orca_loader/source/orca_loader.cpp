@@ -111,7 +111,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		mMaterialBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, {},
+			avk::memory_usage::host_visible, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
 		);
 		mMaterialBuffer->fill(
@@ -155,7 +155,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 		
 		mViewProjBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_coherent, {},
+			avk::memory_usage::host_visible, {},
 			avk::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
 		

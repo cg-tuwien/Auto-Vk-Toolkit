@@ -71,7 +71,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto fif = gvk::context().main_window()->number_of_frames_in_flight();
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			mUbo.emplace_back(gvk::context().create_buffer(
-				avk::memory_usage::host_coherent, {},
+				avk::memory_usage::host_visible, {},
 				avk::uniform_buffer_meta::create_from_data(MatricesForUbo{})
 			));
 		}
