@@ -462,4 +462,37 @@ namespace gvk
 	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
 	extern avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 
+	/** *cached versions for serialization */
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
+	extern std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec3> get_normals_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
+	extern avk::buffer create_normals_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec3> get_tangents_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
+	extern avk::buffer create_tangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec3> get_bitangents_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
+	extern avk::buffer create_bitangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec4> get_colors_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, gvk::serializer& aSerializer);
+	extern avk::buffer create_colors_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec4> get_bone_weights_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, gvk::serializer& aSerializer);
+	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::uvec4> get_bone_indices_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
+	extern avk::buffer create_bone_indices_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
+	extern avk::buffer create_2d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
+	extern avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
+	extern avk::buffer create_3d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+
+	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+		const std::vector<gvk::material_config>& aMaterialConfigs,
+		bool aLoadTexturesInSrgb,
+		bool aFlipTextures,
+		avk::image_usage aImageUsage,
+		avk::filter_mode aTextureFilterMode,
+		avk::border_handling_mode aBorderHandlingMode,
+		avk::sync aSyncHandler,
+		gvk::serializer& aSerializer);
+
 }
