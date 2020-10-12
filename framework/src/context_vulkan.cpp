@@ -73,6 +73,7 @@ namespace gvk
 		// Destroy logical device
 		mLogicalDevice.destroy();
 
+#ifdef _DEBUG
 		// Unhook debug callback
 #if LOG_LEVEL > 0
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
@@ -80,7 +81,8 @@ namespace gvk
 			func(mInstance, mDebugUtilsCallbackHandle, nullptr); 
 		}
 #endif
-
+#endif
+		
 		// Destroy everything
 		mInstance.destroy();
 	

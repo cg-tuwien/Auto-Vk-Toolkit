@@ -163,7 +163,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.5f, 100.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		gvk::current_composition()->add_element(mQuakeCam);
 
