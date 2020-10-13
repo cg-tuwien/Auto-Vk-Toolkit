@@ -46,7 +46,7 @@ Detailed information about project setup and resource management with Visual Stu
 # Automatic Resource-Updates
 
 _Gears-Vk_ features functionality to automatically update resources (like images or pipelines) after certain _events_ have occured. This can be used to enable the following:
-* Shader Hot Reloading: Update graphics/compute/ray-tracing pipelines after (SPIR-V) shader files have been updated.
+* Shader Hot Reloading: Update graphics/compute/ray-tracing pipelines after (SPIR-V) shader files have been updated on the file system.
 * Adapt to window-resizes: Framebuffer recreation after the swapchain went out of date and was recreated.
 
 **To set up automatic resource-updates,** you have to enable them using the `gvk::updater` class:
@@ -76,6 +76,11 @@ The following resources can be updated:
 * `avk::image_view`
 
 _Important:_ When you hand over resources that shall be automatically updated to the `gvk::updater`, the `gvk::updater` needs to take ownership of them. Therefore, you'll have to pay the price of enabling shared resource ownership (by the means of `avk::owning_resource::enable_shared_ownership`) for all of these resources.
+
+Usage examples can be found at the following places:
+* **hello_world** example at [`hello_world.cpp#L25`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/hello_world/source/hello_world.cpp#L25)
+* **compute_image_processing** example at [`compute_image_processing.cpp#L13`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/compute_image_processing/source/compute_image_processing.cpp#L138)
+* **ray_tracing_triangle_meshes** example at [`ray_tracing_triangle_meshes.cpp#L198`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/ray_tracing_triangle_meshes/source/ray_tracing_triangle_meshes.cpp#L198).
 
 # FAQs, Known Issues, Troubleshooting
 
