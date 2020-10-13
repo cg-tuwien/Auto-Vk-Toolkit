@@ -103,7 +103,7 @@
     <ClCompile Include="..\..\framework\src\files_changed_event.cpp">
       <Filter>gears-vk_src\updater</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vk\src\vm_mem_alloc.cpp">
+    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>
   </ItemGroup>
