@@ -43,6 +43,40 @@ Detailed information about project setup and resource management with Visual Stu
   * If shader files contain errors, popup messages are created displaying the error, and providing a `[->VS]` button to navigate to the line that contains the error _within_ Visual Studio.
   * By default, "Debug" and "Release" build configurations symlink resources to save space, but "Publish" build configurations deploy all required files into the target directory so that a built program can easily be transfered to another PC. No more tedious resource gathering is required in such situations since that is all handled by the Post Build Helper.
 
+# Automatic Resource-Updates
+
+_Gears-Vk_ features functionality to automatically update resources (like images or pipelines) after certain _events_ have occured. This can be used to enable the following:
+* Shader Hot Reloading: Update graphics/compute/ray-tracing pipelines after (SPIR-V) shader files have been updated.
+* Adapt to window-resizes: Framebuffer recreation after the swapchain went out of date and was recreated.
+
+**To set up automatic resource-updates,** you have to enable them using the `gvk::updater` class:
+```
+mPipeline.enable_shared_ownership(); // Make it usable with the updater
+mUpdater
+  .on(gvk::swapchain_resized_event(gvk::context().main_window()), 
+      gvk::shader_files_changed_event(mPipeline))
+  .update(mPipeline);
+```
+
+In this example, the `gvk::updater mUpdater` is configured so that the `mPipeline` is updated when at least one of two _events_ occurs: either when the swapchain of the main window has been resized, or when one of the `mPipeline`'s shader files have been changed on the file system. 
+
+_Note about swapchain resize:_ The swapchain can only resize if the `window` has been configured to allow being resized (via `window::enable_resizing`).     
+_Note about shader files being changed on the file system:_ The loaded shader files are watches for changes, i.e. the SPIR-V versions of shader files in the target directory. The most convenient way to get them updated is to leave the _Post Build Helper_ running in the background. Ensure that its setting "Do not monitor files during app execution" is _not_ enabled, and the _Post Build Helper_ will automatically compile shader files to SPIR-V at runtime if it detects changes to the original shader source files.
+
+The following _events_ are supported:
+* `gvk::swapchain_resized_event`: This event occurs when the swapchain's dimensions have changed.
+* `gvk::swapchain_changed_event`: This event occurs when swapchain image handles have changed.
+* `gvk::files_changed_event`: This event occurs when any of the given files has been modified on the file system.
+
+The following resources can be updated:
+* `avk::graphics_pipeline`
+* `avk::compute_pipeline`
+* `avk::ray_tracing_pipeline`
+* `avk::image`
+* `avk::image_view`
+
+_Important:_ When you hand over resources that shall be automatically updated to the `gvk::updater`, the `gvk::updater` needs to take ownership of them. Therefore, you'll have to pay the price of enabling shared resource ownership (by the means of `avk::owning_resource::enable_shared_ownership`) for all of these resources.
+
 # FAQs, Known Issues, Troubleshooting
 
 **Q: I have troubles with asset management in Visual Studio. Any advice?**        
