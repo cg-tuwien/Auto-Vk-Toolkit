@@ -415,7 +415,9 @@ namespace gvk
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
-			result.emplace_back(0.f, 0.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(0.f, 0.f);
+			}
 		}
 		else {
 			const auto nuv = num_uv_components_for_mesh(aMeshIndex, aSet);
@@ -448,7 +450,9 @@ namespace gvk
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
 			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
-			result.emplace_back(0.f, 0.f, 0.f);
+			for (decltype(n) i = 0; i < n; ++i) {
+				result.emplace_back(0.f, 0.f, 0.f);
+			}
 		}
 		else {
 			const auto nuv = num_uv_components_for_mesh(aMeshIndex, aSet);
