@@ -68,13 +68,19 @@ if ((-Not (Test-Path $postBuildExePath)) -or $anyDllMissing)
 	}
 }
 
+# Put quotes around every arg:
+$quotedArgs = '"{0}"' -f ($args -join '" "')
+# Account for trailing backslashes in arguments (which would escape the quote, if unhandled):
+$quotedArgs = $quotedArgs.Replace("\""", "\\""")
+
 # Print args to console:
-#$outPath = Join-Path -Path $PSScriptRoot -ChildPath "args.txt"
-#Write-Output $outPath
-#$args | Out-File -FilePath $outPath
+# $outPath = Join-Path -Path $PSScriptRoot -ChildPath "args.txt"
+# Write-Output $outPath
+# $args | Out-File -FilePath $outPath
+# $quotedArgs | Out-File -FilePath $outPath
 
 # Invoke the Post Build Helper tool:
-Start-Process -FilePath $postBuildExePath -ArgumentList $args -WorkingDirectory $PSScriptRoot
+Start-Process -FilePath $postBuildExePath -ArgumentList $quotedArgs -WorkingDirectory $PSScriptRoot
 
 Write-Output "Post Build Helper has been invoked. Now waiting for the deployment of assets and shaders..."
 $maxLoop = 10
