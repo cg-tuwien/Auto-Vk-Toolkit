@@ -16,10 +16,10 @@ namespace CreateNewProject.ViewModel
 			RegexOptions.Compiled);
 		static readonly Regex RegexFindAllItemGroups = new Regex(@"\<ItemGroup.+?\<\/ItemGroup\>",
 			RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
-		static readonly Regex RegexClCompile = new Regex(@"\<ClCompile.+\>", 
-			RegexOptions.Compiled | RegexOptions.IgnoreCase);
-		static readonly Regex RegexClInclude = new Regex(@"\<ClInclude.+\>", 
-			RegexOptions.Compiled | RegexOptions.IgnoreCase);
+		static readonly Regex RegexClCompile = new Regex(@"\<ClCompile.*?(\/\>|\<\/ClCompile>)", 
+			RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
+		static readonly Regex RegexClInclude = new Regex(@"\<ClInclude.*?(\/\>|\<\/ClInclude>)", 
+			RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 		static readonly Regex RegexProjectGuid = new Regex(@"\<ProjectGuid\>\{(.+)\}\<\/ProjectGuid\>", 
 			RegexOptions.Compiled | RegexOptions.IgnoreCase);
 		static readonly Regex RegexProjectReference = new Regex(@"\<ProjectReference.+Include=\""([^\$].*)\"".*\>", 
@@ -36,6 +36,7 @@ namespace CreateNewProject.ViewModel
 			RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 		static readonly Regex RegexSlnProjectConfigEntry = new Regex(@"^\s*\{(.+?)\}.*$",
 			RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase); // If RegexOptions.Multiline is not set, ^ and $ will match beginning and the end* of the string, not the line like intended.
+
 
 		public MainViewModel()
 		{
