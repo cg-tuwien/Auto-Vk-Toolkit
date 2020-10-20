@@ -36,7 +36,8 @@ namespace CreateNewProject.ViewModel
 			RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 		static readonly Regex RegexSlnProjectConfigEntry = new Regex(@"^\s*\{(.+?)\}.*$",
 			RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase); // If RegexOptions.Multiline is not set, ^ and $ will match beginning and the end* of the string, not the line like intended.
-
+		static readonly Regex RegexPrecompiledHeader = new Regex(@"\<PrecompiledHeader\>.*\<\/PrecompiledHeader\>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
 		public MainViewModel()
 		{
@@ -208,6 +209,15 @@ namespace CreateNewProject.ViewModel
 							targetProjFileContents = targetProjFileContents.Replace(match.Value, updatedImportProj);
 						}
 					}
+
+					// 3.8 Disable usage of precompiled headers
+                    {
+						var precompHeaders = RegexPrecompiledHeader.Matches(targetProjFileContents);
+                        foreach (Match match in precompHeaders)
+                        {
+                            targetProjFileContents = targetProjFileContents.Replace(match.Value, "<PrecompiledHeader>NotUsing</PrecompiledHeader>");
+                        }
+                    }
 
 					// We're done with the .vcxproj-file => save it for good.
 					File.WriteAllText(targetProjFile.FullName, targetProjFileContents);
