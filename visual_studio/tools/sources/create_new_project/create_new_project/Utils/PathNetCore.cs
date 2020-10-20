@@ -23,7 +23,7 @@ namespace CreateNewProject.Utils
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="relativeTo"/> or <paramref name="path"/> is <c>null</c> or an empty string.</exception>
 		public static string GetRelativePath(string relativeTo, string path)
 		{
-			return GetRelativePath(relativeTo, path, StringComparison);
+            return GetRelativePath(relativeTo, path, StringComparison);
 		}
 
 		private static string GetRelativePath(string relativeTo, string path, StringComparison comparisonType)

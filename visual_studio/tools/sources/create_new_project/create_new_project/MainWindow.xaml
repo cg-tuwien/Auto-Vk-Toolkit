@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CreateNewProject"
         mc:Ignorable="d"
-        Title="Create new cg_base project!" Height="650" Width="940" FontSize="14">
+        Title="Create new cg_base project!" Height="800" Width="940" FontSize="14">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

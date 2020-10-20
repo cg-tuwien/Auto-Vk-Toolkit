@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Net.Configuration;
 using System.Text.RegularExpressions;
 using CreateNewProject.Utils;
 
@@ -36,8 +37,30 @@ namespace CreateNewProject.ViewModel
 			RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 		static readonly Regex RegexSlnProjectConfigEntry = new Regex(@"^\s*\{(.+?)\}.*$",
 			RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase); // If RegexOptions.Multiline is not set, ^ and $ will match beginning and the end* of the string, not the line like intended.
-		static readonly Regex RegexPrecompiledHeader = new Regex(@"\<PrecompiledHeader\>.*\<\/PrecompiledHeader\>",
+        static readonly Regex RegexPrecompiledHeader = new Regex(@"\<PrecompiledHeader\>.*\<\/PrecompiledHeader\>",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        static readonly Regex RegexForcedIncludeFiles = new Regex(@"\<ForcedIncludeFiles\>.*\<\/ForcedIncludeFiles\>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        static readonly Regex RegexNone = new Regex(@"\<None.+Include=\""([^\$].*)\"".*\>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static readonly Regex RegexImage = new Regex(@"\<Image.+Include=\""([^\$].*)\"".*\>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+		string GetRelativePathIfPossible(string realPath, DirectoryInfo targetDirInfo)
+        {
+			var realFileInfo = new FileInfo(realPath);
+
+			if (Path.GetPathRoot(realFileInfo.FullName) != Path.GetPathRoot(targetDirInfo.FullName))
+            {
+                Messages.Add(MessageViewModel.CreateWarning($"The paths \"{realFileInfo.FullName}\" and \"{targetDirInfo.FullName}\" are not on the same drive => Can not set relative path."));
+				return realFileInfo.FullName;
+            }
+
+			// The paths are on the same drive => we can establish a relative path:
+            Messages.Add(MessageViewModel.CreateInfo($"Established relative path for \"{realFileInfo.Name}\", namely: \"{realFileInfo.FullName}\"."));
+            return PathNetCore.GetRelativePath(targetDirInfo.FullName, realFileInfo.FullName);
+		}
+
 
 		public MainViewModel()
 		{
@@ -94,6 +117,7 @@ namespace CreateNewProject.ViewModel
 					}
 
 					FileInfo targetProjFile;
+					FileInfo targetFiltersFile;
 					
 					{
 						var targetProjFilePath = Path.Combine(targetDir.FullName, newProjName + ".vcxproj");
@@ -103,6 +127,7 @@ namespace CreateNewProject.ViewModel
 						// The .vcxproj must always exist
 						File.Copy(origProjFile.FullName, targetProjFilePath);
 						targetProjFile = new FileInfo(targetProjFilePath);
+						targetFiltersFile = new FileInfo(targetFiltersFilePath);
 						Messages.Add(MessageViewModel.CreateSuccess($"Created '{targetProjFile.Name}' file in '{targetDir.FullName}'."));
 
 						// ...but not so the other two
@@ -120,7 +145,6 @@ namespace CreateNewProject.ViewModel
 						if (origFiltersFile.Exists)
 						{
 							File.Copy(origFiltersFile.FullName, targetFiltersFilePath);
-							var targetFiltersFile = new FileInfo(targetFiltersFilePath);
 							Messages.Add(MessageViewModel.CreateSuccess($"Created '{targetFiltersFile.Name}' file in '{targetDir.FullName}'."));
 						}
 						else
@@ -131,6 +155,7 @@ namespace CreateNewProject.ViewModel
 
 					// 3. Parse target .vcxproj-file and modify it...
 					var targetProjFileContents = File.ReadAllText(targetProjFile.FullName);
+					var targetFiltersFileContents = File.ReadAllText(targetFiltersFile.FullName);
 					var itemGroups = RegexFindAllItemGroups.Matches(targetProjFileContents);
 					var sb = new StringBuilder();
 					var lastIndex = 0;
@@ -167,8 +192,7 @@ namespace CreateNewProject.ViewModel
 						{
 							var relPath = match.Groups[1].Value;
 							var realPath = Path.Combine(origDir.FullName, relPath);
-							var realFile = new FileInfo(realPath);
-							var relativeFromTarget = PathNetCore.GetRelativePath(targetDir.FullName, realFile.FullName);
+							var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
 
 							var updatedProjRef = match.Value.Replace(relPath, relativeFromTarget);
 							targetProjFileContents = targetProjFileContents.Replace(match.Value, updatedProjRef);
@@ -202,27 +226,95 @@ namespace CreateNewProject.ViewModel
 						{
 							var relPath = match.Groups[1].Value;
 							var realPath = Path.Combine(origDir.FullName, relPath);
-							var realFile = new FileInfo(realPath);
-							var relativeFromTarget = PathNetCore.GetRelativePath(targetDir.FullName, realFile.FullName);
+							var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
 
 							var updatedImportProj = match.Value.Replace(relPath, relativeFromTarget);
 							targetProjFileContents = targetProjFileContents.Replace(match.Value, updatedImportProj);
 						}
 					}
 
-					// 3.8 Disable usage of precompiled headers
+                    // 3.8 Disable usage of precompiled headers
                     {
-						var precompHeaders = RegexPrecompiledHeader.Matches(targetProjFileContents);
+                        var precompHeaders = RegexPrecompiledHeader.Matches(targetProjFileContents);
                         foreach (Match match in precompHeaders)
                         {
                             targetProjFileContents = targetProjFileContents.Replace(match.Value, "<PrecompiledHeader>NotUsing</PrecompiledHeader>");
                         }
                     }
 
-					// We're done with the .vcxproj-file => save it for good.
-					File.WriteAllText(targetProjFile.FullName, targetProjFileContents);
-					Messages.Add(MessageViewModel.CreateSuccess($"Successfully altered the '{newProjName}.vcxproj' file."));
-					
+                    // 3.9 Removing forced include files
+                    {
+                        var forceInclude = RegexForcedIncludeFiles.Matches(targetProjFileContents);
+                        foreach (Match match in forceInclude)
+                        {
+                            targetProjFileContents = targetProjFileContents.Replace(match.Value, "<ForcedIncludeFiles></ForcedIncludeFiles>");
+                        }
+                    }
+
+                    // 3.10 Change all relative paths of the <None Include="..." /> elements
+                    {
+                        { // .vxcproj:
+                            var nones = RegexNone.Matches(targetProjFileContents);
+                            foreach (Match match in nones)
+                            {
+                                var relPath = match.Groups[1].Value;
+                                var realPath = Path.Combine(origDir.FullName, relPath);
+                                var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
+
+                                var updatedImportProj = match.Value.Replace(relPath, relativeFromTarget);
+                                targetProjFileContents = targetProjFileContents.Replace(match.Value, updatedImportProj);
+                            }
+                        }
+						{ // .vxcproj.filters:
+                            var nones = RegexNone.Matches(targetFiltersFileContents);
+                            foreach (Match match in nones)
+                            {
+                                var relPath = match.Groups[1].Value;
+                                var realPath = Path.Combine(origDir.FullName, relPath);
+                                var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
+
+                                var updatedImportProj = match.Value.Replace(relPath, relativeFromTarget);
+								targetFiltersFileContents = targetFiltersFileContents.Replace(match.Value, updatedImportProj);
+                            }
+                        }
+                    }
+
+					// 3.11 Change all relative paths of the <Image Include="..." /> elements
+					{
+                        { // .vxcproj:
+                            var images = RegexImage.Matches(targetProjFileContents);
+                            foreach (Match match in images)
+                            {
+                                var relPath = match.Groups[1].Value;
+                                var realPath = Path.Combine(origDir.FullName, relPath);
+                                var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
+
+                                var updatedImportProj = match.Value.Replace(relPath, relativeFromTarget);
+                                targetProjFileContents = targetProjFileContents.Replace(match.Value, updatedImportProj);
+                            }
+                        }
+						{ // .vxcproj.filters:
+                            var images = RegexImage.Matches(targetFiltersFileContents);
+                            foreach (Match match in images)
+                            {
+                                var relPath = match.Groups[1].Value;
+                                var realPath = Path.Combine(origDir.FullName, relPath);
+                                var relativeFromTarget = GetRelativePathIfPossible(realPath, targetDir);
+
+                                var updatedImportProj = match.Value.Replace(relPath, relativeFromTarget);
+                                targetFiltersFileContents = targetFiltersFileContents.Replace(match.Value, updatedImportProj);
+                            }
+                        }
+                    }
+
+
+                    // We're done with the .vcxproj-file => save it for good.
+                    File.WriteAllText(targetProjFile.FullName, targetProjFileContents);
+                    Messages.Add(MessageViewModel.CreateSuccess($"Successfully altered the '{targetProjFile.Name}' file."));
+                    // We're done with the .vcxproj.filters-file => save it for good.
+                    File.WriteAllText(targetFiltersFile.FullName, targetFiltersFileContents);
+                    Messages.Add(MessageViewModel.CreateSuccess($"Successfully altered the '{targetFiltersFile.Name}' file."));
+
 					// 4. IF we should NOT also modify the .sln file => exit
 					if (!DoModifySln)
 					{
@@ -261,7 +353,7 @@ namespace CreateNewProject.ViewModel
 
 							newProjSb.Append(newProjName);
 							AppendNonMatchedPartBetweenGroups(1, 2);
-							newProjSb.Append(PathNetCore.GetRelativePath(slnFile.DirectoryName, targetProjFile.FullName));
+							newProjSb.Append(GetRelativePathIfPossible(targetProjFile.FullName, slnFile.Directory));
 							AppendNonMatchedPartBetweenGroups(2, 3);
 							newProjSb.Append(newGuidString);
 							AppendNonMatchedPartBetweenGroups(3, null); // till the end
