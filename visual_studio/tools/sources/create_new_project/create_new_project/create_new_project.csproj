@@ -161,9 +161,6 @@
   <Import Project="..\packages\xunit.core.2.4.1\build\xunit.core.targets" Condition="Exists('..\packages\xunit.core.2.4.1\build\xunit.core.targets')" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetPath)" "$(SolutionDir)..\..\executables\" /R /Y
-xcopy "$(TargetDir)xunit.abstractions.dll" "$(SolutionDir)..\..\executables\" /R /Y
-xcopy "$(TargetDir)xunit.assert.dll" "$(SolutionDir)..\..\executables\" /R /Y
-xcopy "$(TargetDir)xunit.core.dll" "$(SolutionDir)..\..\executables\" /R /Y
-xcopy "$(TargetDir)xunit.execution.desktop.dll" "$(SolutionDir)..\..\executables\" /R /Y</PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
 </Project>
