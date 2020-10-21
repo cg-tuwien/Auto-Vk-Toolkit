@@ -47,11 +47,11 @@ In short:
 directly in Visual Studio. Then build the application, wait for the _Post Build Helper_ to deploy these resources to the target directory, and run your application!
 
 This can look like follows, where the filters `assets` and `shaders` have special meaning, as hinted above:    
-<img src="visual_studio/docs/images/vs_does_not_participate_in_build.png" width="825"/>
+<img src="visual_studio/docs/images/orca_loader_filters.png" width="825"/>
 
 A more detailed explanation and further instructions are given in [`visual_studio/README.md`](visual_studio/README.md).
 
-You will notice _Post Build Helper_ activity through its tray icon: <img src="./docs/images/PBH_tray.png" />. The tool will remain active after deployment has finished for two main reasons:
+You will notice _Post Build Helper_ activity through its tray icon: <img src="visual_studio/docs/images/PBH_tray.png" />. The tool will remain active after deployment has finished for two main reasons:
 * It allows to investigate logs from previous build events, and also change settings.
 * It continues to monitor resource files which is especially important to enable **shader hot reloading**.
 
