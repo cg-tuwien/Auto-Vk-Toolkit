@@ -113,50 +113,53 @@ As detailed above, under section ["Dependent Assets"](#dependent-assets), the _P
 
 When building the [`orca_loader` example](./examples/orca_loader), you should see 130 assets deployed to the target directory, although only four files (two under filter `assets`, and two under filter `shaders`) are referenced in the Visual Studio project. The sponza 3D model references many textures, all of which are deployed to the target directory as well. Models referenced in ORCA `.fscene` files are dependent assets of these `.fscene` files, and each referenced model can have dependent assets as well. All these dependencies are resolved recursively and deployed to the target directory. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target directory.
 
-<img src="./docs/images/deployed_72_files.png" width="422"/>
+<img src="./docs/images/orca_loader_deployed_130_files.png" width="418"/>
 
 If the `orca_loader` example does not deploy 130 assets, please check [section "Too few resources are being deployed"](#too-few-resources-are-being-deployed) below.
 
-### Known Issues and Troubleshooting w.r.t. the Post Build Helper
+### _Post Build Helper_ Troubleshooting
 
-#### Application could not start at first try (maybe due to missing DLLs)
+#### Build is stuck at "Going to invoke[...]MSBuild.exe" step, displayed in Visual Studio's _Output_ tab
 
-The Post Build Helper runs asynchronously to not block Visual Studio. This has the side effect that deployment can still be in progress when the application is already starting. Please build your project and wait until the Post Build Helper's tray icon shows no more animated dots, before starting your application!
+Upon _Post Build Helper_'s first usage, it is being built directly on your PC via `MSBuild.exe`. This solves some compatibility issues and ensures optimal mode of operation. However, sometimes the `MSBuild.exe`-step can get stuck (for unknown reasons). In order to solve it, it usually suffices to stop the build (Build -> Cancel) and build again. 
 
-#### Error message about denied access to DLL files (DLLs are not re-deployed)
+#### _Post Build Helper_ can't be built automatically/via MSBuild.exe
 
-This is usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents the Post Build Helper to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the Post Build Helper).
+The _Post Build Helper_ has been successfully built on your PC if there is an `cgb_post_build_helper.exe` file under [`visual_studio/tools/executables/`](./tools/executables/). It should be built automatically during a Visual Studio post build step, which is invoked through, e.g., building one of the example applications. 
+
+If it can't be built automatically, please build it automatically. It is a Visual Studio C# project, i.e. please ensure to have .NET/C# workloads installed with your Visual Studio (you can install these via the Visual Studio Installer).
+
+Follow these steps to build the _Post Build Helper_ manually:
+
+1. Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`visual_studio/tools/sources/cgb_post_build_helper/`](./tools/sources/cgb_post_build_helper)
+2. Select the `Release` build and build the project.
+3. A custom build event will automatically copy `cgb_post_build_helper.exe` into [`visual_studio/tools/executables/`](./tools/executables), which is the location that is used for executing the _Post Build Helper_ as a post build step from the Visual Studio projects.
+	
+If you still experience problems after following these steps, please create an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and describe your situation in detail.
 
 #### Too few resources are being deployed
 
-Sometimes, the Post Build Helper deploys too few resources which is probably due to a lack of rights from Windows, or maybe some anti virus tool is preventing some type of access. The exact reasons for this are, unfortunately, unknown at the moment, but there are workarounds. 
+With older versions of the _Post Build Helper_ there used to be a problem where too few resources were deployed. In the `orca_loader` example from above, 130 files should be deployed. If fewer files are deployed, you might still be subject to this problem. Please try to build the _Post Build Helper_ by yourself and see if it solves the problem.
 
-For example, you might be subject to this problem if you build the `orca_loader` example and only 6 (or fewer) files are deployed to the target directory instead of 72 files.
+#### Application could not start at first try (maybe due to missing assets or DLLs)
 
-Please try one or all of the following approaches to solve that problem:
+The _Post Build Helper_ runs asynchronously to not block Visual Studio. Although the custom build step waits up to 10 seconds for the _Post Build Helper_ to finish its deployment work, it stops to wait after 10 seconds and continues running the application. In situations where the deployment takes very long, this can have the effect that deployment may still be in progress when the application is already starting. 
 
-1. Restart the Post Build Helper:
-    1. Close Post Build Helper by right-clicking the tray icon and executing `Exit`. 
-	2. Navigate to the [`tools/executables`](./tools/executables) directory and start `cgb_post_build_helper.exe` manually.
-	3. If Windows warns you about the unknown source of this tool, please select to run anyways and permanently trust this executable.
-2. Start the Post Build Helper in with administrator rights:
-    1. Close the Post Build Helper by right-clicking the tray icon and executing `Exit`. 
-	2. Navigate to the [`tools/executables`](./tools/executables) directory, right-click on `cgb_post_build_helper.exe`, and select `"Run as administrator"`
-3. Build the Post Build Helper on your PC. (If the tool is built on your PC, Windows assesses it to be more trustworthy.)
-    1. Close the Post Build Helper by right-clicking the tray icon and executing `Exit` (otherwise it can't be overwritten).
-	2. Open the `cgb_post_build_helper.sln` Visual Studio solution, which can be found under [`tools/sources/cgb_post_build_helper`](./tools/sources/cgb_post_build_helper)
-	3. Select the `Release` build and build the project.
-	4. A custom build event will automatically overwrite the `cgb_post_build_helper.exe` in the [`tools/executables`](./tools/executables) directory, which is the location that is used for executing the Post Build Helper as a post build step from the examples.
-	
-At least the third approach should solve the problem. (If not, please create an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and describe your situation in detail.)
+One strategy to solve it might be to build (not build and run) the project and wait until the Post Build Helper's tray icon shows no more animated dots, before starting your application!
+
+#### Error message about denied access to DLL files (DLLs are not re-deployed)
+
+"Access denied" error messages w.r.t. DLL files are usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents the _Post Build Helper_ to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the _Post Build Helper_).
 
 #### Slow performance when showing lists within the Post Build Helper
 
-Restart the tool to clear the internal lists. Right click on the tray icon, and select `Exit`. A new instance of the Post Build Helper will start at the next build. Please note, however, that all the existing lists will be gone after exiting the Post Build Helper. They are not persisted.
+When _Post Build Helper_'s UI takes a long time to load, it might be that its internal lists have become very big in size. Restart the _Post Build Helper_ to clear the internal lists by right-clicking on the tray icon, and selecting `Exit`. A new instance of the _Post Build Helper_ will be created at the next build with fresh, but empty lists.
 
-### Settings
+_Beware:_ All the existing lists will be gone after closing the _Post Build Helper_. No event data is persistently stored.
 
-The Post Build Helper has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
+### _Post Build Helper_ Settings
+
+The _Post Build Helper_ has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
 
 <img src="./docs/images/settings_post_build_helper.png" width="399"/>
 
