@@ -37,7 +37,7 @@ Use it like follows to create a copy of an existing project:
 
 A good strategy is to add _Gears-Vk_ as a **git submodule** to your repository and use `create_new_project.exe` and the steps above to create a properly configured project in a directory outside of the submodule. Make sure to frequently update the submodule by pulling from _Gears-Vk_'s `master` branch to get the latest updates.
 
-# Project Management with Visual Studio and the Post Build Helper
+# Resource Mangement and the Post Build Helper
 
 _Gears-Vk_'s Visual Studio projects are configured so that Visual Studio itself can be elegantly used for resource management. That means, required assets (3D models, images, [ORCA](https://developer.nvidia.com/orca) scene files) and shader files can just be added to Visual Studio's filters in the "Solution Explorer" view and a smart _Post Build Helper_ tool ensures that those resources are deployed to the application's target directory.
 
