@@ -113,7 +113,7 @@ As detailed above, under section ["Dependent Assets"](#dependent-assets), the _P
 
 When building the [`orca_loader` example](./examples/orca_loader), you should see 130 assets deployed to the target directory, although only four files (two under filter `assets`, and two under filter `shaders`) are referenced in the Visual Studio project. The sponza 3D model references many textures, all of which are deployed to the target directory as well. Models referenced in ORCA `.fscene` files are dependent assets of these `.fscene` files, and each referenced model can have dependent assets as well. All these dependencies are resolved recursively and deployed to the target directory. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target directory.
 
-<img src="./docs/images/orca_loader_deployed_130_files.png" width="418"/>
+<img src="./docs/images/orca_loader_deployed_130_files.png" width="402"/>
 
 If the `orca_loader` example does not deploy 130 assets, please check [section "Too few resources are being deployed"](#too-few-resources-are-being-deployed) below.
 
@@ -161,7 +161,7 @@ _Beware:_ All the existing lists will be gone after closing the _Post Build Help
 
 The _Post Build Helper_ has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
 
-<img src="./docs/images/settings_post_build_helper.png" width="399"/>
+<img src="./docs/images/settings_post_build_helper.png" width="396"/>
 
 The setting "Always deploy release DLLs" can lead to significantly increased performance when loading textures or 3D models from Debug builds.
 
