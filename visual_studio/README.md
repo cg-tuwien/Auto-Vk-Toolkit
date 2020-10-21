@@ -1,16 +1,16 @@
 # Project Management with Visual Studio
 
-The Visual Studio projects can be used for resource management and there is a post build helper tool (cgb_post_build_helper) which mainly handles deployment of the resource files to the target folder. Its executable is located under `tools/cgb_post_build_helper.exe`
+The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](visual_studio/tools/executables) and is invoked as a build step of _Gears-Vk_'s example applications. 
 
-In general, the main repository contains one solution file: [`gears-vk.sln`](./gears-vk.sln) which references multiple Visual Studio project files (`*.vcxproj`). Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
+The repository contains one solution file: [`gears-vk.sln`](./gears-vk.sln) which references multiple Visual Studio project files (`*.vcxproj`): The _Gears-Vk_ library project and several example projects. Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
 
-The examples' `*.vcxproj` files are located in the [`examples` subfolder of the `visual_studio` folder](./examples), but their source code is located in the [`examples` folder in the repository's root](../examples). All examples reference the [`gears_vk` library](./gears_vk/) which contains the framework's code. A lot of the Visual Studio project configuration is handled via property files which are located under [`props`](./props).
+The examples' Visual Studio project files are located in [`visual_studio/examples/`](./examples). Their source code is located in [`examples/`](../examples). All examples reference the [`gears-vk.vcxproj` library project](./gears_vk/). Substantial parts of the Visual Studio project configuration is handled via property files which are located under [`props`](./props).
 
 ## Creating a New Project
 
-In order to create a new project that uses the **Gears-Vk** framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan builds or `linked_libs_debug.props` for Debug builds. The example configurations are fully configures for proper usage.
+In order to create a new project that uses the _Gears-Vk_ framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan-specific dependencies, or `linked_libs_debug.props` for Debug builds. The example configurations are fully configured.
 
-A more convenient way to create a new project could be to use the `create_new_project.exe` tool, located under [`tools/executables`](./tools/executables). It allows to copy the settings from an existing project (like one of the examples) and effectively duplicates and renames a selected project.
+A more convenient way to create a new project could be to use the `create_new_project.exe` tool, located under [`tools/executables/`](./tools/executables). It allows to copy the settings from an existing project (e.g., one of the examples) and effectively duplicates and renames a selected project. Step by step instructions can be found in the root directory's [`README.md`](../README.md) file under the section ["Creating a New Project"](../README.md#creating-a-new-project).
 
 ## Asset Management
 
