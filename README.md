@@ -55,7 +55,7 @@ You will notice _Post Build Helper_ activity through its tray icon: <img src="vi
 * It allows to investigate logs from previous build events, and also change settings.
 * It continues to monitor resource files which is especially important to enable **shader hot reloading**.
 
-For more information about the _Post Build Helper_, please refer to the [`visual_studio/README.md`'s "Post Build Helper" section](visual_studio/README.md#post-build-helper), and for more information about shader hot reloading, please refer to the ["Automatic Resource-Updates" section](#automatic-resource-updates) below.
+For more information about the _Post Build Helper_, please refer to the [Post Build Helper](visual_studio/README.md#post-build-helper) section, and for more information about shader hot reloading, please refer to the [Automatic Resource-Updates](#automatic-resource-updates) section below.
 
 # What's the difference between Gears-Vk and Auto-Vk?
 
