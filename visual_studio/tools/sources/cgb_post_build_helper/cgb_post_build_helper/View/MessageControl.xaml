@@ -33,7 +33,7 @@
 
 		<StackPanel Grid.Row="0" Grid.Column="0" Orientation="Vertical">
 			<TextBlock  Margin="8,2,8,-2"
-					   Text="CGB" 
+					   Text="PBH" 
 					   FontSize="20" HorizontalAlignment="Center"
 					   Foreground="{Binding AccentColor, FallbackValue=#ff1a66}" FontWeight="Bold" />
 

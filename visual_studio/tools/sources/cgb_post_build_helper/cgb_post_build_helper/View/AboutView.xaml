@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CgbPostBuildHelper.View"
         mc:Ignorable="d"
-        Title="AboutView" Height="240" Width="400">
+        Title="About: Post Build Helper" Height="240" Width="400">
     <Grid>
 		<Grid VerticalAlignment="Center" HorizontalAlignment="Center">
 			<Grid.ColumnDefinitions>
@@ -26,7 +26,7 @@
 				<TextBlock Text="Created by" Margin="0,8,0,0" FontStyle="Italic" />
 				<TextBlock Text="Johannes Unterguggenberger in 2019"/>
 				<TextBlock Margin="0,8,0,0">
-					<Run Text="cgb_post_build_helper" FontStyle="Italic" />
+					<Run Text="Post Build Helper" FontStyle="Italic" />
 					<Run Text="is used as a custom build step" />
 				</TextBlock>
 				<TextBlock>

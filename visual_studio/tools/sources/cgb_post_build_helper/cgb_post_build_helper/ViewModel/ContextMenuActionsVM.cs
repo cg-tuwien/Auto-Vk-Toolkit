@@ -49,7 +49,7 @@ namespace CgbPostBuildHelper.ViewModel
 			{
 				var wnd = new View.AboutView
 				{
-					Title = "About cgb_post_build_helper"
+					Title = "About: Post Build Helper"
 				};
 				wnd.Show();
 			});

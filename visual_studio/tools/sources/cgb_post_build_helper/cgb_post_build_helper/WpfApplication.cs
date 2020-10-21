@@ -96,7 +96,7 @@ namespace CgbPostBuildHelper
 			_taskbarIcon = new TaskbarIcon()
 			{
 				Icon = _icons[0],
-				ToolTipText = "CGB Post Build Helper",
+				ToolTipText = "Post Build Helper",
 				ContextMenu = (ContextMenu)rd["SysTrayMenu"]
 			};
 

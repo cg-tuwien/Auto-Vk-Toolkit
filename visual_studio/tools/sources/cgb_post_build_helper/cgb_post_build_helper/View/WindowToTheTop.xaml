@@ -31,8 +31,8 @@
 						<TextBlock Text="Toggle: Keep Window Topmost" HorizontalAlignment="Center"/>
 				</Button>
 			</StackPanel>
-			<TextBlock Grid.Column="1" Margin="1,3" FontSize="10"
-					   Text="cgb_post_process_helper" Foreground="#c32d9b"
+			<TextBlock Grid.Column="1" Margin="1,3" FontSize="10" FontStyle="Italic"
+					   Text="Post Build Helper" Foreground="#c32d9b"
 					   HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
 
 			<Grid Grid.Row="0" Grid.Column="1"

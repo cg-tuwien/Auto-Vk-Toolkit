@@ -9,10 +9,14 @@
     <Grid>
 		<StackPanel Orientation="Vertical" Margin="20">
 			<TextBlock FontSize="20" Margin="0">
-				<Run>cgb_post_build_helper</Run>
+				<Run FontStyle="Italic">Post Build Helper</Run>
 				<Run FontWeight="Bold">settings</Run>
 			</TextBlock>
-			<TextBlock FontSize="10">Tick/untick/enter to change cgb_post_process_helper's behavior!</TextBlock>
+			<TextBlock FontSize="10">
+				<Run>Tick/untick/enter to change</Run>
+				<Run FontStyle="Italic">Post Build Helper's</Run>
+				<Run>behavior!</Run>
+            </TextBlock>
 			<TextBlock FontSize="10">Changes take effect immediately.</TextBlock>
 
 			<StackPanel Margin="0,15,0,0" Orientation="Vertical">
@@ -73,7 +77,7 @@
 					<TextBlock Text="Shader files for Vulkan configurations" />
 				</StackPanel>
 			</CheckBox>
-			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForGlShaders}">
+			<CheckBox Margin="0,0,0,0" IsChecked="{Binding ShowWindowForGlShaders}" Visibility="Collapsed">
 				<StackPanel Orientation="Vertical">
 					<TextBlock Text="Shader files for OpenGL configurations" />
 				</StackPanel>
