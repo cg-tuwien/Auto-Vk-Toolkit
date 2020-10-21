@@ -19,6 +19,24 @@ Requirements:
 
 Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md)
 
+# Creating a New Project
+
+For Visual Studio projects, there is a convenience tool under [`visual_studio/tools/executables/`](visual_studio/tools/executables) that can help to quickly set up a new project by copying an existing one (e.g. one of the example applications): [`create_new_project.exe`](visual_studio/tools/executables)
+
+Use it like follows to create a copy of an existing project:
+* Open `create_new_project.exe` and either select one of the example applications or enter the path to the project to be copied manually.
+* Enter the target location, the target project name, and hit the `Create it!`-button.
+* The project will be copied to the target folder and all relative paths will be adapted to the new location if the target folder is on the same drive as the source project. (If it is not, absolute paths will be set.)
+* Asset references and shader references are retained and their paths are adapted.       
+  _Attention:_ Make sure to remove the existing references if you are going to modify the referenced assets/shaders! You'll have to create copies of these files manually and add references to the copies instead! If you fail to do so, you'll end up modifying the stock assets or the examples' shader files.
+* Precompiled headers are disabled in the newly created project copy. In order to use them, you'll have to manually enable them in the project settings.
+* Manually add a reference to the _Gears-Vk_ library project [`gears-vk.vxcproj`](visual_studio/gears_vk) to your Visual Studio solution and ensure that the newly created project copy references it.
+* All source and include file references are removed from the newly created project copy. You'll have to add at least a `.cpp` file containing a `main()` function.
+* Add `#include <gvk/gvk.hpp>` to use _Gears-Vk_.
+* After these steps, you should be able to successfully link against _Gears-Vk_ build your newly created project.
+
+A good strategy is to add _Gears-Vk_ as a **git submodule** to your repository and use `create_new_project.exe` and the steps above to create a properly configured project in a directory outside of that submodule. Make sure to have your submodule pointing at _Gears-Vk_'s `master` branch and update it frequently to get the latest updates.
+
 # What's the difference between Gears-Vk and Auto-Vk?
 
 *Auto-Vk* is a platform-agnostic convenience and productivity layer atop Vulkan-Hpp. 
