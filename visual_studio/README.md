@@ -66,9 +66,9 @@ You add a `model.obj` file directly to your `assets` filter in your Visual Studi
 
 **Dependent assets not present/not at the right path:**
 
-If the cgb_post_build_helper notices that a dependent asset is not present or located at a path which is not a the same path or a sub-path w.r.t. the root asset, it will issue a warning. You might still be able to compile a working project configuration by assigning all your dependent asset to the right filters in Visual Studio and just ignore cgb_post_build_helper's warnings. 
+If the cgb_post_build_helper notices that a dependent asset is not present or located at a path which is not a the same path or a sub-path w.r.t. the root asset, it will issue a warning. You might still be able to compile a working project configuration by assigning all your dependent asset to the right filters in Visual Studio and just ignore the _Post Build Helper_'s warnings. 
 
-For the example above, you'd have to create the following filters structure in your Visual Studio project:
+For the example above, you'd have to create the following filters structure in your Visual Studio project in order to manually set-up the deployment of all required files:
 
 * `assets/`
   * `model.obj`
@@ -81,13 +81,13 @@ For the example above, you'd have to create the following filters structure in y
 
 #### Build errors when adding assets
 
-In many cases, assets can just be dragged into the appropriate filters in Visual Studio, but for some file types, Visual Studio assumes that it should build them. This happens, for instance, for 3D models in the OBJ-format. To prevent that, please set the assets' **Item Type** to `"Does not participate in build"` which can be done from the file's properties in Visual Studio (select file, and press `Alt + Enter`, navigate to the tab `"General"`, and set the `"Item Type"` to that value). Here is a screenshot of the property pages with the appropriate setting:
+In many cases, assets can just be dragged into the appropriate filters in Visual Studio, but for some file types, Visual Studio assumes that it should build them. This happens, among others, for 3D models in OBJ-format. To prevent that special Visual Studio treatment for such files, please set the assets' **Item Type** to `"Does not participate in build"` which can be done from the file's properties in Visual Studio (select file -> right click -> select _Properties_ -> navigate to the tab `"General"` -> set the `"Item Type"` to `"Does not participate in build"`). Here is a screenshot of the property pages with the appropriate setting:
 
 <img src="./docs/images/vs_does_not_participate_in_build.png" width="825"/>
 
 #### Asset is not deployed because it is not saved in the Visual Studio's filters-file
 
-Sometimes, Visual Studio won't store the exact filter path immediately in the `*.vcxproj.filters` file, which results in the affected file not being deployed to the target directory. In order to ensure that a asset has been stored in the `*.vcxproj.filters` file, please try the following steps:
+Sometimes, Visual Studio won't store the exact filter path immediately in the `*.vcxproj.filters` file, which results in the affected file not being deployed to the target directory. In order to ensure that a file reference has definitely been stored in the `*.vcxproj.filters` file, please try the following steps:
 
 1. Execute `Save All` from Visual Studio's `File` menu.
 2. Close and re-open Visual Studio 
