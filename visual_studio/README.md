@@ -103,15 +103,19 @@ Make sure that the `<Filter>` element is present and set to the correct value. I
 
 ## Post Build Helper 
 
-`cgb_post_build_helper.exe` is a helper tool which is executed upon successful building of a project. It deploys all the referenced assets (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory. It also deploys all the dependent assets. These could be all the textures which are referenced by a 3D model file.
+The _Post Build Helper_ is a helper tool which is invoked upon successful building of a project. It deploys all the referenced assets (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory, which includes the SPIR-V compilation of shader files. It also deploys all the dependent assets, like, for example, all the textures which are referenced by a 3D model file.
 
-The Post Build Helper will provide a tray icon, informing about the deployment process and providing lists of deployed files. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it.
+The _Post Build Helper_ will provide a tray icon, informing about the deployment process and providing lists of deployed files and it will **stay active as a tray application** until you close it. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it. It does not only stay active for providing information, but -- most importantly if you'd like to use _Gears-Vk_'s Shader Hot Reloading feature -- for monitoring the deployed files for changes, and re-deploying these files if changes have been detected. (This means that you can modify, e.g., a shader file that you have added to your Visual Studio project; and by saving it, the _Post Build Helper_ will recognize the change and re-deploy the shader file to the target directory, where it can be loaded from during application run-time in order to hot-reload it and update the pipelines where it is in use.)
 
-As an example: The [`orca_loader` example](./examples/orca_loader), should deploy 72 assets to the target directory, although only four assets and shaders are referenced. The sponza 3D model references many textures, all of which are deployed to the target folder as well. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target folder.
+### Deployment of dependent assets
+
+As detailed above, under section ["Dependent Assets"](#dependent-assets), the _Post Build Helper_ also deploys all dependent assets that are referenced by a certain asset.
+
+When building the [`orca_loader` example](./examples/orca_loader), you should see 130 assets deployed to the target directory, although only four files (two under filter `assets`, and two under filter `shaders`) are referenced in the Visual Studio project. The sponza 3D model references many textures, all of which are deployed to the target directory as well. Models referenced in ORCA `.fscene` files are dependent assets of these `.fscene` files, and each referenced model can have dependent assets as well. All these dependencies are resolved recursively and deployed to the target directory. In addition to that, `.dll` files of [external dependencies](../external) are deployed to the target directory.
 
 <img src="./docs/images/deployed_72_files.png" width="422"/>
 
-If the `orca_loader` example does not deploy 72 assets, please check the hints in section about troubleshooting below.
+If the `orca_loader` example does not deploy 130 assets, please check [section "Too few resources are being deployed"](#too-few-resources-are-being-deployed) below.
 
 ### Known Issues and Troubleshooting w.r.t. the Post Build Helper
 
