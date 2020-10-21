@@ -14,36 +14,40 @@ A more convenient way to create a new project could be to use the `create_new_pr
 
 ## Asset Management
 
-Assets required for an application are managed directly via Visual Studio project settings, more specifically, via Visual Studio's filters. The data is stored in `*.vcxproj.filters` files. There are two special filters which are deployed by the cgb_post_build_helper to the target directory. These two are: 
+Most applications created with _Gears-Vk_ will probably require additional resources like shader files, images, or 3D models. _Gears-Vk_ offers an elegant way to manage these resources through Visual Studio's filters and its _Post Build Helper_.
+
+To manage project's asset and shader dependencies, they can simply be added to Visual Studio's filters, which are just Visual Studio's standard way of managing project file references. The data is stored in `*.vcxproj.filters` files. _Gears-Vk_ -- or rather its _Post Build Helper_ -- analyzes these `*.vcxproj.filters` files and assigns special meaning to two filter names: 
 
 * `assets`, and
 * `shaders`.
 
-The following figure shows an example of a project configuration where shaders, a 3D model file, and an ORCA scene file are assigned to these two special filters: 
+The following figure shows an example of a project configuration where shaders, a 3D model file, and an ORCA scene file are linked under these two special filters: 
 
 <img src="./docs/images/orca_loader_filters.png" width="292"/>
 
-When building the project, all these resources get deployed _according to their **filter path**_ to the target directory. Sub-folders in filter paths are preserved. The filter-path is the path where to load resources from, like shown in the following examples:
+When building the project, all these resources get deployed **according to their filter-path** to the target directory. That means, the 3D model `sponza_structure.obj` will be deployed to `$(TargetDir)/assets/sponza_structure.obj`, regardless of where the _source_ `sponza_structure.obj` file is located. Sub-folders in filter paths are preserved. I.e. the filter-path as configure within Visual Studio's filters, is the path where the application can expect resources to be loadable from.
 
-Load a 3D model:
+The `sponza_structure.obj` model from the example can be loaded like follows:
 ```
-auto sponza = cgb::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
-```
-
-Load an ORCA scene:
-```
-auto orca = cgb::orca_scene_t::load_from_file("assets/sponza.fscene");
+auto sponza = gvk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 ```
 
-Load shaders and use them to create graphics pipeline:
+Load ORCA scene file `sponza.fscene` from the example can be loaded like follows:
 ```
-auto pipeline = cgb::graphics_pipeline_for(
-	cgb::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
-	cgb::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
-	cgb::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-	cgb::vertex_input_location(0, glm::vec3{}).from_buffer_at_binding(0),
-	cgb::vertex_input_location(1, glm::vec2{}).from_buffer_at_binding(1),
-	cgb::vertex_input_location(2, glm::vec3{}).from_buffer_at_binding(2)
+auto orca = gvk::orca_scene_t::load_from_file("assets/sponza.fscene");
+```
+
+Shader files are automatically compiled to SPIR-V by the _Post Build Helper_ and they get a `.spv` extension when deployed to the target directory. Aside from the additional extension, their path stays the same. I.e. the `transform_and_pass_pos_nrm_uv.vert` shader from the example can be loaded from `shaders/transform_and_pass_pos_nrm_uv.vert.spv` -- again -- regardless of where the _source_ `transform_and_pass_pos_nrm_uv.vert` shader file is located on the file system.
+
+The shader files from the example can be used for creating a graphics pipeline like follows (note that the added `.spv` extension can be left out - it's automatically added by _Gears-Vk_):
+```
+auto pipeline = gvk::context().create_graphics_pipeline_for(
+	avk::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
+	avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
+	avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
+	avk::from_buffer_binding(0) -> stream_per_vertex<glm::vec3>() -> to_location(0),
+	avk::from_buffer_binding(1) -> stream_per_vertex<glm::vec2>() -> to_location(1),
+	avk::from_buffer_binding(2) -> stream_per_vertex<glm::vec3>() -> to_location(2)
 );
 ```
 
