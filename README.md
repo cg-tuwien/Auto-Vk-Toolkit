@@ -47,7 +47,7 @@ In short:
 directly in Visual Studio. Then build the application, wait for the _Post Build Helper_ to deploy these resources to the target directory, and run your application!
 
 This can look like follows, where the filters `assets` and `shaders` have special meaning, as hinted above:    
-<img src="visual_studio/docs/images/orca_loader_filters.png" width="825"/>
+<img src="visual_studio/docs/images/orca_loader_filters.png" width="292"/>
 
 A more detailed explanation and further instructions are given in [`visual_studio/README.md`](visual_studio/README.md).
 
