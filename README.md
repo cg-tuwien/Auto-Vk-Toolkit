@@ -125,7 +125,7 @@ Usage examples can be found at the following places:
 **Q: Can Gears-Vk be used on Linux?**           
 _A:_ Not yet. [Auto-Vk](https://github.com/cg-tuwien/Auto-Vk), however, can.
 
-**Q: Can Gears-Vk be used without the _Post Build Helper_?**
+**Q: Can Gears-Vk be used without the _Post Build Helper_?**      
 _A:_ Yes. The _Post Build Helper_ is a convenience tool that handles resource deployment, asset dependencies, and also file updates (useful for shader hot reloading, depending on the project structure). If you're not using it, you'll have to manage deployment of resources, and compilation of shader files into SPIR-V manually.
 
 **Q: I have troubles with asset management in Visual Studio. Any advice?**        
@@ -133,10 +133,10 @@ _A:_ Check out [Known Issues and Troubleshooting w.r.t. Asset Handling](./visual
 * [Build errors when adding assets](./visual_studio#build-errors-when-adding-assets)
 * [Asset is not deployed because it is not saved in the Visual Studio's filters-file](./visual_studio#asset-is-not-deployed-because-it-is-not-saved-in-the-visual-studios-filters-file)  
 
-**Q: More resources have been deployed than I have added to Visual Studio's filters. What's going on?**
+**Q: More resources have been deployed than I have added to Visual Studio's filters. What's going on?**      
 _A:_ Some assets reference other assets internally. For example, 3D models often reference images or material files (in case of `.obj` models). These "dependent assets" are also deployed to the target directory by the _Post Build Helper_. Please see [Deployment of Dependent Assets](./visual_studio#deployment-of-dependent-assets) for more details.
 
-**Q: What are the differences between _Debug_, _Release_, and _Publish_ build configurations?**
+**Q: What are the differences between _Debug_, _Release_, and _Publish_ build configurations?**      
 _A:_ In terms of compilation settings, _Release_ and _Publish_ configurations are the same. They link against _Release_ builds of libraries. _Debug_ configuration has classical debug settings configured for the Visual Studio projects and links against _Debug_ builds of libraries. There is, however, a difference between _Publish_ builds and non-_Publish_ builds w.r.t. the deployment of resources. Please see [Symbolic Links/Copies depending on Build Configuration](./visual_studio#symbolic-linkscopies-depending-on-build-configuration) for more details.
 
 **Q: I have troubles with the _Post Build Helper_. What to do?**        
