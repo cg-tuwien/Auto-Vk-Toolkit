@@ -1,6 +1,6 @@
 # Gears-Vk + Auto-Vk
 
-*Gears-Vk* is a modern C++17-based rendering framework for the Vulkan 1.2 API.      
+*Gears-Vk* rendering framework for the Vulkan 1.2 API, implemented in modern C++, using C++17 and C++20 features.     
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
@@ -10,14 +10,14 @@ To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwi
 
 # Installation
 
-Currently, only Windows is supported as a development platform. The project setup is provided for Visual Studio 2019 only.
+Currently, only Windows is supported as a development platform. The project setup is provided for Visual Studio 2019.
 
 Requirements:
 * Windows 10 
 * Visual Studio 2019 with a Windows 10 SDK installed
 * Vulkan SDK 1.2.141.0 or newer
 
-Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md)
+Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md). A short summary, and also the most important information to start a new project are given in the following two sections: [Creating a New Project](#creating-a-new-project) and [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper).
 
 # Creating a New Project
 
