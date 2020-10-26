@@ -2,6 +2,482 @@
 
 namespace gvk
 {
+	static auto select_format(int aPreferredNumberOfTextureComponents, bool aLoadHdr, bool aLoadSrgb)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		if (!imFmt.has_value() && aLoadHdr) {
+			//if (stbi_is_hdr(aPath.c_str())) {
+				switch (aPreferredNumberOfTextureComponents) {
+				case 4:
+					imFmt = default_rgb16f_4comp_format();
+					break;
+					// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+				case 3:
+					imFmt = default_rgb16f_3comp_format();
+					break;
+				case 2:
+					imFmt = default_rgb16f_2comp_format();
+					break;
+				case 1:
+					imFmt = default_rgb16f_1comp_format();
+					break;
+				default:
+					imFmt = default_rgb16f_4comp_format();
+					break;
+				}
+			//}
+		}
+
+		if (!imFmt.has_value() && aLoadSrgb) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = gvk::default_srgb_4comp_format();
+				break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = gvk::default_srgb_3comp_format();
+				break;
+			case 2:
+				imFmt = gvk::default_srgb_2comp_format();
+				break;
+			case 1:
+				imFmt = gvk::default_srgb_1comp_format();
+				break;
+			default:
+				imFmt = gvk::default_srgb_4comp_format();
+				break;
+			}
+		}
+
+		if (!imFmt.has_value()) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = gvk::default_rgb8_3comp_format();
+				break;
+			case 2:
+				imFmt = gvk::default_rgb8_2comp_format();
+				break;
+			case 1:
+				imFmt = gvk::default_rgb8_1comp_format();
+				break;
+			default:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+			}
+		}
+
+		return imFmt;
+	}
+
+
+	static auto map_format_gli_to_vk(const gli::format gliFmt)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		switch (gliFmt) {
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+		case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc1RgbUnormBlock;
+			break;
+		case gli::format::FORMAT_RGB_DXT1_SRGB_BLOCK8:
+			imFmt = vk::Format::eBc1RgbSrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT1_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc1RgbaUnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT1_SRGB_BLOCK8:
+			imFmt = vk::Format::eBc1RgbaSrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT3_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc2UnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT3_SRGB_BLOCK16:
+			imFmt = vk::Format::eBc2SrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT5_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc3UnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT5_SRGB_BLOCK16:
+			imFmt = vk::Format::eBc3SrgbBlock;
+			break;
+		case gli::format::FORMAT_R_ATI1N_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc4UnormBlock;
+			break;
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#RGTC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+		case gli::format::FORMAT_R_ATI1N_SNORM_BLOCK8:
+			imFmt = vk::Format::eBc4SnormBlock;
+			break;
+		case gli::format::FORMAT_RG_ATI2N_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc5UnormBlock;
+			break;
+		case gli::format::FORMAT_RG_ATI2N_SNORM_BLOCK16:
+			imFmt = vk::Format::eBc5SnormBlock;
+			break;
+
+		// uncompressed formats, TODO other values?
+		case gli::format::FORMAT_RGBA8_UNORM_PACK8:
+			imFmt = vk::Format::eR8G8B8A8Unorm;
+			break;
+
+		}
+
+		return imFmt;
+	}
+
+
+	avk::image create_cubemap_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip,
+		avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<gli::texture> aAlreadyLoadedGliTexture)
+	{
+		std::vector<avk::buffer> stagingBuffers;
+		int width = 0;
+		int height = 0;
+
+		// ============ Compressed formats (DDS) ==========
+		// TODO find better way to determine which library to use for a given image file
+		if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
+			if (!aAlreadyLoadedGliTexture.has_value()) {
+				aAlreadyLoadedGliTexture = gli::load(aPath);
+			}
+			auto& gliTex = aAlreadyLoadedGliTexture.value();
+
+			if (gliTex.target() != gli::TARGET_CUBE) {
+				throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as a cubemap image. Can't load it.", aPath));
+			}
+
+			width = gliTex.extent()[0];
+			height = gliTex.extent()[1];
+
+			/*
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(gliTex.size())
+			));
+			sb->fill(gliTex.data(), 0, avk::sync::not_required());
+			*/
+		}
+
+		// TODO other formats
+
+		// image must have flag set to be used for cubemap
+		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		auto numLayers = 6; // a cubemap image in Vulkan must have six layers, one for each side of the cube
+		auto img = context().create_image(width, height, aFormat, numLayers, aMemoryUsage, aImageUsage);
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
+		// 1. Transition image layout to eTransferDstOptimal
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
+
+		// 2. Copy buffer to image
+		//assert(stagingBuffers.size() == 1);
+		//avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																																				// TODO: Verify the above ^ comment
+		// Are MIP-maps required?
+		//if (img->config().mipLevels > 1u) {
+			if (avk::is_block_compressed_format(aFormat)) {
+				assert(aAlreadyLoadedGliTexture.has_value());
+				// 1st level is contained in stagingBuffer
+				// 
+				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+
+				auto maxLevels = img->config().mipLevels;
+
+				auto& gliTex = aAlreadyLoadedGliTexture.value();
+
+				assert(maxLevels <= gliTex.levels());
+				assert(gliTex.faces() == 6);
+
+				for (uint32_t face = 0; face < 6; ++face)
+				{
+					// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+					for (uint32_t level = 0; level < maxLevels; ++level)
+					{
+#if _DEBUG
+						{
+							glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+							auto imgExtent = img->config().extent;
+							auto levelDivisor = std::pow(2u, level);
+							imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
+							imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+							imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
+							assert(levelExtent.x == static_cast<int>(imgExtent.width));
+							assert(levelExtent.y == static_cast<int>(imgExtent.height));
+							assert(levelExtent.z == static_cast<int>(imgExtent.depth));
+						}
+#endif
+
+						auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+							AVK_STAGING_BUFFER_MEMORY_USAGE,
+							vk::BufferUsageFlagBits::eTransferSrc,
+							avk::generic_buffer_meta::create_from_size(gliTex.size(level))
+						));
+						sb->fill(gliTex.data(0, face, level), 0, avk::sync::not_required());
+
+						// Memory writes are not overlapping => no barriers should be fine.
+						avk::copy_buffer_to_image_layer_mip_level(sb, img, face, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+					}
+				}
+			}
+			else {
+				// TODO load other image files here
+
+				// For uncompressed formats, create MIP-maps via BLIT:
+				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			}
+		//}
+
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
+
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+		auto result = aSyncHandler.submit_and_sync();
+		assert(!result.has_value());
+		return img;
+	}
+
+	avk::image create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		std::optional<gli::texture> gliTex = gli::load(aPath);
+		if (!gliTex.value().empty()) {
+
+			// TODO: warn if image can't be flipped?
+			if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
+				gliTex = gli::flip(gliTex.value());
+			}
+
+			imFmt = map_format_gli_to_vk(gliTex.value().format());
+		}
+		else {
+			gliTex.reset();
+		}
+
+		if (!imFmt.has_value()) {
+			imFmt = select_format(aPreferredNumberOfTextureComponents, aLoadHdrIfPossible && stbi_is_hdr(aPath.c_str()), aLoadSrgbIfApplicable);
+		}
+
+		return create_cubemap_from_file(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
+
+	}
+
+
+	avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip, 
+		avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<gli::texture> aAlreadyLoadedGliTexture)
+	{
+		std::vector<avk::buffer> stagingBuffers;
+		int width = 0;
+		int height = 0;
+
+		// ============ Compressed formats (DDS) ==========
+		if (avk::is_block_compressed_format(aFormat)) {
+			if (!aAlreadyLoadedGliTexture.has_value()) {
+				aAlreadyLoadedGliTexture = gli::load(aPath);
+			}
+			auto& gliTex = aAlreadyLoadedGliTexture.value();
+
+			if (gliTex.target() != gli::TARGET_2D) {
+				throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as 2D image. Can't load it.", aPath));
+			}
+
+			width = gliTex.extent()[0];
+			height = gliTex.extent()[1];
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(gliTex.size())
+			));
+			sb->fill(gliTex.data(), 0, avk::sync::not_required());
+		}
+		// ============ RGB 8-bit formats ==========
+		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
+
+			stbi_set_flip_vertically_on_load(aFlip);
+			int desiredColorChannels = STBI_rgb_alpha;
+
+			if (!avk::is_4component_format(aFormat)) {
+				if (avk::is_3component_format(aFormat)) {
+					desiredColorChannels = STBI_rgb;
+				}
+				else if (avk::is_2component_format(aFormat)) {
+					desiredColorChannels = STBI_grey_alpha;
+				}
+				else if (avk::is_1component_format(aFormat)) {
+					desiredColorChannels = STBI_grey;
+				}
+			}
+
+			int channelsInFile = 0;
+			stbi_uc* pixels = stbi_load(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels);
+			size_t imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
+
+			if (!pixels) {
+				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", aPath));
+			}
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(imageSize)
+			));
+			sb->fill(pixels, 0, avk::sync::not_required());
+
+			stbi_image_free(pixels);
+		}
+		// ============ RGB 16-bit float formats (HDR) ==========
+		else if (avk::is_float16_format(aFormat)) {
+
+			stbi_set_flip_vertically_on_load(true);
+			int desiredColorChannels = STBI_rgb_alpha;
+
+			if (!avk::is_4component_format(aFormat)) {
+				if (avk::is_3component_format(aFormat)) {
+					desiredColorChannels = STBI_rgb;
+				}
+				else if (avk::is_2component_format(aFormat)) {
+					desiredColorChannels = STBI_grey_alpha;
+				}
+				else if (avk::is_1component_format(aFormat)) {
+					desiredColorChannels = STBI_grey;
+				}
+			}
+
+			int channelsInFile = 0;
+			float* pixels = stbi_loadf(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels);
+			size_t imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
+
+			if (!pixels) {
+				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", aPath));
+			}
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(imageSize)
+			));
+			sb->fill(pixels, 0, avk::sync::not_required());
+
+			stbi_image_free(pixels);
+		}
+		else {
+			throw gvk::runtime_error("No loader for the given image format implemented.");
+		}
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		auto img = context().create_image(width, height, aFormat, 1, aMemoryUsage, aImageUsage);
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
+		// 1. Transition image layout to eTransferDstOptimal
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
+
+		// 2. Copy buffer to image
+		assert(stagingBuffers.size() == 1);
+		avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																																				// TODO: Verify the above ^ comment
+		// Are MIP-maps required?
+		if (img->config().mipLevels > 1u) {
+			if (avk::is_block_compressed_format(aFormat)) {
+				assert(aAlreadyLoadedGliTexture.has_value());
+				// 1st level is contained in stagingBuffer
+				// 
+				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+
+				auto& gliTex = aAlreadyLoadedGliTexture.value();
+				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+				for (uint32_t level = 1; level < gliTex.levels(); ++level)
+				{
+#if _DEBUG
+					{
+						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+						auto imgExtent = img->config().extent;
+						auto levelDivisor = std::pow(2u, level);
+						imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
+						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+						imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
+						assert(levelExtent.x == static_cast<int>(imgExtent.width));
+						assert(levelExtent.y == static_cast<int>(imgExtent.height));
+						assert(levelExtent.z == static_cast<int>(imgExtent.depth));
+					}
+#endif
+
+					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+						AVK_STAGING_BUFFER_MEMORY_USAGE,
+						vk::BufferUsageFlagBits::eTransferSrc,
+						avk::generic_buffer_meta::create_from_size(gliTex.size(level))
+					));
+					sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
+
+					// Memory writes are not overlapping => no barriers should be fine.
+					avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				}
+			}
+			else {
+				// For uncompressed formats, create MIP-maps via BLIT:
+				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			}
+		}
+
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
+
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+		auto result = aSyncHandler.submit_and_sync();
+		assert(!result.has_value());
+		return img;
+	}
+
+	avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, 
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		std::optional<gli::texture> gliTex = gli::load(aPath);
+		if (!gliTex.value().empty()) {
+
+			// TODO: warn if image can't be flipped?
+			if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
+				gliTex = gli::flip(gliTex.value());
+			}
+
+			imFmt = map_format_gli_to_vk(gliTex.value().format());
+		}
+		else {
+			gliTex.reset();
+		}
+
+		if (!imFmt.has_value()) {
+			imFmt = select_format(aPreferredNumberOfTextureComponents, aLoadHdrIfPossible && stbi_is_hdr(aPath.c_str()), aLoadSrgbIfApplicable);
+		}
+
+		/* Never throws
+		if (!imFmt.has_value()) {
+			throw gvk::runtime_error(fmt::format("Could not determine the image format of image '{}'", aPath));
+		}
+		*/
+
+		return create_image_from_file(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
+	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
 		const std::vector<gvk::material_config>& aMaterialConfigs, 
