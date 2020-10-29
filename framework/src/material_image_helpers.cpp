@@ -186,7 +186,8 @@ namespace gvk
 																																				// TODO: Verify the above ^ comment
 		// Are MIP-maps required?
 		//if (img->config().mipLevels > 1u) {
-			if (avk::is_block_compressed_format(aFormat)) {
+			// TODO find better way to determine which library to use for a given image file
+			if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
 				assert(aAlreadyLoadedGliTexture.has_value());
 				// 1st level is contained in stagingBuffer
 				// 
@@ -199,10 +200,10 @@ namespace gvk
 				assert(maxLevels <= gliTex.levels());
 				assert(gliTex.faces() == 6);
 
-				for (uint32_t face = 0; face < 6; ++face)
+				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+				for (uint32_t level = 0; level < maxLevels; ++level)
 				{
-					// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
-					for (uint32_t level = 0; level < maxLevels; ++level)
+					for (uint32_t face = 0; face < 6; ++face)
 					{
 #if _DEBUG
 						{
@@ -231,7 +232,8 @@ namespace gvk
 				}
 			}
 			else {
-				// TODO load other image files here
+				// TODO load other image files here, load MIP-map level 0
+				assert(false);
 
 				// For uncompressed formats, create MIP-maps via BLIT:
 				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));

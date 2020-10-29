@@ -1,3 +1,4 @@
+// copied and adapted from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/texturecubemap/reflect.frag
 #version 450
 
 layout (binding = 1) uniform samplerCube samplerColor;
@@ -24,7 +25,8 @@ void main()
 
 	cR = vec3(ubo.invModel * vec4(cR, 0.0));
 	// Convert cubemap coordinates into Vulkan coordinate space
-	cR.xy *= -1.0;
+	// TODO: check if this is the right place to transform coordinates
+	cR.x *= -1.0;
 
 	vec4 color = texture(samplerColor, cR, ubo.lodBias);
 

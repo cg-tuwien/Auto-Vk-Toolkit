@@ -19,12 +19,6 @@
     <ClCompile Include="..\..\..\examples\texture_cubemap\source\texture_cubemap.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\examples\model_loader\shaders\transform_and_pass_pos_nrm_uv.vert">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\model_loader\shaders\diffuse_shading_fixed_lightsource.frag">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.frag">
       <Filter>shaders</Filter>
     </None>
@@ -40,6 +34,12 @@
     <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\cubemap_yokohama_rgba.ktx">
       <Filter>assets</Filter>
     </None>
+    <None Include="..\..\..\assets\1st_party\models\cube.obj">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <Filter>assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">
@@ -48,30 +48,5 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <Filter>assets</Filter>
-    </Object>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negx.jpg">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negy.jpg">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negz.jpg">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg">
-      <Filter>assets</Filter>
-    </Image>
   </ItemGroup>
 </Project>

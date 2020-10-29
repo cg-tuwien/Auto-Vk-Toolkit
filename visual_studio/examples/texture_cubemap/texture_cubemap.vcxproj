@@ -28,8 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\cubemap_yokohama_rgba.ktx" />
-    <None Include="..\..\..\examples\model_loader\shaders\diffuse_shading_fixed_lightsource.frag" />
-    <None Include="..\..\..\examples\model_loader\shaders\transform_and_pass_pos_nrm_uv.vert" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.frag" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.vert" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\skybox.frag" />
@@ -41,17 +39,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+    <None Include="..\..\..\assets\1st_party\models\cube.obj">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negx.jpg" />
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negy.jpg" />
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negz.jpg" />
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg" />
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg" />
-    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg" />
+    <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
