@@ -62,7 +62,7 @@ namespace gvk {
 			template<typename Type>
 			void operator()(Type&& aValue)
 			{
-				mArchive(aValue);
+				mArchive(std::forward<Type>(aValue));
 			}
 		};
 
@@ -85,7 +85,7 @@ namespace gvk {
 			template<typename Type>
 			void operator()(Type&& aValue)
 			{
-				mArchive(aValue);
+				mArchive(std::forward<Type>(aValue));
 			}
 		};
 
@@ -101,7 +101,8 @@ namespace gvk {
 
 		enum class mode {
 			serialize,
-			deserialize
+			deserialize,
+			none
 		};
 
 		const mode mode() const { return mMode; }
@@ -120,7 +121,7 @@ namespace gvk {
 		 *  below) or the * custom serialization function is not defined in the same namespace
 		 *  as the type to serialize.
 		 */
-		template<class Type>
+		template<typename Type>
 		inline void archive(Type&& aValue)
 		{
 			if (mMode == mode::serialize) {
@@ -129,6 +130,23 @@ namespace gvk {
 			else {
 				std::get<deserialize>(mArchive)(std::forward<Type>(aValue));
 			}
+		}
+
+		template<typename Type>
+		using BinaryData = cereal::BinaryData<Type>;
+
+		/** @brief Create binary data for const and non const pointers
+		*   This function creates a wrapper around data, that can be
+		*   binary serialized.
+		* 
+		*   @param[in] aValue Pointer to the beginning of the data
+		*   @param[in] aSize The size of the data in size
+		*   @return BinaryData structure
+		*/
+		template<typename Type>
+		BinaryData<Type> binary_data(Type&& aValue, size_t aSize)
+		{
+			return cereal::binary_data(std::forward<Type>(aValue), aSize);
 		}
 
 	private:

@@ -265,7 +265,10 @@ namespace gvk
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
 
 		std::vector<material_gpu_data> gpuMaterial;
-		size_t materialConfigSize = aMaterialConfigs.size();
+		size_t materialConfigSize;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			materialConfigSize = aMaterialConfigs.size();
+		}
 		aSerializer.archive(materialConfigSize);
 		gpuMaterial.reserve(materialConfigSize); // important because of the pointers
 
@@ -473,7 +476,7 @@ namespace gvk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					owned(context().create_image_view(
-						create_image_from_file(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync())
+						create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), std::make_optional<gvk::serializer*>(&aSerializer))
 					)),
 					owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
 				)

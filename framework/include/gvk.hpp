@@ -193,8 +193,6 @@ namespace gvk {
 #include "composition.hpp"
 #include "setup.hpp"
 
-#include "serializer.hpp"
-
 #include "imgui_manager.hpp"
 
 #include "event_data.hpp"

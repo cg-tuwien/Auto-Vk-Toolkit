@@ -51,27 +51,92 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		gvk::orca_scene orca;
 		std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
 
+		float start = gvk::fixed_update_timer().absolute_time();
+		float startPart = start;
+		float endPart = 0.0f;
+		std::vector<std::tuple<std::string, float>> times;
+
 		const std::string cacheFilePath(aPathToOrcaScene + ".cache");
 		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
 		auto ser = cacheFileExists ?
 			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
 			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+#define USE_SERIALIZER 1
 
+#ifdef USE_SERIALIZER
 		if (!cacheFileExists) {
 			// Load an ORCA scene from file:
 			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 			// Get all the different materials from the whole scene:
 			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 		}
+#else
+		// Load an ORCA scene from file:
+		orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
+		// Get all the different materials from the whole scene:
+		distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+#endif
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<gvk::material_config> allMatConfigs;
 		mDrawCalls.clear();
+#ifndef USE_SERIALIZER
+		for (const auto& pair : distinctMaterialsOrca) {
+			allMatConfigs.push_back(pair.first);
+			const int matIndex = static_cast<int>(allMatConfigs.size()) - 1;
+
+			// The data in distinctMaterialsOrca encompasses all of the ORCA scene's models.
+			for (const auto& indices : pair.second) {
+				// However, we have to pay attention to the specific model's scene-properties,...
+				auto& modelData = orca->model_at_index(indices.mModelIndex);
+				// ... specifically, to its instances:
+				
+				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
+				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {},
+					avk::sync::wait_idle()
+				);
+				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				// Get a buffer containing all texture coordinates for all submeshes with this material
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
+					avk::sync::wait_idle()
+				);
+				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				// Get a buffer containing all normals for all submeshes with this material
+				auto normalsBuffer = gvk::create_normals_buffer(
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
+					avk::sync::wait_idle()
+				);
+				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
+					auto& newElement = mDrawCalls.emplace_back();
+					newElement.mMaterialIndex = matIndex;
+					newElement.mModelMatrix = gvk::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling);
+					newElement.mPositionsBuffer = positionsBuffer;
+					newElement.mIndexBuffer = indicesBuffer;
+					newElement.mTexCoordsBuffer = texCoordsBuffer;
+					newElement.mNormalsBuffer = normalsBuffer;
+				}
+			}
+		}
+#else
+
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("serializer init", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
+		//auto numIterations = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(distinctMaterialsOrca.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 		size_t numIterations = cacheFileExists ? 0 : distinctMaterialsOrca.size();
 		ser.archive(numIterations);
 		auto pair = distinctMaterialsOrca.begin();
 		for (int i = 0; i < numIterations; ++i) {
+			//auto numIterations2 = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(pair->second.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 			size_t numIterations2 = cacheFileExists ? 0 : pair->second.size();
 			ser.archive(numIterations2);
 			const auto indices = cacheFileExists ? std::vector<gvk::model_and_mesh_indices>() : pair->second;
@@ -83,10 +148,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			for (int j = 0; j < numIterations2; ++j) {
 				auto getModelData = [&]() -> gvk::model_data& { return orca->model_at_index(indices[j].mModelIndex); };
 				auto modelAndMeshes = !cacheFileExists
-					? [&]() -> std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>> {
+					? [&]() -> std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> {
 					return { gvk::make_models_and_meshes_selection(getModelData().mLoadedModel, indices[j].mMeshIndices) };
 				}()
-					: std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<size_t>>>{};
+					: std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>{};
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(
@@ -107,8 +172,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
+				//auto numIterations3 = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(getModelData().mInstances.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 				size_t numIterations3 = cacheFileExists ? 0 : getModelData().mInstances.size();
 				ser.archive(numIterations3);
+				//std::vector<gvk::model_instance_data> instances = cacheFileExists ? ser.read_model_instance_data() : ser.write_model_instance_data(getModelData().mInstances);
+				//auto instances = ser.archive(getModelData().mInstances);
 				auto instances = cacheFileExists ? std::vector<gvk::model_instance_data>() : getModelData().mInstances;
 				ser.archive(instances);
 				for (int k = 0; k < numIterations3; ++k) {
@@ -122,8 +190,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}
 			}
 		}
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("fill all materials", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
 		// TODO: Remove, this is not necessary if serialization in convert_for_gpu_usage_cached works
 		ser.archive(allMatConfigs);
+#endif
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
@@ -134,6 +207,22 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle(),
 			ser
 		);
+
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
+		std::cout << std::endl;
+		std::cout << "----------------------------------------------------" << std::endl;
+		for (auto& t : times)
+			std::cout << std::get<0>(t) << " took " << std::get<1>(t) << std::endl;
+
+		std::cout << "----------------------------------------------------" << std::endl;
+		float end = gvk::fixed_update_timer().absolute_time();
+		float diff = end - start;
+		std::cout << "Took total: " << diff << std::endl;
+		std::cout << "----------------------------------------------------" << std::endl;
+		std::cout << std::endl;
 
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_visible, {},

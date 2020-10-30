@@ -52,8 +52,312 @@ namespace gvk
 		return img;
 	}
 
+	static inline std::optional<avk::command_buffer> fill_avk_buffer(avk::buffer& buffer, const void* aDataPtr, size_t aMetaDataIndex, avk::sync aSyncHandler, std::optional<gvk::serializer*> aSerializer = {})
+	{
+#if 0
+		auto metaData = buffer->meta_at_index<avk::buffer_meta>(aMetaDataIndex);
+		auto bufferSize = static_cast<vk::DeviceSize>(metaData.total_size());
+		auto memProps = buffer->memory_properties();
+		auto handle = buffer->handle();
+
+		// #1: Is our memory accessible from the CPU-SIDE? 
+		if (avk::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
+			auto mapped = avk::scoped_mapping{ buffer->buf(), avk::mapping_access::write };
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				memcpy(mapped.get(), aDataPtr, bufferSize);
+			}
+			(*aSerializer)->archive((*aSerializer)->binary_data(mapped.get(), bufferSize));
+			return {};
+		}
+
+		// #2: Otherwise, it must be on the GPU-SIDE!
+		else {
+			assert(avk::has_flag(memProps, vk::MemoryPropertyFlagBits::eDeviceLocal));
+
+			auto device = gvk::context().device();
+			auto physicalDevice = gvk::context().physical_device();
+			auto allocator = gvk::context().memory_allocator();
+			// We have to create a (somewhat temporary) staging buffer and transfer it to the GPU
+			// "somewhat temporary" means that it can not be deleted in this function, but only
+			//						after the transfer operation has completed => handle via sync
+			auto stagingBuffer = gvk::context().create_buffer(
+				physicalDevice, device, allocator,
+				AVK_STAGING_BUFFER_MEMORY_USAGE,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(bufferSize)
+			);
+			stagingBuffer->fill(aDataPtr, 0, avk::sync::wait_idle()); // Recurse into the other if-branch
+
+			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+			// Sync before:
+			aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+			// Operation:
+			auto copyRegion = vk::BufferCopy{}
+				.setSrcOffset(0u) // TODO: Support different offsets or whatever?!
+				.setDstOffset(0u)
+				.setSize(bufferSize);
+			commandBuffer.handle().copyBuffer(stagingBuffer->handle(), handle, { copyRegion });
+
+			// Sync after:
+			aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+
+			// Take care of the lifetime handling of the stagingBuffer, it might still be in use:
+			commandBuffer.set_custom_deleter([
+				lOwnedStagingBuffer{ std::move(stagingBuffer) }
+			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
+
+			// Finish him:
+			return aSyncHandler.submit_and_sync();
+		}
+#endif
+		return {};
+	}
+
+	static avk::image create_image_from_file_cached(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {}, std::optional<gvk::serializer*> aSerializer = {})
+	{
+		std::vector<avk::buffer> stagingBuffers;
+		int width = 0;
+		int height = 0;
+
+		// ============ Compressed formats (DDS) ==========
+		if (avk::is_block_compressed_format(aFormat)) {
+			size_t texSize = 0;
+			void* texData = nullptr;
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				if (!aAlreadyLoadedGliTexture.has_value()) {
+					aAlreadyLoadedGliTexture = gli::load(aPath);
+				}
+				auto& gliTex = aAlreadyLoadedGliTexture.value();
+
+				if (gliTex.target() != gli::TARGET_2D) {
+					throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as 2D image. Can't load it.", aPath));
+				}
+
+				texSize = gliTex.size();
+				texData = gliTex.data();
+
+				width = gliTex.extent()[0];
+				height = gliTex.extent()[1];
+			}
+
+			if (aSerializer) {
+				(*aSerializer)->archive(texSize);
+				(*aSerializer)->archive(width);
+				(*aSerializer)->archive(height);
+			}
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				avk::memory_usage::host_coherent,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(texSize)
+			));
+
+			//sb->fill(texData, 0, avk::sync::not_required());
+			fill_avk_buffer(sb, texData, 0, avk::sync::not_required(), aSerializer);
+		}
+		// ============ RGB 8-bit formats ==========
+		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
+			size_t imageSize = 0;
+			stbi_uc* pixels = nullptr;
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				stbi_set_flip_vertically_on_load(aFlip);
+				int desiredColorChannels = STBI_rgb_alpha;
+
+				if (!avk::is_4component_format(aFormat)) {
+					if (avk::is_3component_format(aFormat)) {
+						desiredColorChannels = STBI_rgb;
+					}
+					else if (avk::is_2component_format(aFormat)) {
+						desiredColorChannels = STBI_grey_alpha;
+					}
+					else if (avk::is_1component_format(aFormat)) {
+						desiredColorChannels = STBI_grey;
+					}
+				}
+
+				int channelsInFile = 0;
+				pixels = stbi_load(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels);
+				imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
+
+				if (!pixels) {
+					throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load", aPath));
+				}
+			}
+
+			if (aSerializer) {
+				(*aSerializer)->archive(imageSize);
+				(*aSerializer)->archive(width);
+				(*aSerializer)->archive(height);
+			}
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				avk::memory_usage::host_coherent,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(imageSize)
+			));
+			//sb->fill(pixels, 0, avk::sync::not_required());
+			fill_avk_buffer(sb, pixels, 0, avk::sync::not_required(), aSerializer);
+
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				stbi_image_free(pixels);
+			}
+		}
+		// ============ RGB 16-bit float formats (HDR) ==========
+		else if (avk::is_float16_format(aFormat)) {
+			size_t imageSize = 0;
+			float* pixels = nullptr;
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				stbi_set_flip_vertically_on_load(true);
+				int desiredColorChannels = STBI_rgb_alpha;
+
+				if (!avk::is_4component_format(aFormat)) {
+					if (avk::is_3component_format(aFormat)) {
+						desiredColorChannels = STBI_rgb;
+					}
+					else if (avk::is_2component_format(aFormat)) {
+						desiredColorChannels = STBI_grey_alpha;
+					}
+					else if (avk::is_1component_format(aFormat)) {
+						desiredColorChannels = STBI_grey;
+					}
+				}
+
+				int channelsInFile = 0;
+				pixels = stbi_loadf(aPath.c_str(), &width, &height, &channelsInFile, desiredColorChannels);
+				imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
+
+				if (!pixels) {
+					throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_loadf", aPath));
+				}
+			}
+
+			if (aSerializer) {
+				(*aSerializer)->archive(imageSize);
+				(*aSerializer)->archive(width);
+				(*aSerializer)->archive(height);
+			}
+
+			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				avk::memory_usage::host_coherent,
+				vk::BufferUsageFlagBits::eTransferSrc,
+				avk::generic_buffer_meta::create_from_size(imageSize)
+			));
+			//sb->fill(pixels, 0, avk::sync::not_required());
+			fill_avk_buffer(sb, pixels, 0, avk::sync::not_required(), aSerializer);
+
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				stbi_image_free(pixels);
+			}
+		}
+		else {
+			throw gvk::runtime_error("No loader for the given image format implemented.");
+		}
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{avk::memory_access::transfer_read_access});
+
+		auto img = context().create_image(width, height, aFormat, 1, aMemoryUsage, aImageUsage);
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
+		// 1. Transition image layout to eTransferDstOptimal
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
+		
+		// 2. Copy buffer to image
+		assert(stagingBuffers.size() == 1);
+		avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																																				// TODO: Verify the above ^ comment
+		// Are MIP-maps required?
+		if (img->config().mipLevels > 1u) {
+			if (avk::is_block_compressed_format(aFormat)) {
+				size_t levels = 0;
+				if (!aSerializer ||
+					(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+					assert(aAlreadyLoadedGliTexture.has_value());
+					levels = aAlreadyLoadedGliTexture.value().levels();
+				}
+				if (aSerializer) {
+					(*aSerializer)->archive(levels);
+				}
+				// 1st level is contained in stagingBuffer
+				// 
+				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+
+				//auto& gliTex = aAlreadyLoadedGliTexture.value();
+				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+				for(size_t level = 1; level < levels; ++level)
+				{
+#if _DEBUG
+					{
+						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+						auto imgExtent = img->config().extent;
+						auto levelDivisor = std::pow(2u, level);
+						imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
+						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+						imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
+						assert (levelExtent.x == static_cast<int>(imgExtent.width ));
+						assert (levelExtent.y == static_cast<int>(imgExtent.height));
+						assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
+					}
+#endif
+					size_t texSize = 0;
+					void* texData = nullptr;
+
+					if (!aSerializer ||
+						(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+						texSize = aAlreadyLoadedGliTexture.value().size(level);
+						texData = aAlreadyLoadedGliTexture.value().data(0, 0, level);
+					}
+
+					if (aSerializer) {
+						(*aSerializer)->archive(texSize);
+					}
+
+					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+						avk::memory_usage::host_coherent,
+						vk::BufferUsageFlagBits::eTransferSrc,
+						avk::generic_buffer_meta::create_from_size(texSize)
+					));
+
+					//sb->fill(texData, 0, avk::sync::not_required());
+					fill_avk_buffer(sb, texData, 0, avk::sync::not_required(), aSerializer);
+
+					// Memory writes are not overlapping => no barriers should be fine.
+					avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				}
+			}
+			else {
+				// For uncompressed formats, create MIP-maps via BLIT:
+				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			}
+		}
+		
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
+
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+		auto result = aSyncHandler.submit_and_sync();
+		assert(!result.has_value());
+		return img;
+	}
+	
+
 	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
+#if 1
+		return create_image_from_file_cached(std::forward<const std::string&>(aPath), std::forward<vk::Format>(aFormat), std::forward<bool>(aFlip),
+			std::forward<avk::memory_usage>(aMemoryUsage), std::forward<avk::image_usage>(aImageUsage), std::forward<avk::sync>(aSyncHandler),
+			std::forward<std::optional<gli::texture>>(aAlreadyLoadedGliTexture));
+#else
 		std::vector<avk::buffer> stagingBuffers;
 		int width = 0;
 		int height = 0;
@@ -219,8 +523,148 @@ namespace gvk
 		auto result = aSyncHandler.submit_and_sync();
 		assert(!result.has_value());
 		return img;
+#endif
 	}
-	
+
+	static avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gvk::serializer*> aSerializer = {})
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		std::optional<gli::texture> gliTex = {};
+		if (!aSerializer ||
+			(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+			gliTex = gli::load(aPath);
+			if (!gliTex.value().empty()) {
+
+				if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
+					gliTex = gli::flip(gliTex.value());
+				}
+
+				auto gliFmt = gliTex.value().format();
+				switch (gliFmt) {
+					// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
+					// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+				case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
+					imFmt = vk::Format::eBc1RgbUnormBlock;
+					break;
+				case gli::format::FORMAT_RGB_DXT1_SRGB_BLOCK8:
+					imFmt = vk::Format::eBc1RgbSrgbBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT1_UNORM_BLOCK8:
+					imFmt = vk::Format::eBc1RgbaUnormBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT1_SRGB_BLOCK8:
+					imFmt = vk::Format::eBc1RgbaSrgbBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT3_UNORM_BLOCK16:
+					imFmt = vk::Format::eBc2UnormBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT3_SRGB_BLOCK16:
+					imFmt = vk::Format::eBc2SrgbBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT5_UNORM_BLOCK16:
+					imFmt = vk::Format::eBc3UnormBlock;
+					break;
+				case gli::format::FORMAT_RGBA_DXT5_SRGB_BLOCK16:
+					imFmt = vk::Format::eBc3SrgbBlock;
+					break;
+				case gli::format::FORMAT_R_ATI1N_UNORM_BLOCK8:
+					imFmt = vk::Format::eBc4UnormBlock;
+					break;
+					// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#RGTC
+					// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+				case gli::format::FORMAT_R_ATI1N_SNORM_BLOCK8:
+					imFmt = vk::Format::eBc4SnormBlock;
+					break;
+				case gli::format::FORMAT_RG_ATI2N_UNORM_BLOCK16:
+					imFmt = vk::Format::eBc5UnormBlock;
+					break;
+				case gli::format::FORMAT_RG_ATI2N_SNORM_BLOCK16:
+					imFmt = vk::Format::eBc5SnormBlock;
+				}
+			}
+			else {
+				gliTex.reset();
+			}
+
+			if (!imFmt.has_value() && aLoadHdrIfPossible) {
+				if (stbi_is_hdr(aPath.c_str())) {
+					switch (aPreferredNumberOfTextureComponents) {
+					case 4:
+						imFmt = default_rgb16f_4comp_format();
+						break;
+						// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+					case 3:
+						imFmt = default_rgb16f_3comp_format();
+						break;
+					case 2:
+						imFmt = default_rgb16f_2comp_format();
+						break;
+					case 1:
+						imFmt = default_rgb16f_1comp_format();
+						break;
+					default:
+						imFmt = default_rgb16f_4comp_format();
+						break;
+					}
+				}
+			}
+
+			if (!imFmt.has_value() && aLoadSrgbIfApplicable) {
+				switch (aPreferredNumberOfTextureComponents) {
+				case 4:
+					imFmt = gvk::default_srgb_4comp_format();
+					break;
+					// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+				case 3:
+					imFmt = gvk::default_srgb_3comp_format();
+					break;
+				case 2:
+					imFmt = gvk::default_srgb_2comp_format();
+					break;
+				case 1:
+					imFmt = gvk::default_srgb_1comp_format();
+					break;
+				default:
+					imFmt = gvk::default_srgb_4comp_format();
+					break;
+				}
+			}
+
+			if (!imFmt.has_value()) {
+				switch (aPreferredNumberOfTextureComponents) {
+				case 4:
+					imFmt = gvk::default_rgb8_4comp_format();
+					break;
+					// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+				case 3:
+					imFmt = gvk::default_rgb8_3comp_format();
+					break;
+				case 2:
+					imFmt = gvk::default_rgb8_2comp_format();
+					break;
+				case 1:
+					imFmt = gvk::default_rgb8_1comp_format();
+					break;
+				default:
+					imFmt = gvk::default_rgb8_4comp_format();
+					break;
+				}
+			}
+
+		}
+
+		if (aSerializer) {
+			(*aSerializer)->archive(imFmt);
+		}
+
+		if (!imFmt.has_value()) {
+			throw gvk::runtime_error(fmt::format("Could not determine the image format of image '{}'", aPath));
+		}
+		
+		return create_image_from_file_cached(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex), aSerializer);
+	}
+
 	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
 		std::optional<vk::Format> imFmt = {};
