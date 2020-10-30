@@ -246,10 +246,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
-		if (gvk::input().key_pressed(gvk::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
-		}
 		if (gvk::input().key_pressed(gvk::key_code::c)) {
 			// Center the cursor:
 			auto resolution = gvk::context().main_window()->resolution();
@@ -258,6 +254,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (gvk::input().key_pressed(gvk::key_code::escape)) {
 			// Stop the current composition:
 			gvk::current_composition()->stop();
+		}
+		if (gvk::input().key_pressed(gvk::key_code::left)) {
+			mQuakeCam.look_along(gvk::left());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::right)) {
+			mQuakeCam.look_along(gvk::right());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::up)) {
+			mQuakeCam.look_along(gvk::front());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::down)) {
+			mQuakeCam.look_along(gvk::back());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::page_up)) {
+			mQuakeCam.look_along(gvk::up());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::page_down)) {
+			mQuakeCam.look_along(gvk::down());
+		}
+		if (gvk::input().key_pressed(gvk::key_code::home)) {
+			mQuakeCam.look_at(glm::vec3{0.0f, 0.0f, 0.0f});
 		}
 		if (gvk::input().key_pressed(gvk::key_code::f1)) {
 			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();

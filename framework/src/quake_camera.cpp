@@ -48,8 +48,8 @@ namespace gvk
 		//LOG_INFO_EM(fmt::format("mouseMoved[{},{}]", mouseMoved.x, mouseMoved.y));
 
 		// accumulate values and create rotation-matrix
-		glm::quat rotHoriz = glm::quat_cast(glm::rotate(mRotationSpeed * static_cast<float>(mouseMoved.x), glm::vec3(0.f, 1.f, 0.f)));
-		glm::quat rotVert =  glm::quat_cast(glm::rotate(mRotationSpeed * static_cast<float>(mouseMoved.y), glm::vec3(1.f, 0.f, 0.f)));
+		glm::quat rotHoriz = glm::angleAxis(mRotationSpeed * static_cast<float>(mouseMoved.x), glm::vec3(0.f, 1.f, 0.f));
+		glm::quat rotVert =  glm::angleAxis(mRotationSpeed * static_cast<float>(mouseMoved.y), glm::vec3(1.f, 0.f, 0.f));
 		set_rotation(rotHoriz * rotation() * rotVert);
 
 		// move camera to new position
@@ -73,7 +73,27 @@ namespace gvk
 		}
 	}
 
+	void quake_camera::look_at(const glm::vec3& aPosition)
+	{
+		auto dir = aPosition - translation();
+		auto len = dot(dir, dir);
+		if (len <= std::numeric_limits<float>::epsilon()) {
+			return;
+		}
+		look_along(dir); // will be normalized within look_along
+	}
 
+	void quake_camera::look_along(const glm::vec3& aDirection)
+	{
+		// Note: I think, this only works "by accident" so to say, because GLM assumes that it should create a view matrix with quatLookAt.
+		//       Actually, I do not want GLM to create a view matrix here, but only to orient in a specific way.
+		//       The direction is being negated within quatLookAt, which is probably the reason, why we don't have to negate it here.
+		//       The thing is, the front-vector is pointing into -z direction by our conventions. But we don't have to negate the
+		//       incoming aDirection to get the -z direction pointing into aDirection. That's why I think, quatLookAt already creates
+		//       the... hmm... inverse? Not sure about that, though. I mean, it's not a matrix, but a quaternion. My reasoning is probably correct. (Don't know for sure.)
+		set_rotation(glm::normalize(glm::quatLookAt(glm::normalize(aDirection), glm::vec3{0.f, 1.f, 0.f})));
+	}
+	
 	void quake_camera::translate_myself(const glm::vec3& translation, double deltaTime)
 	{
 		float speedMultiplier = 1.0f;

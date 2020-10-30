@@ -45,6 +45,12 @@ namespace gvk
 		// Sets a new multiplier for slow movement (Ctrl key)
 		void set_slow_multiplier(float value) { mSlowMultiplier = value; }
 
+		// Make at the given position
+		void look_at(const glm::vec3& aPosition);
+
+		// Look along the given direction
+		void look_along(const glm::vec3& aDirection);
+		
 	protected:
 		// Translates this transform (base class of this class' base camera) in a given direction
 		void translate_myself(const glm::vec3& translation, double deltaTime);

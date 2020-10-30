@@ -33,7 +33,7 @@ namespace gvk
 		void set_scale(const glm::vec3& pValue);
 
 		/** returns the local transformation matrix, disregarding parent transforms */
-		const glm::mat4& local_transformation_matrix() const;
+		glm::mat4 local_transformation_matrix() const;
 		/** returns the global transformation matrix, taking parent transforms into account */
 		glm::mat4 global_transformation_matrix() const;
 
@@ -45,16 +45,16 @@ namespace gvk
 		glm::vec3 z_axis() const { return mMatrix[2]; }
 
 		/** Gets the local transformation matrix */
-		const glm::mat4& matrix() const { return mMatrix; }
+		glm::mat4 matrix() const { return mMatrix; }
 
 		/** Gets the local translation */
-		const glm::vec3& translation() const { return mTranslation; }
+		glm::vec3 translation() const { return mTranslation; }
 		
 		/** Gets the local rotation */
-		const glm::quat& rotation() const { return mRotation; }
+		glm::quat rotation() const { return mRotation; }
 
 		/** Local scale vector */
-		const glm::vec3& scale() const { return mScale; }
+		glm::vec3 scale() const { return mScale; }
 
 		/** Returns true if this transform is a child has a parent transform. */
 		bool has_parent();
@@ -118,6 +118,12 @@ namespace gvk
 	void attach_transform(transform::ptr pParent, transform::ptr pChild);
 	void detach_transform(transform::ptr pParent, transform::ptr pChild);
 
+	static glm::vec3 back () { return glm::vec3{ 0.f,  0.f,  1.f}; } // "back" together with "right" and "up" forms a right-handed coordinate system.
+	static glm::vec3 front() { return glm::vec3{ 0.f,  0.f, -1.f}; } // Gears-Vk convention is: the negative z-direction means "front" 
+	static glm::vec3 right() { return glm::vec3{ 1.f,  0.f,  0.f}; }
+	static glm::vec3 left () { return glm::vec3{-1.f,  0.f,  0.f}; }
+	static glm::vec3 up   () { return glm::vec3{ 0.f,  1.f,  0.f}; }
+	static glm::vec3 down () { return glm::vec3{ 0.f, -1.f,  0.f}; }
 	static glm::vec3 back (const transform& pTransform) { return  pTransform.z_axis(); }
 	static glm::vec3 front(const transform& pTransform) { return -pTransform.z_axis(); }
 	static glm::vec3 right(const transform& pTransform) { return  pTransform.x_axis(); }
@@ -137,17 +143,4 @@ namespace gvk
 	void rotate_wrt(transform& pTransform, const glm::quat& pRotation, glm::mat4 pReference = glm::mat4(1.0f));
 	void scale_wrt(transform& pTransform, const glm::vec3& pScale, glm::mat4 pReference = glm::mat4(1.0f));
 
-	///**  */
-	//void LookAt(transform* target);
-	///**  */
-	//void LookAt(const glm::vec3& target);
-	///**  */
-	//void LookAlong(const glm::vec3& direction);
-
-	///**  */
-	//void AlignUpVectorTowards(transform* target);
-	///**  */
-	//void AlignUpVectorTowards(const glm::vec3& target);
-	///**  */
-	//void AlignUpVectorAlong(const glm::vec3& direction);
 }

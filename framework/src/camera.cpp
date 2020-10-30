@@ -129,7 +129,6 @@ namespace gvk
 	{
 		auto posSS = projection_and_view_matrix() * glm::vec4(pWorldSpacePosition, 1.0f);
 		float depth = posSS.z / posSS.w;
-		// TODO: For OpenGL, this has to be transformed into a different range most likely
 		return depth;
 	}
 
@@ -142,7 +141,7 @@ namespace gvk
 
 	glm::mat4 camera::view_matrix() const
 	{
-		// TODO: For OpenGL, this will have to be a different matrix, namely one that transform into a left-handed coordinate system
+		// We are staying in a right-handed coordinate system throughout the entire pipeline.
 		glm::mat4 vM = glm::mat4(
 			 mMatrix[0],
 			-mMatrix[1],
