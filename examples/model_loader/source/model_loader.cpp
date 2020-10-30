@@ -1,5 +1,6 @@
 #include <gvk.hpp>
 #include <imgui.h>
+#include "camera_path.hpp"
 
 class model_loader_app : public gvk::invokee
 {
@@ -276,6 +277,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (gvk::input().key_pressed(gvk::key_code::home)) {
 			mQuakeCam.look_at(glm::vec3{0.0f, 0.0f, 0.0f});
 		}
+
 		if (gvk::input().key_pressed(gvk::key_code::f1)) {
 			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
@@ -285,6 +287,23 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			else {
 				mQuakeCam.enable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
+			}
+		}
+
+		// Automatic camera path:
+		if (gvk::input().key_pressed(gvk::key_code::c)) {
+			if (gvk::input().key_down(gvk::key_code::left_shift)) { // => disable
+				if (mCameraPath.has_value()) {
+					gvk::current_composition()->remove_element_immediately(mCameraPath.value());
+					mCameraPath.reset();
+				}
+			}
+			else { // => enable
+				if (mCameraPath.has_value()) {
+					gvk::current_composition()->remove_element_immediately(mCameraPath.value());
+				}
+				mCameraPath = camera_path(mQuakeCam);
+				gvk::current_composition()->add_element(mCameraPath.value());
 			}
 		}
 	}
@@ -310,6 +329,8 @@ private: // v== Member variables ==v
 	gvk::updater mUpdater;
 #endif
 
+	std::optional<camera_path> mCameraPath;
+	
 }; // model_loader_app
 
 int main() // <== Starting point ==

@@ -36,5 +36,6 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\examples\model_loader\source\camera_path.hpp" />
   </ItemGroup>
 </Project>

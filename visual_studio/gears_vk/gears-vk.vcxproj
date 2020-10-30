@@ -27,8 +27,12 @@
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
     <ClCompile Include="..\..\framework\src\animation.cpp" />
+    <ClCompile Include="..\..\framework\src\bezier_curve.cpp" />
+    <ClCompile Include="..\..\framework\src\catmull_rom_spline.cpp" />
     <ClCompile Include="..\..\framework\src\cgb_exceptions.cpp" />
     <ClCompile Include="..\..\framework\src\composition.cpp" />
+    <ClCompile Include="..\..\framework\src\cp_interpolation.cpp" />
+    <ClCompile Include="..\..\framework\src\cubic_uniform_b_spline.cpp" />
     <ClCompile Include="..\..\framework\src\files_changed_event.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
@@ -46,6 +50,7 @@
     <ClCompile Include="..\..\framework\src\math_utils.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
+    <ClCompile Include="..\..\framework\src\quadratic_uniform_b_spline.cpp" />
     <ClCompile Include="..\..\framework\src\quake_camera.cpp" />
     <ClCompile Include="..\..\framework\src\transform.cpp" />
     <ClCompile Include="..\..\framework\src\updater.cpp" />
@@ -134,9 +139,13 @@
     <ClInclude Include="..\..\auto_vk\include\avk\vma_handle.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp" />
     <ClInclude Include="..\..\framework\include\animation.hpp" />
+    <ClInclude Include="..\..\framework\include\bezier_curve.hpp" />
     <ClInclude Include="..\..\framework\include\camera.hpp" />
+    <ClInclude Include="..\..\framework\include\catmull_rom_spline.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
+    <ClInclude Include="..\..\framework\include\cp_interpolation.hpp" />
+    <ClInclude Include="..\..\framework\include\cubic_uniform_b_spline.hpp" />
     <ClInclude Include="..\..\framework\include\event.hpp" />
     <ClInclude Include="..\..\framework\include\event_data.hpp" />
     <ClInclude Include="..\..\framework\include\files_changed_event.hpp" />
@@ -168,6 +177,7 @@
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\model_types.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />
+    <ClInclude Include="..\..\framework\include\quadratic_uniform_b_spline.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
     <ClInclude Include="..\..\framework\include\settings.hpp" />
     <ClInclude Include="..\..\framework\include\setup.hpp" />

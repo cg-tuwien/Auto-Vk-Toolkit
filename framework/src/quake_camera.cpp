@@ -85,6 +85,11 @@ namespace gvk
 
 	void quake_camera::look_along(const glm::vec3& aDirection)
 	{
+		if (glm::dot(aDirection, aDirection) < std::numeric_limits<float>::epsilon()) {
+			LOG_DEBUG("Direction vector passed to quake_camera::look_along has (almost) zero length.");
+			return;
+		}
+		
 		// Note: I think, this only works "by accident" so to say, because GLM assumes that it should create a view matrix with quatLookAt.
 		//       Actually, I do not want GLM to create a view matrix here, but only to orient in a specific way.
 		//       The direction is being negated within quatLookAt, which is probably the reason, why we don't have to negate it here.

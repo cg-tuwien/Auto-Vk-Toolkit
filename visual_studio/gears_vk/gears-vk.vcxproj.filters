@@ -106,6 +106,21 @@
     <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\bezier_curve.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\catmull_rom_spline.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\cp_interpolation.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\cubic_uniform_b_spline.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\quadratic_uniform_b_spline.cpp">
+      <Filter>gears-vk_src\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -461,6 +476,21 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp">
       <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\bezier_curve.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\catmull_rom_spline.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cp_interpolation.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\cubic_uniform_b_spline.hpp">
+      <Filter>gears-vk_include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\quadratic_uniform_b_spline.hpp">
+      <Filter>gears-vk_include\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -197,4 +197,10 @@ namespace gvk
 #include "swapchain_changed_event.hpp"
 #include "updater.hpp"
 
+#include "cp_interpolation.hpp"
+#include "bezier_curve.hpp"
+#include "catmull_rom_spline.hpp"
+#include "quadratic_uniform_b_spline.hpp"
+#include "cubic_uniform_b_spline.hpp"
+
 // ReSharper restore CppUnusedIncludeDirective

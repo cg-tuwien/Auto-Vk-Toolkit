@@ -120,4 +120,40 @@ namespace gvk
 			(-beta - root * s) / quadratic_coeff
 		);
 	}
+
+	glm::quat rotation_between_vectors(glm::vec3 v0, glm::vec3 v1)
+	{
+		v0 = glm::normalize(v0);
+		v1 = glm::normalize(v1);
+		auto cosAngle = glm::dot(v0, v1);
+
+		// Hmm, strange... the following code is supposed to be a fix 
+		// (from http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-17-quaternions/ )
+		// but it results in an artefact:
+		
+		if (cosAngle < -0.999f) 
+		{
+			// special case when vectors in opposite directions:
+			// there is no "ideal" rotation axis
+			// So guess one; any will do as long as it's perpendicular to start
+			auto rotAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), v0);
+			if (glm::dot(rotAxis, rotAxis) < 0.01) { // bad luck, they were parallel, try again!
+				rotAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), v0);
+			}
+			rotAxis = glm::normalize(rotAxis);
+			return glm::angleAxis(glm::radians(180.0f), rotAxis);
+		}
+		else 
+		{
+			auto rotAxis = glm::cross(v0, v1);
+			auto s = glm::sqrt((1.0f + cosAngle) * 2.0f);
+			auto invs = 1.0f / s;
+			return glm::quat(
+				s * 0.5f, 
+				rotAxis.x * invs,
+				rotAxis.y * invs,
+				rotAxis.z * invs
+			);
+		}
+	}
 }
