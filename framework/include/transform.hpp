@@ -56,6 +56,12 @@ namespace gvk
 		/** Local scale vector */
 		glm::vec3 scale() const { return mScale; }
 
+		/* Make the front direction (a.k.a. -z) be oriented towards the given position. */
+		void look_at(const glm::vec3& aPosition);
+
+		/* Look along the given direction, or put differently: orient -z towards aDirection. */
+		void look_along(const glm::vec3& aDirection);
+		
 		/** Returns true if this transform is a child has a parent transform. */
 		bool has_parent();
 		/** Returns true if this transform has child transforms. */
