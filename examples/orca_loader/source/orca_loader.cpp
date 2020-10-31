@@ -125,6 +125,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}
 			}
 		}
+
+		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
+		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
+			allMatConfigs, false, false,
+			avk::image_usage::general_texture,
+			avk::filter_mode::anisotropic_16x,
+			avk::border_handling_mode::repeat,
+			avk::sync::wait_idle()
+		);
 #else
 
 		endPart = gvk::fixed_update_timer().absolute_time();
@@ -196,7 +205,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// TODO: Remove, this is not necessary if serialization in convert_for_gpu_usage_cached works
 		ser.archive(allMatConfigs);
-#endif
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
@@ -207,6 +215,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle(),
 			ser
 		);
+#endif
 
 		endPart = gvk::fixed_update_timer().absolute_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));

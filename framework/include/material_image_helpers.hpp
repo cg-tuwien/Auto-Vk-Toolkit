@@ -52,69 +52,6 @@ namespace gvk
 		return img;
 	}
 
-	static inline std::optional<avk::command_buffer> fill_avk_buffer(avk::buffer& buffer, const void* aDataPtr, size_t aMetaDataIndex, avk::sync aSyncHandler, std::optional<gvk::serializer*> aSerializer = {})
-	{
-#if 0
-		auto metaData = buffer->meta_at_index<avk::buffer_meta>(aMetaDataIndex);
-		auto bufferSize = static_cast<vk::DeviceSize>(metaData.total_size());
-		auto memProps = buffer->memory_properties();
-		auto handle = buffer->handle();
-
-		// #1: Is our memory accessible from the CPU-SIDE? 
-		if (avk::has_flag(memProps, vk::MemoryPropertyFlagBits::eHostVisible)) {
-			auto mapped = avk::scoped_mapping{ buffer->buf(), avk::mapping_access::write };
-			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
-				memcpy(mapped.get(), aDataPtr, bufferSize);
-			}
-			(*aSerializer)->archive((*aSerializer)->binary_data(mapped.get(), bufferSize));
-			return {};
-		}
-
-		// #2: Otherwise, it must be on the GPU-SIDE!
-		else {
-			assert(avk::has_flag(memProps, vk::MemoryPropertyFlagBits::eDeviceLocal));
-
-			auto device = gvk::context().device();
-			auto physicalDevice = gvk::context().physical_device();
-			auto allocator = gvk::context().memory_allocator();
-			// We have to create a (somewhat temporary) staging buffer and transfer it to the GPU
-			// "somewhat temporary" means that it can not be deleted in this function, but only
-			//						after the transfer operation has completed => handle via sync
-			auto stagingBuffer = gvk::context().create_buffer(
-				physicalDevice, device, allocator,
-				AVK_STAGING_BUFFER_MEMORY_USAGE,
-				vk::BufferUsageFlagBits::eTransferSrc,
-				avk::generic_buffer_meta::create_from_size(bufferSize)
-			);
-			stagingBuffer->fill(aDataPtr, 0, avk::sync::wait_idle()); // Recurse into the other if-branch
-
-			auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-			// Sync before:
-			aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
-			// Operation:
-			auto copyRegion = vk::BufferCopy{}
-				.setSrcOffset(0u) // TODO: Support different offsets or whatever?!
-				.setDstOffset(0u)
-				.setSize(bufferSize);
-			commandBuffer.handle().copyBuffer(stagingBuffer->handle(), handle, { copyRegion });
-
-			// Sync after:
-			aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
-
-			// Take care of the lifetime handling of the stagingBuffer, it might still be in use:
-			commandBuffer.set_custom_deleter([
-				lOwnedStagingBuffer{ std::move(stagingBuffer) }
-			]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
-
-			// Finish him:
-			return aSyncHandler.submit_and_sync();
-		}
-#endif
-		return {};
-	}
-
 	static avk::image create_image_from_file_cached(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {}, std::optional<gvk::serializer*> aSerializer = {})
 	{
 		std::vector<avk::buffer> stagingBuffers;
@@ -155,8 +92,14 @@ namespace gvk
 				avk::generic_buffer_meta::create_from_size(texSize)
 			));
 
-			//sb->fill(texData, 0, avk::sync::not_required());
-			fill_avk_buffer(sb, texData, 0, avk::sync::not_required(), aSerializer);
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				sb->fill(texData, 0, avk::sync::not_required());
+			}
+			if (aSerializer) {
+				auto mapping = sb->map_memory(avk::mapping_access::write);
+				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
+			}
 		}
 		// ============ RGB 8-bit formats ==========
 		else if (avk::is_uint8_format(aFormat) || avk::is_int8_format(aFormat)) {
@@ -199,12 +142,14 @@ namespace gvk
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
-			//sb->fill(pixels, 0, avk::sync::not_required());
-			fill_avk_buffer(sb, pixels, 0, avk::sync::not_required(), aSerializer);
 
 			if (!aSerializer ||
 				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
-				stbi_image_free(pixels);
+				sb->fill(pixels, 0, avk::sync::not_required());
+			}
+			if (aSerializer) {
+				auto mapping = sb->map_memory(avk::mapping_access::write);
+				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
 			}
 		}
 		// ============ RGB 16-bit float formats (HDR) ==========
@@ -248,12 +193,13 @@ namespace gvk
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
-			//sb->fill(pixels, 0, avk::sync::not_required());
-			fill_avk_buffer(sb, pixels, 0, avk::sync::not_required(), aSerializer);
-
 			if (!aSerializer ||
 				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
-				stbi_image_free(pixels);
+				sb->fill(pixels, 0, avk::sync::not_required());
+			}
+			if (aSerializer) {
+				auto mapping = sb->map_memory(avk::mapping_access::write);
+				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
 			}
 		}
 		else {
@@ -326,8 +272,14 @@ namespace gvk
 						avk::generic_buffer_meta::create_from_size(texSize)
 					));
 
-					//sb->fill(texData, 0, avk::sync::not_required());
-					fill_avk_buffer(sb, texData, 0, avk::sync::not_required(), aSerializer);
+					if (!aSerializer ||
+						(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+						sb->fill(texData, 0, avk::sync::not_required());
+					}
+					if (aSerializer) {
+						auto mapping = sb->map_memory(avk::mapping_access::write);
+						(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
+					}
 
 					// Memory writes are not overlapping => no barriers should be fine.
 					avk::copy_buffer_to_image_mip_level(sb, img, level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
