@@ -1,4 +1,5 @@
 #include <gvk.hpp>
+#include <glm/gtx/quaternion.hpp> // ac temp
 
 namespace gvk
 {
@@ -30,7 +31,24 @@ namespace gvk
 					std::tie(rpos1, rpos2) = find_positions_in_keys(anode.mRotationKeys, timeInTicks);
 				}
 				auto rf = get_interpolation_factor(anode.mRotationKeys[rpos1], anode.mRotationKeys[rpos2], timeInTicks);
+
+#if 0
+				// original implementation (glm linear interpolation) - jerky
 				auto rotation = glm::lerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
+#elif 0
+				// glm spherical interpolation via mix - still jerky
+				auto rotation = glm::mix(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
+#elif 1
+				// using Assimp's interpolation - this fixes the jerks completely!
+				aiQuaternion q;
+				aiQuaternion::Interpolate(q, to_aiQuaternion(anode.mRotationKeys[rpos1].mValue), to_aiQuaternion(anode.mRotationKeys[rpos2].mValue), rf);
+				glm::quat rotation = to_quat(q);
+				// Note: not sure if normalizing the quaternion afterwards is actually necessary / improves anything. Looks good even without normalizing.
+#elif 0
+				// glm spherical interpolation via slerp - this looks good too, even without post-normalization
+				auto rotation = glm::slerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
+#endif
+				rotation=glm::normalize(rotation); // by itself, this fixes some of the jerks with glm lerp/mix interpolations, but not all of them
 
 				// Scaling:
 				size_t spos1 = tpos1, spos2 = tpos2;
@@ -41,6 +59,7 @@ namespace gvk
 				auto scaling = glm::lerp(anode.mScalingKeys[spos1].mValue, anode.mScalingKeys[spos2].mValue, sf);
 
 				localTransform = matrix_from_transforms(translation, rotation, scaling);
+
 			}
 
 			// Calculate the node's global transform, using its local transform and the transforms of its parents:
