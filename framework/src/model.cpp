@@ -456,7 +456,7 @@ namespace gvk
 
 				auto& weights = result.emplace_back(0.0f, 0.0f, 0.0f, 0.0f);
 				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
-					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
+					weights[static_cast<int>(j)] = std::get<float>(vTempWeightsPerVertex[i][j]);
 				}
 			}
 		}
@@ -494,7 +494,7 @@ namespace gvk
 
 				auto& weights = result.emplace_back(0u, 0u, 0u, 0u);
 				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
-					weights[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
+					weights[static_cast<int>(j)] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
 				}
 			}
 		}
@@ -674,7 +674,7 @@ namespace gvk
 	{
 		std::vector<gvk::camera> result;
 		result.reserve(mScene->mNumCameras);
-		for (int i = 0; i < mScene->mNumCameras; ++i) {
+		for (unsigned int i = 0; i < mScene->mNumCameras; ++i) {
 			aiCamera* aiCam = mScene->mCameras[i];
 			auto cgbCam = gvk::camera();
 			cgbCam.set_aspect_ratio(aiCam->mAspect);
