@@ -18,6 +18,12 @@ namespace gvk
 		return glm::quat(aAssimpQuat.w, aAssimpQuat.x, aAssimpQuat.y, aAssimpQuat.z);
 	}
 
+	/** Convert from a GLM quaternion to an ASSIMP quaternion */
+	static aiQuaternion to_aiQuaternion(const glm::quat& aGlmQuat)
+	{
+		return aiQuaternion(aGlmQuat.w, aGlmQuat.x, aGlmQuat.y, aGlmQuat.z);
+	}
+
 	/** Convert from an ASSIMP mat4 to a GLM mat4 */
 	static glm::mat4 to_mat4(const aiMatrix4x4& aAssimpMat)
 	{
