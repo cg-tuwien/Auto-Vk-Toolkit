@@ -455,8 +455,9 @@ namespace gvk
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
 
 				auto& weights = result.emplace_back(0.0f, 0.0f, 0.0f, 0.0f);
-				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
-					weights[static_cast<int>(j)] = std::get<float>(vTempWeightsPerVertex[i][j]);
+				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numWeights; ++j) {
+					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
 				}
 			}
 		}
@@ -493,8 +494,9 @@ namespace gvk
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
 
 				auto& weights = result.emplace_back(0u, 0u, 0u, 0u);
-				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
-					weights[static_cast<int>(j)] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
+				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numWeights; ++j) {
+					weights[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
 				}
 			}
 		}
