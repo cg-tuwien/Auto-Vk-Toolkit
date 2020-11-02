@@ -837,7 +837,7 @@ namespace gvk
 				}
 				for (unsigned int i = 0; i < bChannel->mNumRotationKeys; ++i) {
 					anode.mRotationKeys.emplace_back(rotation_key{
-						bChannel->mRotationKeys[i].mTime, to_quat(bChannel->mRotationKeys[i].mValue)
+						bChannel->mRotationKeys[i].mTime, glm::normalize(to_quat(bChannel->mRotationKeys[i].mValue))	// normalize the quaternion, just to be on the safe side
 					});
 				}
 				for (unsigned int i = 0; i < bChannel->mNumScalingKeys; ++i) {
