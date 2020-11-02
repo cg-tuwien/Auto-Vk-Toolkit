@@ -1,5 +1,5 @@
 #include <gvk.hpp>
-#include <glm/gtx/quaternion.hpp> // ac temp
+#include <glm/gtx/quaternion.hpp>
 
 namespace gvk
 {
