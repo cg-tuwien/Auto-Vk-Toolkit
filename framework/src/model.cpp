@@ -451,8 +451,12 @@ namespace gvk
 			
 			// We've got bone weights. Proceed as planned.
 			for (decltype(n) i = 0; i < n; ++i) {
+				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
+				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
+
 				auto& weights = result.emplace_back(0.0f, 0.0f, 0.0f, 0.0f);
-				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
+				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numWeights; ++j) {
 					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
 				}
 			}
@@ -486,8 +490,12 @@ namespace gvk
 			
 			// We've got bone weights. Proceed as planned.
 			for (decltype(n) i = 0; i < n; ++i) {
+				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
+				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
+
 				auto& weights = result.emplace_back(0u, 0u, 0u, 0u);
-				for (size_t j = 0; j < std::min(size_t{4}, vTempWeightsPerVertex[i].size()); ++j) {
+				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numWeights; ++j) {
 					weights[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
 				}
 			}
@@ -668,7 +676,7 @@ namespace gvk
 	{
 		std::vector<gvk::camera> result;
 		result.reserve(mScene->mNumCameras);
-		for (int i = 0; i < mScene->mNumCameras; ++i) {
+		for (unsigned int i = 0; i < mScene->mNumCameras; ++i) {
 			aiCamera* aiCam = mScene->mCameras[i];
 			auto cgbCam = gvk::camera();
 			cgbCam.set_aspect_ratio(aiCam->mAspect);
@@ -829,7 +837,7 @@ namespace gvk
 				}
 				for (unsigned int i = 0; i < bChannel->mNumRotationKeys; ++i) {
 					anode.mRotationKeys.emplace_back(rotation_key{
-						bChannel->mRotationKeys[i].mTime, to_quat(bChannel->mRotationKeys[i].mValue)
+						bChannel->mRotationKeys[i].mTime, glm::normalize(to_quat(bChannel->mRotationKeys[i].mValue))	// normalize the quaternion, just to be on the safe side
 					});
 				}
 				for (unsigned int i = 0; i < bChannel->mNumScalingKeys; ++i) {

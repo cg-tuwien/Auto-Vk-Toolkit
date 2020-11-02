@@ -1,4 +1,5 @@
 #include <gvk.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace gvk
 {
@@ -30,7 +31,8 @@ namespace gvk
 					std::tie(rpos1, rpos2) = find_positions_in_keys(anode.mRotationKeys, timeInTicks);
 				}
 				auto rf = get_interpolation_factor(anode.mRotationKeys[rpos1], anode.mRotationKeys[rpos2], timeInTicks);
-				auto rotation = glm::lerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
+				auto rotation = glm::slerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);	// use slerp, not lerp or mix (those lead to jerks)
+				rotation = glm::normalize(rotation); // normalize the resulting quaternion, just to be on the safe side
 
 				// Scaling:
 				size_t spos1 = tpos1, spos2 = tpos2;
