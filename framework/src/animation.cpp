@@ -31,24 +31,8 @@ namespace gvk
 					std::tie(rpos1, rpos2) = find_positions_in_keys(anode.mRotationKeys, timeInTicks);
 				}
 				auto rf = get_interpolation_factor(anode.mRotationKeys[rpos1], anode.mRotationKeys[rpos2], timeInTicks);
-
-#if 0
-				// original implementation (glm linear interpolation) - jerky
-				auto rotation = glm::lerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
-#elif 0
-				// glm spherical interpolation via mix - still jerky
-				auto rotation = glm::mix(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
-#elif 1
-				// using Assimp's interpolation - this fixes the jerks completely!
-				aiQuaternion q;
-				aiQuaternion::Interpolate(q, to_aiQuaternion(anode.mRotationKeys[rpos1].mValue), to_aiQuaternion(anode.mRotationKeys[rpos2].mValue), rf);
-				glm::quat rotation = to_quat(q);
-				// Note: not sure if normalizing the quaternion afterwards is actually necessary / improves anything. Looks good even without normalizing.
-#elif 0
-				// glm spherical interpolation via slerp - this looks good too, even without post-normalization
-				auto rotation = glm::slerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);
-#endif
-				rotation=glm::normalize(rotation); // by itself, this fixes some of the jerks with glm lerp/mix interpolations, but not all of them
+				auto rotation = glm::slerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);	// use slerp, not lerp or mix (those lead to jerks)
+				rotation = glm::normalize(rotation); // normalize the resulting quaternion, just to be on the safe side
 
 				// Scaling:
 				size_t spos1 = tpos1, spos2 = tpos2;
