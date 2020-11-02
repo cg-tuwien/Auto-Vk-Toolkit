@@ -43,7 +43,6 @@ namespace gvk
 				auto scaling = glm::lerp(anode.mScalingKeys[spos1].mValue, anode.mScalingKeys[spos2].mValue, sf);
 
 				localTransform = matrix_from_transforms(translation, rotation, scaling);
-
 			}
 
 			// Calculate the node's global transform, using its local transform and the transforms of its parents:
