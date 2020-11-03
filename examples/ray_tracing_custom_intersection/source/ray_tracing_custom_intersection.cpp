@@ -29,8 +29,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure& aBlas, glm::vec3 aTranslation) {
 		mTranslations[aIndex + 0] =  aTranslation;
 		mTranslations[aIndex + 1] = -aTranslation;
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( avk::const_referenced(aBlas) ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( avk::const_referenced(aBlas) ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
 	}
 
 	void set_bottom_level_pyramid_data()
@@ -113,10 +113,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			const size_t pyrOffset = 3;
 			for (size_t j=0; j < 2; ++j) {
 				bLast[pyrOffset + j] = gvk::context().create_bottom_level_acceleration_structure(
-					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[i]), avk::const_referenced(mPyramidIndexBuffers[i]) } ) },
+					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } ) },
 					true /* allow updates */
 				);
-				bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[i]), avk::const_referenced(mPyramidIndexBuffers[i]) } });
+				bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } });
 			}
 			
 			if (0 == i /* only once */ ) {
@@ -136,7 +136,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			mOffscreenImageViews.emplace_back(
 				gvk::context().create_image_view(
-					avk::owned(gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image))
+					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
@@ -239,7 +239,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}
 					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
 					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
-					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[inFlightIndex]), avk::const_referenced(mPyramidIndexBuffers[inFlightIndex]) } });
+					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[inFlightIndex], mPyramidIndexBuffers[inFlightIndex] } });
 					//                         ^  switch to update() once the (annoying) validation layer error message is fixed
 				}
 			}
@@ -314,7 +314,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		
 		avk::copy_image_to_another(
-			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mOffscreenImageViews[inFlightIndex]->get_image(), 
 			mainWnd->current_backbuffer()->image_at(0), 
 			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 		);
@@ -332,7 +332,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 

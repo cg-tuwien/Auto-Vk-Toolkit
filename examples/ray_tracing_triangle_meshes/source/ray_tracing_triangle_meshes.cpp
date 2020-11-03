@@ -81,7 +81,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 				// Create one bottom level acceleration structure per model
 				auto blas = gvk::context().create_bottom_level_acceleration_structure({ 
-					avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ avk::const_referenced(positionsBuffer), avk::const_referenced(indicesBuffer) } )
+					avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ positionsBuffer, indicesBuffer } )
 				}, true);
 				// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
 				// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
@@ -91,7 +91,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				assert(modelData.mInstances.size() > 0); // Handle the instances. There must at least be one!
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					mGeometryInstances.push_back(
-						gvk::context().create_geometry_instance(avk::const_referenced(blas))
+						gvk::context().create_geometry_instance(blas)
 							.set_transform_column_major(gvk::to_array( gvk::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling) ))
 							.set_custom_index(bufferViewIndex)
 					);
@@ -103,7 +103,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				//   before we start building the TLAS.
 				positionsBuffer.enable_shared_ownership();
 				indicesBuffer.enable_shared_ownership();
-				mBLASs.back()->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(positionsBuffer), avk::const_referenced(indicesBuffer) } }, {},
+				mBLASs.back()->build({ avk::vertex_index_buffer_pair{ positionsBuffer, indicesBuffer } }, {},
 					avk::sync::with_barriers(
 						[posBfr = positionsBuffer, idxBfr = indicesBuffer](avk::command_buffer cb) {
 							cb->set_custom_deleter([lPosBfr = std::move(posBfr), lIdxBfr = std::move(idxBfr)](){});
@@ -201,7 +201,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			oiv.enable_shared_ownership();
 			mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
 		}
-		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(avk::const_referenced(mPipeline))).update(mPipeline);
+		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		
 		gvk::current_composition()->add_element(mUpdater);
 #endif
@@ -346,7 +346,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		);
 		
 		avk::copy_image_to_another(
-			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mOffscreenImageViews[inFlightIndex]->get_image(), 
 			mainWnd->current_backbuffer()->image_at(0), 
 			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 		);
@@ -364,7 +364,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 

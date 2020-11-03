@@ -45,10 +45,10 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		const auto r = gvk::context().main_window()->resolution();
-		auto colorAttachment = gvk::context().create_image_view(avk::owned(gvk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
-		auto depthAttachment = gvk::context().create_image_view(avk::owned(gvk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, avk::memory_usage::device, avk::image_usage::general_depth_stencil_attachment)));
-		auto colorAttachmentDescription = avk::attachment::declare_for(avk::const_referenced(colorAttachment), avk::on_load::clear, avk::color(0),        avk::on_store::store);
-		auto depthAttachmentDescription = avk::attachment::declare_for(avk::const_referenced(depthAttachment), avk::on_load::clear, avk::depth_stencil(), avk::on_store::store);
+		auto colorAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, avk::memory_usage::device, avk::image_usage::general_color_attachment));
+		auto depthAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, avk::memory_usage::device, avk::image_usage::general_depth_stencil_attachment));
+		auto colorAttachmentDescription = avk::attachment::declare_for(colorAttachment, avk::on_load::clear, avk::color(0),        avk::on_store::store);
+		auto depthAttachmentDescription = avk::attachment::declare_for(depthAttachment, avk::on_load::clear, avk::depth_stencil(), avk::on_store::store);
 		mOneFramebuffer = gvk::context().create_framebuffer(
 			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
 			avk::make_vector( // Transfer ownership of both attachments into the vector and into create_framebuffer:
@@ -181,7 +181,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
-		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), avk::referenced(mOneFramebuffer));
+		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mOneFramebuffer);
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 		cmdBfr->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]));
 		cmdBfr->end_render_pass();
@@ -192,7 +192,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mQueue->submit(cmdBfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 
 		if (0 == mUseCopyOrBlit) {
@@ -204,7 +204,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			);
 			assert(transferCmdBuffer.has_value());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(avk::referenced(transferCmdBuffer.value()), std::optional<avk::resource_reference<avk::semaphore_t>>{});
+			mQueue->submit(transferCmdBuffer.value(), std::optional<avk::resource_reference<avk::semaphore_t>>{});
 			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
 		}
 		else {
@@ -216,7 +216,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			);
 			assert(transferCmdBuffer.has_value());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(avk::referenced(transferCmdBuffer.value()), std::optional<avk::resource_reference<avk::semaphore_t>>{});
+			mQueue->submit(transferCmdBuffer.value(), std::optional<avk::resource_reference<avk::semaphore_t>>{});
 			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
 		}
 	}

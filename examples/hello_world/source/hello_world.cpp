@@ -6,7 +6,7 @@ class draw_a_triangle_app : public gvk::invokee
 public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	draw_a_triangle_app(avk::queue& aQueue) : mQueue{ &aQueue }
 	{}
-	
+
 	void initialize() override
 	{
 		// Print some information about the available memory on the selected physical device:
@@ -25,7 +25,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater.on(
 				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(avk::const_referenced(mPipeline))
+				gvk::shader_files_changed_event(mPipeline)
 			)
 			.update(mPipeline);
 		
@@ -95,7 +95,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mQueue->submit(cmdBfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 

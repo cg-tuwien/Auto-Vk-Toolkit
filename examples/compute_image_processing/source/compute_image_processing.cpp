@@ -78,8 +78,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = gvk::context().create_image_sampler(
-			avk::owned(gvk::context().create_image_view(avk::owned(gvk::create_image_from_file("assets/lion.png", false, false, true, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)))), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
-			avk::owned(gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge))
+			gvk::context().create_image_view(gvk::create_image_from_file("assets/lion.png", false, false, true, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
+			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
 		);
 		const auto wdth = mInputImageAndSampler->width();
 		const auto hght = mInputImageAndSampler->height();
@@ -87,13 +87,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = gvk::context().create_image_sampler(
-			avk::owned(gvk::context().create_image_view(
-				avk::owned(gvk::context().create_image( // Create an image and set some properties:
+			gvk::context().create_image_view(
+				gvk::context().create_image( // Create an image and set some properties:
 					wdth, hght, frmt, 1 /* one layer */, avk::memory_usage::device, /* in GPU memory */
 					avk::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to
-				))
-			)),
-			avk::owned(gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge))
+				)
+			),
+			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
 		);
 		// Initialize the image with the contents of the input image:
 		avk::copy_image_to_another(
@@ -138,9 +138,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mComputePipelines[0].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[1].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[2].enable_shared_ownership(); // Make it usable with the updater
-		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[0]))).update(mComputePipelines[0]);
-		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[1]))).update(mComputePipelines[1]);
-		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[2]))).update(mComputePipelines[2]);
+		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[0])).update(mComputePipelines[0]);
+		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[1])).update(mComputePipelines[1]);
+		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[2])).update(mComputePipelines[2]);
 		
 		gvk::current_composition()->add_element(mUpdater);
 #endif
@@ -304,7 +304,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		commandBuffer->end_render_pass();
 		commandBuffer->end_recording();
 		
-		mQueue->submit(avk::referenced(commandBuffer), imageAvailableSemaphore);
+		mQueue->submit(commandBuffer, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(commandBuffer));
 	}
 

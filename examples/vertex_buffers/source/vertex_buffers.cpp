@@ -169,7 +169,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mQueue->submit(cmdBfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 

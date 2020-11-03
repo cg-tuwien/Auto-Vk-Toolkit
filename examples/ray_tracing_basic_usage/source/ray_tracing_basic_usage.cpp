@@ -27,11 +27,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto meshIndices = model->select_all_meshes();
 				auto [vtxBfr, idxBfr] = gvk::create_vertex_and_index_buffers({ gvk::make_models_and_meshes_selection(model, meshIndices) }, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR);
 				auto blas = gvk::context().create_bottom_level_acceleration_structure({ 
-					avk::acceleration_structure_size_requirements::from_buffers(avk::vertex_index_buffer_pair{ avk::const_referenced(vtxBfr), avk::const_referenced(idxBfr) })
+					avk::acceleration_structure_size_requirements::from_buffers(avk::vertex_index_buffer_pair{ vtxBfr, idxBfr })
 				}, false);
-				blas->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(vtxBfr), avk::const_referenced(idxBfr) } });
+				blas->build({ avk::vertex_index_buffer_pair{ vtxBfr, idxBfr } });
 				mGeometryInstances.push_back(
-					gvk::context().create_geometry_instance(avk::const_referenced(blas))
+					gvk::context().create_geometry_instance(blas)
 						.set_transform_column_major(gvk::to_array( gvk::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling) ))
 				);
 				mBLASs.push_back(std::move(blas));
@@ -54,7 +54,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			mOffscreenImageViews.emplace_back(
 				gvk::context().create_image_view(
-					avk::owned(gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image))
+					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
 				)
 			);
 
@@ -172,7 +172,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		avk::copy_image_to_another(
-			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mOffscreenImageViews[inFlightIndex]->get_image(), 
 			mainWnd->current_backbuffer()->image_at(0), 
 			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 		);
@@ -190,7 +190,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mQueue->submit(cmdbfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 
 	
