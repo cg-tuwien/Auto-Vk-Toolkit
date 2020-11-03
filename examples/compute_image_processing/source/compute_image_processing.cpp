@@ -78,8 +78,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Load an image from file, upload it and create a view and a sampler for it
 		mInputImageAndSampler = gvk::context().create_image_sampler(
-			gvk::context().create_image_view(gvk::create_image_from_file("assets/lion.png", false, false, true, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
-			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
+			avk::owned(gvk::context().create_image_view(avk::owned(gvk::create_image_from_file("assets/lion.png", false, false, true, 4, avk::memory_usage::device, avk::image_usage::general_storage_image)))), // TODO: We could bind the image as a texture instead of a (readonly) storage image, then we would not need the "storage_image" usage type
+			avk::owned(gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge))
 		);
 		const auto wdth = mInputImageAndSampler->width();
 		const auto hght = mInputImageAndSampler->height();
@@ -87,18 +87,18 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Create an image to write the modified result into, also create view and sampler for that
 		mTargetImageAndSampler = gvk::context().create_image_sampler(
-			gvk::context().create_image_view(
-				gvk::context().create_image( // Create an image and set some properties:
+			avk::owned(gvk::context().create_image_view(
+				avk::owned(gvk::context().create_image( // Create an image and set some properties:
 					wdth, hght, frmt, 1 /* one layer */, avk::memory_usage::device, /* in GPU memory */
 					avk::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to
-				)
-			),
-			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
+				))
+			)),
+			avk::owned(gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge))
 		);
 		// Initialize the image with the contents of the input image:
 		avk::copy_image_to_another(
-			mInputImageAndSampler->get_image_view()->get_image(), 
-			mTargetImageAndSampler->get_image_view()->get_image(), 
+			mInputImageAndSampler->get_image(), 
+			mTargetImageAndSampler->get_image(), 
 			avk::sync::wait_idle()
 		);
 
@@ -138,9 +138,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mComputePipelines[0].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[1].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[2].enable_shared_ownership(); // Make it usable with the updater
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[0])).update(mComputePipelines[0]);
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[1])).update(mComputePipelines[1]);
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[2])).update(mComputePipelines[2]);
+		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[0]))).update(mComputePipelines[0]);
+		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[1]))).update(mComputePipelines[1]);
+		mUpdater.on(gvk::shader_files_changed_event(avk::const_referenced(mComputePipelines[2]))).update(mComputePipelines[2]);
 		
 		gvk::current_composition()->add_element(mUpdater);
 #endif
@@ -151,7 +151,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 		
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto* imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -164,14 +164,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				static ImTextureID inputTexId = ImGui_ImplVulkan_AddTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
 				// This ImTextureID-stuff is tough stuff -> see https://github.com/ocornut/imgui/pull/914
-		        float inputTexWidth  = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.width;
-		        float inputTexHeight = (float)mInputImageAndSampler->get_image_view()->get_image().config().extent.height;
+		        auto inputTexWidth  = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.width);
+		        auto inputTexHeight = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
 				ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
 				static ImTextureID targetTexId = ImGui_ImplVulkan_AddTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
-		        float targetTexWidth  = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.width;
-		        float targetTexHeight = (float)mTargetImageAndSampler->get_image_view()->get_image().config().extent.height;
+		        auto targetTexWidth  = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.width);
+		        auto targetTexHeight = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);
 				ImGui::Image(targetTexId, ImVec2(targetTexWidth/6.0f, targetTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
@@ -186,8 +186,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (gvk::input().key_pressed(gvk::key_code::num0)) {
 			// [0] => Copy the input image to the target image and use a semaphore to sync the next draw call
 			avk::copy_image_to_another(
-				mInputImageAndSampler->get_image_view()->get_image(), 
-				mTargetImageAndSampler->get_image_view()->get_image(),
+				mInputImageAndSampler->get_image(), 
+				mTargetImageAndSampler->get_image(),
 				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
@@ -211,7 +211,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Bind the pipeline
 
 			// Set the descriptors of the uniform buffer
-			cmdbfr->bind_pipeline(mComputePipelines[computeIndex]);
+			cmdbfr->bind_pipeline(avk::const_referenced(mComputePipelines[computeIndex]));
 			cmdbfr->bind_descriptors(mComputePipelines[computeIndex]->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 				avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image()),
 				avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
@@ -259,7 +259,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Record a command buffer and submit it:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
@@ -282,7 +282,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Begin drawing:
 		commandBuffer->begin_render_pass_for_framebuffer(mGraphicsPipeline->get_renderpass(), mainWnd->backbuffer_at_index(imgIndex));
-		commandBuffer->bind_pipeline(mGraphicsPipeline);
+		commandBuffer->bind_pipeline(avk::const_referenced(mGraphicsPipeline));
 
 		// Draw left viewport:
 		commandBuffer->handle().setViewport(0, 1, &vpLeft);
@@ -291,7 +291,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 0, mUbo[ifi]),
 			avk::descriptor_binding(0, 1, mInputImageAndSampler)
 		}));
-		commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
+		commandBuffer->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffer));
 
 		// Draw right viewport (post compute)
 		commandBuffer->handle().setViewport(0, 1, &vpRight);
@@ -299,13 +299,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 0, mUbo[ifi]),
 			avk::descriptor_binding(0, 1, mTargetImageAndSampler)
 		}));
-		commandBuffer->draw_indexed(*mIndexBuffer, *mVertexBuffer);
+		commandBuffer->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffer));
 
 		commandBuffer->end_render_pass();
 		commandBuffer->end_recording();
 		
-		mQueue->submit(commandBuffer, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(commandBuffer));
+		mQueue->submit(avk::referenced(commandBuffer), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(commandBuffer));
 	}
 
 private: // v== Member variables ==v
@@ -335,7 +335,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Compute Image Effects Example");
+		auto* mainWnd = gvk::context().create_window("Compute Image Effects Example");
 		mainWnd->set_resolution({ 1600, 800 });
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);

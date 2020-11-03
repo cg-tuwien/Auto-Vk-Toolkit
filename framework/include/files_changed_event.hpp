@@ -57,11 +57,11 @@ namespace gvk
 
 	extern bool operator!=(const files_changed_event& left, const files_changed_event& right);
 
-	extern files_changed_event shader_files_changed_event(const avk::graphics_pipeline_t& aPipeline);
+	extern files_changed_event shader_files_changed_event(avk::resource_reference<const avk::graphics_pipeline_t> aPipeline);
 
-	extern files_changed_event shader_files_changed_event(const avk::compute_pipeline_t& aPipeline);
+	extern files_changed_event shader_files_changed_event(avk::resource_reference<const avk::compute_pipeline_t> aPipeline);
 
-	extern files_changed_event shader_files_changed_event(const avk::ray_tracing_pipeline& aPipeline);
+	extern files_changed_event shader_files_changed_event(avk::resource_reference<const avk::ray_tracing_pipeline_t> aPipeline);
 }
 
 namespace std // Inject hash for `files_changed_event` into std::

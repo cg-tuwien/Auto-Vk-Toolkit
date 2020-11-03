@@ -252,7 +252,7 @@ namespace gvk
 		}
 	}
 
-	void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
+	void window::handle_lifetime(avk::resource_ownership<avk::command_buffer_t> aCommandBuffer, std::optional<frame_id_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
 		if (!aFrameId.has_value()) {
@@ -261,17 +261,8 @@ namespace gvk
 
 		aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
 		
-		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
+		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), aCommandBuffer.own());
 		// ^ Prefer code duplication over recursive_mutex
-	}
-
-	void window::handle_lifetime(std::optional<avk::command_buffer> aCommandBuffer, std::optional<frame_id_t> aFrameId)
-	{
-		if (!aCommandBuffer.has_value()) {
-			LOG_WARNING("std::optional<command_buffer> submitted and it has no value.");
-			return;
-		}
-		handle_lifetime(std::move(aCommandBuffer.value()), aFrameId);
 	}
 
 	void window::handle_lifetime(outdated_swapchain_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId)
@@ -368,7 +359,7 @@ namespace gvk
 	void window::acquire_next_swap_chain_image_and_prepare_semaphores()
 	{
 		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
-		auto& imgAvailableSem = image_available_semaphore_for_frame();
+		auto imgAvailableSem = image_available_semaphore_for_frame();
 
 		// Update previous image index before getting a new image index for the current frame:
 		mPreviousFrameImageIndex = mCurrentFrameImageIndex;
@@ -383,7 +374,7 @@ namespace gvk
 				//    No, instead it will return instantly, yielding an invalid swap chain image index. OMG, WTF?!
 				// Long story short: make sure to pass the UNSINGEDint64_t's maximum value, since only that will disable the timeout.
 				std::numeric_limits<uint64_t>::max(), // a timeout in nanoseconds for an image to become available. Using the maximum value of a 64 bit unsigned integer disables the timeout. [1]
-				imgAvailableSem.handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
+				imgAvailableSem->handle(), // The next two parameters specify synchronization objects that are to be signaled when the presentation engine is finished using the image [1]
 				nullptr,
 				&mCurrentFrameImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 			if (vk::Result::eSuboptimalKHR == result) {
@@ -397,8 +388,8 @@ namespace gvk
 					vk::SubmitInfo{}
 						.setCommandBufferCount(0u)
 						.setWaitSemaphoreCount(1u)
-						.setPWaitSemaphores(imgAvailableSem.handle_addr())
-						.setPWaitDstStageMask(imgAvailableSem.semaphore_wait_stage_addr())
+						.setPWaitSemaphores(imgAvailableSem->handle_addr())
+						.setPWaitDstStageMask(imgAvailableSem->semaphore_wait_stage_addr())
 				}, fen->handle());
 				fen->wait_until_signalled();
 
@@ -430,10 +421,10 @@ namespace gvk
 	{
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
 		const auto ci = current_in_flight_index();
-		auto& cf = current_fence();
-		assert(cf.handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
-		cf.wait_until_signalled();
-		cf.reset();
+		auto cf = current_fence();
+		assert(cf->handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
+		cf->wait_until_signalled();
+		cf->reset();
 
 		// Keep house with the in-flight images:
 		//   However, we don't know which index this fence had been mapped to => we have to search
@@ -455,7 +446,7 @@ namespace gvk
 	
 	void window::render_frame()
 	{
-		const auto& cf = current_fence();
+		const auto cf = current_fence();
 
 		// EXTERN -> WAIT 
 		std::vector<vk::Semaphore> renderFinishedSemaphores;
@@ -464,9 +455,9 @@ namespace gvk
 
 		if (!has_consumed_current_image_available_semaphore()) {
 			LOG_WARNING(fmt::format("Frame #{}: User has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!", current_frame()));
-			auto& imgAvailable = consume_current_image_available_semaphore();
-			renderFinishedSemaphores.push_back(imgAvailable.handle());
-			renderFinishedSemaphoreStages.push_back(imgAvailable.semaphore_wait_stage());
+			auto imgAvailable = consume_current_image_available_semaphore();
+			renderFinishedSemaphores.push_back(imgAvailable->handle());
+			renderFinishedSemaphoreStages.push_back(imgAvailable->semaphore_wait_stage());
 		}
 
 		// TODO: What if the user has not submitted any renderFinishedSemaphores?
@@ -480,17 +471,17 @@ namespace gvk
 			.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
 			.setCommandBufferCount(0u) // Submit ZERO command buffers :O
 			.setSignalSemaphoreCount(1u)
-			.setPSignalSemaphores(signalSemaphore.handle_addr());
+			.setPSignalSemaphores(signalSemaphore->handle_addr());
 		// SIGNAL + FENCE, actually:
 		assert(mPresentQueue);
-		mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
+		mPresentQueue->handle().submit(1u, &submitInfo, cf->handle());
 
 		try
 		{
 			// SIGNAL -> PRESENT
 			auto presentInfo = vk::PresentInfoKHR()
 				.setWaitSemaphoreCount(1u)
-				.setPWaitSemaphores(signalSemaphore.handle_addr())
+				.setPWaitSemaphores(signalSemaphore->handle_addr())
 				.setSwapchainCount(1u)
 				.setPSwapchains(&swap_chain())
 				.setPImageIndices(&mCurrentFrameImageIndex)
@@ -551,7 +542,7 @@ namespace gvk
 #if _DEBUG
 		assert(swap_chain_image_views().size() == imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
-			LOG_DEBUG(fmt::format("Swapchain image #{}: old handle=[{}], new handle=[{}]", i, fmt::ptr(static_cast<VkImage>(swap_chain_image_at_index(i).handle())), fmt::ptr(static_cast<VkImage>(swapChainImages[i]))));
+			LOG_DEBUG(fmt::format("Swapchain image #{}: old handle=[{}], new handle=[{}]", i, fmt::ptr(static_cast<VkImage>(swap_chain_image_at_index(i)->handle())), fmt::ptr(static_cast<VkImage>(swapChainImages[i]))));
 		}
 #endif
 		
@@ -566,7 +557,7 @@ namespace gvk
 
 		// Create a new renderpass for the back buffers:
 		std::vector<avk::attachment> renderpassAttachments = { // TODO: Maybe outsource this into a separate method and re-use between here and original swap chain creation?
-			avk::attachment::declare_for(mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::store)
+			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
 		};
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
@@ -580,20 +571,20 @@ namespace gvk
 			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
-			std::vector<avk::image_view> imageViews;
+			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
-			imageViews.push_back(imView); // The color attachment is added in any case
+			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = gvk::context().create_depth_image_view(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
-					imageViews.emplace_back(std::move(depthView));	     
+					auto depthView = gvk::context().create_depth_image_view(avk::owned(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment))); // TODO: read_only_* or better general_*?
+					imageViews.emplace_back(depthView);	     
 				}
 				else {
-					imageViews.emplace_back(gvk::context().create_image_view(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
+					imageViews.emplace_back(gvk::context().create_image_view(avk::owned(gvk::context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment))));
 				}
 			}
 
-			auto& ref = newFramebuffers.emplace_back(gvk::context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			auto& ref = newFramebuffers.emplace_back(gvk::context().create_framebuffer(avk::shared(mBackBufferRenderpass), std::move(imageViews), imExtent.width, imExtent.height));
 			ref.enable_shared_ownership();
 			std::swap(ref, mBackBuffers[i]);
 		}
@@ -601,9 +592,9 @@ namespace gvk
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : mBackBuffers) {
 			const auto n = bb->image_views().size();
-			assert(n == get_renderpass().attachment_descriptions().size());
+			assert(n == get_renderpass()->attachment_descriptions().size());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass().attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass()->attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
 			}
 		}
 

@@ -10,7 +10,7 @@ namespace gvk
 	class swapchain_changed_event : public event
 	{
 	public:
-		swapchain_changed_event(window* aWindow) : mWindow{ aWindow }, mPrevImageViewHandle{ aWindow->swap_chain_image_view_at_index(0).handle() } {}
+		swapchain_changed_event(window* aWindow) : mWindow{ aWindow }, mPrevImageViewHandle{ aWindow->swap_chain_image_view_at_index(0)->handle() } {}
 		swapchain_changed_event(swapchain_changed_event&&) noexcept = default;
 		swapchain_changed_event(const swapchain_changed_event&) = default;
 		swapchain_changed_event& operator=(swapchain_changed_event&&) noexcept = default;
@@ -19,7 +19,7 @@ namespace gvk
 		
 		bool update(event_data& aData) override
 		{
-			const auto curImageViewHandle = mWindow->swap_chain_image_view_at_index(0).handle();
+			const auto curImageViewHandle = mWindow->swap_chain_image_view_at_index(0)->handle();
 			const auto result = mPrevImageViewHandle != curImageViewHandle;
 			if (result) {
 				aData.mSwapchainImageExtent = mWindow->swap_chain_extent();

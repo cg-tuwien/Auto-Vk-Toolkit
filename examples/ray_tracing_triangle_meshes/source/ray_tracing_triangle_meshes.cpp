@@ -64,7 +64,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 					texCoordsData.data(), 0,
 					avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler())
 				);
-				mTexCoordBufferViews.push_back( gvk::context().create_buffer_view(std::move(texCoordsTexelBuffer)) );
+				mTexCoordBufferViews.push_back( gvk::context().create_buffer_view(avk::owned(texCoordsTexelBuffer)) );
 
 				// The following call is quite redundant => TODO: optimize!
 				auto [positionsData, indicesData] = gvk::get_vertices_and_indices({ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) });
@@ -77,11 +77,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 					indicesData.data(), 0,
 					avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 				);
-				mIndexBufferViews.push_back( gvk::context().create_buffer_view(std::move(indexTexelBuffer)) );
+				mIndexBufferViews.push_back( gvk::context().create_buffer_view(avk::owned(indexTexelBuffer)) );
 
 				// Create one bottom level acceleration structure per model
 				auto blas = gvk::context().create_bottom_level_acceleration_structure({ 
-					avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ positionsBuffer, indicesBuffer } )
+					avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ avk::const_referenced(positionsBuffer), avk::const_referenced(indicesBuffer) } )
 				}, true);
 				// Enable shared ownership because we'll have one TLAS per frame in flight, each one referencing the SAME BLASs
 				// (But that also means that we may not modify the BLASs. They must stay the same, otherwise concurrent access will fail.)
@@ -91,7 +91,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				assert(modelData.mInstances.size() > 0); // Handle the instances. There must at least be one!
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					mGeometryInstances.push_back(
-						gvk::context().create_geometry_instance(blas)
+						gvk::context().create_geometry_instance(avk::const_referenced(blas))
 							.set_transform_column_major(gvk::to_array( gvk::matrix_from_transforms(modelData.mInstances[i].mTranslation, glm::quat(modelData.mInstances[i].mRotation), modelData.mInstances[i].mScaling) ))
 							.set_custom_index(bufferViewIndex)
 					);
@@ -103,11 +103,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				//   before we start building the TLAS.
 				positionsBuffer.enable_shared_ownership();
 				indicesBuffer.enable_shared_ownership();
-				mBLASs.back()->build({ avk::vertex_index_buffer_pair{ positionsBuffer, indicesBuffer } }, {},
+				mBLASs.back()->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(positionsBuffer), avk::const_referenced(indicesBuffer) } }, {},
 					avk::sync::with_barriers(
 						[posBfr = positionsBuffer, idxBfr = indicesBuffer](avk::command_buffer cb) {
 							cb->set_custom_deleter([lPosBfr = std::move(posBfr), lIdxBfr = std::move(idxBfr)](){});
-							gvk::context().main_window()->handle_lifetime( std::move(cb) );
+							gvk::context().main_window()->handle_lifetime( avk::owned(cb) );
 						}, {}, {})
 				);
 			}
@@ -168,7 +168,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			auto offscreenImage = gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image);
 			offscreenImage->transition_to_layout({}, avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler()));
-			mOffscreenImageViews.emplace_back(gvk::context().create_image_view(std::move(offscreenImage)));
+			mOffscreenImageViews.emplace_back(gvk::context().create_image_view(avk::owned(offscreenImage)));
 			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		}
 
@@ -201,7 +201,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			oiv.enable_shared_ownership();
 			mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
 		}
-		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
+		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(avk::const_referenced(mPipeline))).update(mPipeline);
 		
 		gvk::current_composition()->add_element(mUpdater);
 #endif
@@ -313,7 +313,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
-		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
 		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mMaterialBuffer),
@@ -345,7 +345,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_access::shader_buffers_and_images_write_access,     avk::memory_access::transfer_read_access
 		);
 		
-		avk::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_into_existing_command_buffer(cmdbfr, {}, {}));
+		avk::copy_image_to_another(
+			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mainWnd->current_backbuffer()->image_at(0), 
+			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+		);
 		
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
 		cmdbfr->establish_global_memory_barrier(
@@ -357,11 +361,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdbfr));
+		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 
 private: // v== Member variables ==v

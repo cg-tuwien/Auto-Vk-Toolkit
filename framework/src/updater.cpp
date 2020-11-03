@@ -4,7 +4,7 @@ namespace gvk
 {
 	void recreate_updatee::operator()(avk::graphics_pipeline& u)
 	{
-		auto newPipeline = gvk::context().create_graphics_pipeline_from_template(u, [&ed = mEventData](avk::graphics_pipeline_t& aPreparedPipeline){
+		auto newPipeline = gvk::context().create_graphics_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::graphics_pipeline_t& aPreparedPipeline){
 			for (auto& vp : aPreparedPipeline.viewports()) {
 				auto size = ed.get_extent_for_old_extent(vp.width, vp.height);
 				vp.width = std::get<0>(size);
@@ -21,7 +21,7 @@ namespace gvk
 	
 	void recreate_updatee::operator()(avk::compute_pipeline& u)
 	{
-		auto newPipeline = gvk::context().create_compute_pipeline_from_template(u, [&ed = mEventData](avk::compute_pipeline_t& aPreparedPipeline){
+		auto newPipeline = gvk::context().create_compute_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::compute_pipeline_t& aPreparedPipeline){
 			// TODO: Something to alter here?
 		});
 		newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
@@ -31,7 +31,7 @@ namespace gvk
 	
 	void recreate_updatee::operator()(avk::ray_tracing_pipeline& u)
 	{
-		auto newPipeline = gvk::context().create_ray_tracing_pipeline_from_template(u, [&ed = mEventData](avk::ray_tracing_pipeline_t& aPreparedPipeline){
+		auto newPipeline = gvk::context().create_ray_tracing_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::ray_tracing_pipeline_t& aPreparedPipeline){
 			// TODO: Something to alter here?
 		});
 		newPipeline.enable_shared_ownership(); // Must be, otherwise updater can't handle it.
@@ -41,7 +41,7 @@ namespace gvk
 
 	void recreate_updatee::operator()(avk::image& u)
 	{
-		auto newImage = gvk::context().create_image_from_template(u, [&ed = mEventData](avk::image_t& aPreparedImage) {
+		auto newImage = gvk::context().create_image_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
 				aPreparedImage.config().extent.width  = newExtent.width;
@@ -61,7 +61,7 @@ namespace gvk
 	{
 		auto currentLayout = u->get_image().current_layout();
 		
-		auto newImageView = gvk::context().create_image_view_from_template(u, [&ed = mEventData](avk::image_t& aPreparedImage) {
+		auto newImageView = gvk::context().create_image_view_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
 				aPreparedImage.config().extent.width  = newExtent.width;

@@ -191,10 +191,10 @@ namespace gvk
 		if (!whiteTexUsages.empty()) {
 			imageSamplers.push_back(
 				context().create_image_sampler(
-					context().create_image_view(
-						create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync())
-					),
-					context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat)
+					owned(context().create_image_view(
+						owned(create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
+					)),
+					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -207,10 +207,10 @@ namespace gvk
 		if (!straightUpNormalTexUsages.empty()) {
 			imageSamplers.push_back(
 				context().create_image_sampler(
-					context().create_image_view(
-						create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync())
-					),
-					context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat)
+					owned(context().create_image_view(
+						owned(create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
+					)),
+					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -227,10 +227,10 @@ namespace gvk
 			
 			imageSamplers.push_back(
 				context().create_image_sampler(
-					context().create_image_view(
-						create_image_from_file(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync())
-					),
-					context().create_sampler(aTextureFilterMode, aBorderHandlingMode)
+					owned(context().create_image_view(
+						owned(create_image_from_file(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync()))
+					)),
+					owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
 				)
 			);
 			int index = static_cast<int>(imageSamplers.size() - 1);
@@ -243,13 +243,13 @@ namespace gvk
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
 
-	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> positionsData;
 		std::vector<uint32_t> indicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				gvk::append_indices_and_vertex_data(
 					gvk::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
@@ -261,7 +261,7 @@ namespace gvk
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 	
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
 	{
 		auto [positionsData, indicesData] = get_vertices_and_indices(aModelsAndSelectedMeshes);
 
@@ -285,12 +285,12 @@ namespace gvk
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
 
-	std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_normals(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> normalsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(normalsData, modelRef.get().normals_for_mesh(meshIndex));
 			}
@@ -299,7 +299,7 @@ namespace gvk
 		return normalsData;
 	}
 	
-	avk::buffer create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto normalsData = get_normals(aModelsAndSelectedMeshes);
 		
@@ -314,12 +314,12 @@ namespace gvk
 		return normalsBuffer;
 	}
 
-	std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> tangentsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(tangentsData, modelRef.get().tangents_for_mesh(meshIndex));
 			}
@@ -328,7 +328,7 @@ namespace gvk
 		return tangentsData;
 	}
 	
-	avk::buffer create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto tangentsData = get_tangents(aModelsAndSelectedMeshes);
 		
@@ -343,12 +343,12 @@ namespace gvk
 		return tangentsBuffer;
 	}
 
-	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> bitangentsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(bitangentsData, modelRef.get().bitangents_for_mesh(meshIndex));
 			}
@@ -357,7 +357,7 @@ namespace gvk
 		return bitangentsData;
 	}
 	
-	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto bitangentsData = get_bitangents(aModelsAndSelectedMeshes);
 		
@@ -372,12 +372,12 @@ namespace gvk
 		return bitangentsBuffer;
 	}
 
-	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
+	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(colorsData, modelRef.get().colors_for_mesh(meshIndex, aColorsSet));
 			}
@@ -386,7 +386,7 @@ namespace gvk
 		return colorsData;
 	}
 	
-	avk::buffer create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
 	{
 		auto colorsData = get_colors(aModelsAndSelectedMeshes, aColorsSet);
 		
@@ -401,12 +401,12 @@ namespace gvk
 		return colorsBuffer;
 	}
 
-	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec4> boneWeightsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(boneWeightsData, modelRef.get().bone_weights_for_mesh(meshIndex));
 			}
@@ -415,7 +415,7 @@ namespace gvk
 		return boneWeightsData;
 	}
 	
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes);
 		
@@ -430,12 +430,12 @@ namespace gvk
 		return boneWeightsBuffer;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(boneIndicesData, modelRef.get().bone_indices_for_mesh(meshIndex));
 			}
@@ -444,7 +444,7 @@ namespace gvk
 		return boneIndicesData;
 	}
 	
-	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
 		auto boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes);
 		
@@ -459,12 +459,12 @@ namespace gvk
 		return boneIndicesBuffer;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec2>(meshIndex, aTexCoordSet));
 			}
@@ -473,7 +473,7 @@ namespace gvk
 		return texCoordsData;
 	}
 	
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		
@@ -488,12 +488,12 @@ namespace gvk
 		return texCoordsBuffer;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec2>([](const glm::vec2& aValue){ return glm::vec2{aValue.x, 1.0f - aValue.y}; }, meshIndex, aTexCoordSet));
 			}
@@ -502,7 +502,7 @@ namespace gvk
 		return texCoordsData;
 	}
 	
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
 		
@@ -517,12 +517,12 @@ namespace gvk
 		return texCoordsBuffer;
 	}
 
-	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const model_t>>(pair);
+			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<size_t>>(pair)) {
 				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec3>(meshIndex, aTexCoordSet));
 			}
@@ -531,7 +531,7 @@ namespace gvk
 		return texCoordsData;
 	}
 	
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		

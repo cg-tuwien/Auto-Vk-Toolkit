@@ -25,7 +25,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater.on(
 				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
+				gvk::shader_files_changed_event(avk::const_referenced(mPipeline))
 			)
 			.update(mPipeline);
 		
@@ -92,11 +92,11 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdBfr));
+		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 
 private: // v== Member variables ==v

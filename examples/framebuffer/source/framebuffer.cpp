@@ -45,15 +45,15 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		const auto r = gvk::context().main_window()->resolution();
-		auto colorAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, avk::memory_usage::device, avk::image_usage::general_color_attachment));
-		auto depthAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, avk::memory_usage::device, avk::image_usage::general_depth_stencil_attachment));
-		auto colorAttachmentDescription = avk::attachment::declare_for(colorAttachment, avk::on_load::clear, avk::color(0),		avk::on_store::store);
-		auto depthAttachmentDescription = avk::attachment::declare_for(depthAttachment, avk::on_load::clear, avk::depth_stencil(),	avk::on_store::store);
+		auto colorAttachment = gvk::context().create_image_view(avk::owned(gvk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
+		auto depthAttachment = gvk::context().create_image_view(avk::owned(gvk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, avk::memory_usage::device, avk::image_usage::general_depth_stencil_attachment)));
+		auto colorAttachmentDescription = avk::attachment::declare_for(avk::const_referenced(colorAttachment), avk::on_load::clear, avk::color(0),        avk::on_store::store);
+		auto depthAttachmentDescription = avk::attachment::declare_for(avk::const_referenced(depthAttachment), avk::on_load::clear, avk::depth_stencil(), avk::on_store::store);
 		mOneFramebuffer = gvk::context().create_framebuffer(
 			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
 			avk::make_vector( // Transfer ownership of both attachments into the vector and into create_framebuffer:
-				std::move(colorAttachment), 
-				std::move(depthAttachment)
+				avk::owned(colorAttachment), 
+				avk::owned(depthAttachment)
 			)
 		);
 		
@@ -181,33 +181,43 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
-		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mOneFramebuffer);
+		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), avk::referenced(mOneFramebuffer));
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
+		cmdBfr->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]));
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdBfr));
+		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 
 		if (0 == mUseCopyOrBlit) {
 			// Copy:
-			auto transferCmdBuffer = avk::copy_image_to_another(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_by_return());
+			auto transferCmdBuffer = avk::copy_image_to_another(
+				mOneFramebuffer->image_at(mSelectedAttachmentToCopy), 
+				mainWnd->current_backbuffer()->image_at(0), 
+				avk::sync::with_barriers_by_return()
+			);
+			assert(transferCmdBuffer.has_value());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(*transferCmdBuffer, std::optional<std::reference_wrapper<avk::semaphore_t>>{});
-			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
+			mQueue->submit(avk::referenced(transferCmdBuffer.value()), std::optional<avk::resource_reference<avk::semaphore_t>>{});
+			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
 		}
 		else {
 			// Blit:
-			auto transferCmdBuffer = avk::blit_image(mOneFramebuffer->image_view_at(mSelectedAttachmentToCopy)->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_by_return());
+			auto transferCmdBuffer = avk::blit_image(
+				mOneFramebuffer->image_at(mSelectedAttachmentToCopy), 
+				mainWnd->current_backbuffer()->image_at(0), 
+				avk::sync::with_barriers_by_return()
+			);
+			assert(transferCmdBuffer.has_value());
 			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(*transferCmdBuffer, std::optional<std::reference_wrapper<avk::semaphore_t>>{});
-			mainWnd->handle_lifetime(std::move(transferCmdBuffer));
+			mQueue->submit(avk::referenced(transferCmdBuffer.value()), std::optional<avk::resource_reference<avk::semaphore_t>>{});
+			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
 		}
 	}
 

@@ -141,9 +141,9 @@ namespace gvk
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = mQueue->submit_and_handle_with_semaphore(std::move(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
+		auto semaph = mQueue->submit_and_handle_with_semaphore(owned(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
 		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
-		wnd->add_render_finished_semaphore_for_current_frame(std::move(semaph));
+		wnd->add_render_finished_semaphore_for_current_frame(avk::owned(semaph));
 	}
 
 	
@@ -293,11 +293,11 @@ namespace gvk
 		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(mRenderpass.value(), mainWnd->current_backbuffer());
+		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
-		mainWnd->add_render_finished_semaphore_for_current_frame(mQueue->submit_and_handle_with_semaphore(std::move(cmdBfr)));
+		mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mQueue->submit_and_handle_with_semaphore(avk::owned(cmdBfr))));
 	}
 
 	void imgui_manager::finalize()

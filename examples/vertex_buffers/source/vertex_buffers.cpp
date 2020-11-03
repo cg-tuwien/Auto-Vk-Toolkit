@@ -160,17 +160,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		cmdBfr->begin_recording();
 		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->draw_indexed(*mIndexBuffer, *mVertexBuffers[inFlightIndex]);
+		cmdBfr->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]));
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdBfr));
+		mQueue->submit(avk::referenced(cmdBfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 
 

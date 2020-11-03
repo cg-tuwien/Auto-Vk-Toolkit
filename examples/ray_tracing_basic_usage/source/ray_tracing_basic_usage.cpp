@@ -26,10 +26,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				const auto& model = modelData.mLoadedModel;
 				auto meshIndices = model->select_all_meshes();
 				auto [vtxBfr, idxBfr] = gvk::create_vertex_and_index_buffers({ gvk::make_models_and_meshes_selection(model, meshIndices) }, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR);
-				auto blas = gvk::context().create_bottom_level_acceleration_structure({ avk::acceleration_structure_size_requirements::from_buffers(avk::vertex_index_buffer_pair{ vtxBfr, idxBfr }) }, false);
-				blas->build({ avk::vertex_index_buffer_pair{ vtxBfr, idxBfr } });
+				auto blas = gvk::context().create_bottom_level_acceleration_structure({ 
+					avk::acceleration_structure_size_requirements::from_buffers(avk::vertex_index_buffer_pair{ avk::const_referenced(vtxBfr), avk::const_referenced(idxBfr) })
+				}, false);
+				blas->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(vtxBfr), avk::const_referenced(idxBfr) } });
 				mGeometryInstances.push_back(
-					gvk::context().create_geometry_instance(blas)
+					gvk::context().create_geometry_instance(avk::const_referenced(blas))
 						.set_transform_column_major(gvk::to_array( gvk::matrix_from_transforms(modelInstance.mTranslation, glm::quat(modelInstance.mRotation), modelInstance.mScaling) ))
 				);
 				mBLASs.push_back(std::move(blas));
@@ -52,7 +54,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			mOffscreenImageViews.emplace_back(
 				gvk::context().create_image_view(
-					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
+					avk::owned(gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image))
 				)
 			);
 
@@ -142,7 +144,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
-		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
 		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({  
 			avk::descriptor_binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
 			avk::descriptor_binding(1, 0, mTLAS[inFlightIndex])
@@ -169,7 +171,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_access::shader_buffers_and_images_write_access,     avk::memory_access::transfer_read_access
 		);
 
-		avk::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_into_existing_command_buffer(cmdbfr, {}, {}));
+		avk::copy_image_to_another(
+			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mainWnd->current_backbuffer()->image_at(0), 
+			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+		);
 
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
 		cmdbfr->establish_global_memory_barrier(
@@ -181,11 +187,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdbfr));
+		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 
 	
 	}

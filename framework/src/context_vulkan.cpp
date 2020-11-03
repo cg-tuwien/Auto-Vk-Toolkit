@@ -955,7 +955,7 @@ namespace gvk
 
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(aWindow->mSwapChainImageViews[0], avk::on_load::clear, avk::color(0), avk::on_store::store)
+			avk::attachment::declare_for(const_referenced(aWindow->mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
 		};
 		auto additionalAttachments = aWindow->get_additional_back_buffer_attachments();
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
@@ -968,20 +968,20 @@ namespace gvk
 			auto imExtent = imView->get_image().config().extent;
 
 			// Create one image view per attachment
-			std::vector<avk::image_view> imageViews;
+			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
-			imageViews.push_back(imView); // The color attachment is added in any case
+			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
 			for (auto& aa : additionalAttachments) {
 				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = create_depth_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)); // TODO: read_only_* or better general_*?
+					auto depthView = create_depth_image_view(avk::owned(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment))); // TODO: read_only_* or better general_*?
 					imageViews.emplace_back(std::move(depthView));
 				}
 				else {
-					imageViews.emplace_back(create_image_view(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
+					imageViews.emplace_back(create_image_view(avk::owned(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment))));
 				}
 			}
 
-			aWindow->mBackBuffers.push_back(create_framebuffer(aWindow->mBackBufferRenderpass, std::move(imageViews), imExtent.width, imExtent.height));
+			aWindow->mBackBuffers.push_back(create_framebuffer(avk::shared(aWindow->mBackBufferRenderpass), std::move(imageViews), imExtent.width, imExtent.height));
 			aWindow->mBackBuffers.back().enable_shared_ownership();
 		}
 		assert(aWindow->mBackBuffers.size() == imagesInFlight);
@@ -989,9 +989,9 @@ namespace gvk
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : aWindow->mBackBuffers) {
 			const auto n = bb->image_views().size();
-			assert(n == aWindow->get_renderpass().attachment_descriptions().size());
+			assert(n == aWindow->get_renderpass()->number_of_attachment_descriptions());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass().attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass()->attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
 			}
 		}
 

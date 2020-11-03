@@ -26,11 +26,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mAabbs[2] = VkAabbPositionsKHR{ /* min: */ -3.0f, -2.0f, -1.0f, /* max: */ -2.0f, -1.0f,  0.0f };
 	}
 
-	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure_t& aBlas, glm::vec3 aTranslation) {
+	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure& aBlas, glm::vec3 aTranslation) {
 		mTranslations[aIndex + 0] =  aTranslation;
 		mTranslations[aIndex + 1] = -aTranslation;
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( avk::const_referenced(aBlas) ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
+		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( avk::const_referenced(aBlas) ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
 	}
 
 	void set_bottom_level_pyramid_data()
@@ -113,10 +113,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			const size_t pyrOffset = 3;
 			for (size_t j=0; j < 2; ++j) {
 				bLast[pyrOffset + j] = gvk::context().create_bottom_level_acceleration_structure(
-					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } ) },
+					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[i]), avk::const_referenced(mPyramidIndexBuffers[i]) } ) },
 					true /* allow updates */
 				);
-				bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } });
+				bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[i]), avk::const_referenced(mPyramidIndexBuffers[i]) } });
 			}
 			
 			if (0 == i /* only once */ ) {
@@ -136,7 +136,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			mOffscreenImageViews.emplace_back(
 				gvk::context().create_image_view(
-					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
+					avk::owned(gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image))
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
@@ -239,7 +239,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}
 					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
 					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
-					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[inFlightIndex], mPyramidIndexBuffers[inFlightIndex] } });
+					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ avk::const_referenced(mPyramidVertexBuffers[inFlightIndex]), avk::const_referenced(mPyramidIndexBuffers[inFlightIndex]) } });
 					//                         ^  switch to update() once the (annoying) validation layer error message is fixed
 				}
 			}
@@ -286,7 +286,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
-		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
 		cmdbfr->bind_descriptors(mPipeline->layout(),  mDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image()),
 			avk::descriptor_binding(1, 0, mTLAS[inFlightIndex])
@@ -313,7 +313,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_access::shader_buffers_and_images_write_access,     avk::memory_access::transfer_read_access
 		);
 		
-		avk::copy_image_to_another(mOffscreenImageViews[inFlightIndex]->get_image(), mainWnd->current_backbuffer()->image_view_at(0)->get_image(), avk::sync::with_barriers_into_existing_command_buffer(cmdbfr, {}, {}));
+		avk::copy_image_to_another(
+			avk::referenced(mOffscreenImageViews[inFlightIndex]->get_image()), 
+			mainWnd->current_backbuffer()->image_at(0), 
+			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+		);
 		
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
 		cmdbfr->establish_global_memory_barrier(
@@ -325,11 +329,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdbfr));
+		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 
 private: // v== Member variables ==v

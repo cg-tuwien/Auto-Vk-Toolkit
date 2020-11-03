@@ -257,7 +257,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
 		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
-		cmdbfr->bind_pipeline(mPipeline);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
 		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
 			avk::descriptor_binding(0, 5, mViewProjBuffer),
 			avk::descriptor_binding(4, 4, mImageSamplers),
@@ -277,9 +277,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Make the draw call:
 			cmdbfr->draw_indexed(
 				// Bind and use the index buffer:
-				*drawCall.mIndexBuffer,
+				avk::const_referenced(drawCall.mIndexBuffer),
 				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				*drawCall.mPositionsBuffer, *drawCall.mTexCoordsBuffer, *drawCall.mNormalsBuffer
+				avk::const_referenced(drawCall.mPositionsBuffer), avk::const_referenced(drawCall.mTexCoordsBuffer), avk::const_referenced(drawCall.mNormalsBuffer)
 			);
 		}
 
@@ -288,11 +288,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdbfr));
+		mQueue->submit(avk::referenced(cmdbfr), imageAvailableSemaphore);
+		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 
 private: // v== Member variables ==v
