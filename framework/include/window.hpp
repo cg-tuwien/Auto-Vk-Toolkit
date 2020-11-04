@@ -144,6 +144,12 @@ namespace gvk
 			}
 			return allFramebuffers; 
 		}
+
+		/** Gets this window's back buffer at the specified index. */
+		avk::resource_reference<const avk::framebuffer_t> backbuffer_at_index(size_t aIdx) const { 
+			return avk::const_referenced(mBackBuffers[aIdx]);
+		}
+
 		/** Gets this window's back buffer at the specified index. */
 		avk::resource_reference<avk::framebuffer_t> backbuffer_at_index(size_t aIdx) { 
 			return avk::referenced(mBackBuffers[aIdx]);
