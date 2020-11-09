@@ -14,10 +14,20 @@ Currently, only Windows is supported as a development platform. The project setu
 
 Requirements:
 * Windows 10 
-* Visual Studio 2019 with a Windows 10 SDK installed
-* Vulkan SDK 1.2.141.0 or newer
+* Visual Studio 2019 with a Windows 10 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
+* A [Vulkan 1.2 SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer
 
-Detailed information about project setup and resource management with Visual Studio are given in [`visual_studio/README.md`](./visual_studio/README.md). A short summary, and also the most important information to start a new project are given in the following two sections: [Creating a New Project](#creating-a-new-project) and [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper).
+Setup and build instructions:
+* Clone this repository
+* Execute a `git submodule update --init` to pull the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework which is added as a submodule under `auto_vk`
+* Open the Visual Studio solution file [`visual_studio/gears-vk.sln`](./visual_studio/), and build the solution
+* During building, you'll recognize messages from the _Post Build Helper_ tool in Visual Studio's `Output`-tab, some popup messages, and an icon in the system tray. Please have a look at section [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper) for additional information.
+* Several example applications are available in the solution file. Set one of them as startup project, and run.
+
+Set up your own project:
+* To add _Gears-Vk_ to one of your custom repositories, you might want to add it as a GIT submodule. You could execute `git submodule add https://github.com/cg-tuwien/Gears-Vk.git gears_vk` to add _Gears-Vk_ as submodule in directory `gears_vk`.
+* Execute `git submodule update --init --recursive` in order to pull both, _Gears-Vk_ and the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework.
+* The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links agains _Gears-Vk_.
 
 # Creating a New Project
 
