@@ -62,7 +62,7 @@ namespace gvk
 	 *	@param	aDestination			Reference to the output vector which must be some collection of `cgb::lightsource_gpu_data` that is accessible via
 	 *									index operator and must already be pre-allocated to support access up to [aNumElements-1].
 	 */
-	template <typename Out, typename In>
+	template <typename Out, typename In> requires avk::has_subscript_operator<Out> && avk::has_subscript_operator<In>
 	void convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix, Out& aDestination)
 	{
 		const auto aInvTranspMat3 = glm::mat3(glm::inverse(glm::transpose(aTransformationMatrix)));
@@ -84,6 +84,7 @@ namespace gvk
 	 *	@param	aLightsourceData		The input, i.e. the collection of `cgb::lightsource` elements to be converted into `cgb::lightsource_gpu_data` elements.
 	 *	@param	aNumElements			The number of input elements to be converted.
 	 *	@param	aTransformationMatrix	A matrix which can be used to transform into a specific space.
+	 *	@tparam	In						Input types must provide data access through subscript operators.
 	 *	@tparam	Out						Specify the type of the result collection, e.g. like follows: `auto result = cgb::convert_for_gpu_usage<std::array<cgb::lightsource_gpu_data, 10>>(...)`
 	 */
 	template <typename Out, typename In>
@@ -98,12 +99,12 @@ namespace gvk
 	 *	@param	aLightsourceData		The input, i.e. the collection of `cgb::lightsource` elements to be converted into `cgb::lightsource_gpu_data` elements.
 	 *	@param	aNumElements			The number of input elements to be converted.
 	 *	@param	aTransformationMatrix	A matrix which can be used to transform into a specific space.
-	 *	@tparam	In						This overload is invoked if type `In::resize()` exists. Most notably, this applies to `std::vector`.
+	 *	@tparam	In						This overload is invoked if type `In::resize(size_t)` exists. Furthermore, subscript operators must be provided. Most notably, this applies to `std::vector`.
 	 *	@tparam	Out						Specify the type of the result collection, where in using this overload, the resulting collection will be resized
 	 *									to a size of `aNumElements`. Example usage: `auto result = cgb::convert_for_gpu_usage<std::vector<cgb::lightsource_gpu_data>>(...)`
 	 */
-	template <typename Out, typename In>
-	typename std::enable_if<avk::has_resize<Out>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	template <typename Out, typename In> requires avk::has_resize<Out>
+	Out convert_for_gpu_usage(const In& aLightsourceData, const size_t aNumElements, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		Out gpuLights{};
 		gpuLights.resize(aNumElements);
@@ -114,10 +115,11 @@ namespace gvk
 	/** Convenience overload on top of the other overloads that automatically determines the number of elements based on `aLightsourceData`.
 	 *	@param	aLightsourceData		The input, i.e. the collection of `cgb::lightsource` elements to be converted into `cgb::lightsource_gpu_data` elements.
 	 *	@param	aTransformationMatrix	A matrix which can be used to transform into a specific space.
+	 *	@tparam	In						Input types must provide data access through subscript operators.
 	 *	@tparam Out						May be a type that has a `.resize()` member or that doesn't. Either is fine and the respective overload will be invoked.
 	 */
 	template <typename Out, typename In>
-	typename std::enable_if<avk::has_size_and_iterators<In>::value, Out>::type convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
+	std::enable_if_t<avk::has_size_and_iterators<In>::value, Out> convert_for_gpu_usage(const In& aLightsourceData, glm::mat4 aTransformationMatrix = glm::mat4{1.0f})
 	{
 		return convert_for_gpu_usage<Out, In>(aLightsourceData, aLightsourceData.size(), aTransformationMatrix);
 	}
