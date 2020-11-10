@@ -725,7 +725,8 @@ namespace gvk
 	                                                                               const std::vector<mesh_index_t>& aMeshIndices,
 	                                                                               glm::mat4* aBeginningOfTargetStorage,
 	                                                                               size_t aStride,
-	                                                                               std::optional<size_t> aMaxNumBoneMatrices)
+	                                                                               std::optional<size_t> aMaxNumBoneMatrices,
+																				   std::optional<size_t> aMaxNumMeshes)
 	{
 		if (!aMaxNumBoneMatrices.has_value()) {
 			aMaxNumBoneMatrices = aStride;
@@ -940,6 +941,11 @@ namespace gvk
 		//};
 
 		for (size_t i = 0; i < aMeshIndices.size(); ++i) {
+			if (i >= aMaxNumMeshes.value_or(std::numeric_limits<size_t>::max())) {
+				LOG_WARNING(fmt::format("There are more mesh indices [{}] than the specified maximum number of meshes [{}]. Won't write bone matrixes for mesh indices of {} and greater.", aMeshIndices.size(), aMaxNumMeshes.value_or(std::numeric_limits<size_t>::max()), i));
+				break;
+			}
+			
 			auto& bmi = mapsBoneToMatrixInfo.emplace_back();
 			auto mi = aMeshIndices[i];
 
@@ -951,6 +957,12 @@ namespace gvk
 
 			// For each bone, create boneMatrixInfo:
 			for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
+				assert (aMaxNumBoneMatrices.has_value());
+				if (bi >= aMaxNumBoneMatrices.value()) {
+					LOG_WARNING(fmt::format("For mesh #{}, there are more bones [{}] than the specified maximum number of bone matrices [{}]. Will only write up to {} bone matrices.", i, bi, aMaxNumBoneMatrices.value(), aMaxNumBoneMatrices.value()));
+					break;
+				}
+
 				auto* bone = mScene->mMeshes[mi]->mBones[bi];
 
 				auto it = mapNameToNode.find(to_string(bone->mName));
@@ -1038,6 +1050,11 @@ namespace gvk
 			// Set the bone matrices that are not affected by animation ONCE/NOW:
 			const auto nb = mScene->mMeshes[mi]->mNumBones;
 			for (unsigned int bi = 0; bi < nb; ++bi) {
+				assert (aMaxNumBoneMatrices.has_value());
+				if (bi >= aMaxNumBoneMatrices.value()) {
+					break;
+				}
+				
 				if (flagsBonesAddedAsAniNodes[i][bi]) {
 					continue;
 				}
@@ -1047,8 +1064,7 @@ namespace gvk
 				assert(std::end(mapNameToNode) != it);
 
 				addAnimatedNode(
-					nullptr,
-					// <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
+					nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
 					it->second, getAnimatedParentIndex(it->second), getUnanimatedParentTransform(it->second)
 				);
 			}

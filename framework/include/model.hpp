@@ -321,7 +321,8 @@ namespace gvk
 			const std::vector<mesh_index_t>& aMeshIndices, 
 			glm::mat4* aBeginningOfTargetStorage, 
 			size_t aStride, 
-			std::optional<size_t> aMaxNumBoneMatrices = {}
+			std::optional<size_t> aMaxNumBoneMatrices = {},
+			std::optional<size_t> aMaxNumMeshes = {}
 		);
 
 		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
