@@ -274,4 +274,68 @@ namespace gvk {
 		aArchive(aValue.mLightmapTexOffsetTiling);
 		aArchive(aValue.mExtraTexOffsetTiling);
 	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::material_gpu_data& aValue)
+	{
+		aArchive(
+			aValue.mDiffuseReflectivity,
+			aValue.mAmbientReflectivity,
+			aValue.mSpecularReflectivity,
+			aValue.mEmissiveColor,
+			aValue.mTransparentColor,
+			aValue.mReflectiveColor,
+			aValue.mAlbedo
+		);
+
+		aArchive(
+			aValue.mOpacity,
+			aValue.mBumpScaling,
+			aValue.mShininess,
+			aValue.mShininessStrength,
+			aValue.mRefractionIndex,
+			aValue.mReflectivity,
+			aValue.mMetallic,
+			aValue.mSmoothness,
+			aValue.mSheen,
+			aValue.mThickness,
+			aValue.mRoughness,
+			aValue.mAnisotropy
+		);
+
+		aArchive(
+			aValue.mAnisotropyRotation,
+			aValue.mCustomData
+		);
+
+		aArchive(
+			aValue.mDiffuseTexIndex,
+			aValue.mSpecularTexIndex,
+			aValue.mAmbientTexIndex,
+			aValue.mEmissiveTexIndex,
+			aValue.mHeightTexIndex,
+			aValue.mNormalsTexIndex,
+			aValue.mShininessTexIndex,
+			aValue.mOpacityTexIndex,
+			aValue.mDisplacementTexIndex,
+			aValue.mReflectionTexIndex,
+			aValue.mLightmapTexIndex,
+			aValue.mExtraTexIndex
+		);
+
+		aArchive(
+			aValue.mDiffuseTexOffsetTiling,
+			aValue.mSpecularTexOffsetTiling,
+			aValue.mAmbientTexOffsetTiling,
+			aValue.mEmissiveTexOffsetTiling,
+			aValue.mHeightTexOffsetTiling,
+			aValue.mNormalsTexOffsetTiling,
+			aValue.mShininessTexOffsetTiling,
+			aValue.mOpacityTexOffsetTiling,
+			aValue.mDisplacementTexOffsetTiling,
+			aValue.mReflectionTexOffsetTiling,
+			aValue.mLightmapTexOffsetTiling,
+			aValue.mExtraTexOffsetTiling
+		);
+	}
 }

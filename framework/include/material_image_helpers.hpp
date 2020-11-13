@@ -3,7 +3,7 @@
 
 namespace gvk
 {	
-	static avk::image create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gvk::serializer*> aSerializer = {})
 	{
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{avk::memory_access::transfer_read_access});
@@ -13,7 +13,17 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(sizeof(aColor))
 		);
-		stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
+		if (!aSerializer) {
+			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
+		}
+		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
+			(*aSerializer)->archive((*aSerializer)->binary_data(aColor.data(), sizeof(aColor)));
+		}
+		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
+			auto mapping = stagingBuffer->map_memory(avk::mapping_access::write);
+			(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), sizeof(aColor)));
+		}
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
@@ -50,6 +60,12 @@ namespace gvk
 		assert (!result.has_value());
 		
 		return img;
+	}
+
+	static avk::image create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_1px_texture_cached(std::forward<std::array<uint8_t, 4>>(aColor), std::forward<vk::Format>(aFormat),
+			std::forward<avk::memory_usage>(aMemoryUsage), std::forward<avk::image_usage>(aImageUsage), std::forward<avk::sync>(aSyncHandler));
 	}
 
 	static avk::image create_image_from_file_cached(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {}, std::optional<gvk::serializer*> aSerializer = {})
@@ -92,11 +108,14 @@ namespace gvk
 				avk::generic_buffer_meta::create_from_size(texSize)
 			));
 
-			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+			if (!aSerializer) {
 				sb->fill(texData, 0, avk::sync::not_required());
 			}
-			if (aSerializer) {
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+				sb->fill(texData, 0, avk::sync::not_required());
+				(*aSerializer)->archive((*aSerializer)->binary_data(texData, texSize));
+			}
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
 				auto mapping = sb->map_memory(avk::mapping_access::write);
 				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
 			}
@@ -143,11 +162,14 @@ namespace gvk
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
 
-			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+			if (!aSerializer) {
 				sb->fill(pixels, 0, avk::sync::not_required());
 			}
-			if (aSerializer) {
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+				sb->fill(pixels, 0, avk::sync::not_required());
+				(*aSerializer)->archive((*aSerializer)->binary_data(pixels, imageSize));
+			}
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
 				auto mapping = sb->map_memory(avk::mapping_access::write);
 				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
 			}
@@ -193,11 +215,15 @@ namespace gvk
 				vk::BufferUsageFlagBits::eTransferSrc,
 				avk::generic_buffer_meta::create_from_size(imageSize)
 			));
-			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+
+			if (!aSerializer) {
 				sb->fill(pixels, 0, avk::sync::not_required());
 			}
-			if (aSerializer) {
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+				sb->fill(pixels, 0, avk::sync::not_required());
+				(*aSerializer)->archive((*aSerializer)->binary_data(pixels, imageSize));
+			}
+			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
 				auto mapping = sb->map_memory(avk::mapping_access::write);
 				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
 			}
@@ -241,17 +267,18 @@ namespace gvk
 				for(size_t level = 1; level < levels; ++level)
 				{
 #if _DEBUG
-					{
-						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
-						auto imgExtent = img->config().extent;
-						auto levelDivisor = std::pow(2u, level);
-						imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
-						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-						imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
-						assert (levelExtent.x == static_cast<int>(imgExtent.width ));
-						assert (levelExtent.y == static_cast<int>(imgExtent.height));
-						assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
-					}
+					// TODO: Remove? update?
+					//{
+					//	glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
+					//	auto imgExtent = img->config().extent;
+					//	auto levelDivisor = std::pow(2u, level);
+					//	imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
+					//	imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+					//	imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
+					//	assert (levelExtent.x == static_cast<int>(imgExtent.width ));
+					//	assert (levelExtent.y == static_cast<int>(imgExtent.height));
+					//	assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
+					//}
 #endif
 					size_t texSize = 0;
 					void* texData = nullptr;
@@ -272,11 +299,14 @@ namespace gvk
 						avk::generic_buffer_meta::create_from_size(texSize)
 					));
 
-					if (!aSerializer ||
-						(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+					if (!aSerializer) {
 						sb->fill(texData, 0, avk::sync::not_required());
 					}
-					if (aSerializer) {
+					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+						sb->fill(texData, 0, avk::sync::not_required());
+						(*aSerializer)->archive((*aSerializer)->binary_data(texData, texSize));
+					}
+					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
 						auto mapping = sb->map_memory(avk::mapping_access::write);
 						(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
 					}

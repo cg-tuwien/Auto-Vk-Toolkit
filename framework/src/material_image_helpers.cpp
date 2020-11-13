@@ -253,8 +253,6 @@ namespace gvk
 		avk::sync aSyncHandler,
 		gvk::serializer& aSerializer)
 	{
-		// TODO Implement
-
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
 		// Textures contained in this array shall be loaded into an sRGB format
@@ -265,11 +263,7 @@ namespace gvk
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
 
 		std::vector<material_gpu_data> gpuMaterial;
-		size_t materialConfigSize;
-		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
-			materialConfigSize = aMaterialConfigs.size();
-		}
-		aSerializer.archive(materialConfigSize);
+		size_t materialConfigSize = aMaterialConfigs.size();
 		gpuMaterial.reserve(materialConfigSize); // important because of the pointers
 
 		for (auto& mc : aMaterialConfigs) {
