@@ -33,7 +33,7 @@ namespace gvk
 		}
 	}
 
-	std::vector<double> animation::animation_keys_within_clip(const animation_clip_data& aClip)
+	std::vector<double> animation::animation_key_times_within_clip(const animation_clip_data& aClip)
 	{
 		std::set<double> mUniqueKeys;
 		for (auto& anode : mAnimationData) {

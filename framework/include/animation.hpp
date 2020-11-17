@@ -144,16 +144,21 @@ namespace gvk
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 *	@param	aBoneMatrixCalc		Callback-function that receives the three matrices which can be relevant for computing the final bone matrix.
-		 *								This callback function MUST also write the bone matrix into the given target memory location (first parameter).
-		 *								The parameters of this callback-function are as follows:
-		 *								- First parameter:	Target pointer to the glm::mat4* memory where the RESULTING bone matrix MUST be written to.
-		 *								- Second parameter: the "inverse mesh root matrix" that transforms coordinates into mesh root space
-		 *								- Third parameter:	represents the "node transformation matrix" that represents a bone-transformation in bone-local space
-		 *								- Fourth parameter:	represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates into bone-local space
-		 *	@example [](glm::mat4* target, const glm::mat4& m1, const glm::mat4& m2, const glm::mat4& m3) { *target = m1 * m2 * m3; }
+		 *								The lambda's signature must be like follows: void(const animated_node&, size_t)
+		 *								This callback function MUST write the bone matrix into the given target memory location => See bone_mesh_data::mBoneMatrixTarget member!
+		 *								I.e. the relevant matrices can be accessed via the animated_node, and using the index given by the second parameter (size_t) for some cases.
+		 *								The relevant members of animated_node are as follows:
+		 *								- mBoneMeshTargets[i].mBoneMatrixTarget:	  Target pointer to the glm::mat4* memory where the RESULTING bone matrix MUST be written to.
+		 *								- mBoneMeshTargets[i].mInverseMeshRootMatrix: The "inverse mesh root matrix" that transforms coordinates into mesh root space.
+		 *								- mTransform:	                              Represents the "node transformation matrix" that represents a bone-transformation in bone-local space.
+		 *								- mBoneMeshTargets[i].mInverseBindPoseMatrix: Represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates into bone-local space.
+		 *	@example [](const animated_node& anode, size_t i){
+		 *		// store the result in object space:
+		 *		*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
+		 *	}
 		 */
 		template <typename F>
-		void animate(const animation_clip_data& aClip, double aTime, F&& aFu)//  void(*aBoneMatrixCalc)(glm::mat4*, const glm::mat4&, const glm::mat4&, const glm::mat4&));
+		void animate(const animation_clip_data& aClip, double aTime, F&& aBoneMatrixCalc)
 		{
 			if (aClip.mTicksPerSecond == 0.0) {
 				throw gvk::runtime_error("mTicksPerSecond may not be 0.0 => set a different value!");
@@ -211,7 +216,7 @@ namespace gvk
 					//  2. Apply transformaton in bone space
 					//  3. Convert transformed vertex back to mesh space
 					// The callback function will store into target:
-					aFu(anode, i);
+					aBoneMatrixCalc(anode, i);
 				}
 			}
 		}
@@ -231,7 +236,7 @@ namespace gvk
 		 */
 		void animate(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace);
 
-		std::vector<double> animation_keys_within_clip(const animation_clip_data& aClip);
+		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
 		
 	private:
 		/** Helper function used during animate() to find two positions of key-elements
