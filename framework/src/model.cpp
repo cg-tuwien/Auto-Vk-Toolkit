@@ -976,7 +976,8 @@ namespace gvk
 					bone_mesh_data{
 						to_mat4(bone->mOffsetMatrix),
 						aBeginningOfTargetStorage + i * aStride + bi,
-						inverseMeshRootMatrix
+						inverseMeshRootMatrix,
+						bi
 					},
 					bi
 				};
