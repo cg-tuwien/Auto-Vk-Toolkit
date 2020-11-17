@@ -63,13 +63,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
 #define USE_SERIALIZER 1
 
-#ifdef USE_SERIALIZER
+#if USE_SERIALIZER == 1
 		if (!cacheFileExists) {
 			// Load an ORCA scene from file:
 			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 			// Get all the different materials from the whole scene:
 			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 		}
+		ser.archive(distinctMaterialsOrca);
 #else
 		// Load an ORCA scene from file:
 		orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
@@ -77,11 +78,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 #endif
 
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("serializer init", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<gvk::material_config> allMatConfigs;
 		mDrawCalls.clear();
-#ifndef USE_SERIALIZER
+#if USE_SERIALIZER == 0
 		for (const auto& pair : distinctMaterialsOrca) {
 			allMatConfigs.push_back(pair.first);
 			const int matIndex = static_cast<int>(allMatConfigs.size()) - 1;
@@ -126,6 +131,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		}
 
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("fill all materials", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
 			allMatConfigs, false, false,
@@ -135,11 +144,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle()
 		);
 #else
-
-		endPart = gvk::fixed_update_timer().absolute_time();
-		times.emplace_back(std::make_tuple("serializer init", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
-
 		//auto numIterations = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(distinctMaterialsOrca.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 		size_t numIterations = cacheFileExists ? 0 : distinctMaterialsOrca.size();
 		ser.archive(numIterations);

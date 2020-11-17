@@ -513,9 +513,9 @@ namespace gvk
 		return verticesAndIndices;
 	}
 
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags, avk::sync& aSyncHandler)
 	{
-		auto [positionsData, indicesData] = get_vertices_and_indices(aModelsAndSelectedMeshes);
+		auto [positionsData, indicesData] = aVerticesAndIndices;
 
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
@@ -536,29 +536,17 @@ namespace gvk
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
+	
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
+	{
+		return create_vertex_and_index_buffers(get_vertices_and_indices(aModelsAndSelectedMeshes),
+			aUsageFlags, aSyncHandler);
+	}
 
 	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto [positionsData, indicesData] = get_vertices_and_indices_cached(aModelsAndSelectedMeshes, aSerializer);
-
-		auto positionsBuffer = context().create_buffer(
-			avk::memory_usage::device, aUsageFlags,
-			avk::vertex_buffer_meta::create_from_data(positionsData)
-				.describe_only_member(positionsData[0], avk::content_description::position)
-		);
-		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}));
-		// It is fine to let positionsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		auto indexBuffer = context().create_buffer(
-			avk::memory_usage::device, aUsageFlags,
-			avk::index_buffer_meta::create_from_data(indicesData)
-		);
-		indexBuffer->fill(indicesData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let indicesData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+		return create_vertex_and_index_buffers(get_vertices_and_indices_cached(aModelsAndSelectedMeshes, aSerializer),
+			aUsageFlags, aSyncHandler);
 	}
 
 
@@ -587,34 +575,27 @@ namespace gvk
 		return normalsData;
 	}
 
-	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_normals_buffer(const std::vector<glm::vec3>& aNormalsData, avk::sync& aSyncHandler)
 	{
-		auto normalsData = get_normals(aModelsAndSelectedMeshes);
-
 		auto normalsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(normalsData)
+			avk::vertex_buffer_meta::create_from_data(aNormalsData)
 		);
-		normalsBuffer->fill(normalsData.data(), 0, std::move(aSyncHandler));
+		normalsBuffer->fill(aNormalsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let normalsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return normalsBuffer;
 	}
-
-	avk::buffer create_normals_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
+	
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
-		auto normalsData = get_normals_cached(aModelsAndSelectedMeshes, aSerializer);
+		return create_normals_buffer(get_normals(aModelsAndSelectedMeshes), aSyncHandler);
+	}
 
-		auto normalsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(normalsData)
-		);
-		normalsBuffer->fill(normalsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let normalsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return normalsBuffer;
+	avk::buffer create_normals_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
+	{
+		return create_normals_buffer(get_normals_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
 	}
 
 
@@ -643,35 +624,28 @@ namespace gvk
 
 		return tangentsData;
 	}
-
-	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	
+	avk::buffer create_tangents_buffer(const std::vector<glm::vec3>& aTangentsData, avk::sync& aSyncHandler)
 	{
-		auto tangentsData = get_tangents(aModelsAndSelectedMeshes);
-
 		auto tangentsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(tangentsData)
+			avk::vertex_buffer_meta::create_from_data(aTangentsData)
 		);
-		tangentsBuffer->fill(tangentsData.data(), 0, std::move(aSyncHandler));
+		tangentsBuffer->fill(aTangentsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let tangentsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return tangentsBuffer;
 	}
 
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	{
+		return create_tangents_buffer(get_tangents(aModelsAndSelectedMeshes), aSyncHandler);
+	}
+
 	avk::buffer create_tangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto tangentsData = get_tangents_cached(aModelsAndSelectedMeshes, aSerializer);
-
-		auto tangentsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(tangentsData)
-		);
-		tangentsBuffer->fill(tangentsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let tangentsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return tangentsBuffer;
+		return create_tangents_buffer(get_tangents_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
 	}
 
 	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
@@ -700,34 +674,27 @@ namespace gvk
 		return bitangentsData;
 	}
 
-	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_bitangents_buffer(const std::vector<glm::vec3>& aBitangentsData, avk::sync& aSyncHandler)
 	{
-		auto bitangentsData = get_bitangents(aModelsAndSelectedMeshes);
-
 		auto bitangentsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(bitangentsData)
+			avk::vertex_buffer_meta::create_from_data(aBitangentsData)
 		);
-		bitangentsBuffer->fill(bitangentsData.data(), 0, std::move(aSyncHandler));
+		bitangentsBuffer->fill(aBitangentsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let bitangentsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return bitangentsBuffer;
 	}
+	
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	{
+		return create_bitangents_buffer(get_bitangents(aModelsAndSelectedMeshes), aSyncHandler);
+	}
 
 	avk::buffer create_bitangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto bitangentsData = get_bitangents_cached(aModelsAndSelectedMeshes, aSerializer);
-
-		auto bitangentsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(bitangentsData)
-		);
-		bitangentsBuffer->fill(bitangentsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let bitangentsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return bitangentsBuffer;
+		return create_bitangents_buffer(get_bitangents_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
 	}
 
 	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
@@ -744,7 +711,7 @@ namespace gvk
 		return colorsData;
 	}
 
-	std::vector<glm::vec4> get_colors_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, int aColorsSet, gvk::serializer& aSerializer)
+	std::vector<glm::vec4> get_colors_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, gvk::serializer& aSerializer)
 	{
 		std::vector<glm::vec4> colorsData;
 
@@ -756,34 +723,27 @@ namespace gvk
 		return colorsData;
 	}
 
-	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
+	avk::buffer create_colors_buffer(const std::vector<glm::vec4>& aColorsData, int aColorsSet, avk::sync& aSyncHandler)
 	{
-		auto colorsData = get_colors(aModelsAndSelectedMeshes, aColorsSet);
-
 		auto colorsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(colorsData)
+			avk::vertex_buffer_meta::create_from_data(aColorsData)
 		);
-		colorsBuffer->fill(colorsData.data(), 0, std::move(aSyncHandler));
+		colorsBuffer->fill(aColorsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let colorsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return colorsBuffer;
 	}
+	
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
+	{
+		return create_colors_buffer(get_colors(aModelsAndSelectedMeshes, aColorsSet), aColorsSet, aSyncHandler);
+	}
 
 	avk::buffer create_colors_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto colorsData = get_colors_cached(aModelsAndSelectedMeshes, aColorsSet, aSerializer);
-
-		auto colorsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(colorsData)
-		);
-		colorsBuffer->fill(colorsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let colorsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return colorsBuffer;
+		return create_colors_buffer(get_colors_cached(aModelsAndSelectedMeshes, aColorsSet, aSerializer), aColorsSet, aSyncHandler);
 	}
 
 	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
@@ -812,19 +772,22 @@ namespace gvk
 		return boneWeightsData;
 	}
 
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler)
+	avk::buffer create_bone_weights_buffer(const std::vector<glm::vec4>& aBoneWeightsData, avk::sync& aSyncHandler)
 	{
-		auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes);
-
 		auto boneWeightsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(boneWeightsData)
+			avk::vertex_buffer_meta::create_from_data(aBoneWeightsData)
 		);
-		boneWeightsBuffer->fill(boneWeightsData.data(), 0, std::move(aSyncHandler));
+		boneWeightsBuffer->fill(aBoneWeightsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let boneWeightsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return boneWeightsBuffer;
+	}
+	
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler)
+	{
+		return create_bone_weights_buffer(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), aSyncHandler);
 	}
 
 	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
@@ -834,17 +797,7 @@ namespace gvk
 
 	avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto boneWeightsData = get_bone_weights_cached(aModelsAndSelectedMeshes, aNormalizeBoneWeights, aSerializer);
-
-		auto boneWeightsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(boneWeightsData)
-		);
-		boneWeightsBuffer->fill(boneWeightsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let boneWeightsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return boneWeightsBuffer;
+		return create_bone_weights_buffer(get_bone_weights_cached(aModelsAndSelectedMeshes, aNormalizeBoneWeights, aSerializer), aSyncHandler);
 	}
 
 	avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
@@ -866,46 +819,39 @@ namespace gvk
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer)
+	std::vector<glm::uvec4> get_bone_indices_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, gvk::serializer& aSerializer)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
-			boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes);
+			boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset);
 		}
 		aSerializer.archive(boneIndicesData);
 
 		return boneIndicesData;
 	}
 
-	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, avk::sync aSyncHandler)
+	avk::buffer create_bone_indices_buffer(const std::vector<glm::uvec4>& aBoneIndicesData, avk::sync& aSyncHandler)
 	{
-		auto boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset);
-
 		auto boneIndicesBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(boneIndicesData)
+			avk::vertex_buffer_meta::create_from_data(aBoneIndicesData)
 		);
-		boneIndicesBuffer->fill(boneIndicesData.data(), 0, std::move(aSyncHandler));
+		boneIndicesBuffer->fill(aBoneIndicesData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let boneIndicesData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return boneIndicesBuffer;
 	}
-
-	avk::buffer create_bone_indices_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
+	
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, avk::sync aSyncHandler)
 	{
-		auto boneIndicesData = get_bone_indices_cached(aModelsAndSelectedMeshes, aSerializer);
+		return create_bone_indices_buffer(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), aSyncHandler);
+	}
 
-		auto boneIndicesBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(boneIndicesData)
-		);
-		boneIndicesBuffer->fill(boneIndicesData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let boneIndicesData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return boneIndicesBuffer;
+	avk::buffer create_bone_indices_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, avk::sync aSyncHandler, gvk::serializer& aSerializer)
+	{
+		return create_bone_indices_buffer(get_bone_indices_cached(aModelsAndSelectedMeshes, aBoneIndexOffset, aSerializer), aSyncHandler);
 	}
 
 	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
@@ -991,34 +937,27 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
 	{
-		auto texCoordsData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
-
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
+			avk::vertex_buffer_meta::create_from_data(aTexCoordsData)
 		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
+		texCoordsBuffer->fill(aTexCoordsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return texCoordsBuffer;
 	}
+	
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	{
+		return create_2d_texture_coordinates_buffer(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+	}
 
 	avk::buffer create_2d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto texCoordsData = get_2d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer);
-
-		auto texCoordsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
-		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return texCoordsBuffer;
+		return create_2d_texture_coordinates_buffer(get_2d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
 	}
 
 	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
@@ -1047,34 +986,27 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
 	{
-		auto texCoordsData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
-
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
+			avk::vertex_buffer_meta::create_from_data(aTexCoordsData)
 		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
+		texCoordsBuffer->fill(aTexCoordsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return texCoordsBuffer;
 	}
+	
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	{
+		return create_2d_texture_coordinates_flipped_buffer(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+	}
 
 	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto texCoordsData = get_2d_texture_coordinates_flipped_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer);
-
-		auto texCoordsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
-		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return texCoordsBuffer;
+		return create_2d_texture_coordinates_flipped_buffer(get_2d_texture_coordinates_flipped_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
 	}
 
 	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
@@ -1103,34 +1035,27 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<glm::vec3>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
 	{
-		auto texCoordsData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
-
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
+			avk::vertex_buffer_meta::create_from_data(aTexCoordsData)
 		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
+		texCoordsBuffer->fill(aTexCoordsData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
 		return texCoordsBuffer;
 	}
+	
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
+	{
+		return create_3d_texture_coordinates_buffer(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+	}
 
 	avk::buffer create_3d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		auto texCoordsData = get_3d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer);
-
-		auto texCoordsBuffer = context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(texCoordsData)
-		);
-		texCoordsBuffer->fill(texCoordsData.data(), 0, std::move(aSyncHandler));
-		// It is fine to let texCoordsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
-
-		return texCoordsBuffer;
+		return create_3d_texture_coordinates_buffer(get_3d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
 	}
 
 }
