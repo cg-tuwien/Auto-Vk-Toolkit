@@ -199,6 +199,18 @@ namespace glm {
 	}
 
 	template<typename Archive>
+	void serialize(Archive& aArchive, glm::uvec2& aValue)
+	{
+		aArchive(aValue.x, aValue.y);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::uvec3& aValue)
+	{
+		aArchive(aValue.x, aValue.y, aValue.z);
+	}
+
+	template<typename Archive>
 	void serialize(Archive& aArchive, glm::uvec4& aValue)
 	{
 		aArchive(aValue.x, aValue.y, aValue.z, aValue.w);
