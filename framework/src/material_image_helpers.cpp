@@ -485,6 +485,39 @@ namespace gvk
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
 	}
 
+	void fill_device_buffer_from_cache_file(avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::sync& aSyncHandler, gvk::serializer& aSerializer)
+	{
+		// Create host visible staging buffer for filling on host side from file
+		auto sb = context().create_buffer(
+			avk::memory_usage::host_coherent,
+			vk::BufferUsageFlagBits::eTransferSrc,
+			avk::generic_buffer_meta::create_from_size(aTotalSize)
+		);
+		{
+			// Map buffer and let serializer fill it
+			auto mapping = sb->map_memory(avk::mapping_access::write);
+			aSerializer.archive(aSerializer.binary_data(mapping.get(), aTotalSize));
+		}
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		// Sync before
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		// Copy host visible staging buffer to device buffer
+		avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize, avk::sync::with_barriers_into_existing_command_buffer(commandBuffer, {}, {}));
+
+		// Sync after
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+
+		// Take care of the lifetime handling of the stagingBuffer, it might still be in use
+		commandBuffer.set_custom_deleter([
+			lOwnedStagingBuffer{ std::move(sb) }
+		]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
+
+		// Finish him
+		aSyncHandler.submit_and_sync();
+	}
+
 	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> positionsData;
@@ -513,7 +546,7 @@ namespace gvk
 		return verticesAndIndices;
 	}
 
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags, avk::sync& aSyncHandler)
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
 	{
 		auto [positionsData, indicesData] = aVerticesAndIndices;
 
@@ -540,13 +573,57 @@ namespace gvk
 	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
 	{
 		return create_vertex_and_index_buffers(get_vertices_and_indices(aModelsAndSelectedMeshes),
-			aUsageFlags, aSyncHandler);
+			aUsageFlags, std::move(aSyncHandler));
 	}
 
 	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_vertex_and_index_buffers(get_vertices_and_indices_cached(aModelsAndSelectedMeshes, aSerializer),
-			aUsageFlags, aSyncHandler);
+		size_t numPositions = 0;
+		size_t totalPositionsSize = 0;
+		size_t numIndices = 0;
+		size_t totalIndicesSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto [positionsData, indicesData] = get_vertices_and_indices(aModelsAndSelectedMeshes);
+
+			numPositions = positionsData.size();
+			totalPositionsSize = sizeof(positionsData[0]) * numPositions;
+			numIndices = indicesData.size();
+			totalIndicesSize = sizeof(indicesData[0]) * numIndices;
+
+			aSerializer.archive(numPositions);
+			aSerializer.archive(totalPositionsSize);
+			aSerializer.archive(numIndices);
+			aSerializer.archive(totalIndicesSize);
+
+			aSerializer.archive(aSerializer.binary_data(positionsData.data(), totalPositionsSize));
+			aSerializer.archive(aSerializer.binary_data(indicesData.data(), totalIndicesSize));
+
+			return create_vertex_and_index_buffers(std::make_tuple(positionsData, indicesData), aUsageFlags, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numPositions);
+			aSerializer.archive(totalPositionsSize);
+			aSerializer.archive(numIndices);
+			aSerializer.archive(totalIndicesSize);
+
+			auto positionsBuffer = context().create_buffer(
+				avk::memory_usage::device, aUsageFlags,
+				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions)
+				.describe_member(0, avk::format_for<glm::vec3>(), avk::content_description::position)
+			);
+
+			fill_device_buffer_from_cache_file(positionsBuffer, totalPositionsSize, aSyncHandler, aSerializer);
+
+			auto indexBuffer = context().create_buffer(
+				avk::memory_usage::device, aUsageFlags,
+				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices)
+			);
+
+			fill_device_buffer_from_cache_file(indexBuffer, totalIndicesSize, aSyncHandler, aSerializer);
+
+			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+		}
 	}
 
 
@@ -575,7 +652,7 @@ namespace gvk
 		return normalsData;
 	}
 
-	avk::buffer create_normals_buffer(const std::vector<glm::vec3>& aNormalsData, avk::sync& aSyncHandler)
+	avk::buffer create_normals_buffer(const std::vector<glm::vec3>& aNormalsData, avk::sync aSyncHandler)
 	{
 		auto normalsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -590,12 +667,40 @@ namespace gvk
 	
 	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
-		return create_normals_buffer(get_normals(aModelsAndSelectedMeshes), aSyncHandler);
+		return create_normals_buffer(get_normals(aModelsAndSelectedMeshes), std::move(aSyncHandler));
 	}
 
 	avk::buffer create_normals_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_normals_buffer(get_normals_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
+		size_t numNormals = 0;
+		size_t totalNormalsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto normalsData = get_normals(aModelsAndSelectedMeshes);
+
+			numNormals = normalsData.size();
+			totalNormalsSize = sizeof(normalsData[0]) * numNormals;
+
+			aSerializer.archive(numNormals);
+			aSerializer.archive(totalNormalsSize);
+
+			aSerializer.archive(aSerializer.binary_data(normalsData.data(), totalNormalsSize));
+
+			return create_normals_buffer(normalsData, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numNormals);
+			aSerializer.archive(totalNormalsSize);
+
+			auto normalsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalNormalsSize, numNormals)
+			);
+
+			fill_device_buffer_from_cache_file(normalsBuffer, totalNormalsSize, aSyncHandler, aSerializer);
+
+			return normalsBuffer;
+		}
 	}
 
 
@@ -625,7 +730,7 @@ namespace gvk
 		return tangentsData;
 	}
 	
-	avk::buffer create_tangents_buffer(const std::vector<glm::vec3>& aTangentsData, avk::sync& aSyncHandler)
+	avk::buffer create_tangents_buffer(const std::vector<glm::vec3>& aTangentsData, avk::sync aSyncHandler)
 	{
 		auto tangentsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -640,12 +745,40 @@ namespace gvk
 
 	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
-		return create_tangents_buffer(get_tangents(aModelsAndSelectedMeshes), aSyncHandler);
+		return create_tangents_buffer(get_tangents(aModelsAndSelectedMeshes), std::move(aSyncHandler));
 	}
 
 	avk::buffer create_tangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_tangents_buffer(get_tangents_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
+		size_t numTangets = 0;
+		size_t totalTangentsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto tangentsData = get_tangents(aModelsAndSelectedMeshes);
+
+			numTangets = tangentsData.size();
+			totalTangentsSize = sizeof(tangentsData[0]) * numTangets;
+
+			aSerializer.archive(numTangets);
+			aSerializer.archive(totalTangentsSize);
+
+			aSerializer.archive(aSerializer.binary_data(tangentsData.data(), totalTangentsSize));
+
+			return create_tangents_buffer(tangentsData, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numTangets);
+			aSerializer.archive(totalTangentsSize);
+
+			auto tangentsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalTangentsSize, numTangets)
+			);
+
+			fill_device_buffer_from_cache_file(tangentsBuffer, totalTangentsSize, aSyncHandler, aSerializer);
+
+			return tangentsBuffer;
+		}
 	}
 
 	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
@@ -674,7 +807,7 @@ namespace gvk
 		return bitangentsData;
 	}
 
-	avk::buffer create_bitangents_buffer(const std::vector<glm::vec3>& aBitangentsData, avk::sync& aSyncHandler)
+	avk::buffer create_bitangents_buffer(const std::vector<glm::vec3>& aBitangentsData, avk::sync aSyncHandler)
 	{
 		auto bitangentsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -689,12 +822,40 @@ namespace gvk
 	
 	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
 	{
-		return create_bitangents_buffer(get_bitangents(aModelsAndSelectedMeshes), aSyncHandler);
+		return create_bitangents_buffer(get_bitangents(aModelsAndSelectedMeshes), std::move(aSyncHandler));
 	}
 
 	avk::buffer create_bitangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_bitangents_buffer(get_bitangents_cached(aModelsAndSelectedMeshes, aSerializer), aSyncHandler);
+		size_t numBitangents = 0;
+		size_t totalBitangentsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto tangentsData = get_bitangents(aModelsAndSelectedMeshes);
+
+			numBitangents = tangentsData.size();
+			totalBitangentsSize = sizeof(tangentsData[0]) * numBitangents;
+
+			aSerializer.archive(numBitangents);
+			aSerializer.archive(totalBitangentsSize);
+
+			aSerializer.archive(aSerializer.binary_data(tangentsData.data(), totalBitangentsSize));
+
+			return create_bitangents_buffer(tangentsData, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numBitangents);
+			aSerializer.archive(totalBitangentsSize);
+
+			auto bitangentsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalBitangentsSize, numBitangents)
+			);
+
+			fill_device_buffer_from_cache_file(bitangentsBuffer, totalBitangentsSize, aSyncHandler, aSerializer);
+
+			return bitangentsBuffer;
+		}
 	}
 
 	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
@@ -723,7 +884,7 @@ namespace gvk
 		return colorsData;
 	}
 
-	avk::buffer create_colors_buffer(const std::vector<glm::vec4>& aColorsData, int aColorsSet, avk::sync& aSyncHandler)
+	avk::buffer create_colors_buffer(const std::vector<glm::vec4>& aColorsData, int aColorsSet, avk::sync aSyncHandler)
 	{
 		auto colorsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -738,12 +899,40 @@ namespace gvk
 	
 	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler)
 	{
-		return create_colors_buffer(get_colors(aModelsAndSelectedMeshes, aColorsSet), aColorsSet, aSyncHandler);
+		return create_colors_buffer(get_colors(aModelsAndSelectedMeshes, aColorsSet), aColorsSet, std::move(aSyncHandler));
 	}
 
 	avk::buffer create_colors_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_colors_buffer(get_colors_cached(aModelsAndSelectedMeshes, aColorsSet, aSerializer), aColorsSet, aSyncHandler);
+		size_t numColors = 0;
+		size_t totalColorsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto colorsData = get_colors_cached(aModelsAndSelectedMeshes, aColorsSet, aSerializer);
+
+			numColors = colorsData.size();
+			totalColorsSize = sizeof(colorsData[0]) * numColors;
+
+			aSerializer.archive(numColors);
+			aSerializer.archive(totalColorsSize);
+
+			aSerializer.archive(aSerializer.binary_data(colorsData.data(), totalColorsSize));
+
+			return create_colors_buffer(colorsData, aColorsSet, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numColors);
+			aSerializer.archive(totalColorsSize);
+
+			auto colorsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalColorsSize, numColors)
+			);
+
+			fill_device_buffer_from_cache_file(colorsBuffer, totalColorsSize, aSyncHandler, aSerializer);
+
+			return colorsBuffer;
+		}
 	}
 
 	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
@@ -772,7 +961,7 @@ namespace gvk
 		return boneWeightsData;
 	}
 
-	avk::buffer create_bone_weights_buffer(const std::vector<glm::vec4>& aBoneWeightsData, avk::sync& aSyncHandler)
+	avk::buffer create_bone_weights_buffer(const std::vector<glm::vec4>& aBoneWeightsData, avk::sync aSyncHandler)
 	{
 		auto boneWeightsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -787,7 +976,7 @@ namespace gvk
 	
 	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler)
 	{
-		return create_bone_weights_buffer(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), aSyncHandler);
+		return create_bone_weights_buffer(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), std::move(aSyncHandler));
 	}
 
 	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
@@ -797,12 +986,40 @@ namespace gvk
 
 	avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_bone_weights_buffer(get_bone_weights_cached(aModelsAndSelectedMeshes, aNormalizeBoneWeights, aSerializer), aSyncHandler);
+		size_t numBoneWeights = 0;
+		size_t totalBoneWeightsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights);
+
+			numBoneWeights = boneWeightsData.size();
+			totalBoneWeightsSize = sizeof(boneWeightsData[0]) * numBoneWeights;
+
+			aSerializer.archive(numBoneWeights);
+			aSerializer.archive(totalBoneWeightsSize);
+
+			aSerializer.archive(aSerializer.binary_data(boneWeightsData.data(), totalBoneWeightsSize));
+
+			return create_bone_weights_buffer(boneWeightsData, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numBoneWeights);
+			aSerializer.archive(totalBoneWeightsSize);
+
+			auto boneWeightsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalBoneWeightsSize, numBoneWeights)
+			);
+
+			fill_device_buffer_from_cache_file(boneWeightsBuffer, totalBoneWeightsSize, aSyncHandler, aSerializer);
+
+			return boneWeightsBuffer;
+		}
 	}
 
 	avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_bone_weights_buffer_cached(aModelsAndSelectedMeshes, false, std::move(aSyncHandler), aSerializer);
+		return create_bone_weights_buffer(get_bone_weights_cached(aModelsAndSelectedMeshes, false, aSerializer), std::move(aSyncHandler));
 	}
 
 	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset)
@@ -831,7 +1048,7 @@ namespace gvk
 		return boneIndicesData;
 	}
 
-	avk::buffer create_bone_indices_buffer(const std::vector<glm::uvec4>& aBoneIndicesData, avk::sync& aSyncHandler)
+	avk::buffer create_bone_indices_buffer(const std::vector<glm::uvec4>& aBoneIndicesData, avk::sync aSyncHandler)
 	{
 		auto boneIndicesBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -846,12 +1063,40 @@ namespace gvk
 	
 	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, avk::sync aSyncHandler)
 	{
-		return create_bone_indices_buffer(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), aSyncHandler);
+		return create_bone_indices_buffer(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), std::move(aSyncHandler));
 	}
 
 	avk::buffer create_bone_indices_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_bone_indices_buffer(get_bone_indices_cached(aModelsAndSelectedMeshes, aBoneIndexOffset, aSerializer), aSyncHandler);
+		size_t numBoneIndices = 0;
+		size_t totalBoneIndicesSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes);
+
+			numBoneIndices = boneIndicesData.size();
+			totalBoneIndicesSize = sizeof(boneIndicesData[0]) * numBoneIndices;
+
+			aSerializer.archive(numBoneIndices);
+			aSerializer.archive(totalBoneIndicesSize);
+
+			aSerializer.archive(aSerializer.binary_data(boneIndicesData.data(), totalBoneIndicesSize));
+
+			return create_bone_indices_buffer(boneIndicesData, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numBoneIndices);
+			aSerializer.archive(totalBoneIndicesSize);
+
+			auto boneIndicesBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalBoneIndicesSize, numBoneIndices)
+			);
+
+			fill_device_buffer_from_cache_file(boneIndicesBuffer, totalBoneIndicesSize, aSyncHandler, aSerializer);
+
+			return boneIndicesBuffer;
+		}
 	}
 
 	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
@@ -937,7 +1182,7 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -952,12 +1197,40 @@ namespace gvk
 	
 	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
-		return create_2d_texture_coordinates_buffer(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+		return create_2d_texture_coordinates_buffer(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, std::move(aSyncHandler));
 	}
 
 	avk::buffer create_2d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_2d_texture_coordinates_buffer(get_2d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
+		size_t numTexCoords = 0;
+		size_t totalTexCoordsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto texCoordsData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
+
+			numTexCoords = texCoordsData.size();
+			totalTexCoordsSize = sizeof(texCoordsData[0]) * numTexCoords;
+
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+
+			return create_2d_texture_coordinates_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			auto texCoordsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalTexCoordsSize, numTexCoords)
+			);
+
+			fill_device_buffer_from_cache_file(texCoordsBuffer, totalTexCoordsSize, aSyncHandler, aSerializer);
+
+			return texCoordsBuffer;
+		}
 	}
 
 	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
@@ -986,7 +1259,7 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<glm::vec2>& aTexCoordsData, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -1001,12 +1274,40 @@ namespace gvk
 	
 	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
-		return create_2d_texture_coordinates_flipped_buffer(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+		return create_2d_texture_coordinates_flipped_buffer(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, std::move(aSyncHandler));
 	}
 
 	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_2d_texture_coordinates_flipped_buffer(get_2d_texture_coordinates_flipped_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
+		size_t numTexCoords = 0;
+		size_t totalTexCoordsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto texCoordsData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
+
+			numTexCoords = texCoordsData.size();
+			totalTexCoordsSize = sizeof(texCoordsData[0]) * numTexCoords;
+
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+
+			return create_2d_texture_coordinates_flipped_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			auto texCoordsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalTexCoordsSize, numTexCoords)
+			);
+
+			fill_device_buffer_from_cache_file(texCoordsBuffer, totalTexCoordsSize, aSyncHandler, aSerializer);
+
+			return texCoordsBuffer;
+		}
 	}
 
 	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
@@ -1035,7 +1336,7 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<glm::vec3>& aTexCoordsData, int aTexCoordSet, avk::sync& aSyncHandler)
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<glm::vec3>& aTexCoordsData, int aTexCoordSet, avk::sync aSyncHandler)
 	{
 		auto texCoordsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
@@ -1050,12 +1351,40 @@ namespace gvk
 	
 	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler)
 	{
-		return create_3d_texture_coordinates_buffer(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, aSyncHandler);
+		return create_3d_texture_coordinates_buffer(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), aTexCoordSet, std::move(aSyncHandler));
 	}
 
 	avk::buffer create_3d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		return create_3d_texture_coordinates_buffer(get_3d_texture_coordinates_cached(aModelsAndSelectedMeshes, aTexCoordSet, aSerializer), aTexCoordSet, aSyncHandler);
+		size_t numTexCoords = 0;
+		size_t totalTexCoordsSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto texCoordsData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
+
+			numTexCoords = texCoordsData.size();
+			totalTexCoordsSize = sizeof(texCoordsData[0]) * numTexCoords;
+
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+
+			return create_3d_texture_coordinates_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numTexCoords);
+			aSerializer.archive(totalTexCoordsSize);
+
+			auto texCoordsBuffer = context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_total_size(totalTexCoordsSize, numTexCoords)
+			);
+
+			fill_device_buffer_from_cache_file(texCoordsBuffer, totalTexCoordsSize, aSyncHandler, aSerializer);
+
+			return texCoordsBuffer;
+		}
 	}
 
 }

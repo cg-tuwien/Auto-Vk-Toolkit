@@ -70,7 +70,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Get all the different materials from the whole scene:
 			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 		}
-		ser.archive(distinctMaterialsOrca);
 #else
 		// Load an ORCA scene from file:
 		orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
