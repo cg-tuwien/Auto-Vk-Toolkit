@@ -2,15 +2,15 @@
 
 namespace gvk
 {
-
-	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
+	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb,
 		bool aFlipTextures,
 		avk::image_usage aImageUsage,
 		avk::filter_mode aTextureFilterMode,
 		avk::border_handling_mode aBorderHandlingMode,
-		avk::sync aSyncHandler)
+		avk::sync aSyncHandler,
+		std::optional<gvk::serializer*> aSerializer = {})
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
@@ -22,225 +22,295 @@ namespace gvk
 		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
 
 		std::vector<material_gpu_data> gpuMaterial;
-		gpuMaterial.reserve(aMaterialConfigs.size()); // important because of the pointers
+		if (!aSerializer ||
+			(aSerializer && (*aSerializer)->mode() == serializer::mode::serialize)) {
+			size_t materialConfigSize = aMaterialConfigs.size();
+			gpuMaterial.reserve(materialConfigSize); // important because of the pointers
 
-		for (auto& mc : aMaterialConfigs) {
-			auto& gm = gpuMaterial.emplace_back();
-			gm.mDiffuseReflectivity			= mc.mDiffuseReflectivity		 ;
-			gm.mAmbientReflectivity			= mc.mAmbientReflectivity		 ;
-			gm.mSpecularReflectivity		= mc.mSpecularReflectivity		 ;
-			gm.mEmissiveColor				= mc.mEmissiveColor				 ;
-			gm.mTransparentColor			= mc.mTransparentColor			 ;
-			gm.mReflectiveColor				= mc.mReflectiveColor			 ;
-			gm.mAlbedo						= mc.mAlbedo					 ;
+			for (auto& mc : aMaterialConfigs) {
+				auto& gm = gpuMaterial.emplace_back();
+				gm.mDiffuseReflectivity = mc.mDiffuseReflectivity;
+				gm.mAmbientReflectivity = mc.mAmbientReflectivity;
+				gm.mSpecularReflectivity = mc.mSpecularReflectivity;
+				gm.mEmissiveColor = mc.mEmissiveColor;
+				gm.mTransparentColor = mc.mTransparentColor;
+				gm.mReflectiveColor = mc.mReflectiveColor;
+				gm.mAlbedo = mc.mAlbedo;
 
-			gm.mOpacity						= mc.mOpacity					 ;
-			gm.mBumpScaling					= mc.mBumpScaling				 ;
-			gm.mShininess					= mc.mShininess					 ;
-			gm.mShininessStrength			= mc.mShininessStrength			 ;
+				gm.mOpacity = mc.mOpacity;
+				gm.mBumpScaling = mc.mBumpScaling;
+				gm.mShininess = mc.mShininess;
+				gm.mShininessStrength = mc.mShininessStrength;
 
-			gm.mRefractionIndex				= mc.mRefractionIndex			 ;
-			gm.mReflectivity				= mc.mReflectivity				 ;
-			gm.mMetallic					= mc.mMetallic					 ;
-			gm.mSmoothness					= mc.mSmoothness				 ;
+				gm.mRefractionIndex = mc.mRefractionIndex;
+				gm.mReflectivity = mc.mReflectivity;
+				gm.mMetallic = mc.mMetallic;
+				gm.mSmoothness = mc.mSmoothness;
 
-			gm.mSheen						= mc.mSheen						 ;
-			gm.mThickness					= mc.mThickness					 ;
-			gm.mRoughness					= mc.mRoughness					 ;
-			gm.mAnisotropy					= mc.mAnisotropy				 ;
+				gm.mSheen = mc.mSheen;
+				gm.mThickness = mc.mThickness;
+				gm.mRoughness = mc.mRoughness;
+				gm.mAnisotropy = mc.mAnisotropy;
 
-			gm.mAnisotropyRotation			= mc.mAnisotropyRotation		 ;
-			gm.mCustomData					= mc.mCustomData				 ;
+				gm.mAnisotropyRotation = mc.mAnisotropyRotation;
+				gm.mCustomData = mc.mCustomData;
 
-			gm.mDiffuseTexIndex				= -1;
-			if (mc.mDiffuseTex.empty()) {
-				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mDiffuseTex);
-				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
+				gm.mDiffuseTexIndex = -1;
+				if (mc.mDiffuseTex.empty()) {
+					whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
 				}
-			}
-
-			gm.mSpecularTexIndex			= -1;
-			if (mc.mSpecularTex.empty()) {
-				whiteTexUsages.push_back(&gm.mSpecularTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
-			}
-
-			gm.mAmbientTexIndex				= -1;
-			if (mc.mAmbientTex.empty()) {
-				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mAmbientTex);
-				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
+				else {
+					auto path = avk::clean_up_path(mc.mDiffuseTex);
+					texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
+					if (aLoadTexturesInSrgb) {
+						srgbTextures.insert(path);
+					}
 				}
-			}
 
-			gm.mEmissiveTexIndex			= -1;
-			if (mc.mEmissiveTex.empty()) {
-				whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
-			}
-
-			gm.mHeightTexIndex				= -1;
-			if (mc.mHeightTex.empty()) {
-				whiteTexUsages.push_back(&gm.mHeightTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
-			}
-
-			gm.mNormalsTexIndex				= -1;
-			if (mc.mNormalsTex.empty()) {
-				straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
-			}
-
-			gm.mShininessTexIndex			= -1;
-			if (mc.mShininessTex.empty()) {
-				whiteTexUsages.push_back(&gm.mShininessTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
-			}
-
-			gm.mOpacityTexIndex				= -1;
-			if (mc.mOpacityTex.empty()) {
-				whiteTexUsages.push_back(&gm.mOpacityTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
-			}
-
-			gm.mDisplacementTexIndex		= -1;
-			if (mc.mDisplacementTex.empty()) {
-				whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
-			}
-
-			gm.mReflectionTexIndex			= -1;
-			if (mc.mReflectionTex.empty()) {
-				whiteTexUsages.push_back(&gm.mReflectionTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
-			}
-
-			gm.mLightmapTexIndex			= -1;
-			if (mc.mLightmapTex.empty()) {
-				whiteTexUsages.push_back(&gm.mLightmapTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
-			}
-
-			gm.mExtraTexIndex				= -1;
-			if (mc.mExtraTex.empty()) {
-				whiteTexUsages.push_back(&gm.mExtraTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mExtraTex);
-				texNamesToUsages[path].push_back(&gm.mExtraTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
+				gm.mSpecularTexIndex = -1;
+				if (mc.mSpecularTex.empty()) {
+					whiteTexUsages.push_back(&gm.mSpecularTexIndex);
 				}
-			}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
+				}
 
-			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
-			gm.mSpecularTexOffsetTiling		= mc.mSpecularTexOffsetTiling	 ;
-			gm.mAmbientTexOffsetTiling		= mc.mAmbientTexOffsetTiling	 ;
-			gm.mEmissiveTexOffsetTiling		= mc.mEmissiveTexOffsetTiling	 ;
-			gm.mHeightTexOffsetTiling		= mc.mHeightTexOffsetTiling		 ;
-			gm.mNormalsTexOffsetTiling		= mc.mNormalsTexOffsetTiling	 ;
-			gm.mShininessTexOffsetTiling	= mc.mShininessTexOffsetTiling	 ;
-			gm.mOpacityTexOffsetTiling		= mc.mOpacityTexOffsetTiling	 ;
-			gm.mDisplacementTexOffsetTiling	= mc.mDisplacementTexOffsetTiling;
-			gm.mReflectionTexOffsetTiling	= mc.mReflectionTexOffsetTiling	 ;
-			gm.mLightmapTexOffsetTiling		= mc.mLightmapTexOffsetTiling	 ;
-			gm.mExtraTexOffsetTiling		= mc.mExtraTexOffsetTiling		 ;
+				gm.mAmbientTexIndex = -1;
+				if (mc.mAmbientTex.empty()) {
+					whiteTexUsages.push_back(&gm.mAmbientTexIndex);
+				}
+				else {
+					auto path = avk::clean_up_path(mc.mAmbientTex);
+					texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
+					if (aLoadTexturesInSrgb) {
+						srgbTextures.insert(path);
+					}
+				}
+
+				gm.mEmissiveTexIndex = -1;
+				if (mc.mEmissiveTex.empty()) {
+					whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
+				}
+
+				gm.mHeightTexIndex = -1;
+				if (mc.mHeightTex.empty()) {
+					whiteTexUsages.push_back(&gm.mHeightTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
+				}
+
+				gm.mNormalsTexIndex = -1;
+				if (mc.mNormalsTex.empty()) {
+					straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
+				}
+
+				gm.mShininessTexIndex = -1;
+				if (mc.mShininessTex.empty()) {
+					whiteTexUsages.push_back(&gm.mShininessTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
+				}
+
+				gm.mOpacityTexIndex = -1;
+				if (mc.mOpacityTex.empty()) {
+					whiteTexUsages.push_back(&gm.mOpacityTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
+				}
+
+				gm.mDisplacementTexIndex = -1;
+				if (mc.mDisplacementTex.empty()) {
+					whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
+				}
+
+				gm.mReflectionTexIndex = -1;
+				if (mc.mReflectionTex.empty()) {
+					whiteTexUsages.push_back(&gm.mReflectionTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
+				}
+
+				gm.mLightmapTexIndex = -1;
+				if (mc.mLightmapTex.empty()) {
+					whiteTexUsages.push_back(&gm.mLightmapTexIndex);
+				}
+				else {
+					texNamesToUsages[avk::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
+				}
+
+				gm.mExtraTexIndex = -1;
+				if (mc.mExtraTex.empty()) {
+					whiteTexUsages.push_back(&gm.mExtraTexIndex);
+				}
+				else {
+					auto path = avk::clean_up_path(mc.mExtraTex);
+					texNamesToUsages[path].push_back(&gm.mExtraTexIndex);
+					if (aLoadTexturesInSrgb) {
+						srgbTextures.insert(path);
+					}
+				}
+
+				gm.mDiffuseTexOffsetTiling = mc.mDiffuseTexOffsetTiling;
+				gm.mSpecularTexOffsetTiling = mc.mSpecularTexOffsetTiling;
+				gm.mAmbientTexOffsetTiling = mc.mAmbientTexOffsetTiling;
+				gm.mEmissiveTexOffsetTiling = mc.mEmissiveTexOffsetTiling;
+				gm.mHeightTexOffsetTiling = mc.mHeightTexOffsetTiling;
+				gm.mNormalsTexOffsetTiling = mc.mNormalsTexOffsetTiling;
+				gm.mShininessTexOffsetTiling = mc.mShininessTexOffsetTiling;
+				gm.mOpacityTexOffsetTiling = mc.mOpacityTexOffsetTiling;
+				gm.mDisplacementTexOffsetTiling = mc.mDisplacementTexOffsetTiling;
+				gm.mReflectionTexOffsetTiling = mc.mReflectionTexOffsetTiling;
+				gm.mLightmapTexOffsetTiling = mc.mLightmapTexOffsetTiling;
+				gm.mExtraTexOffsetTiling = mc.mExtraTexOffsetTiling;
+			}
 		}
 
 		std::vector<avk::image_sampler> imageSamplers;
-		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
+
+		size_t numTexUsages = texNamesToUsages.size();
+		size_t numWhiteTexUsages = whiteTexUsages.empty() ? 0 : 1;
+		size_t numStraightUpNormalTexUsages = (straightUpNormalTexUsages.empty() ? 0 : 1);
+
+		if (aSerializer) {
+			(*aSerializer)->archive(numTexUsages);
+			(*aSerializer)->archive(numWhiteTexUsages);
+			(*aSerializer)->archive(numStraightUpNormalTexUsages);
+		}
+
+		const auto numSamplers = numTexUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
 		imageSamplers.reserve(numSamplers);
 
-		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> avk::sync {
+		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::sync {
 			++lSyncCount;
 			if (lSyncCount < numSamplers) {
 				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
 			}
-			assert (lSyncCount == numSamplers);
+			assert(lSyncCount == numSamplers);
 			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
 		};
 
 		// Create the white texture and assign its index to all usages
-		if (!whiteTexUsages.empty()) {
+		if (numWhiteTexUsages > 0) {
+			// Dont need to check if we have a serializer since create_1px_texture_cached takes it as an optional
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					owned(context().create_image_view(
-						owned(create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
+						owned(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer))
 					)),
 					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
 				)
 			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : whiteTexUsages) {
-				*img = index;
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == serializer::mode::serialize)) {
+				int index = static_cast<int>(imageSamplers.size() - 1);
+				for (auto* img : whiteTexUsages) {
+					*img = index;
+				}
 			}
 		}
 
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
-		if (!straightUpNormalTexUsages.empty()) {
+		if (numStraightUpNormalTexUsages > 0) {
+			// Dont need to check if we have a serializer since create_1px_texture_cached takes it as an optional
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					owned(context().create_image_view(
-						owned(create_1px_texture({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
+						owned(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer))
 					)),
 					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
 				)
 			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : straightUpNormalTexUsages) {
-				*img = index;
+			if (!aSerializer ||
+				(aSerializer && (*aSerializer)->mode() == serializer::mode::serialize)) {
+				int index = static_cast<int>(imageSamplers.size() - 1);
+				for (auto* img : straightUpNormalTexUsages) {
+					*img = index;
+				}
 			}
 		}
 
 		// Load all the images from file, and assign them to all usages
-		for (auto& pair : texNamesToUsages) {
-			assert (!pair.first.empty());
+		if (!aSerializer ||
+			(aSerializer && (*aSerializer)->mode() == serializer::mode::serialize)) {
+			// create_image_from_file_cached takes the serializer as an optional,
+			// therefore the call is safe with and without one
+			for (auto& pair : texNamesToUsages) {
+				assert(!pair.first.empty());
 
-			bool potentiallySrgb = srgbTextures.contains(pair.first);
+				bool potentiallySrgb = srgbTextures.contains(pair.first);
 
-			imageSamplers.push_back(
-				context().create_image_sampler(
-					owned(context().create_image_view(
-						owned(create_image_from_file(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync()))
-					)),
-					owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
-				)
-			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : pair.second) {
-				*img = index;
+				imageSamplers.push_back(
+					context().create_image_sampler(
+						owned(context().create_image_view(
+							create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer)
+						)),
+						owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
+					)
+				);
+				int index = static_cast<int>(imageSamplers.size() - 1);
+				for (auto* img : pair.second) {
+					*img = index;
+				}
 			}
+		}
+		else {
+			// We sure have the serializer here
+			for (int i = 0; i < numTexUsages; ++i) {
+				// create_image_from_file_cached does not need these values, as the
+				// image data is loaded from a cache file, so we can just pass some
+				// defaults to avoid having to save them to the cache file
+				const bool potentiallySrgbDontCare = false;
+				const std::string pathDontCare = "";
+
+				imageSamplers.push_back(
+					context().create_image_sampler(
+						owned(context().create_image_view(
+							create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer)
+						)),
+						owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
+					)
+				);
+			}
+		}
+
+		if (aSerializer) {
+			(*aSerializer)->archive(gpuMaterial);
 		}
 
 		// Hand over ownership to the caller
 		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
+	}
+
+	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
+		const std::vector<gvk::material_config>& aMaterialConfigs, 
+		bool aLoadTexturesInSrgb,
+		bool aFlipTextures,
+		avk::image_usage aImageUsage,
+		avk::filter_mode aTextureFilterMode, 
+		avk::border_handling_mode aBorderHandlingMode,
+		avk::sync aSyncHandler)
+	{
+		return convert_for_gpu_usage_cached(
+			aMaterialConfigs,
+			aLoadTexturesInSrgb,
+			aFlipTextures,
+			aImageUsage,
+			aTextureFilterMode,
+			aBorderHandlingMode,
+			std::move(aSyncHandler));
 	}
 
 	std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
@@ -253,236 +323,15 @@ namespace gvk
 		avk::sync aSyncHandler,
 		gvk::serializer& aSerializer)
 	{
-		// These are the texture names loaded from file -> mapped to vector of usage-pointers
-		std::unordered_map<std::string, std::vector<int*>> texNamesToUsages;
-		// Textures contained in this array shall be loaded into an sRGB format
-		std::set<std::string> srgbTextures;
-
-		// However, if some textures are missing, provide 1x1 px textures in those spots
-		std::vector<int*> whiteTexUsages;				// Provide a 1x1 px almost everywhere in those cases,
-		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
-
-		std::vector<material_gpu_data> gpuMaterial;
-		size_t materialConfigSize = aMaterialConfigs.size();
-		gpuMaterial.reserve(materialConfigSize); // important because of the pointers
-
-		for (auto& mc : aMaterialConfigs) {
-			auto& gm = gpuMaterial.emplace_back();
-			gm.mDiffuseReflectivity			= mc.mDiffuseReflectivity		 ;
-			gm.mAmbientReflectivity			= mc.mAmbientReflectivity		 ;
-			gm.mSpecularReflectivity		= mc.mSpecularReflectivity		 ;
-			gm.mEmissiveColor				= mc.mEmissiveColor				 ;
-			gm.mTransparentColor			= mc.mTransparentColor			 ;
-			gm.mReflectiveColor				= mc.mReflectiveColor			 ;
-			gm.mAlbedo						= mc.mAlbedo					 ;
-
-			gm.mOpacity						= mc.mOpacity					 ;
-			gm.mBumpScaling					= mc.mBumpScaling				 ;
-			gm.mShininess					= mc.mShininess					 ;
-			gm.mShininessStrength			= mc.mShininessStrength			 ;
-
-			gm.mRefractionIndex				= mc.mRefractionIndex			 ;
-			gm.mReflectivity				= mc.mReflectivity				 ;
-			gm.mMetallic					= mc.mMetallic					 ;
-			gm.mSmoothness					= mc.mSmoothness				 ;
-
-			gm.mSheen						= mc.mSheen						 ;
-			gm.mThickness					= mc.mThickness					 ;
-			gm.mRoughness					= mc.mRoughness					 ;
-			gm.mAnisotropy					= mc.mAnisotropy				 ;
-
-			gm.mAnisotropyRotation			= mc.mAnisotropyRotation		 ;
-			gm.mCustomData					= mc.mCustomData				 ;
-
-			gm.mDiffuseTexIndex				= -1;
-			if (mc.mDiffuseTex.empty()) {
-				whiteTexUsages.push_back(&gm.mDiffuseTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mDiffuseTex);
-				texNamesToUsages[path].push_back(&gm.mDiffuseTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
-				}
-			}
-
-			gm.mSpecularTexIndex			= -1;
-			if (mc.mSpecularTex.empty()) {
-				whiteTexUsages.push_back(&gm.mSpecularTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mSpecularTex)].push_back(&gm.mSpecularTexIndex);
-			}
-
-			gm.mAmbientTexIndex				= -1;
-			if (mc.mAmbientTex.empty()) {
-				whiteTexUsages.push_back(&gm.mAmbientTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mAmbientTex);
-				texNamesToUsages[path].push_back(&gm.mAmbientTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
-				}
-			}
-
-			gm.mEmissiveTexIndex			= -1;
-			if (mc.mEmissiveTex.empty()) {
-				whiteTexUsages.push_back(&gm.mEmissiveTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mEmissiveTex)].push_back(&gm.mEmissiveTexIndex);
-			}
-
-			gm.mHeightTexIndex				= -1;
-			if (mc.mHeightTex.empty()) {
-				whiteTexUsages.push_back(&gm.mHeightTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mHeightTex)].push_back(&gm.mHeightTexIndex);
-			}
-
-			gm.mNormalsTexIndex				= -1;
-			if (mc.mNormalsTex.empty()) {
-				straightUpNormalTexUsages.push_back(&gm.mNormalsTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mNormalsTex)].push_back(&gm.mNormalsTexIndex);
-			}
-
-			gm.mShininessTexIndex			= -1;
-			if (mc.mShininessTex.empty()) {
-				whiteTexUsages.push_back(&gm.mShininessTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mShininessTex)].push_back(&gm.mShininessTexIndex);
-			}
-
-			gm.mOpacityTexIndex				= -1;
-			if (mc.mOpacityTex.empty()) {
-				whiteTexUsages.push_back(&gm.mOpacityTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mOpacityTex)].push_back(&gm.mOpacityTexIndex);
-			}
-
-			gm.mDisplacementTexIndex		= -1;
-			if (mc.mDisplacementTex.empty()) {
-				whiteTexUsages.push_back(&gm.mDisplacementTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mDisplacementTex)].push_back(&gm.mDisplacementTexIndex);
-			}
-
-			gm.mReflectionTexIndex			= -1;
-			if (mc.mReflectionTex.empty()) {
-				whiteTexUsages.push_back(&gm.mReflectionTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mReflectionTex)].push_back(&gm.mReflectionTexIndex);
-			}
-
-			gm.mLightmapTexIndex			= -1;
-			if (mc.mLightmapTex.empty()) {
-				whiteTexUsages.push_back(&gm.mLightmapTexIndex);
-			}
-			else {
-				texNamesToUsages[avk::clean_up_path(mc.mLightmapTex)].push_back(&gm.mLightmapTexIndex);
-			}
-
-			gm.mExtraTexIndex				= -1;
-			if (mc.mExtraTex.empty()) {
-				whiteTexUsages.push_back(&gm.mExtraTexIndex);
-			}
-			else {
-				auto path = avk::clean_up_path(mc.mExtraTex);
-				texNamesToUsages[path].push_back(&gm.mExtraTexIndex);
-				if (aLoadTexturesInSrgb) {
-					srgbTextures.insert(path);
-				}
-			}
-
-			gm.mDiffuseTexOffsetTiling		= mc.mDiffuseTexOffsetTiling	 ;
-			gm.mSpecularTexOffsetTiling		= mc.mSpecularTexOffsetTiling	 ;
-			gm.mAmbientTexOffsetTiling		= mc.mAmbientTexOffsetTiling	 ;
-			gm.mEmissiveTexOffsetTiling		= mc.mEmissiveTexOffsetTiling	 ;
-			gm.mHeightTexOffsetTiling		= mc.mHeightTexOffsetTiling		 ;
-			gm.mNormalsTexOffsetTiling		= mc.mNormalsTexOffsetTiling	 ;
-			gm.mShininessTexOffsetTiling	= mc.mShininessTexOffsetTiling	 ;
-			gm.mOpacityTexOffsetTiling		= mc.mOpacityTexOffsetTiling	 ;
-			gm.mDisplacementTexOffsetTiling	= mc.mDisplacementTexOffsetTiling;
-			gm.mReflectionTexOffsetTiling	= mc.mReflectionTexOffsetTiling	 ;
-			gm.mLightmapTexOffsetTiling		= mc.mLightmapTexOffsetTiling	 ;
-			gm.mExtraTexOffsetTiling		= mc.mExtraTexOffsetTiling		 ;
-		}
-
-		std::vector<avk::image_sampler> imageSamplers;
-		const auto numSamplers = texNamesToUsages.size() + (whiteTexUsages.empty() ? 0 : 1) + (straightUpNormalTexUsages.empty() ? 0 : 1);
-		imageSamplers.reserve(numSamplers);
-
-		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}] () mutable -> avk::sync {
-			++lSyncCount;
-			if (lSyncCount < numSamplers) {
-				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
-			}
-			assert (lSyncCount == numSamplers);
-			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
-		};
-
-		// Create the white texture and assign its index to all usages
-		if (!whiteTexUsages.empty()) {
-			imageSamplers.push_back(
-				context().create_image_sampler(
-					owned(context().create_image_view(
-						owned(create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
-					)),
-					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
-				)
-			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : whiteTexUsages) {
-				*img = index;
-			}
-		}
-
-		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
-		if (!straightUpNormalTexUsages.empty()) {
-			imageSamplers.push_back(
-				context().create_image_sampler(
-					owned(context().create_image_view(
-						owned(create_1px_texture({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync()))
-					)),
-					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
-				)
-			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : straightUpNormalTexUsages) {
-				*img = index;
-			}
-		}
-
-		// Load all the images from file, and assign them to all usages
-		for (auto& pair : texNamesToUsages) {
-			assert (!pair.first.empty());
-
-			bool potentiallySrgb = srgbTextures.contains(pair.first);
-
-			imageSamplers.push_back(
-				context().create_image_sampler(
-					owned(context().create_image_view(
-						create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), std::make_optional<gvk::serializer*>(&aSerializer))
-					)),
-					owned(context().create_sampler(aTextureFilterMode, aBorderHandlingMode))
-				)
-			);
-			int index = static_cast<int>(imageSamplers.size() - 1);
-			for (auto* img : pair.second) {
-				*img = index;
-			}
-		}
-
-		// Hand over ownership to the caller
-		return std::make_tuple(std::move(gpuMaterial), std::move(imageSamplers));
+		return convert_for_gpu_usage_cached(
+			aMaterialConfigs,
+			aLoadTexturesInSrgb,
+			aFlipTextures,
+			aImageUsage,
+			aTextureFilterMode,
+			aBorderHandlingMode,
+			std::move(aSyncHandler),
+			std::make_optional<gvk::serializer*>(&aSerializer));
 	}
 
 	void fill_device_buffer_from_cache_file(avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::sync& aSyncHandler, gvk::serializer& aSerializer)
@@ -495,6 +344,9 @@ namespace gvk
 		);
 		{
 			// Map buffer and let serializer fill it
+			// To unmap the buffer after filling for
+			// device buffer transfer, mapping has to
+			// go out of scope
 			auto mapping = sb->map_memory(avk::mapping_access::write);
 			aSerializer.archive(aSerializer.binary_data(mapping.get(), aTotalSize));
 		}

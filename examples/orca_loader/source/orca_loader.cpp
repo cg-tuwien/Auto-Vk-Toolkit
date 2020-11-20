@@ -206,9 +206,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		times.emplace_back(std::make_tuple("fill all materials", endPart - startPart));
 		startPart = gvk::fixed_update_timer().absolute_time();
 
-		// TODO: Remove, this is not necessary if serialization in convert_for_gpu_usage_cached works
-		ser.archive(allMatConfigs);
-
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
 			allMatConfigs, false, false,
