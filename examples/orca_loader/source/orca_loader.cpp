@@ -4,6 +4,8 @@
 #include "imfilebrowser.h"
 #include <glm/gtx/euler_angles.hpp>
 
+#define USE_SERIALIZER
+
 class orca_loader_app : public gvk::invokee
 {
 	struct data_for_draw_call
@@ -48,44 +50,24 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// In update() it is not because the fence-wait that ensures that the resources are not used anymore, happens between update() and render().
 		mDestroyOldResourcesInFrame = gvk::context().main_window()->current_frame() + gvk::context().main_window()->number_of_frames_in_flight(); 
 		
-		gvk::orca_scene orca;
-		std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
-
 		float start = gvk::fixed_update_timer().absolute_time();
 		float startPart = start;
 		float endPart = 0.0f;
 		std::vector<std::tuple<std::string, float>> times;
 
-		const std::string cacheFilePath(aPathToOrcaScene + ".cache");
-		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
-		auto ser = cacheFileExists ?
-			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
-			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
-#define USE_SERIALIZER 1
-
-#if USE_SERIALIZER == 1
-		if (!cacheFileExists) {
-			// Load an ORCA scene from file:
-			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
-			// Get all the different materials from the whole scene:
-			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
-		}
-#else
 		// Load an ORCA scene from file:
-		orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
+		auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 		// Get all the different materials from the whole scene:
-		distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
-#endif
+		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
 		endPart = gvk::fixed_update_timer().absolute_time();
-		times.emplace_back(std::make_tuple("serializer init", endPart - startPart));
+		times.emplace_back(std::make_tuple("load orca file", endPart - startPart));
 		startPart = gvk::fixed_update_timer().absolute_time();
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<gvk::material_config> allMatConfigs;
 		mDrawCalls.clear();
-#if USE_SERIALIZER == 0
 		for (const auto& pair : distinctMaterialsOrca) {
 			allMatConfigs.push_back(pair.first);
 			const int matIndex = static_cast<int>(allMatConfigs.size()) - 1;
@@ -131,7 +113,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		endPart = gvk::fixed_update_timer().absolute_time();
-		times.emplace_back(std::make_tuple("fill all materials", endPart - startPart));
+		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
 		startPart = gvk::fixed_update_timer().absolute_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
@@ -142,13 +124,114 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::border_handling_mode::repeat,
 			avk::sync::wait_idle()
 		);
-#else
-		//auto numIterations = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(distinctMaterialsOrca.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
+
+		endPart = gvk::fixed_update_timer().absolute_time();
+		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
+		startPart = gvk::fixed_update_timer().absolute_time();
+
+		std::cout << std::endl;
+		std::cout << "----------------------------------------------------" << std::endl;
+		for (auto& t : times)
+			std::cout << std::get<0>(t) << " took " << std::get<1>(t) << std::endl;
+
+		std::cout << "----------------------------------------------------" << std::endl;
+		float end = gvk::fixed_update_timer().absolute_time();
+		float diff = end - start;
+		std::cout << "Took total: " << diff << std::endl;
+		std::cout << "----------------------------------------------------" << std::endl;
+		std::cout << std::endl;
+
+		mMaterialBuffer = gvk::context().create_buffer(
+			avk::memory_usage::host_visible, {},
+			avk::storage_buffer_meta::create_from_data(gpuMaterials)
+		);
+		mMaterialBuffer->fill(
+			gpuMaterials.data(), 0,
+			avk::sync::not_required()
+		);
+		mImageSamplers = std::move(imageSamplers);
+
+		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
+		// Create our rasterization graphics pipeline with the required configuration:
+		mPipeline = gvk::context().create_graphics_pipeline_for(
+			// Specify which shaders the pipeline consists of:
+			avk::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
+			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
+			// The next 3 lines define the format and location of the vertex shader inputs:
+			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
+			avk::from_buffer_binding(0) -> stream_per_vertex<glm::vec3>() -> to_location(0), // <-- corresponds to vertex shader's inPosition
+			avk::from_buffer_binding(1) -> stream_per_vertex<glm::vec2>() -> to_location(1), // <-- corresponds to vertex shader's inTexCoord
+			avk::from_buffer_binding(2) -> stream_per_vertex<glm::vec3>() -> to_location(2), // <-- corresponds to vertex shader's inNormal
+			// Some further settings:
+			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
+			// attachment, which has been configured when creating the window. See main() function!
+			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
+			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
+			// The following define additional data which we'll pass to the pipeline:
+			//   We'll pass two matrices to our vertex shader via push constants:
+			avk::push_constant_binding_data { avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
+			avk::descriptor_binding(0, 5, mViewProjBuffer),
+			avk::descriptor_binding(4, 4, mImageSamplers),
+			avk::descriptor_binding(7, 9, mMaterialBuffer) 
+		);
+	}
+
+	// Loads an ORCA scene from file or cache file by performing the following steps:
+	//  - Destroy the resources representing the currently loaded scene in n frames
+	//    (where n is the number of frames in flight). The resources to be destroyed are:
+	//     - mDrawCalls
+	//     - mMaterialBuffer
+	//     - mImageSamplers
+	//  - Load ORCA scene from file, creating the resources anew:
+	//     - mDrawCalls
+	//     - mMaterialBuffer
+	//     - mImageSamplers
+	void load_orca_scene_cached(const std::string& aPathToOrcaScene)
+	{
+		// Clean up the current resources, before creating new ones:
+		mOldDrawCalls = std::move(mDrawCalls);
+		mOldImageSamplers =  std::move(mImageSamplers);
+		mOldMaterialBuffer = std::move(mMaterialBuffer);
+		mOldPipeline = std::move(mPipeline);
+		// In #number_of_frames_in_flight() into the future, it will be safe to delete the old resources in render()!
+		// In update() it is not because the fence-wait that ensures that the resources are not used anymore, happens between update() and render().
+		mDestroyOldResourcesInFrame = gvk::context().main_window()->current_frame() + gvk::context().main_window()->number_of_frames_in_flight(); 
+		
+		gvk::orca_scene orca;
+		std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
+
+		const std::string cacheFilePath(aPathToOrcaScene + ".cache");
+		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
+		auto ser = cacheFileExists ?
+			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
+			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+
+		float start = gvk::fixed_update_timer().absolute_time();
+		float startPart = start;
+		float endPart = 0.0f;
+		std::vector<std::tuple<std::string, float>> times;
+
+		if (!cacheFileExists) {
+			// Load an ORCA scene from file:
+			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
+			// Get all the different materials from the whole scene:
+			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+			endPart = gvk::fixed_update_timer().absolute_time();
+			times.emplace_back(std::make_tuple("no cache file, load orca file", endPart - startPart));
+			startPart = gvk::fixed_update_timer().absolute_time();
+		}
+
+		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
+		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
+		std::vector<gvk::material_config> allMatConfigs;
+		mDrawCalls.clear();
+
 		size_t numIterations = cacheFileExists ? 0 : distinctMaterialsOrca.size();
 		ser.archive(numIterations);
 		auto pair = distinctMaterialsOrca.begin();
 		for (int i = 0; i < numIterations; ++i) {
-			//auto numIterations2 = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(pair->second.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 			size_t numIterations2 = cacheFileExists ? 0 : pair->second.size();
 			ser.archive(numIterations2);
 			const auto indices = cacheFileExists ? std::vector<gvk::model_and_mesh_indices>() : pair->second;
@@ -184,11 +267,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
-				//auto numIterations3 = cacheFileExists ? ser.read_number_of_iterations() : ser.write_number_of_iterations(getModelData().mInstances.size()); // Note: This code assumes that write_number_of_iterations returns what it has just written.
 				size_t numIterations3 = cacheFileExists ? 0 : getModelData().mInstances.size();
 				ser.archive(numIterations3);
-				//std::vector<gvk::model_instance_data> instances = cacheFileExists ? ser.read_model_instance_data() : ser.write_model_instance_data(getModelData().mInstances);
-				//auto instances = ser.archive(getModelData().mInstances);
 				auto instances = cacheFileExists ? std::vector<gvk::model_instance_data>() : getModelData().mInstances;
 				ser.archive(instances);
 				for (int k = 0; k < numIterations3; ++k) {
@@ -203,7 +283,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		}
 		endPart = gvk::fixed_update_timer().absolute_time();
-		times.emplace_back(std::make_tuple("fill all materials", endPart - startPart));
+		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
 		startPart = gvk::fixed_update_timer().absolute_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
@@ -215,7 +295,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle(),
 			ser
 		);
-#endif
 
 		endPart = gvk::fixed_update_timer().absolute_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
@@ -282,7 +361,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
 		
+#ifdef USE_SERIALIZER
+		load_orca_scene_cached("assets/sponza_duo.fscene");
+#else
 		load_orca_scene("assets/sponza_duo.fscene");
+#endif
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -314,7 +397,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		        
 		        if(mFileBrowser.HasSelected())
 		        {
+#ifdef USE_SERIALIZER
+		            load_orca_scene_cached(mFileBrowser.GetSelected().string());
+#else
 		            load_orca_scene(mFileBrowser.GetSelected().string());
+#endif
 		            mFileBrowser.ClearSelected();
 		        }
 
