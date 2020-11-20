@@ -217,27 +217,21 @@ namespace glm {
 	}
 
 	template<typename Archive>
-	void serialize(Archive& aArchive, glm::tvec3<GLsizei>& aValue)
+	void serialize(Archive& aArchive, glm::ivec2& aValue)
+	{
+		aArchive(aValue.x, aValue.y);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::ivec3& aValue)
 	{
 		aArchive(aValue.x, aValue.y, aValue.z);
 	}
-}
 
-namespace avk {
-	namespace cfg {
-		template<typename Archive>
-		void serialize(Archive& aArchive, avk::cfg::color_blending_config& aValue)
-		{
-			aArchive(aValue.mTargetAttachment);
-			aArchive(aValue.mEnabled);
-			aArchive(aValue.mAffectedColorChannels);
-			aArchive(aValue.mIncomingColorFactor);
-			aArchive(aValue.mExistingColorFactor);
-			aArchive(aValue.mColorOperation);
-			aArchive(aValue.mIncomingAlphaFactor);
-			aArchive(aValue.mExistingAlphaFactor);
-			aArchive(aValue.mAlphaOperation);
-		};
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::ivec4& aValue)
+	{
+		aArchive(aValue.x, aValue.y, aValue.z, aValue.w);
 	}
 }
 
@@ -246,51 +240,6 @@ namespace gvk {
 	void serialize(Archive& aArchive, gvk::model_instance_data& aValue)
 	{
 		aArchive(aValue.mName, aValue.mTranslation, aValue.mScaling, aValue.mRotation);
-	}
-
-	template<typename Archive>
-	void serialize(Archive& aArchive, gvk::material_config& aValue)
-	{
-		aArchive(aValue.mName);
-
-		aArchive(aValue.mIgnoreCpuOnlyDataForEquality, aValue.mShadingModel, aValue.mWireframeMode, aValue.mTwosided, aValue.mBlendMode);
-
-		aArchive(aValue.mDiffuseReflectivity, aValue.mAmbientReflectivity, aValue.mSpecularReflectivity,
-			aValue.mEmissiveColor, aValue.mTransparentColor, aValue.mReflectiveColor, aValue.mAlbedo);
-
-		aArchive(aValue.mOpacity, aValue.mBumpScaling, aValue.mShininess, aValue.mShininessStrength);
-
-		aArchive(aValue.mRefractionIndex, aValue.mReflectivity, aValue.mMetallic, aValue.mSmoothness);
-
-		aArchive(aValue.mSheen, aValue.mThickness, aValue.mRoughness, aValue.mAnisotropy);
-
-		aArchive(aValue.mAnisotropyRotation, aValue.mCustomData);
-
-		aArchive(aValue.mDiffuseTex);
-		aArchive(aValue.mSpecularTex);
-		aArchive(aValue.mAmbientTex);
-		aArchive(aValue.mEmissiveTex);
-		aArchive(aValue.mHeightTex);
-		aArchive(aValue.mNormalsTex);
-		aArchive(aValue.mShininessTex);
-		aArchive(aValue.mOpacityTex);
-		aArchive(aValue.mDisplacementTex);
-		aArchive(aValue.mReflectionTex);
-		aArchive(aValue.mLightmapTex);
-		aArchive(aValue.mExtraTex);
-
-		aArchive(aValue.mDiffuseTexOffsetTiling);
-		aArchive(aValue.mSpecularTexOffsetTiling);
-		aArchive(aValue.mAmbientTexOffsetTiling);
-		aArchive(aValue.mEmissiveTexOffsetTiling);
-		aArchive(aValue.mHeightTexOffsetTiling);
-		aArchive(aValue.mNormalsTexOffsetTiling);
-		aArchive(aValue.mShininessTexOffsetTiling);
-		aArchive(aValue.mOpacityTexOffsetTiling);
-		aArchive(aValue.mDisplacementTexOffsetTiling);
-		aArchive(aValue.mReflectionTexOffsetTiling);
-		aArchive(aValue.mLightmapTexOffsetTiling);
-		aArchive(aValue.mExtraTexOffsetTiling);
 	}
 
 	template<typename Archive>
@@ -354,6 +303,19 @@ namespace gvk {
 			aValue.mReflectionTexOffsetTiling,
 			aValue.mLightmapTexOffsetTiling,
 			aValue.mExtraTexOffsetTiling
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::lightsource_gpu_data& aValue)
+	{
+		aArchive(
+			aValue.mColor,
+			aValue.mDirection,
+			aValue.mPosition,
+			aValue.mAnglesFalloff,
+			aValue.mAttenuation,
+			aValue.mInfo
 		);
 	}
 }
