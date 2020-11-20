@@ -215,6 +215,12 @@ namespace glm {
 	{
 		aArchive(aValue.x, aValue.y, aValue.z, aValue.w);
 	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::tvec3<GLsizei>& aValue)
+	{
+		aArchive(aValue.x, aValue.y, aValue.z);
+	}
 }
 
 namespace avk {

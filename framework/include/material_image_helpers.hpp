@@ -262,36 +262,36 @@ namespace gvk
 				//
 				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
 
-				//auto& gliTex = aAlreadyLoadedGliTexture.value();
 				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
 				for(size_t level = 1; level < levels; ++level)
 				{
-#if _DEBUG
-					// TODO: Remove? update?
-					//{
-					//	glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
-					//	auto imgExtent = img->config().extent;
-					//	auto levelDivisor = std::pow(2u, level);
-					//	imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
-					//	imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-					//	imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
-					//	assert (levelExtent.x == static_cast<int>(imgExtent.width ));
-					//	assert (levelExtent.y == static_cast<int>(imgExtent.height));
-					//	assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
-					//}
-#endif
 					size_t texSize = 0;
 					void* texData = nullptr;
+					glm::tvec3<GLsizei> levelExtent;
 
 					if (!aSerializer ||
 						(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
 						texSize = aAlreadyLoadedGliTexture.value().size(level);
 						texData = aAlreadyLoadedGliTexture.value().data(0, 0, level);
+						auto& gliTex = aAlreadyLoadedGliTexture.value();
+						levelExtent = gliTex.extent(level);
 					}
-
 					if (aSerializer) {
 						(*aSerializer)->archive(texSize);
+						(*aSerializer)->archive(levelExtent);
 					}
+#if _DEBUG
+					{
+						auto imgExtent = img->config().extent;
+						auto levelDivisor = std::pow(2u, level);
+						imgExtent.width  = imgExtent.width  > 1u ? imgExtent.width  / levelDivisor : 1u;
+						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+						imgExtent.depth  = imgExtent.depth  > 1u ? imgExtent.depth  / levelDivisor : 1u;
+						assert (levelExtent.x == static_cast<int>(imgExtent.width ));
+						assert (levelExtent.y == static_cast<int>(imgExtent.height));
+						assert (levelExtent.z == static_cast<int>(imgExtent.depth ));
+					}
+#endif
 
 					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
 						AVK_STAGING_BUFFER_MEMORY_USAGE,
