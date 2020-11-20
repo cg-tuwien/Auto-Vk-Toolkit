@@ -22,7 +22,7 @@ namespace gvk
 		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
 
 		// 2. Copy buffer to image
-		copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+		copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																									   // TODO: Verify the above ^ comment
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 		
@@ -165,7 +165,7 @@ namespace gvk
 		
 		// 2. Copy buffer to image
 		assert(stagingBuffers.size() == 1);
-		avk::copy_buffer_to_image(avk::const_referenced(stagingBuffers.front()), avk::referenced(img), avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+		avk::copy_buffer_to_image(avk::const_referenced(stagingBuffers.front()), avk::referenced(img), {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 																																				// TODO: Verify the above ^ comment
 		// Are MIP-maps required?
 		if (img->config().mipLevels > 1u) {
@@ -201,7 +201,7 @@ namespace gvk
 					sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
 
 					// Memory writes are not overlapping => no barriers should be fine.
-					avk::copy_buffer_to_image_mip_level(avk::const_referenced(sb), avk::referenced(img), level, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+					avk::copy_buffer_to_image_mip_level(avk::const_referenced(sb), avk::referenced(img), level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 				}
 			}
 			else {
