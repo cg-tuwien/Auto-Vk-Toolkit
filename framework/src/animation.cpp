@@ -16,15 +16,15 @@ namespace gvk
 				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mBoneMeshTargets[i].mInverseMeshRootMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
 			});
 			break;
-		case bone_matrices_space::object_space:
+		case bone_matrices_space::model_space:
 			animate(aClip, aTime, [](const animated_node& anode, size_t i){
-				// The nodeTransformMatrix yields the result in OBJECT SPACE again
+				// The nodeTransformMatrix yields the result in MODEL SPACE again
 				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
 			});
 			break;
 		case bone_matrices_space::bone_space:
 			animate(aClip, aTime, [](const animated_node& anode, size_t i){
-				// The nodeTransformMatrix yields the result in OBJECT SPACE => transform again by inverseBindPoseMatrix to get it in BONE SPACE
+				// The nodeTransformMatrix yields the result in MODEL SPACE => transform again by inverseBindPoseMatrix to get it in BONE SPACE
 				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mBoneMeshTargets[i].mInverseBindPoseMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
 			});
 			break;

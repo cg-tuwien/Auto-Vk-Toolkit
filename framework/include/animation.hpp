@@ -123,11 +123,27 @@ namespace gvk
 		/** Mesh space is the space of a mesh's root node. This is the default. */
 		mesh_space,
 
-		/** Object space is the space of a model (within which meshes are positioned). */
-		object_space,
+		/** Model space is the space of a model (within which meshes are positioned). */
+		model_space,
 
 		/** Bone space is the local space of a bone. */
 		bone_space
+	};
+
+	/**	Struct which contains information about a particular bone w.r.t. a particular mesh
+	 *	during animation. I.e. when a certain mesh-specific(!) bone matrix shall be written
+	 *	to its target location, this struct contains the following information:
+	 *	 - Which mesh does this relate to => mMeshIndex
+	 *	 - Which mesh-local bone-information is relevant => mMeshLocalBoneIndex
+	 *	 - Which target index shall the mesh-specific(!) bone matrix be written to => mBoneMatrixTargetIndex
+	 */
+	struct mesh_bone_info
+	{
+		mesh_index_t mMeshIndex;
+
+		uint32_t mMeshLocalBoneIndex;
+
+		size_t mBoneMatrixTargetIndex;
 	};
 	
 	class model_t;
@@ -153,8 +169,8 @@ namespace gvk
 		 *								- mTransform:	                              Represents the "node transformation matrix" that represents a bone-transformation in bone-local space.
 		 *								- mBoneMeshTargets[i].mInverseBindPoseMatrix: Represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates into bone-local space.
 		 *	@example [](const animated_node& anode, size_t i){
-		 *		// store the result in object space:
-		 *		*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
+		 *		// store the result in mesh space (which is the same space as the original vertex data):
+		 *		*anode.mBoneMeshTargets[i].mBoneMatrixTarget = TODO: ...;
 		 *	}
 		 */
 		template <typename F>
