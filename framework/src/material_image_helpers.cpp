@@ -338,7 +338,7 @@ namespace gvk
 	{
 		// Create host visible staging buffer for filling on host side from file
 		auto sb = context().create_buffer(
-			avk::memory_usage::host_coherent,
+			AVK_STAGING_BUFFER_MEMORY_USAGE,
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(aTotalSize)
 		);
