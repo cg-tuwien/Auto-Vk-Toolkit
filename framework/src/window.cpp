@@ -463,7 +463,7 @@ namespace gvk
 		// TODO: What if the user has not submitted any renderFinishedSemaphores?
 		
 		// WAIT -> SIGNAL
-		auto& signalSemaphore = current_initiate_present_semaphore();
+		auto signalSemaphore = current_initiate_present_semaphore();
 
 		auto submitInfo = vk::SubmitInfo()
 			.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
