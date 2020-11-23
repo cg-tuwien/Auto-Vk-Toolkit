@@ -376,12 +376,12 @@ namespace gvk
 #if _DEBUG
 			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
 			std::vector<int> check(num, 0);
-			for (size_t i = 0; i < num; ++i) {
+			for (int i = 0; i < num; ++i) {
 				if (mQueues[i].family_index() == queueFamily) {
 					check[mQueues[i].queue_index()]++;
 				}
 			}
-			for (size_t i = 0; i < num; ++i) {
+			for (int i = 0; i < num; ++i) {
 				assert(check[i] == 1);
 			}
 #endif
@@ -592,27 +592,28 @@ namespace gvk
 			return;
 		}
 
-		auto msgCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+		VkDebugUtilsMessengerCreateInfoEXT msgCreateInfo = {};
+		msgCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 #if LOG_LEVEL > 1
-				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 #if LOG_LEVEL > 2
-				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #if LOG_LEVEL > 3
-				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
+		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 #endif
 #endif
 #endif
-			)
-			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
-			.setPfnUserCallback(context_vulkan::vk_debug_utils_callback);
+		msgCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+		msgCreateInfo.pfnUserCallback = context_vulkan::vk_debug_utils_callback;
 
 		// Hook in
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)mInstance.getProcAddr("vkCreateDebugUtilsMessengerEXT");
 		if (func != nullptr) {
+			//VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger
+
 			auto result = func(
-				mInstance, 
-				&static_cast<VkDebugUtilsMessengerCreateInfoEXT>(msgCreateInfo), 
+				static_cast<VkInstance>(mInstance), 
+				&msgCreateInfo, 
 				nullptr, 
 				&mDebugUtilsCallbackHandle);
 			if (VK_SUCCESS != result) {
@@ -667,27 +668,27 @@ namespace gvk
 	{
 		assert(mInstance);
 #if LOG_LEVEL > 0
-		auto createInfo = vk::DebugReportCallbackCreateInfoEXT{}
-			.setFlags(
-				vk::DebugReportFlagBitsEXT::eError
+
+		VkDebugReportCallbackCreateInfoEXT createInfo = {};
+		createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT;
 #if LOG_LEVEL > 1
-				| vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::ePerformanceWarning
+		createInfo.flags |= VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
 #if LOG_LEVEL > 2
-				| vk::DebugReportFlagBitsEXT::eInformation
+		createInfo.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
+#endif
 #endif
 #if defined(_DEBUG)
-				| vk::DebugReportFlagBitsEXT::eDebug
+		createInfo.flags |= VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 #endif
-#endif
-			)
-			.setPfnCallback(context_vulkan::vk_debug_report_callback);
+		createInfo.pfnCallback = context_vulkan::vk_debug_report_callback;
 		
 		// Hook in
 		auto func = (PFN_vkCreateDebugReportCallbackEXT)mInstance.getProcAddr("vkCreateDebugReportCallbackEXT");
 		if (func != nullptr) {
+			
 			auto result = func(
-				mInstance,
-				&static_cast<VkDebugReportCallbackCreateInfoEXT>(createInfo),
+				static_cast<VkInstance>(mInstance),
+				&createInfo,
 				nullptr,
 				&mDebugReportCallbackHandle);
 			if (VK_SUCCESS != result) {

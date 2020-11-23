@@ -113,7 +113,7 @@ namespace gvk
 	#define LOG_MEGA_VERBOSE_EM__(msg)
 	#endif
 
-	#ifdef _DEBUG
+	#if defined(_DEBUG)
 	#define LOG_DEBUG(msg)		gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug, gvk::log_importance::normal })
 	#define LOG_DEBUG_EM(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), gvk::log_type::debug, gvk::log_importance::important })
 	#define LOG_DEBUG__(msg)	gvk::dispatch_log(gvk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), gvk::log_type::debug, gvk::log_importance::normal })
