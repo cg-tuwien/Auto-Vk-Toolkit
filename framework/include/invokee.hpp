@@ -247,6 +247,9 @@ namespace gvk
 		/** @brief Returns whether rendering this element's gizmos is enabled or not. */
 		bool is_render_gizmos_enabled() const { return mRenderGizmosEnabled; }
 
+		/** @brief applies the changes required by the updater, if one is created for this invokee.	*/
+		void apply_recreation_updates() { if (mUpdater.has_value()) mUpdater->apply(); }
+
 	private:
 		inline static int32_t sGeneratedNameId = 0;
 		std::string mName;
@@ -254,5 +257,13 @@ namespace gvk
 		bool mEnabled;
 		bool mRenderEnabled;
 		bool mRenderGizmosEnabled;
+
+	protected:
+		/** In case that an updater is required by this invokee, one should be constructed here.
+		* The updater - if needed - can be changed over time. However this is the place where
+		* the active updater is expected to be.
+		*/
+		std::optional<updater> mUpdater;
+
 	};
 }

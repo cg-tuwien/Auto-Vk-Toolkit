@@ -36,7 +36,7 @@ namespace gvk
 			for (auto& e : elements)
 			{
 				if (e->is_enabled()) {
-					e->update();
+					e->update();										
 				}
 			}
 		}
@@ -46,6 +46,10 @@ namespace gvk
 			for (auto& e : elements)
 			{
 				if (e->is_render_enabled()) {
+					// first apply potential changes required by the updater of the invokee, 
+					// should one really exist. It is important that those changes are applied
+					// before the next render call.
+					e->apply_recreation_updates();
 					e->render();
 				}
 			}
