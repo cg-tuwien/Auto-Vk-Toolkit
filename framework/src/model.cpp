@@ -79,6 +79,15 @@ namespace gvk
 		}
 		return static_cast<uint32_t>(mScene->mMeshes[aMeshIndex]->mNumBones);
 	}
+
+	uint32_t model_t::num_bones(std::vector<mesh_index_t> aMeshIndices) const
+	{
+		uint32_t accumulatedCount = 0u;
+		for (auto mi : aMeshIndices) {
+			accumulatedCount += num_bones(mi);
+		}
+		return accumulatedCount;
+	}
 	
 	std::vector<glm::mat4> model_t::inverse_bind_pose_matrices(mesh_index_t aMeshIndex, bone_matrices_space aSourceSpace) const
 	{
@@ -448,7 +457,7 @@ namespace gvk
 		std::vector<glm::vec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 0.f, 0.f);
 			}
@@ -487,9 +496,10 @@ namespace gvk
 		std::vector<glm::uvec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset));
+			const uint32_t fallbackIndex = aBoneIndexOffset;
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset);
+				result.emplace_back(fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex);
 			}
 		}
 		else {
@@ -519,10 +529,10 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::uvec4> model_t::bone_indices_for_meshes_for_single_target_buffer(std::vector<mesh_index_t> aMeshIndices) const
+	std::vector<glm::uvec4> model_t::bone_indices_for_meshes_for_single_target_buffer(const std::vector<mesh_index_t>& aMeshIndices, uint32_t aInitialBoneIndexOffset) const
 	{
 		std::vector<glm::uvec4> result;
-		uint32_t offset = 0u;
+		uint32_t offset = aInitialBoneIndexOffset;
 		for (auto meshIndex : aMeshIndices) {
 			auto tmp = bone_indices_for_mesh(meshIndex, offset);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
@@ -531,7 +541,7 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::uvec4> model_t::bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, std::vector<mesh_index_t> aMeshIndicesWithBonesInOrder) const
+	std::vector<glm::uvec4> model_t::bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, const std::vector<mesh_index_t>& aMeshIndicesWithBonesInOrder) const
 	{
 		uint32_t offset = 0u;
 		for (auto mi : aMeshIndicesWithBonesInOrder) {
@@ -563,13 +573,13 @@ namespace gvk
 		return static_cast<int>(indicesCount);
 	}
 
-	std::vector<size_t> model_t::select_all_meshes() const
+	std::vector<mesh_index_t> model_t::select_all_meshes() const
 	{
-		std::vector<size_t> result;
+		std::vector<mesh_index_t> result;
 		auto n = mScene->mNumMeshes;
 		result.reserve(n);
 		for (decltype(n) i = 0; i < n; ++i) {
-			result.push_back(static_cast<size_t>(i));
+			result.push_back(static_cast<mesh_index_t>(i));
 		}
 		return result;
 	}

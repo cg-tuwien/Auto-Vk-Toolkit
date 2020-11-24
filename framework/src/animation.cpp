@@ -74,7 +74,7 @@ namespace gvk
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space
 				//   3. Convert transformed vertex back to mesh space
-				aTargetMemory[aInfo.mIncrementalTargetIndex] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
 			});
 			break;
 		case bone_matrices_space::model_space:
@@ -82,7 +82,7 @@ namespace gvk
 				// Construction of the bone matrix for this node:
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space => MODEL SPACE
-				aTargetMemory[aInfo.mIncrementalTargetIndex] = aTransformMatrix * aInverseBindPoseMatrix;
+				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
 			});
 			break;
 		case bone_matrices_space::mesh_local_bone_space:
@@ -91,7 +91,7 @@ namespace gvk
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space
 				//   3. Convert transformed vertex to bone space again, which is relative to the mesh's root
-				aTargetMemory[aInfo.mIncrementalTargetIndex] = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
 			});
 			break;
 		case bone_matrices_space::global_bone_space:
@@ -100,7 +100,7 @@ namespace gvk
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space
 				//   3. Convert transformed vertex to bone space again
-				aTargetMemory[aInfo.mIncrementalTargetIndex] = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
 			});
 			break;
 		default:

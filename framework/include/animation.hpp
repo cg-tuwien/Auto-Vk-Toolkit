@@ -49,23 +49,26 @@ namespace gvk
 		 */
 		uint32_t mMeshLocalBoneIndex;
 
-		/** This CAN be used as the the target index where the given bone matrix shall be
-		 *	written to. It represents the monotonically increasing target index w.r.t all
+		/** This, in combination with mMeshLocalBoneIndex, CAN be used as the the target
+		 *	index where the given bone matrix shall be written to if a single target buffer
+		 *	is being used for bone indices.
+		 *	It represents the monotonically increasing bone indices offsets w.r.t. all 
 		 *	meshes and mesh's bones IN THE ORDER in which they were passed to the method
 		 *	model_t::prepare_animation. I.e. the order of the mesh_index_t values matters!
-		 *	You can use this value for the target index, i.e. where to write a bone matrix
-		 *	to, but it is also perfectly fine to use some other parameter for determining that.
+		 *	You can use this value to determine the offset for the target index, i.e. where to
+		 *	write a bone matrix to, but it is also perfectly fine to use some other parameter
+		 *	for determining that.
 		 *
 		 *	For example, let's assume there is a model that contains three child meshes,
 		 *	and has been modeled so that its skeleton has a total of four bones. Let's 
 		 *	further assume that all the vertices per child mesh are influenced by not
 		 *	more than two bones, each. 
 		 *	If we called that model m with model_t::prepare_animation and passed in all
-		 *	mesh ids, e.g. via m->select_all_meshes(), then we had gotten 0,1 for the first
-		 *	mesh index, 2,3 for the second mesh index, and 4,5 for the third mesh index as
-		 *	mIncrementalTargetIndex-values.
+		 *	mesh ids, e.g. via m->select_all_meshes(), then we had gotten 0 for the first
+		 *	mesh index, 2 for the second mesh index, and 4 for the third mesh index as
+		 *	mGlobalBoneIndexOffset-values, respectively.
 		 */
-		size_t mIncrementalTargetIndex;
+		size_t mGlobalBoneIndexOffset;
 	};
 
 	/**	Struct holding some bone<-->mesh-related data used in animation_node

@@ -40,6 +40,13 @@ namespace gvk
 		/**	Gets the number of bones that are associated to the given mesh index.
 		 */
 		uint32_t num_bones(mesh_index_t aMeshIndex) const;
+
+		/**	Gets the number of bones that are associated with all the given mesh indices.
+		 *	Note that the number of bones returned refer to "accumulated per-mesh bones",
+		 *	and "per-mesh bones" means that actual bones (from the skeleton) can occur multiple
+		 *	times across multiple meshes.
+		 */
+		uint32_t num_bones(std::vector<mesh_index_t> aMeshIndices) const;
 		
 		/**	Gets the inverse bind pose matrices for each bone assigned to the given mesh index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -194,10 +201,10 @@ namespace gvk
 		 *	@param		aBoneIndexOffset	An offset to be added to every single bone index returned by this method.
 		 *	@return		Vector of bone indices, of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::uvec4> bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, std::vector<mesh_index_t> aMeshIndicesWithBonesInOrder) const;
+		std::vector<glm::uvec4> bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, const std::vector<mesh_index_t>& aMeshIndicesWithBonesInOrder) const;
 		
 		// TODO: Comment
-		std::vector<glm::uvec4> bone_indices_for_meshes_for_single_target_buffer(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::uvec4> bone_indices_for_meshes_for_single_target_buffer(const std::vector<mesh_index_t>& aMeshIndices, uint32_t aInitialBoneIndexOffset = 0u) const;
 
 		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -275,14 +282,14 @@ namespace gvk
 		mesh_index_t num_meshes() const { return mScene->mNumMeshes; }
 
 		/** Return the indices of all meshes which the given predicate evaluates true for.
-		 *	Function-signature: bool(size_t, const aiMesh*) where the first parameter is the 
+		 *	Function-signature: bool(mesh_index_t, const aiMesh*) where the first parameter is the 
 		 *									mesh index and the second the pointer to the data
 		 */
 		template <typename F>
-		std::vector<size_t> select_meshes(F aPredicate) const
+		std::vector<mesh_index_t> select_meshes(F aPredicate) const
 		{
-			std::vector<size_t> result;
-			for (size_t i = 0; i < mScene->mNumMeshes; ++i) {
+			std::vector<mesh_index_t> result;
+			for (mesh_index_t i = 0; i < mScene->mNumMeshes; ++i) {
 				const aiMesh* paiMesh = mScene->mMeshes[i];
 				if (aPredicate(i, paiMesh)) {
 					result.push_back(i);
@@ -294,7 +301,7 @@ namespace gvk
 		/** Return the indices of all meshes. It's effecively the same as calling
 		 *	`select_meshes` with a predicate that always evaluates true.
 		 */
-		std::vector<size_t> select_all_meshes() const;
+		std::vector<mesh_index_t> select_all_meshes() const;
 
 		std::vector<glm::vec3> positions_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 		std::vector<glm::vec3> normals_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
