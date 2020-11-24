@@ -39,16 +39,18 @@ namespace gvk
 
 		/**	Gets the number of bones that are associated to the given mesh index.
 		 */
-		size_t num_bones(mesh_index_t aMeshIndex) const;
+		uint32_t num_bones(mesh_index_t aMeshIndex) const;
 		
 		/**	Gets the inverse bind pose matrices for each bone assigned to the given mesh index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
-		 *	@param		aMaxNumBones	The maximum number of inverse bind pose matrices to return, which can
-		 *								also be seen as the maximum number of bones to be considered.
-		 *								If a value is specified, the resulting vector's length will at most
-		 *								be aMaxNumBones, but it can be smaller if there are fewer bones.
+		 *	@param		aSourceSpace	The space which the inverse bone matrices transform from. Only two spaces are
+		 *								supported: bone_matrices_space::mesh_space, and bone_matrices_space::model_space.
+		 *								I.e. if bone_matrices_space::mesh_space is chosen, the input-vertices that are to
+		 *								be transformed into bone-space must be provided in mesh coordinates.
+		 *								Likewise, if bone_matrices_space::model_space is chosen, the input-vertices that 
+		 *								are to be transformed into bone-space must be provided in model coordinates.
 		 */
-		std::vector<glm::mat4> inverse_bind_pose_matrices(mesh_index_t aMeshIndex, unsigned int aMaxNumBones = std::numeric_limits<unsigned int>::max()) const;
+		std::vector<glm::mat4> inverse_bind_pose_matrices(mesh_index_t aMeshIndex, bone_matrices_space aSourceSpace) const;
 
 		/** Gets the name of the mesh at the given index (not to be confused with the material's name)
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -161,14 +163,41 @@ namespace gvk
 		 */
 		std::vector<glm::vec4> bone_weights_for_mesh(mesh_index_t aMeshIndex) const;
 
-		/** Gets all the bone indices for the mesh at the given index.
+		/** Gets all the "mesh-local" bone indices for the mesh at the given index.
 		 *	If the mesh has no bone indices, a vector filled with values is
 		 *	returned regardless. All the values will be set to (0,0,0,0) in this case.
-		 *	@param		aMeshIndex		The index corresponding to the mesh
-		 *	@return		Vector of bone indices, converted to `glm::uvec4`
-		 *				of length `number_of_vertices_for_mesh()`
+		 *
+		 *	Additional information: The bone indices returned are the "mesh-local bone indices".
+		 *                          This means that there can be fewer bone indices referenced than the skeleton
+		 *                          has and -- most importantly -- the indices are zero-based w.r.t. to the
+		 *                          specific MESH that is referred to by aMeshIndex (hence, "mesh-local").
+		 *	
+		 *	@param		aMeshIndex			The index corresponding to the mesh
+		 *	@param		aBoneIndexOffset	An offset to be added to every single bone index returned by this method.
+		 *	@return		Vector of bone indices, of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::uvec4> bone_indices_for_mesh(mesh_index_t aMeshIndex) const;
+		std::vector<glm::uvec4> bone_indices_for_mesh(mesh_index_t aMeshIndex, uint32_t aBoneIndexOffset = 0) const;
+
+		/** Gets unique "mesh-set-global" bone indices for the mesh at the given index w.r.t. the given set of mesh indices.
+		 *	If the mesh has no bone indices, a vector filled with values is returned regardless.
+		 *
+		 *	Additional information: The bone indices returned are the "mesh-set-global bone indices".
+		 *	                        "Global" w.r.t. a "mesh-set" means that the returned mesh indices of the
+		 *	                        mesh identified by aMeshIndex are the "mesh-local bone indices" + an offset
+		 *	                        which is the accumulated number of all bones assigned to the meshes before
+		 *	                        
+		 *                          This means that there can be fewer bone indices referenced than the skeleton
+		 *                          has and -- most importantly -- the indices are zero-based w.r.t. to the
+		 *                          specific MESH that is referred to by aMeshIndex (hence, "mesh-local").
+		 *	
+		 *	@param		aMeshIndex			The index corresponding to the mesh
+		 *	@param		aBoneIndexOffset	An offset to be added to every single bone index returned by this method.
+		 *	@return		Vector of bone indices, of length `number_of_vertices_for_mesh()`
+		 */
+		std::vector<glm::uvec4> bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, std::vector<mesh_index_t> aMeshIndicesWithBonesInOrder) const;
+		
+		// TODO: Comment
+		std::vector<glm::uvec4> bone_indices_for_meshes_for_single_target_buffer(std::vector<mesh_index_t> aMeshIndices) const;
 
 		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -312,61 +341,9 @@ namespace gvk
 		 *	
 		 *	@param	aAnimationIndex				The animation index to create the animation data for
 		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
-		 *	@param	aBeginningOfTargetStorage	Memory address of the first bone matrix of the mesh with index aMeshIndices[0].
-		 *	@param	aStride						Memory offset between two consecutive contiguous memory chunks of bone matrices (according to the values in aMeshIndices).
-		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
 		 */
-		animation prepare_animation_for_meshes_into_strided_contiguous_memory(
-			uint32_t aAnimationIndex, 
-			const std::vector<mesh_index_t>& aMeshIndices, 
-			glm::mat4* aBeginningOfTargetStorage, 
-			size_t aStride, 
-			std::optional<size_t> aMaxNumBoneMatrices = {},
-			std::optional<size_t> aMaxNumMeshes = {}
-		);
-
-		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
-		 *	The bone matrices shall be written into contiguous memory without any space between the memory
-		 *	regions of subsequent bone matrices. I.e. the stride is the same as the aMaxBoneMatrices parameter.
-		 *	
-		 *	@param	aAnimationIndex				The animation index to create the animation data for
-		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
-		 *	@param	aBeginningOfTargetStorage	Memory address of the first bone matrix of the mesh with index aMeshIndices[0].
-		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
-		 */
-		animation prepare_animation_for_meshes_into_tightly_packed_contiguous_memory(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices, glm::mat4* aBeginningOfTargetStorage, size_t aMaxNumBoneMatrices)
-		{
-			return prepare_animation_for_meshes_into_strided_contiguous_memory(aAnimationIndex, aMeshIndices, aBeginningOfTargetStorage, aMaxNumBoneMatrices);
-		}
-
-		/**	From a given (bone-matrix-)target-address and a stride (e.g. the maximum number of bone matrice),
-		 *	calculate the resulting mesh index, and bone index (both returned in the tuple in that order).
-		 *	This function can be helpful when used in conjunction with `model::prepare_animation_for_meshes_with_offsets` and the callback-function from `animation::animate`
-		 */
-		static std::tuple<mesh_index_t, size_t> calculate_mesh_and_bone_indices_from_target_address(glm::mat4* aTargetAddress, size_t aStride, glm::mat4* aBeginningOfTargetStorage = nullptr)
-		{
-			auto targetElement = static_cast<size_t>(aTargetAddress - aBeginningOfTargetStorage);
-			auto meshIndex = targetElement / aStride;
-			auto boneIndex = targetElement % aStride;
-			return std::make_tuple(static_cast<mesh_index_t>(meshIndex), static_cast<size_t>(boneIndex));
-		}
+		animation prepare_animation(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices);
 		
-		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
-		 *	The target offsets are NOT pointing to real memory locations, but just start from 0 and are increased by sizeof(glm::mat4) for each
-		 *	bone matrix. The offsets of the bone matrices for the second mesh start at address 0 + sizeof(glm::mat4) * aMaxNumBoneMatrices
-		 *	In order to actually write bone matrices into their target location, you'll have to use the animation::animate overload where you can pass a custom callback function.
-		 *
-		 *	To calculate the original mesh and bone indices from a given target address, the function `model::calculate_mesh_and_bone_indices_from_target_address` might be helpful.
-		 *
-		 *	@param	aAnimationIndex				The animation index to create the animation data for
-		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
-		 *	@param	aMaxNumBoneMatrices			The maximum number of bone matrices. If omitted, the value is inferred from aStride.
-		 */
-		animation prepare_animation_for_meshes_with_offsets(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices, size_t aMaxNumBoneMatrices)
-		{
-			return prepare_animation_for_meshes_into_tightly_packed_contiguous_memory(aAnimationIndex, aMeshIndices, nullptr, aMaxNumBoneMatrices);
-		}
-
 	private:
 		void initialize_materials();
 		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const;

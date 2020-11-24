@@ -29,36 +29,102 @@ namespace gvk
 		glm::vec3 mValue;
 	};
 
+	/**	Struct which contains information about a particular bone w.r.t. a particular mesh
+	 *	during animation. I.e. when a certain mesh-specific(!) bone matrix shall be written
+	 *	to its target location, this struct contains the following information:
+	 *	 - Which mesh does this relate to => mMeshIndex
+	 *	 - Which mesh-local bone-information is relevant => mMeshLocalBoneIndex
+	 *	 - Which target index shall the mesh-specific(!) bone matrix be written to => mBoneMatrixTargetIndex
+	 */
+	struct mesh_bone_info
+	{
+		/** The mesh-index of the mesh that the given bone matrix shall be set for. */
+		mesh_index_t mMeshIndex;
+
+		/** Mesh-local(!) bone index that the given bone matrix shall be set for.
+		 *	The mesh-local bone index refers to the the n-th bone index that is
+		 *	relevant for the given mesh. This does NOT mean that this is the
+		 *	global bone index of the skeleton. It refers to ASSIMP's n-th aiBone
+		 *	for this mesh. 
+		 */
+		uint32_t mMeshLocalBoneIndex;
+
+		/** This CAN be used as the the target index where the given bone matrix shall be
+		 *	written to. It represents the monotonically increasing target index w.r.t all
+		 *	meshes and mesh's bones IN THE ORDER in which they were passed to the method
+		 *	model_t::prepare_animation. I.e. the order of the mesh_index_t values matters!
+		 *	You can use this value for the target index, i.e. where to write a bone matrix
+		 *	to, but it is also perfectly fine to use some other parameter for determining that.
+		 *
+		 *	For example, let's assume there is a model that contains three child meshes,
+		 *	and has been modeled so that its skeleton has a total of four bones. Let's 
+		 *	further assume that all the vertices per child mesh are influenced by not
+		 *	more than two bones, each. 
+		 *	If we called that model m with model_t::prepare_animation and passed in all
+		 *	mesh ids, e.g. via m->select_all_meshes(), then we had gotten 0,1 for the first
+		 *	mesh index, 2,3 for the second mesh index, and 4,5 for the third mesh index as
+		 *	mIncrementalTargetIndex-values.
+		 */
+		size_t mIncrementalTargetIndex;
+	};
+
 	/**	Struct holding some bone<-->mesh-related data used in animation_node
 	 */
 	struct bone_mesh_data
 	{
-		/**	Matrix that transform from bone space to mesh space in bind pose.
+		/**	Matrix that changes the basis of from mesh space to bone space in
+		 *	bind pose (i.e. the initial/original, un-animated pose).
 		 *	This is called "inverse bind pose matrix" or "offset matrix".
 		 */
 		glm::mat4 mInverseBindPoseMatrix;
 
-		/**	This vector contains a target pointer into target storage where
-		 *	the resulting bone matrix is to be written to.
-		 */
-		glm::mat4* mBoneMatrixTarget;
-
-		/**	For each mesh, this vector contains the mesh's root node's inverse 
-		 *	matrix; i.e. the matrix that changes the basis of given coordinates
-		 *	into mesh space.
-		 *
-		 *	Similarly to the matrix in mInverseBindPoseMatrix, this matrix
-		 *	transform into mesh space. However, this matrix transform from OBJECT
-		 *	SPACE into mesh space while mInverseBindPoseMatrix transform from
-		 *	BONE SPACE into mesh space.
+		/**	The matrix which changes the basis of model space to mesh space.
+		 *	
+		 *	This matrix can be useful during bone animation: After applying the
+		 *	transformation hierarchy matrices, the result will be in model space.
+		 *	This matrix can be used to transform it back into mesh space, which
+		 *	is the space in which the vertices were given initially, too. 
 		 */
 		glm::mat4 mInverseMeshRootMatrix;
 
-		/**	Bone index within a given mesh. This corresponds, among others, to the
-		 *	indices that are returned by model_t::inverse_bind_pose_matrices, if
-		 *	used for the right/same mesh.
+		/**	Contains the following information:
+		 *	- Index of the mesh being animated
+		 *	- Mesh-local(!) bone index
+		 *	- (optional) Target-index where the bone matrix target shall be written to.
 		 */
-		unsigned int mBoneIndex;
+		mesh_bone_info mMeshBoneInfo;
+
+
+		glm::mat4 change_basis_from_mesh_space_to_bone_space() const
+		{
+			return mInverseBindPoseMatrix;
+		}
+
+		glm::mat4 change_basis_from_model_space_to_mesh_space() const
+		{
+			return mInverseMeshRootMatrix;
+		}
+
+		glm::mat4 change_basis_from_model_space_to_bone_space() const
+		{
+			return mInverseBindPoseMatrix * mInverseMeshRootMatrix;
+		}
+
+		glm::mat4 change_basis_from_bone_space_to_mesh_space() const
+		{
+			return glm::inverse(change_basis_from_mesh_space_to_bone_space());
+		}
+
+		glm::mat4 change_basis_from_mesh_space_to_model_space() const
+		{
+			return glm::inverse(change_basis_from_model_space_to_mesh_space());
+		}
+
+		glm::mat4 change_basis_from_bone_sace_to_model_space() const
+		{
+			return glm::inverse(change_basis_from_model_space_to_bone_space());
+		}
+
 	};
 
 	/**	Struct containing data about one specific animated node.
@@ -126,24 +192,15 @@ namespace gvk
 		/** Model space is the space of a model (within which meshes are positioned). */
 		model_space,
 
-		/** Bone space is the local space of a bone. */
-		bone_space
-	};
+		/** The space of one specific bone, w.r.t. the mesh's base coordinate system.
+		 *	I.e., this is the mesh-local bone space and is different for each mesh.
+		 */
+		mesh_local_bone_space,
 
-	/**	Struct which contains information about a particular bone w.r.t. a particular mesh
-	 *	during animation. I.e. when a certain mesh-specific(!) bone matrix shall be written
-	 *	to its target location, this struct contains the following information:
-	 *	 - Which mesh does this relate to => mMeshIndex
-	 *	 - Which mesh-local bone-information is relevant => mMeshLocalBoneIndex
-	 *	 - Which target index shall the mesh-specific(!) bone matrix be written to => mBoneMatrixTargetIndex
-	 */
-	struct mesh_bone_info
-	{
-		mesh_index_t mMeshIndex;
-
-		uint32_t mMeshLocalBoneIndex;
-
-		size_t mBoneMatrixTargetIndex;
+		/** The space of one specific bone, w.r.t. the model's base coordinate system.
+		 *	I.e., this is ths "global bone space", when "global" refers to the model.
+		 */
+		global_bone_space,
 	};
 	
 	class model_t;
@@ -160,17 +217,29 @@ namespace gvk
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 *	@param	aBoneMatrixCalc		Callback-function that receives the three matrices which can be relevant for computing the final bone matrix.
-		 *								The lambda's signature must be like follows: void(const animated_node&, size_t)
-		 *								This callback function MUST write the bone matrix into the given target memory location => See bone_mesh_data::mBoneMatrixTarget member!
-		 *								I.e. the relevant matrices can be accessed via the animated_node, and using the index given by the second parameter (size_t) for some cases.
-		 *								The relevant members of animated_node are as follows:
-		 *								- mBoneMeshTargets[i].mBoneMatrixTarget:	  Target pointer to the glm::mat4* memory where the RESULTING bone matrix MUST be written to.
-		 *								- mBoneMeshTargets[i].mInverseMeshRootMatrix: The "inverse mesh root matrix" that transforms coordinates into mesh root space.
-		 *								- mTransform:	                              Represents the "node transformation matrix" that represents a bone-transformation in bone-local space.
-		 *								- mBoneMeshTargets[i].mInverseBindPoseMatrix: Represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates into bone-local space.
-		 *	@example [](const animated_node& anode, size_t i){
-		 *		// store the result in mesh space (which is the same space as the original vertex data):
-		 *		*anode.mBoneMeshTargets[i].mBoneMatrixTarget = TODO: ...;
+		 *								This callback function MUST write the bone matrix into the given target memory location or generally, use them in
+		 *								some application-specific way. The bone matrices are not stored/written to automatically. This is your responsibility!
+		 *	
+		 *								There are multiple options for the parameters that the lambda can take---according to your requirements.
+		 *								It must at least take the first four required parameters, but can take up to eight parameters (with the latter
+		 *								four being optional, but they must be specified exactly in the right order!). 
+		 *								
+		 *								The parameters to the lambda function -- in the right order -- are as follows:
+		 *								mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index, animation time in ticks
+		 *								- gvk::mesh_bone_info aInfo:               (mandatory) Contains the indices which tell about the specific bone matrix this callback is being invoked for.
+		 *								- const glm::mat4& aInverseMeshRootMatrix: (mandatory) The "inverse mesh root matrix" that transforms coordinates into mesh root space, that is the mesh space of the mesh with index aInfo.mMeshIndex
+		 *								- const glm::mat4& aGlobalTransformMatrix: (mandatory) Represents the "node transformation matrix" that represents a bone-transformation, considering the whole parent hierarchy. That means, it contains the global transform, transforming from BONE SPACE into MODEL SPACE.
+		 *								- const glm::mat4& aInverseBindPoseMatrix: (mandatory) Represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates from MESH SPACE (i.e. that from the mesh with index aInfo.mMeshIndex) into BONE SPACE.
+		 *								- const glm::mat4& aLocalTransformMatrix:  (optional)  Contains the local bone transformation, i.e. the same data as aGlobalTransformationMatrix, but WITHOUT having the whole parent hierarchy applied to the transformation. I.e. this does NOT properly transform into MODEL SPACE.
+		 *								- const gvk::animated_node& aAnimatedNode: (optional)  Contains all the animation data from the the current (internal) animation-node-structure.
+		 *								- size_t aBoneMeshTargetIndex:             (optional)  Contains the index into animated_node::mBoneMeshTargets that is the current one at the point in time when this callback is invoked.
+		 *								- double aAnimationTimeInTicks:            (optional)  Contains the animation time in ticks, at the point in time when this callback is invoked.
+		 *								
+		 *	@example [storagePointer](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+		 *	    // You'll need to ^ capture some pointer or data structure to write into the target location.
+		 *		assert (aInfo.mBoneMatrixTargetIndex.has_value());
+		 *		// Store the result in mesh space (which is the same space as the original vertex data):
+		 *		storagePointer[aInfo.mBoneMatrixTargetIndex.value()] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
 		 *	}
 		 */
 		template <typename F>
@@ -227,12 +296,40 @@ namespace gvk
 				// Calculate the final bone matrices for this node, for each mesh that is affected; and write out the matrix into the target storage:
 				const auto n = anode.mBoneMeshTargets.size();
 				for (size_t i = 0; i < n; ++i) {
-					// Construction of the bone matrix for this node:
-					//  1. Bring vertex into bone space
-					//  2. Apply transformaton in bone space
-					//  3. Convert transformed vertex back to mesh space
-					// The callback function will store into target:
-					aBoneMatrixCalc(anode, i);
+					// The final (mesh-specific!) bone matrix will be created in and stored via the lambda:
+					if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&)>, decltype(aBoneMatrixCalc)>::value) {
+						// Option 1: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix);
+					}
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&)>, decltype(aBoneMatrixCalc)>::value) {
+						// Option 2: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation
+				    	//           (The first four parameters are the same as with Option 1. Parameter five is passed in addition.)
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform);
+				    }
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&)>, decltype(aBoneMatrixCalc)>::value) {
+						// Option 3: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node
+				    	//           (The first five parameters are the same as with Option 2. Parameter six is passed in addition.)
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode);
+				    }
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t)>, decltype(aBoneMatrixCalc)>::value) {
+						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index
+				    	//           (The first six parameters are the same as with Option 3. Parameter seven is passed in addition.)
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i);
+				    }
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t, double)>, decltype(aBoneMatrixCalc)>::value) {
+						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index, animation time in ticks
+				    	//           (The first seven parameters are the same as with Option 4. Parameter eight is passed in addition.)
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i, timeInTicks);
+				    }
+					else {
+#if defined(_MSC_VER) && defined(__cplusplus)
+						static_assert(false);
+#else
+						assert(false);
+#endif
+						throw avk::logic_error("No lambda has been passed to animation::animate.");
+					}
+					
 				}
 			}
 		}
@@ -242,7 +339,8 @@ namespace gvk
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 */
-		void animate(const animation_clip_data& aClip, double aTime);
+		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
+		void animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory);
 
 		/**	Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
 		 *	The space of the resulting bone matrices can be controlled with the third parameter.
@@ -250,7 +348,8 @@ namespace gvk
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 *	@param	aTargetSpace		Desired target space for the bone matrices (see bone_matrices_space)
 		 */
-		void animate(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace);
+		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, bone_matrices_space aTargetSpace, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
+		void animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, bone_matrices_space aTargetSpace);
 
 		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
 		
@@ -292,12 +391,6 @@ namespace gvk
 			return static_cast<float>((aTime - key1.mTime) / timeDifferenceTicks);
 		}
 		
-		/** Collection of tuples with two elements:
-		 *  [0]: The mesh index to be animated
-		 *  [1]: Pointer to the target storage where bone matrices shall be written to
-		 */
-		std::vector<std::tuple<mesh_index_t, glm::mat4*>> mMeshIndicesAndTargetStorage;
-
 		/**	All animated nodes, along with their animation data and target storage pointers
 		 */
 		std::vector<animated_node> mAnimationData;

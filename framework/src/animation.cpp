@@ -3,33 +3,108 @@
 
 namespace gvk
 {
-	void animation::animate(const animation_clip_data& aClip, double aTime)
+
+	void animation::animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, std::optional<size_t> aMaxMeshes, std::optional<size_t> aMaxBonesPerMesh)
 	{
-		return animate(aClip, aTime, bone_matrices_space::mesh_space);
+		return animate_into_strided_target_per_mesh(aClip, aTime, aTargetMemory, aStride, bone_matrices_space::mesh_space, aMaxMeshes, aMaxBonesPerMesh);
 	}
 
-	void animation::animate(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace)
+	void animation::animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory)
+	{
+		return animate_into_single_target(aClip, aTime, aTargetMemory, bone_matrices_space::mesh_space);
+	}
+
+	void animation::animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, bone_matrices_space aTargetSpace, std::optional<size_t> aMaxMeshes, std::optional<size_t> aMaxBonesPerMesh)
 	{
 		switch (aTargetSpace) {
 		case bone_matrices_space::mesh_space:
-			animate(aClip, aTime, [](const animated_node& anode, size_t i){
-				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mBoneMeshTargets[i].mInverseMeshRootMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
+			animate(aClip, aTime, [aTargetMemory, aStride, maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex back to mesh space
+				if (aInfo.mMeshIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
+					aTargetMemory[aInfo.mMeshIndex * aStride + aInfo.mMeshLocalBoneIndex] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				}
 			});
 			break;
 		case bone_matrices_space::model_space:
-			animate(aClip, aTime, [](const animated_node& anode, size_t i){
-				// The nodeTransformMatrix yields the result in MODEL SPACE again
-				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
+			animate(aClip, aTime, [aTargetMemory, aStride, maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space => MODEL SPACE
+				if (aInfo.mMeshIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
+					aTargetMemory[aInfo.mMeshIndex * aStride + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
+				}
 			});
 			break;
-		case bone_matrices_space::bone_space:
-			animate(aClip, aTime, [](const animated_node& anode, size_t i){
-				// The nodeTransformMatrix yields the result in MODEL SPACE => transform again by inverseBindPoseMatrix to get it in BONE SPACE
-				*anode.mBoneMeshTargets[i].mBoneMatrixTarget = anode.mBoneMeshTargets[i].mInverseBindPoseMatrix * anode.mTransform * anode.mBoneMeshTargets[i].mInverseBindPoseMatrix;
+		case bone_matrices_space::mesh_local_bone_space:
+			animate(aClip, aTime, [aTargetMemory, aStride, maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex to bone space again
+				if (aInfo.mMeshIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
+					aTargetMemory[aInfo.mMeshIndex * aStride + aInfo.mMeshLocalBoneIndex] = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				}
+			});
+			break;
+		case bone_matrices_space::global_bone_space:
+			animate(aClip, aTime, [aTargetMemory, aStride, maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex to bone space again
+				if (aInfo.mMeshIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
+					aTargetMemory[aInfo.mMeshIndex * aStride + aInfo.mMeshLocalBoneIndex] = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+				}
 			});
 			break;
 		default:
-			throw gvk::runtime_error("Unhandled target space value.");
+			throw gvk::runtime_error("Unknown target space value.");
+		}
+	}
+	
+	void animation::animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, bone_matrices_space aTargetSpace)
+	{
+		switch (aTargetSpace) {
+		case bone_matrices_space::mesh_space:
+			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex back to mesh space
+				aTargetMemory[aInfo.mIncrementalTargetIndex] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+			});
+			break;
+		case bone_matrices_space::model_space:
+			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space => MODEL SPACE
+				aTargetMemory[aInfo.mIncrementalTargetIndex] = aTransformMatrix * aInverseBindPoseMatrix;
+			});
+			break;
+		case bone_matrices_space::mesh_local_bone_space:
+			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex to bone space again, which is relative to the mesh's root
+				aTargetMemory[aInfo.mIncrementalTargetIndex] = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+			});
+			break;
+		case bone_matrices_space::global_bone_space:
+			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space
+				//   3. Convert transformed vertex to bone space again
+				aTargetMemory[aInfo.mIncrementalTargetIndex] = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
+			});
+			break;
+		default:
+			throw gvk::runtime_error("Unknown target space value.");
 		}
 	}
 
