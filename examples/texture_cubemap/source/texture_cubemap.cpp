@@ -40,13 +40,24 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mDescriptorCacheReflect = gvk::context().create_descriptor_cache();
 
 		// Load a cubemap image file
+		// The cubemap texture coordinates start in the upper right corner of the skybox faces,
+		// which coincides with the memory layout of the textures. Therefore we don't need to flip them along the y axis.
+		// Note that lookup operations in a cubemap are defined in a left-handed coordinate system,
+		// i.e. when looking at the positive Z face from inside the cube, the positive X face is to the right.
 		auto cubemap_image = gvk::create_cubemap_from_file("assets/cubemap_yokohama_rgba.ktx", true, true, false);
+
+		//std::vector<std::string> cubemap_files { "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
+		//auto cubemap_image = gvk::create_cubemap_from_file(cubemap_files, true, true, false);
 
 		auto cubemap_sampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
 		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image->format(), avk::image_usage::general_cube_map_texture);
 		mImageSamplerCubemap = gvk::context().create_image_sampler(std::move(cubemap_imageView), std::move(cubemap_sampler));
 	
-		// Load cube from file
+		// Load a cube as the skybox from file
+		// Since the cubemap uses a left-handed coordinate system, we declare the cube to be defined in the same coordinate system as well.
+		// This simplifies coordinate transformations later on. To transform the cube vertices back to right-handed world coordinates for display,
+		// we adjust its model matrix accordingly. Note that this also changes the winding order of faces, i.e. front faces
+		// of the cube that have CCW order when viewed from the outside now have CCW order when viewed from inside the cube.
 		{
 			auto cube = gvk::model_t::load_from_file("assets/cube.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
@@ -142,7 +153,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
 			avk::from_buffer_binding(0)->stream_per_vertex<glm::vec3>()->to_location(0), // <-- corresponds to vertex shader's inPosition
 			// Some further settings:
-			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
+			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
@@ -214,22 +225,34 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render() override
+	void update_uniform_buffers()
 	{
-		auto mainWnd = gvk::context().main_window();
+		// mirror x axis to transform cubemap coordinates to righ-handed coordinates
+		auto mirroredViewMatrix = mQuakeCam.view_matrix();
+		mirroredViewMatrix[0] *= -1.f; 
 
 		view_projection_matrices viewProjMat{
 			mQuakeCam.projection_matrix(),
 			mQuakeCam.view_matrix(),
-			glm::inverse(mQuakeCam.view_matrix()),
+			glm::inverse(mirroredViewMatrix),
 			0.0f
 		};
 
 		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::sync::not_required());
 
-		viewProjMat.mModelViewMatrix *= 100.0f;
-		viewProjMat.mModelViewMatrix[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Cancel out translation
+		// scale skybox 
+		viewProjMat.mModelViewMatrix = mirroredViewMatrix * mModelMatrixSkybox;
+		// Cancel out translation
+		viewProjMat.mModelViewMatrix[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
 		mViewProjBufferSkybox->fill(&viewProjMat, 0, avk::sync::not_required());
+	}
+
+	void render() override
+	{
+		update_uniform_buffers();
+
+		auto mainWnd = gvk::context().main_window();
 
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -340,6 +363,14 @@ private: // v== Member variables ==v
 	gvk::quake_camera mQuakeCam;
 
 	glm::vec3 mScale;
+
+	const float mScaleSkybox = 100.f;
+	const glm::mat4 mModelMatrixSkybox{
+		mScaleSkybox, 0.f, 0.f, 0.f,
+		0.f, mScaleSkybox, 0.f, 0.f,
+		0.f, 0.f, mScaleSkybox, 0.f,
+		0.f, 0.f, 0.f, 1.f
+	};
 
 #if _DEBUG
 	gvk::updater mUpdaterSkybox;

@@ -13,9 +13,10 @@ layout (location = 0) out vec3 outUVW;
 
 void main() 
 {
+	// the skybox vertices are already in a left-handed coordinate system,
+	// so we can pass them to the fragment shader as-is for texture coordinate lookup
 	outUVW = inPos;
-	// Convert cubemap coordinates into Vulkan coordinate space
-	// TODO: check if this is the right place to transform coordinates
-	outUVW.x *= -1.0;
+
+	// the model matrix of the skybox takes care of transforming its vertices to right-handed world coordinates
 	gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
 }
