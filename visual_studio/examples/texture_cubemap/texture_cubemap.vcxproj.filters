@@ -49,4 +49,24 @@
       <Filter>precompiled_headers</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negx.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negy.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negz.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg">
+      <Filter>assets</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

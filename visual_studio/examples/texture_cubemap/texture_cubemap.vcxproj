@@ -48,6 +48,14 @@
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negx.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negy.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negz.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{bcfffe1c-fc08-432a-9a07-4c049ae398bd}</ProjectGuid>
