@@ -23,10 +23,9 @@ void main()
 	vec3 cI = normalize (inPos);
 	vec3 cR = reflect (cI, normalize(inNormal));
 
+	// Convert world coordinates to cubemap coordinate space
+	// the inverse model-view matrix already deals with the transformation from right-handed to left-handed coordinates
 	cR = vec3(ubo.invModel * vec4(cR, 0.0));
-	// Convert cubemap coordinates into Vulkan coordinate space
-	// TODO: check if this is the right place to transform coordinates
-	cR.x *= -1.0;
 
 	vec4 color = texture(samplerColor, cR, ubo.lodBias);
 
