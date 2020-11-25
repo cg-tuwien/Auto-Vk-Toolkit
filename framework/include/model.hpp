@@ -57,6 +57,7 @@ namespace gvk
 		uint32_t num_bone_matrices(std::vector<mesh_index_t> aMeshIndices) const;
 		
 		/**	Gets the inverse bind pose matrices for each bone assigned to the given mesh index.
+		 *
 		 *	@param		aMeshIndex		The index corresponding to the mesh
 		 *	@param		aSourceSpace	The space which the inverse bone matrices transform from. Only two spaces are
 		 *								supported: bone_matrices_space::mesh_space, and bone_matrices_space::model_space.
@@ -205,13 +206,30 @@ namespace gvk
 		 *                          has and -- most importantly -- the indices are zero-based w.r.t. to the
 		 *                          specific MESH that is referred to by aMeshIndex (hence, "mesh-local").
 		 *	
-		 *	@param		aMeshIndex			The index corresponding to the mesh
-		 *	@param		aBoneIndexOffset	An offset to be added to every single bone index returned by this method.
+		 *	@param		aMeshIndex						The index corresponding to the mesh
+		 *	@param		aMeshIndicesWithBonesInOrder	The correct offset for the given mesh index is determined based on this set.
+		 *												I.e. the offset will be the accumulated value of all previous #bone-matrices
+		 *												in the set before the mesh with the given index.
 		 *	@return		Vector of bone indices, of length `number_of_vertices_for_mesh()`
 		 */
 		std::vector<glm::uvec4> bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, const std::vector<mesh_index_t>& aMeshIndicesWithBonesInOrder) const;
 		
-		// TODO: Comment
+		/** Gets unique "mesh-set-global" bone indices for all the given mesh indices.
+		 *	If the mesh has no bone indices, a vector filled with values is returned regardless.
+		 *
+		 *	Additional information: The bone indices returned are the "mesh-set-global bone indices".
+		 *	                        "Global" w.r.t. a "mesh-set" means that the returned mesh indices of the
+		 *	                        mesh identified by aMeshIndex are the "mesh-local bone indices" + an offset
+		 *	                        which is the accumulated number of all bones assigned to the meshes before
+		 *	                        
+		 *                          This means that there can be fewer bone indices referenced than the skeleton
+		 *                          has and -- most importantly -- the indices are zero-based w.r.t. to the
+		 *                          specific MESH that is referred to by aMeshIndex (hence, "mesh-local").
+		 *	
+		 *	@param		aMeshIndex			The index corresponding to the mesh
+		 *	@param		aBoneIndexOffset	An offset to be added to every single bone index returned by this method.
+		 *	@return		Vector of bone indices, of accumulated length `number_of_vertices_for_mesh` for each one of the given mesh indices.
+		 */
 		std::vector<glm::uvec4> bone_indices_for_meshes_for_single_target_buffer(const std::vector<mesh_index_t>& aMeshIndices, uint32_t aInitialBoneIndexOffset = 0u) const;
 
 		/** Gets the number of uv-components of a specific UV-set for the mesh at the given index

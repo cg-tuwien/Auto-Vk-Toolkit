@@ -399,6 +399,9 @@ namespace gvk
 		 */
 		void animate_into_single_target_buffer(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory);
 
+		/**	Returns all the unique keyframe time-values of the given animation. 
+		 *	@param	aClip				Animation clip which to extract the unique keyframe time-values from
+		 */
 		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
 		
 	private:
