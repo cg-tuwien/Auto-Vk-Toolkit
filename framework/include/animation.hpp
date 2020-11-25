@@ -38,8 +38,11 @@ namespace gvk
 	 */
 	struct mesh_bone_info
 	{
-		/** The mesh-index of the mesh that the given bone matrix shall be set for. */
-		mesh_index_t mMeshIndex;
+		/** The index at which this mesh was passed to animation::prepare_animation. */
+		size_t mMeshAnimationIndex;
+		
+		/** The model-based mesh-id, i.e. the id which model-internally uniquely identifies a mesh. */
+		mesh_index_t mMeshIndexInModel;
 
 		/** Mesh-local(!) bone index that the given bone matrix shall be set for.
 		 *	The mesh-local bone index refers to the the n-th bone index that is
@@ -155,9 +158,12 @@ namespace gvk
 		 *	the same mTime in both.
 		 */
 		bool mSameScalingAndPositionKeyTimes;
+
+		/** The local transform of this node */
+		glm::mat4 mLocalTransform;
 		
-		/** The GLOBAL transform of this node */
-		glm::mat4 mTransform;
+		/** The global transform of this node */
+		glm::mat4 mGlobalTransform;
 
 		/** Contains the index of a parent node IF this node HAS a parent
 		 *	node that is affected by animation.
@@ -259,7 +265,7 @@ namespace gvk
 
 			for (auto& anode : mAnimationData) {
 				// First, calculate the local transform
-				glm::mat4 localTransform{1.0f};
+				glm::mat4 localTransform = anode.mLocalTransform;
 
 				// The localTransform can only be different than the identity if there are animation keys.
 				if (anode.mPositionKeys.size() + anode.mRotationKeys.size() + anode.mScalingKeys.size() > 0) {
@@ -290,10 +296,10 @@ namespace gvk
 
 				// Calculate the node's global transform, using its local transform and the transforms of its parents:
 				if (anode.mAnimatedParentIndex.has_value()) {
-					anode.mTransform = mAnimationData[anode.mAnimatedParentIndex.value()].mTransform * anode.mParentTransform * localTransform;
+					anode.mGlobalTransform = mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform * anode.mParentTransform * localTransform;
 				}
 				else {
-					anode.mTransform = anode.mParentTransform * localTransform;
+					anode.mGlobalTransform = anode.mParentTransform * localTransform;
 				}
 
 				// Calculate the final bone matrices for this node, for each mesh that is affected; and write out the matrix into the target storage:
@@ -302,27 +308,27 @@ namespace gvk
 					// The final (mesh-specific!) bone matrix will be created in and stored via the lambda:
 					if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 1: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix);
 					}
 				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 2: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation
 				    	//           (The first four parameters are the same as with Option 1. Parameter five is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform);
 				    }
 				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 3: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node
 				    	//           (The first five parameters are the same as with Option 2. Parameter six is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode);
 				    }
 				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index
 				    	//           (The first six parameters are the same as with Option 3. Parameter seven is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i);
 				    }
 				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t, double)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index, animation time in ticks
 				    	//           (The first seven parameters are the same as with Option 4. Parameter eight is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i, timeInTicks);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i, timeInTicks);
 				    }
 					else {
 #if defined(_MSC_VER) && defined(__cplusplus)
@@ -337,22 +343,61 @@ namespace gvk
 			}
 		}
 
-		/** Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
-		 *	The resulting bone matrices are transformed into mesh space (see also bone_matrices_space::mesh_space).
+		/** Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
+		 *	with one of the resulting bone matrices is given in mesh space (same as the original input data) again.
+		 *	This method writes the bone matrices into contiguous strided memory where aTargetMemory points to the
+		 *	location where the first bone matrix shall be written to.
+		 *	
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 *	@param	aTargetMemory		Pointer to the memory location where the first bone matrix shall be written to
+		 *	@param	aMeshStride			Offset in BYTES between the first memory target location for mesh i, and the first memory target location for mesh i+1
+		 *	@param	aMatricesStride		Offset in BYTES between two consecutive bone matrices that are assigned to the same mesh. By default, it will be set to sizeof(glm::mat4)
+		 *	@param	aMaxMeshes			The maximum number of meshes to write out bone matrices for. That means, always the first #aMaxMeshes meshes w.r.t. mesh_bone_info::mMeshAnimationIndex will be written.
+		 *	@param	aMaxBonesPerMesh	The maximum number of bones to write out bone matrices for per mesh. Only the first #aMaxBonesPerMesh bone matrices w.r.t. mesh_bone_info::mMeshLocalBoneIndex will be written.
 		 */
-		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
-		void animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory);
+		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aMeshStride, std::optional<size_t> aMatricesStride = {}, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
 
-		/**	Calculates the bone animation, calculates and writes all the bone matrices into their target storage.
-		 *	The space of the resulting bone matrices can be controlled with the third parameter.
+		/**	Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
+		 *	with one of the resulting bone matrices is given in mesh space (same as the original input data) again.
+		 *	This method writes the bone matrices into one single contiguous piece of memory which is expected to
+		 *	be the single target to receive ALL bone matrices of all meshes. This method is intended to be used with
+		 *	bone indices that have been retrieved(or transformed!) with one of the model_t::*_for_single_target_buffer methods.
+		 * 
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
-		 *	@param	aTargetSpace		Desired target space for the bone matrices (see bone_matrices_space)
+		 *	@param	aTargetMemory		Pointer to the memory location where the first bone matrix shall be written to
 		 */
-		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, size_t aStride, bone_matrices_space aTargetSpace, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
-		void animate_into_single_target(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory, bone_matrices_space aTargetSpace);
+		void animate_into_single_target_buffer(const animation_clip_data& aClip, double aTime, glm::mat4* aTargetMemory);
+
+		/** Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
+		 *	with one of the resulting bone matrices is transformed into the given target space.
+		 *	This method writes the bone matrices into contiguous strided memory where aTargetMemory points to the
+		 *	location where the first bone matrix shall be written to.
+		 *	
+		 *	@param	aClip				Animation clip to use for the animation
+		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 *	@param	aTargetSpace		The target space into which the vertices shall be transformed by multiplying them with the bone matrices
+		 *	@param	aTargetMemory		Pointer to the memory location where the first bone matrix shall be written to
+		 *	@param	aMeshStride			Offset in BYTES between the first memory target location for mesh i, and the first memory target location for mesh i+1
+		 *	@param	aMatricesStride		Offset in BYTES between two consecutive bone matrices that are assigned to the same mesh. By default, it will be set to sizeof(glm::mat4)
+		 *	@param	aMaxMeshes			The maximum number of meshes to write out bone matrices for. That means, always the first #aMaxMeshes meshes w.r.t. mesh_bone_info::mMeshAnimationIndex will be written.
+		 *	@param	aMaxBonesPerMesh	The maximum number of bones to write out bone matrices for per mesh. Only the first #aMaxBonesPerMesh bone matrices w.r.t. mesh_bone_info::mMeshLocalBoneIndex will be written.
+		 */
+		void animate_into_strided_target_per_mesh(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory, size_t aMeshStride, std::optional<size_t> aMatricesStride = {}, std::optional<size_t> aMaxMeshes = {}, std::optional<size_t> aMaxBonesPerMesh = {});
+
+		/**	Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
+		 *	with one of the resulting bone matrices is transformed into the given target space.
+		 *	This method writes the bone matrices into one single contiguous piece of memory which is expected to
+		 *	be the single target to receive ALL bone matrices of all meshes. This method is intended to be used with
+		 *	bone indices that have been retrieved(or transformed!) with one of the model_t::*_for_single_target_buffer methods.
+		 * 
+		 *	@param	aClip				Animation clip to use for the animation
+		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
+		 *	@param	aTargetSpace		The target space into which the vertices shall be transformed by multiplying them with the bone matrices
+		 *	@param	aTargetMemory		Pointer to the memory location where the first bone matrix shall be written to
+		 */
+		void animate_into_single_target_buffer(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory);
 
 		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
 		

@@ -37,16 +37,24 @@ namespace gvk
 		 */
 		glm::mat4 mesh_root_matrix(mesh_index_t aMeshIndex) const;
 
-		/**	Gets the number of bones that are associated to the given mesh index.
+		/**	Gets the actual number of bones that are associated to the given mesh index.
+		 *	This number corresponds exactly to what ASSIMP's data structure reflects.
 		 */
-		uint32_t num_bones(mesh_index_t aMeshIndex) const;
+		uint32_t num_actual_bones(mesh_index_t aMeshIndex) const;
+		
+		/**	Gets the number of bones that are associated to the given mesh index.
+		 *	This is the number of bones used for internal indices/animation setup.
+		 *	In contrast to num_actual_bones, it returns 1u for meshes which actually
+		 *	do not have any bones in their ASSIMP structure.
+		 */
+		uint32_t num_bone_matrices(mesh_index_t aMeshIndex) const;
 
 		/**	Gets the number of bones that are associated with all the given mesh indices.
 		 *	Note that the number of bones returned refer to "accumulated per-mesh bones",
 		 *	and "per-mesh bones" means that actual bones (from the skeleton) can occur multiple
 		 *	times across multiple meshes.
 		 */
-		uint32_t num_bones(std::vector<mesh_index_t> aMeshIndices) const;
+		uint32_t num_bone_matrices(std::vector<mesh_index_t> aMeshIndices) const;
 		
 		/**	Gets the inverse bind pose matrices for each bone assigned to the given mesh index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -353,7 +361,9 @@ namespace gvk
 		
 	private:
 		void initialize_materials();
-		std::optional<glm::mat4> transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const;
+		aiNode* find_mesh_root_node(unsigned int aMeshIndexToFind) const;
+		aiNode* mesh_node_traverser(unsigned int aMeshIndexToFind, aiNode* aNode) const;
+		std::optional<glm::mat4> transformation_matrix_traverser(unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const;
 		std::optional<glm::mat4> transformation_matrix_traverser_for_light(const aiLight* aLight, const aiNode* Node, const aiMatrix4x4& aM) const;
 		std::optional<glm::mat4> transformation_matrix_traverser_for_camera(const aiCamera* aCamera, const aiNode* aNode, const aiMatrix4x4& aM) const;
 
