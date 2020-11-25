@@ -954,10 +954,10 @@ namespace gvk
 			anode.mParentTransform = bUnanimatedParentTransform;
 			if (anode.mAnimatedParentIndex.has_value()) {
 				assert(!(
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[0][0] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[1][1] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[2][2] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[3][3] == 0.0f
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[0][0] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[1][1] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[2][2] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[3][3] == 0.0f
 				));
 				anode.mGlobalTransform = result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform * anode.mParentTransform;
 			}
