@@ -240,7 +240,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::sync::not_required());
 
-		// scale skybox 
+		// scale skybox, mirror x axis 
 		viewProjMat.mModelViewMatrix = mirroredViewMatrix * mModelMatrixSkybox;
 		// Cancel out translation
 		viewProjMat.mModelViewMatrix[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -259,7 +259,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		cmdbfr->begin_recording();
 		cmdbfr->begin_render_pass_for_framebuffer(mPipelineSkybox->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 
-		cmdbfr->bind_pipeline(mPipelineSkybox);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineSkybox));
 		cmdbfr->bind_descriptors(mPipelineSkybox->layout(), mDescriptorCacheSkybox.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
@@ -269,13 +269,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Make the draw call:
 			cmdbfr->draw_indexed(
 				// Bind and use the index buffer:
-				*drawCall.mIndexBuffer,
+				avk::const_referenced(drawCall.mIndexBuffer),
 				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				*drawCall.mPositionsBuffer
+				avk::const_referenced(drawCall.mPositionsBuffer)
 			);
 		}
 
-		cmdbfr->bind_pipeline(mPipelineReflect);
+		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineReflect));
 		cmdbfr->bind_descriptors(mPipelineReflect->layout(), mDescriptorCacheReflect.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mViewProjBufferReflect),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
@@ -285,9 +285,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Make the draw call:
 			cmdbfr->draw_indexed(
 				// Bind and use the index buffer:
-				*drawCall.mIndexBuffer,
+				avk::const_referenced(drawCall.mIndexBuffer),
 				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				*drawCall.mPositionsBuffer, *drawCall.mNormalsBuffer
+				avk::const_referenced(drawCall.mPositionsBuffer), avk::const_referenced(drawCall.mNormalsBuffer)
 			);
 		}
 
@@ -296,11 +296,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
-		auto& imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
 		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(std::move(cmdbfr));
+		mainWnd->handle_lifetime(avk::owned(cmdbfr));
 	}
 
 	void update() override
@@ -365,12 +365,7 @@ private: // v== Member variables ==v
 	glm::vec3 mScale;
 
 	const float mScaleSkybox = 100.f;
-	const glm::mat4 mModelMatrixSkybox{
-		mScaleSkybox, 0.f, 0.f, 0.f,
-		0.f, mScaleSkybox, 0.f, 0.f,
-		0.f, 0.f, mScaleSkybox, 0.f,
-		0.f, 0.f, 0.f, 1.f
-	};
+	const glm::mat4 mModelMatrixSkybox = glm::scale(glm::vec3(mScaleSkybox));
 
 #if _DEBUG
 	gvk::updater mUpdaterSkybox;
