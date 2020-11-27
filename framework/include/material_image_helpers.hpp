@@ -1,5 +1,6 @@
 #pragma once
 #include <gvk.hpp>
+#include "image_resource.hpp"
 
 namespace gvk
 {	
@@ -52,46 +53,8 @@ namespace gvk
 		return img;
 	}
 
-	class image_resource
-	{
-	public:
-		image_resource(const std::string& aPath, bool asRGB = false, bool aFlip = false) : mPath(aPath), msRGB(asRGB), mFlip(aFlip)
-		{
-		};
-
-		~image_resource() {};
-
-		vk::Format get_format();
-
-		void get_target();
-
-		void get_extent();
-
-		const void* get_data();
-
-		size_t levels(); // Mipmap levels; 1 if no MIPmapping, 0 if Mipmaps should be created after loading
-		size_t layers(); // array layers
-		size_t faces(); // faces in cubemap
-
-		void flip();
-
-	private:
-		std::string mPath;
-		bool mFlip;
-		bool msRGB;
-	};
-
-	class image_resource_gli : image_resource
-	{
-	public:
-		image_resource_gli(const std::string& aPath) : image_resource(aPath)
-		{
-		};
-
-		~image_resource_gli() {};
-
-	private:
-	};
+	avk::image create_cubemap_from_file(image_resource& aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle());
 
 	avk::image create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,

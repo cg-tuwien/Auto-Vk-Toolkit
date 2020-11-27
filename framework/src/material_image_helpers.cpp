@@ -2,6 +2,7 @@
 
 namespace gvk
 {
+	
 	static auto select_format(int aPreferredNumberOfTextureComponents, bool aLoadHdr, bool aLoadSrgb)
 	{
 		std::optional<vk::Format> imFmt = {};
@@ -131,55 +132,16 @@ namespace gvk
 		return imFmt;
 	}
 
-	static int map_format_to_stbi_channels(vk::Format aFormat)
+	avk::image create_cubemap_from_file(image_resource& aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler)
 	{
-		if (avk::is_4component_format(aFormat)) {
-			return STBI_rgb_alpha;
+		assert(!aImageResource->empty());
+
+		int width = aImageResource->extent().width;
+		int height = aImageResource->extent().height;
+
+		if (aImageResource->target() != vk::ImageType::e2D || aImageResource->faces() != 6) {
+			throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cubemap image.", aImageResource->path()));
 		}
-		else if (avk::is_3component_format(aFormat)) {
-			return STBI_rgb;
-		}
-		else if (avk::is_2component_format(aFormat)) {
-			return STBI_grey_alpha;
-		}
-		else {
-			return STBI_grey;
-		}
-	}
-
-	avk::image create_cubemap_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip,
-		avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<gli::texture> aAlreadyLoadedGliTexture)
-	{
-		std::vector<avk::buffer> stagingBuffers;
-		int width = 0;
-		int height = 0;
-
-		// ============ Compressed formats (DDS) ==========
-		// TODO find better way to determine which library to use for a given image file
-		if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
-			if (!aAlreadyLoadedGliTexture.has_value()) {
-				aAlreadyLoadedGliTexture = gli::load(aPath);
-			}
-			auto& gliTex = aAlreadyLoadedGliTexture.value();
-
-			if (gliTex.target() != gli::TARGET_CUBE) {
-				throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as a cubemap image. Can't load it.", aPath));
-			}
-
-			width = gliTex.extent()[0];
-			height = gliTex.extent()[1];
-
-			/*
-			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-				AVK_STAGING_BUFFER_MEMORY_USAGE,
-				vk::BufferUsageFlagBits::eTransferSrc,
-				avk::generic_buffer_meta::create_from_size(gliTex.size())
-			));
-			sb->fill(gliTex.data(), 0, avk::sync::not_required());
-			*/
-		}
-
-		// TODO other formats
 
 		// image must have flag set to be used for cubemap
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
@@ -188,7 +150,8 @@ namespace gvk
 		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
 
 		auto numLayers = 6; // a cubemap image in Vulkan must have six layers, one for each side of the cube
-		auto img = context().create_image(width, height, aFormat, numLayers, aMemoryUsage, aImageUsage);
+		// TODO: if image resource does not have a full mipmap pyramid, create image with fewer levels
+		auto img = context().create_image(width, height, aImageResource->get_format(), numLayers, aMemoryUsage, aImageUsage);
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 
 		// 1. Transition image layout to eTransferDstOptimal
@@ -196,225 +159,65 @@ namespace gvk
 		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
 
 		// 2. Copy buffer to image
-		//assert(stagingBuffers.size() == 1);
-		//avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																																				// TODO: Verify the above ^ comment
-		// Are MIP-maps required?
-		//if (img->config().mipLevels > 1u) {
-			// TODO find better way to determine which library to use for a given image file
-			if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
-				assert(aAlreadyLoadedGliTexture.has_value());
-				// 1st level is contained in stagingBuffer
-				// 
-				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
+		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
 
-				auto maxLevels = img->config().mipLevels;
+		// number of levels to load from image resource
+		auto maxLevels = aImageResource->levels();
 
-				auto& gliTex = aAlreadyLoadedGliTexture.value();
+		// if number of levels is 0, generate all mipmaps after loading
+		if (maxLevels == 0)
+		{
+			maxLevels = 1;
+		}
 
-				assert(maxLevels <= gliTex.levels());
-				assert(gliTex.faces() == 6);
+		assert(maxLevels >= 1);
+		// TODO: handle the case where some but not all mipmap levels are loaded from image resource
+		assert(maxLevels == 1 || maxLevels == img->config().mipLevels);
+		// TODO: handle cubemap arrays
+		assert(aImageResource->faces() == 6);
 
-				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
-				for (uint32_t level = 0; level < maxLevels; ++level)
-				{
-					for (uint32_t face = 0; face < 6; ++face)
-					{
+		std::vector<avk::buffer> stagingBuffers;
+
+		// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+		for (uint32_t level = 0; level < maxLevels; ++level)
+		{
+			for (uint32_t face = 0; face < 6; ++face)
+			{
 #if _DEBUG
-						{
-							glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
-							auto imgExtent = img->config().extent;
-							auto levelDivisor = std::pow(2u, level);
-							imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
-							imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-							imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
-							assert(levelExtent.x == static_cast<int>(imgExtent.width));
-							assert(levelExtent.y == static_cast<int>(imgExtent.height));
-							assert(levelExtent.z == static_cast<int>(imgExtent.depth));
-						}
+				{
+					auto levelExtent = aImageResource->extent(level);
+					auto imgExtent = img->config().extent;
+					auto levelDivisor = 1u << level;
+					imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
+					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+					imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
+					assert(levelExtent.width == static_cast<int>(imgExtent.width));
+					assert(levelExtent.height == static_cast<int>(imgExtent.height));
+					assert(levelExtent.depth == static_cast<int>(imgExtent.depth));
+				}
 #endif
 
-						auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-							AVK_STAGING_BUFFER_MEMORY_USAGE,
-							vk::BufferUsageFlagBits::eTransferSrc,
-							avk::generic_buffer_meta::create_from_size(gliTex.size(level))
-						));
-						sb->fill(gliTex.data(0, face, level), 0, avk::sync::not_required());
-
-						// Memory writes are not overlapping => no barriers should be fine.
-						avk::copy_buffer_to_image_layer_mip_level(sb, img, face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-					}
-				}
-			}
-			else {
-				// TODO load other image files here, load MIP-map level 0
-				assert(false);
-
-				// For uncompressed formats, create MIP-maps via BLIT:
-				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-			}
-		//}
-
-		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
-
-		// 3. Transition image layout to its target layout and handle lifetime of things via sync
-		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-
-		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
-		auto result = aSyncHandler.submit_and_sync();
-		assert(!result.has_value());
-		return img;
-	}
-
-	avk::image create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler)
-	{
-		std::optional<vk::Format> imFmt = {};
-
-		std::optional<gli::texture> gliTex = gli::load(aPath);
-		if (!gliTex.value().empty()) {
-
-			// TODO: warn if image can't be flipped?
-			if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
-				gliTex = gli::flip(gliTex.value());
-			}
-
-			imFmt = map_format_gli_to_vk(gliTex.value().format());
-		}
-		else {
-			gliTex.reset();
-		}
-
-		if (!imFmt.has_value()) {
-			imFmt = select_format(aPreferredNumberOfTextureComponents, aLoadHdrIfPossible && stbi_is_hdr(aPath.c_str()), aLoadSrgbIfApplicable);
-		}
-
-		return create_cubemap_from_file(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex));
-	}
-
-	avk::image create_cubemap_from_file(const std::vector<std::string>& aPaths, vk::Format aFormat, bool aFlip,
-		avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::vector<std::optional<gli::texture>> aAlreadyLoadedGliTextures)
-	{
-		std::vector<avk::buffer> stagingBuffers;
-		int width = 0;
-		int height = 0;
-
-		for (auto i = 0; i < 6; ++i)
-		{
-			auto& aPath = aPaths[i];
-			auto& aAlreadyLoadedGliTexture = aAlreadyLoadedGliTextures[i];
-
-			int current_width = 0;
-			int current_height = 0;
-
-			// ============ Compressed formats (DDS) ==========
-			// TODO find better way to determine which library to use for a given image file
-			if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
-				if (!aAlreadyLoadedGliTexture.has_value()) {
-					aAlreadyLoadedGliTexture = gli::load(aPath);
-				}
-				auto& gliTex = aAlreadyLoadedGliTexture.value();
-
-				if (gliTex.target() != gli::TARGET_2D) {
-					throw gvk::runtime_error(fmt::format("The image '{}' is not intended to be used as a 2D image. Can't load it.", aPath));
-				}
-
-				current_width = gliTex.extent()[0];
-				current_height = gliTex.extent()[1];
-
-				/*
 				auto& sb = stagingBuffers.emplace_back(context().create_buffer(
 					AVK_STAGING_BUFFER_MEMORY_USAGE,
 					vk::BufferUsageFlagBits::eTransferSrc,
-					avk::generic_buffer_meta::create_from_size(gliTex.size())
+					avk::generic_buffer_meta::create_from_size(aImageResource->size(level))
 				));
-				sb->fill(gliTex.data(), 0, avk::sync::not_required());
-				*/
-			}
-			// TODO other formats
+				sb->fill(aImageResource->get_data(0, face, level), 0, avk::sync::not_required());
 
-			if (width > 0 && height > 0) {
-				assert(current_width == width && current_height == height);
-			}
-			else {
-				width = current_width;
-				height = current_height;
+				// Memory writes are not overlapping => no barriers should be fine.
+				avk::copy_buffer_to_image_layer_mip_level(sb, img, face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); 
+				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+				// TODO: Verify the above ^ comment
 			}
 		}
 
-		// image must have flag set to be used for cubemap
-		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
-
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
-		auto numLayers = 6; // a cubemap image in Vulkan must have six layers, one for each side of the cube
-		auto img = context().create_image(width, height, aFormat, numLayers, aMemoryUsage, aImageUsage);
-		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
-
-		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
-		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
-
-		// 2. Copy buffer to image
-		//assert(stagingBuffers.size() == 1);
-		//avk::copy_buffer_to_image(stagingBuffers.front(), img, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																																				// TODO: Verify the above ^ comment
-		// Are MIP-maps required?
-		//if (img->config().mipLevels > 1u) {
-			// TODO find better way to determine which library to use for a given image file
-		for (uint32_t face = 0; face < 6; ++face)
+		if (maxLevels == 1 && img->config().mipLevels > 1)
 		{
-			auto& aAlreadyLoadedGliTexture = aAlreadyLoadedGliTextures[face];
-
-			if (avk::is_block_compressed_format(aFormat) || aAlreadyLoadedGliTexture.has_value()) {
-				assert(aAlreadyLoadedGliTexture.has_value());
-				// 1st level is contained in stagingBuffer
-				// 
-				// Now let's load further levels from the GliTexture and upload them directly into the sub-levels
-
-				auto maxLevels = img->config().mipLevels;
-
-				auto& gliTex = aAlreadyLoadedGliTexture.value();
-
-				assert(maxLevels <= gliTex.levels());
-
-				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
-				for (uint32_t level = 0; level < maxLevels; ++level)
-				{
-#if _DEBUG
-					{
-						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
-						auto imgExtent = img->config().extent;
-						auto levelDivisor = std::pow(2u, level);
-						imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
-						imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-						imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
-						assert(levelExtent.x == static_cast<int>(imgExtent.width));
-						assert(levelExtent.y == static_cast<int>(imgExtent.height));
-						assert(levelExtent.z == static_cast<int>(imgExtent.depth));
-					}
-#endif
-
-					auto& sb = stagingBuffers.emplace_back(context().create_buffer(
-						AVK_STAGING_BUFFER_MEMORY_USAGE,
-						vk::BufferUsageFlagBits::eTransferSrc,
-						avk::generic_buffer_meta::create_from_size(gliTex.size(level))
-					));
-					sb->fill(gliTex.data(0, 0, level), 0, avk::sync::not_required());
-
-					// Memory writes are not overlapping => no barriers should be fine.
-					avk::copy_buffer_to_image_layer_mip_level(sb, img, face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-				}
-			}
-			else {
-			// TODO load other image files here, load MIP-map level 0
-			assert(false);
+			// can't create MIP-maps for compressed formats
+			assert(!avk::is_block_compressed_format(aImageResource->get_format()));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-			}
-			//}
 		}
 
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
@@ -427,51 +230,6 @@ namespace gvk
 		assert(!result.has_value());
 		return img;
 	}
-
-	avk::image create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler)
-	{
-		assert(aPaths.size() == 6);
-
-		std::vector< std::optional<gli::texture>> gliTexs(aPaths.size());
-
-		std::optional<vk::Format> combined_imFmt = {};
-
-		for (auto i = 0; i < 6; ++i)
-		{
-			std::optional<vk::Format> imFmt = {};
-
-			auto& aPath = aPaths[i];
-			auto& gliTex = gliTexs[i];
-
-			gliTex = gli::load(aPath);
-			if (!gliTex.value().empty()) {
-
-				// TODO: warn if image can't be flipped?
-				if (aFlip && (!gli::is_compressed(gliTex.value().format()) || gli::is_s3tc_compressed(gliTex.value().format()))) {
-					gliTex = gli::flip(gliTex.value());
-				}
-
-				imFmt = map_format_gli_to_vk(gliTex.value().format());
-			}
-			else {
-				gliTex.reset();
-			}
-
-			if (!imFmt.has_value()) {
-				imFmt = select_format(aPreferredNumberOfTextureComponents, aLoadHdrIfPossible && stbi_is_hdr(aPath.c_str()), aLoadSrgbIfApplicable);
-			}
-
-			if (combined_imFmt.has_value())
-				assert(imFmt == combined_imFmt);
-			else
-				combined_imFmt = imFmt;			
-		}
-
-		return create_cubemap_from_file(aPaths, combined_imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTexs));
-
-	}
-
 
 	avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip, 
 		avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<gli::texture> aAlreadyLoadedGliTexture)
@@ -482,6 +240,7 @@ namespace gvk
 
 		// ============ Compressed formats (DDS) ==========
 		if (avk::is_block_compressed_format(aFormat)) {
+			// FIXME: if image loaded with gli is not in block compressed format, it won't be used here and loading with another library might fail
 			if (!aAlreadyLoadedGliTexture.has_value()) {
 				aAlreadyLoadedGliTexture = gli::load(aPath);
 			}
@@ -539,7 +298,7 @@ namespace gvk
 		// ============ RGB 16-bit float formats (HDR) ==========
 		else if (avk::is_float16_format(aFormat)) {
 
-			stbi_set_flip_vertically_on_load(true);
+			stbi_set_flip_vertically_on_load(aFlip);
 			int desiredColorChannels = STBI_rgb_alpha;
 
 			if (!avk::is_4component_format(aFormat)) {
