@@ -1,5 +1,6 @@
 #include <gvk.hpp>
 #include <imgui.h>
+#include "image_resource.hpp"
 
 class texture_cubemap_app : public gvk::invokee
 {
@@ -44,10 +45,19 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// which coincides with the memory layout of the textures. Therefore we don't need to flip them along the y axis.
 		// Note that lookup operations in a cubemap are defined in a left-handed coordinate system,
 		// i.e. when looking at the positive Z face from inside the cube, the positive X face is to the right.
-		auto cubemap_image = gvk::create_cubemap_from_file("assets/cubemap_yokohama_rgba.ktx", true, true, false);
 
-		//std::vector<std::string> cubemap_files { "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
-		//auto cubemap_image = gvk::create_cubemap_from_file(cubemap_files, true, true, false);
+		gvk::image_resource cubemap_image_resource;
+
+		bool load_ktx = false;
+		if (load_ktx) {
+			cubemap_image_resource = gvk::image_resource_t::create_image_resource_from_file("assets/cubemap_yokohama_rgba.ktx", true, true, false);
+		}
+		else {
+			std::vector<std::string> cubemap_files{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
+			cubemap_image_resource = gvk::image_resource_t::create_image_resource_from_file(cubemap_files, true, true, false);
+		}
+
+		auto cubemap_image = gvk::create_cubemap_from_file(cubemap_image_resource);
 
 		auto cubemap_sampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
 		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image->format(), avk::image_usage::general_cube_map_texture);
@@ -219,7 +229,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-				ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
+//				ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
 				ImGui::End();
 			});
 		}
