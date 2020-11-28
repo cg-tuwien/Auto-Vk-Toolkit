@@ -173,6 +173,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
+				bool isEnabled = this->is_enabled();
 		        ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
@@ -180,6 +181,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
 				ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
+				ImGui::Checkbox("Enable/Disable invokee", &isEnabled);
+				if (isEnabled != this->is_enabled())
+				{
+					if (!isEnabled) this->disable();
+					else this->enable();
+				}
 				ImGui::End();
 			});
 		}

@@ -76,7 +76,7 @@ namespace gvk
 			}
 			mRenderpass = context().create_renderpass(
 				attachments,
-				[](avk::renderpass_sync& rpSync){
+				[](avk::renderpass_sync& rpSync) {
 					if (rpSync.is_external_pre_sync()) {
 						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
 						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
@@ -92,9 +92,10 @@ namespace gvk
 				}
 			);
 
-			
+			// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
+			attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store);
 			mClearRenderPass = context().create_renderpass(
-				std::vector<avk::attachment>({ avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store) }),
+				attachments,
 				[](avk::renderpass_sync& rpSync) {
 					if (rpSync.is_external_pre_sync()) {
 						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
