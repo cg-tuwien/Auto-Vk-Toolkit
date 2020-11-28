@@ -454,7 +454,11 @@ namespace gvk
 		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
 
 		if (!has_consumed_current_image_available_semaphore()) {
-			LOG_WARNING(fmt::format("Frame #{}: User has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!", current_frame()));
+			
+			// TODO: this is not a great way of handling the spam. find a better solution (improved logger mechanism?)
+			// This message is important, however not necessary to output every frame when invokee is just disabled.
+			if (current_frame() % 5000 == 0)
+				LOG_WARNING(fmt::format("Timed message: The main invokee is disabled or user has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!"));
 			auto imgAvailable = consume_current_image_available_semaphore();
 			renderFinishedSemaphores.push_back(imgAvailable->handle());
 			renderFinishedSemaphoreStages.push_back(imgAvailable->semaphore_wait_stage());

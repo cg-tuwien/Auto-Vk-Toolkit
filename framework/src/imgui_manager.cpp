@@ -91,6 +91,25 @@ namespace gvk
 					}
 				}
 			);
+
+			
+			mClearRenderPass = context().create_renderpass(
+				std::vector<avk::attachment>({ avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store) }),
+				[](avk::renderpass_sync& rpSync) {
+					if (rpSync.is_external_pre_sync()) {
+						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
+					}
+					if (rpSync.is_external_post_sync()) {
+						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+						rpSync.mDestinationMemoryDependency = {};
+					}
+				}
+			);
 		}
 
 		// Init it:
@@ -292,11 +311,18 @@ namespace gvk
 		ImGui::Render();
 		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
 		cmdBfr->begin_recording();
+
+		// if no invokee has written on the attachment, reset layout (cannot be "store_in_presentable_format")
+		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
+			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderPass.value()), referenced(mainWnd->current_backbuffer()));
+			cmdBfr->end_render_pass();
+		}		
+
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
+		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));		
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
-		cmdBfr->end_recording();
+		cmdBfr->end_recording();		
 		mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mQueue->submit_and_handle_with_semaphore(avk::owned(cmdBfr))));
 	}
 

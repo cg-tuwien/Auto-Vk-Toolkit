@@ -34,13 +34,18 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([](){
-				
+			imguiManager->add_callback([this](){	
+				bool isEnabled = this->is_enabled();
 		        ImGui::Begin("Hello, world!");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-
+				ImGui::Checkbox("Enable/Disable invokee", &isEnabled);				
+				if (isEnabled != this->is_enabled())
+				{					
+					if (!isEnabled) this->disable();
+					else this->enable();					
+				}
 				static std::vector<float> values;
 				values.push_back(1000.0f / ImGui::GetIO().Framerate);
 		        if (values.size() > 90) {

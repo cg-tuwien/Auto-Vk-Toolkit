@@ -47,6 +47,10 @@ namespace gvk
 		avk::descriptor_pool mDescriptorPool;
 		avk::command_pool mCommandPool;
 		std::optional<avk::renderpass> mRenderpass;
+
+		// this render pass is used to reset the attachment if no invokee has previously written on it
+		// TODO is there a better solution(?)
+		std::optional<avk::renderpass> mClearRenderPass;
 		std::vector<avk::unique_function<void()>> mCallback;
 		int mExecutionOrder;
 		int mMouseCursorPreviousValue;
