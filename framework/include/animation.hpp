@@ -9,6 +9,32 @@ namespace gvk
 		double mTicksPerSecond;
 		double mStartTicks;
 		double mEndTicks;
+
+		double start_ticks() const
+		{
+			return mStartTicks;
+		}
+
+		double end_ticks() const
+		{
+			return mEndTicks;
+		}
+		
+		double start_time() const
+		{
+			if (mTicksPerSecond == 0.0) {
+				throw gvk::runtime_error("animation_clip_data::mTicksPerSecond may not be 0.0 => set a different value!");
+			}
+			return mStartTicks / mTicksPerSecond;
+		}
+
+		double end_time() const
+		{
+			if (mTicksPerSecond == 0.0) {
+				throw gvk::runtime_error("animation_clip_data::mTicksPerSecond may not be 0.0 => set a different value!");
+			}
+			return mStartTicks / mTicksPerSecond;
+		}
 	};
 
 	struct position_key
@@ -255,7 +281,7 @@ namespace gvk
 		void animate(const animation_clip_data& aClip, double aTime, F&& aBoneMatrixCalc)
 		{
 			if (aClip.mTicksPerSecond == 0.0) {
-				throw gvk::runtime_error("mTicksPerSecond may not be 0.0 => set a different value!");
+				throw gvk::runtime_error("animation_clip_data::mTicksPerSecond may not be 0.0 => set a different value!");
 			}
 			if (aClip.mAnimationIndex != mAnimationIndex) {
 				throw gvk::runtime_error("The animation index of the passed animation_clip_data is not the same that was used to create this animation.");
