@@ -42,32 +42,6 @@ namespace gvk
 									}
 			);
 			break;
-		case bone_matrices_space::mesh_local_bone_space:
-			animate(aClip, aTime, [target = reinterpret_cast<uint8_t*>(aTargetMemory), meshStride = aMeshStride, matStride = aMatricesStride.value_or(sizeof(glm::mat4)), maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())]
-									(mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
-										// Construction of the bone matrix for this node:
-										//   1. Bring vertex into bone space
-										//   2. Apply transformaton in bone space
-										//   3. Convert transformed vertex to bone space again
-										if (aInfo.mMeshAnimationIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
-											*reinterpret_cast<glm::mat4*>(target + aInfo.mMeshAnimationIndex * meshStride + aInfo.mMeshLocalBoneIndex * matStride) = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
-										}
-									}
-			);
-			break;
-		case bone_matrices_space::global_bone_space:
-			animate(aClip, aTime, [target = reinterpret_cast<uint8_t*>(aTargetMemory), meshStride = aMeshStride, matStride = aMatricesStride.value_or(sizeof(glm::mat4)), maxMeshes = aMaxMeshes.value_or(std::numeric_limits<size_t>::max()), maxBones = aMaxBonesPerMesh.value_or(std::numeric_limits<size_t>::max())]
-									(mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
-										// Construction of the bone matrix for this node:
-										//   1. Bring vertex into bone space
-										//   2. Apply transformaton in bone space
-										//   3. Convert transformed vertex to bone space again
-										if (aInfo.mMeshAnimationIndex < maxMeshes && aInfo.mMeshLocalBoneIndex < maxBones) {
-											*reinterpret_cast<glm::mat4*>(target + aInfo.mMeshAnimationIndex * meshStride + aInfo.mMeshLocalBoneIndex * matStride) = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
-										}
-									}
-			);
-			break;
 		default:
 			throw gvk::runtime_error("Unknown target space value.");
 		}
@@ -91,24 +65,6 @@ namespace gvk
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space => MODEL SPACE
 				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
-			});
-			break;
-		case bone_matrices_space::mesh_local_bone_space:
-			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
-				// Construction of the bone matrix for this node:
-				//   1. Bring vertex into bone space
-				//   2. Apply transformaton in bone space
-				//   3. Convert transformed vertex to bone space again, which is relative to the mesh's root
-				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
-			});
-			break;
-		case bone_matrices_space::global_bone_space:
-			animate(aClip, aTime, [aTargetMemory](mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix){
-				// Construction of the bone matrix for this node:
-				//   1. Bring vertex into bone space
-				//   2. Apply transformaton in bone space
-				//   3. Convert transformed vertex to bone space again
-				aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = glm::inverse(aInverseMeshRootMatrix) * aInverseBindPoseMatrix * aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
 			});
 			break;
 		default:

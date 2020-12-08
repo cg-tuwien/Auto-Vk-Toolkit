@@ -66,7 +66,7 @@ namespace gvk
 		 *								Likewise, if bone_matrices_space::model_space is chosen, the input-vertices that 
 		 *								are to be transformed into bone-space must be provided in model coordinates.
 		 */
-		std::vector<glm::mat4> inverse_bind_pose_matrices(mesh_index_t aMeshIndex, bone_matrices_space aSourceSpace) const;
+		std::vector<glm::mat4> inverse_bind_pose_matrices(mesh_index_t aMeshIndex, bone_matrices_space aSourceSpace = bone_matrices_space::mesh_space) const;
 
 		/** Gets the name of the mesh at the given index (not to be confused with the material's name)
 		 *	@param		aMeshIndex		The index corresponding to the mesh

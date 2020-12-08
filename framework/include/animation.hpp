@@ -33,7 +33,7 @@ namespace gvk
 			if (mTicksPerSecond == 0.0) {
 				throw gvk::runtime_error("animation_clip_data::mTicksPerSecond may not be 0.0 => set a different value!");
 			}
-			return mStartTicks / mTicksPerSecond;
+			return mEndTicks / mTicksPerSecond;
 		}
 	};
 
@@ -226,16 +226,6 @@ namespace gvk
 
 		/** Model space is the space of a model (within which meshes are positioned). */
 		model_space,
-
-		/** The space of one specific bone, w.r.t. the mesh's base coordinate system.
-		 *	I.e., this is the mesh-local bone space and is different for each mesh.
-		 */
-		mesh_local_bone_space,
-
-		/** The space of one specific bone, w.r.t. the model's base coordinate system.
-		 *	I.e., this is ths "global bone space", when "global" refers to the model.
-		 */
-		global_bone_space,
 	};
 	
 	class model_t;
@@ -400,7 +390,7 @@ namespace gvk
 		 *	with one of the resulting bone matrices is transformed into the given target space.
 		 *	This method writes the bone matrices into contiguous strided memory where aTargetMemory points to the
 		 *	location where the first bone matrix shall be written to.
-		 *	
+		 *
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 *	@param	aTargetSpace		The target space into which the vertices shall be transformed by multiplying them with the bone matrices
@@ -417,7 +407,7 @@ namespace gvk
 		 *	This method writes the bone matrices into one single contiguous piece of memory which is expected to
 		 *	be the single target to receive ALL bone matrices of all meshes. This method is intended to be used with
 		 *	bone indices that have been retrieved(or transformed!) with one of the model_t::*_for_single_target_buffer methods.
-		 * 
+		 *
 		 *	@param	aClip				Animation clip to use for the animation
 		 *	@param	aTime				Time in seconds to calculate the bone matrices at.
 		 *	@param	aTargetSpace		The target space into which the vertices shall be transformed by multiplying them with the bone matrices
@@ -425,7 +415,7 @@ namespace gvk
 		 */
 		void animate_into_single_target_buffer(const animation_clip_data& aClip, double aTime, bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory);
 
-		/**	Returns all the unique keyframe time-values of the given animation. 
+		/**	Returns all the unique keyframe time-values of the given animation.
 		 *	@param	aClip				Animation clip which to extract the unique keyframe time-values from
 		 */
 		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
