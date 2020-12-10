@@ -1071,7 +1071,7 @@ namespace gvk
 
 		// ---------------------------------------------
 		// AND NOW: Construct the animated_nodes "tree"
-#if _DEBUG
+#ifdef _DEBUG
 		{
 			std::vector<aiNode*> sanityCheck;
 			for (unsigned int i = 0; i < ani->mNumChannels; ++i) {

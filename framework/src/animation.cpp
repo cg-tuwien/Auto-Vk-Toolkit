@@ -72,7 +72,7 @@ namespace gvk
 		}
 	}
 
-	std::vector<double> animation::animation_key_times_within_clip(const animation_clip_data& aClip)
+	std::vector<double> animation::animation_key_times_within_clip(const animation_clip_data& aClip) const
 	{
 		std::set<double> mUniqueKeys;
 		for (auto& anode : mAnimationData) {
@@ -95,6 +95,54 @@ namespace gvk
 		std::vector<double> result;
 		for (auto entry : mUniqueKeys) {
 			result.push_back(entry);
+		}
+		return result;
+	}
+
+	std::reference_wrapper<animated_node> animation::get_animated_node_at(size_t aNodeIndex)
+	{
+		assert(aNodeIndex < mAnimationData.size());
+		return std::ref(mAnimationData[aNodeIndex]);
+	}
+
+	std::optional<size_t> animation::get_animated_parent_index_of(size_t aNodeIndex) const
+	{
+		assert(aNodeIndex < mAnimationData.size());
+		return mAnimationData[aNodeIndex].mAnimatedParentIndex;
+	}
+
+	std::optional<std::reference_wrapper<animated_node>> animation::get_animated_parent_node_of(size_t aNodeIndex)
+	{
+		auto parentIndex = get_animated_parent_index_of(aNodeIndex);
+		if (parentIndex.has_value()) {
+			assert(parentIndex.value() < mAnimationData.size());
+			return std::ref(mAnimationData[parentIndex.value()]);
+		}
+		return {};
+	}
+
+	std::vector<size_t> animation::get_child_indices_of(size_t aNodeIndex) const
+	{
+		std::vector<size_t> result;
+		const auto n = mAnimationData.size();
+		assert(aNodeIndex < mAnimationData.size());
+		for (size_t i = aNodeIndex + 1; i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex.has_value() && mAnimationData[i].mAnimatedParentIndex.value() == aNodeIndex) {
+				result.push_back(i);
+			}
+		}
+		return result;
+	}
+
+	std::vector<std::reference_wrapper<animated_node>> animation::get_child_nodes_of(size_t aNodeIndex)
+	{
+		std::vector<std::reference_wrapper<animated_node>> result;
+		const auto n = mAnimationData.size();
+		assert(aNodeIndex < mAnimationData.size());
+		for (size_t i = aNodeIndex + 1; i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex.has_value() && mAnimationData[i].mAnimatedParentIndex.value() == aNodeIndex) {
+				result.push_back(std::ref(mAnimationData[i]));
+			}
 		}
 		return result;
 	}

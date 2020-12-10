@@ -179,7 +179,7 @@ namespace gvk
 				// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
 				for(size_t level = 1; level < gliTex.levels(); ++level)
 				{
-#if _DEBUG
+#ifdef _DEBUG
 					{
 						glm::tvec3<GLsizei> levelExtent(gliTex.extent(level));
 						auto imgExtent = img->config().extent;

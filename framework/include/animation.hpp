@@ -418,14 +418,39 @@ namespace gvk
 		/**	Returns all the unique keyframe time-values of the given animation.
 		 *	@param	aClip				Animation clip which to extract the unique keyframe time-values from
 		 */
-		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip);
+		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip) const;
+
+		/** Returns the animated_node data structure at the given index
+		 *	@param	aNodeIndex			Index referring to the node that shall be returned
+		 */
+		std::reference_wrapper<animated_node> get_animated_node_at(size_t aNodeIndex);
+		
+		/**	Returns the index of the parent node which is also animated by this animation for the given node index.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 */
+		std::optional<size_t> get_animated_parent_index_of(size_t aNodeIndex) const;
+
+		/**	Returns a reference to the parent node which is also animated by this animation for the given node index.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 */
+		std::optional<std::reference_wrapper<animated_node>> get_animated_parent_node_of(size_t aNodeIndex);
+
+		/**	Returns the indices of all nodes that the given node index is an animated parent for within the context of this animation.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
+		 */
+		std::vector<size_t> get_child_indices_of(size_t aNodeIndex) const;
+
+		/**	Returns references to all nodes that the given node index is an animated parent for within the context of this animation.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
+		 */
+		std::vector<std::reference_wrapper<animated_node>> get_child_nodes_of(size_t aNodeIndex);
 		
 	private:
 		/** Helper function used during animate() to find two positions of key-elements
 		 *	between which the given aTime lies.
 		 */
 		template <typename T>
-		std::tuple<size_t, size_t> find_positions_in_keys(const T& aCollection, double aTime)
+		std::tuple<size_t, size_t> find_positions_in_keys(const T& aCollection, double aTime) const
 		{
 			const auto maxIndex = aCollection.size() - 1;
 			
@@ -448,7 +473,7 @@ namespace gvk
 		 *	factor in the range [0..1].
 		 */
 		template <typename K>
-		float get_interpolation_factor(const K& key1, const K& key2, double aTime)
+		float get_interpolation_factor(const K& key1, const K& key2, double aTime) const
 		{
 			double timeDifferenceTicks = key2.mTime - key1.mTime;
 			if (std::abs(timeDifferenceTicks) < std::numeric_limits<double>::epsilon()) {

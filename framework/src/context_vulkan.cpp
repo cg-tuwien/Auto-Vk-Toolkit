@@ -373,7 +373,7 @@ namespace gvk
 
 			// Do we already have queues with that queue family?
 			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const avk::queue& q) { return q.is_prepared() && q.family_index() == queueFamily; });
-#if _DEBUG
+#ifdef _DEBUG
 			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
 			std::vector<int> check(num, 0);
 			for (int i = 0; i < num; ++i) {

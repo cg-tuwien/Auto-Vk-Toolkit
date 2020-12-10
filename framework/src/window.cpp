@@ -539,7 +539,7 @@ namespace gvk
 		assert(imagesInFlight == get_config_number_of_presentable_images()); // TODO: Can it happen that these two ever differ? If so => handle!
 		assert(imagesInFlight == mSwapChainImageViews.size());
 
-#if _DEBUG
+#ifdef _DEBUG
 		assert(swap_chain_image_views().size() == imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
 			LOG_DEBUG(fmt::format("Swapchain image #{}: old handle=[{}], new handle=[{}]", i, fmt::ptr(static_cast<VkImage>(swap_chain_image_at_index(i)->handle())), fmt::ptr(static_cast<VkImage>(swapChainImages[i]))));
