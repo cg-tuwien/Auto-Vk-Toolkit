@@ -101,8 +101,7 @@ namespace gvk {
 
 		enum class mode {
 			serialize,
-			deserialize,
-			none
+			deserialize
 		};
 
 		const mode mode() const { return mMode; }
