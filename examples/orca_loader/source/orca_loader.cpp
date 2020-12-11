@@ -50,7 +50,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// In update() it is not because the fence-wait that ensures that the resources are not used anymore, happens between update() and render().
 		mDestroyOldResourcesInFrame = gvk::context().main_window()->current_frame() + gvk::context().main_window()->number_of_frames_in_flight(); 
 		
-		float start = gvk::fixed_update_timer().absolute_time();
+		float start = gvk::context().get_time();
 		float startPart = start;
 		float endPart = 0.0f;
 		std::vector<std::tuple<std::string, float>> times;
@@ -60,9 +60,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Get all the different materials from the whole scene:
 		auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
-		endPart = gvk::fixed_update_timer().absolute_time();
+		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("load orca file", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
+		startPart = gvk::context().get_time();
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
@@ -112,9 +112,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		}
 
-		endPart = gvk::fixed_update_timer().absolute_time();
+		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
+		startPart = gvk::context().get_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
@@ -125,21 +125,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::sync::wait_idle()
 		);
 
-		endPart = gvk::fixed_update_timer().absolute_time();
+		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
+		startPart = gvk::context().get_time();
 
-		std::cout << std::endl;
-		std::cout << "----------------------------------------------------" << std::endl;
-		for (auto& t : times)
-			std::cout << std::get<0>(t) << " took " << std::get<1>(t) << std::endl;
+		for (auto& t : times) {
+			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+		}
 
-		std::cout << "----------------------------------------------------" << std::endl;
-		float end = gvk::fixed_update_timer().absolute_time();
+		float end = gvk::context().get_time();
 		float diff = end - start;
-		std::cout << "Took total: " << diff << std::endl;
-		std::cout << "----------------------------------------------------" << std::endl;
-		std::cout << std::endl;
+		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
 
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_visible, {},
@@ -208,7 +204,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
 			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
 
-		float start = gvk::fixed_update_timer().absolute_time();
+		float start = gvk::context().get_time();
 		float startPart = start;
 		float endPart = 0.0f;
 		std::vector<std::tuple<std::string, float>> times;
@@ -218,9 +214,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 			// Get all the different materials from the whole scene:
 			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
-			endPart = gvk::fixed_update_timer().absolute_time();
+			endPart = gvk::context().get_time();
 			times.emplace_back(std::make_tuple("no cache file, load orca file", endPart - startPart));
-			startPart = gvk::fixed_update_timer().absolute_time();
+			startPart = gvk::context().get_time();
 		}
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
@@ -282,9 +278,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}
 			}
 		}
-		endPart = gvk::fixed_update_timer().absolute_time();
+		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
+		startPart = gvk::context().get_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
@@ -296,21 +292,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			ser
 		);
 
-		endPart = gvk::fixed_update_timer().absolute_time();
+		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
-		startPart = gvk::fixed_update_timer().absolute_time();
+		startPart = gvk::context().get_time();
 
-		std::cout << std::endl;
-		std::cout << "----------------------------------------------------" << std::endl;
-		for (auto& t : times)
-			std::cout << std::get<0>(t) << " took " << std::get<1>(t) << std::endl;
+		for (auto& t : times) {
+			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+		}
 
-		std::cout << "----------------------------------------------------" << std::endl;
-		float end = gvk::fixed_update_timer().absolute_time();
+		float end = gvk::context().get_time();
 		float diff = end - start;
-		std::cout << "Took total: " << diff << std::endl;
-		std::cout << "----------------------------------------------------" << std::endl;
-		std::cout << std::endl;
+		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
 
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_visible, {},
