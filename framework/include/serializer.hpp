@@ -113,7 +113,7 @@ namespace gvk {
 		 *  with a serializer::serialize object and deserializes a file into the passed
 		 *  object if the serializer was initialized with a serializer::deserialize object.
 		 *
-		 *  @param[in] aValue The object to serialize or to fill from the file
+		 *  @param[in] aValue The object to serialize or to fill from file
 		 *
 		 *  @errors A compiler error such as "cereal could not find any output serialization
 		 *  functions * for the provided type and archive combination." means either a custom
@@ -132,22 +132,47 @@ namespace gvk {
 			}
 		}
 
+		/** @brief Serializes/Deserializes raw memory
+		 *
+		 *  This function serializes a block of memory of a specific size if the serializer
+		 *  was initialized with a serializer::serialize object and deserializes the same size
+		 *  of memory from file to the location of the pointer passed to this function if the
+		 *  serializer was initialized with a serializer::deserialize object.
+		 *
+		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
+		 *  @param[in] aSize The total size of the data in memory
+		 */
 		template<typename Type>
-		using BinaryData = cereal::BinaryData<Type>;
-
-		/** @brief Create binary data for const and non const pointers
-		*   This function creates a wrapper around data, that can be
-		*   binary serialized.
-		* 
-		*   @param[in] aValue Pointer to the beginning of the data
-		*   @param[in] aSize The size of the data in size
-		*   @return BinaryData structure
-		*/
-		template<typename Type>
-		BinaryData<Type> binary_data(Type&& aValue, size_t aSize)
+		inline void archive_memory(Type&& aValue, size_t aSize)
 		{
-			return cereal::binary_data(std::forward<Type>(aValue), aSize);
+			if (mMode == mode::serialize) {
+				std::get<serialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
+			}
+			else {
+				std::get<deserialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
+			}
 		}
+
+		/** @brief Serializes/Deserializes a avk::buffer
+		 *
+		 *  This function serializes the buffer of the internal memory_handle if the serializer
+		 *  was initialized with a serializer::serialize object and deserializes the buffer content
+		 *  from file to the buffer of the internal memory_handle if the serializer was initialized with
+		 *  a serializer::deserialize object. The passed avk::buffer is internally mapped and unmapped for
+		 *  this operations.
+		 *
+		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
+		 */
+		inline void archive_buffer(avk::buffer& aValue)
+		{
+			size_t size = aValue.get().config().size;
+			auto mapping =
+				(mMode == mode::serialize) ?
+				aValue->map_memory(avk::mapping_access::read) :
+				aValue->map_memory(avk::mapping_access::write);
+			archive_memory(mapping.get(), size);
+		}
+
 
 	private:
 		std::variant<deserialize, serialize> mArchive;

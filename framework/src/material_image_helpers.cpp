@@ -342,14 +342,11 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(aTotalSize)
 		);
-		{
-			// Map buffer and let serializer fill it
-			// To unmap the buffer after filling for
-			// device buffer transfer, mapping has to
-			// go out of scope
-			auto mapping = sb->map_memory(avk::mapping_access::write);
-			aSerializer.archive(aSerializer.binary_data(mapping.get(), aTotalSize));
-		}
+		// Map buffer and let serializer fill it
+		// To unmap the buffer after filling for
+		// device buffer transfer, mapping has to
+		// go out of scope
+		aSerializer.archive_buffer(sb);
 
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		// Sync before
@@ -448,8 +445,8 @@ namespace gvk
 			aSerializer.archive(numIndices);
 			aSerializer.archive(totalIndicesSize);
 
-			aSerializer.archive(aSerializer.binary_data(positionsData.data(), totalPositionsSize));
-			aSerializer.archive(aSerializer.binary_data(indicesData.data(), totalIndicesSize));
+			aSerializer.archive_memory(positionsData.data(), totalPositionsSize);
+			aSerializer.archive_memory(indicesData.data(), totalIndicesSize);
 
 			return create_vertex_and_index_buffers(std::make_tuple(positionsData, indicesData), aUsageFlags, std::move(aSyncHandler));
 		}
@@ -536,7 +533,7 @@ namespace gvk
 			aSerializer.archive(numNormals);
 			aSerializer.archive(totalNormalsSize);
 
-			aSerializer.archive(aSerializer.binary_data(normalsData.data(), totalNormalsSize));
+			aSerializer.archive_memory(normalsData.data(), totalNormalsSize);
 
 			return create_normals_buffer(normalsData, std::move(aSyncHandler));
 		}
@@ -614,7 +611,7 @@ namespace gvk
 			aSerializer.archive(numTangets);
 			aSerializer.archive(totalTangentsSize);
 
-			aSerializer.archive(aSerializer.binary_data(tangentsData.data(), totalTangentsSize));
+			aSerializer.archive_memory(tangentsData.data(), totalTangentsSize);
 
 			return create_tangents_buffer(tangentsData, std::move(aSyncHandler));
 		}
@@ -691,7 +688,7 @@ namespace gvk
 			aSerializer.archive(numBitangents);
 			aSerializer.archive(totalBitangentsSize);
 
-			aSerializer.archive(aSerializer.binary_data(tangentsData.data(), totalBitangentsSize));
+			aSerializer.archive_memory(tangentsData.data(), totalBitangentsSize);
 
 			return create_bitangents_buffer(tangentsData, std::move(aSyncHandler));
 		}
@@ -768,7 +765,7 @@ namespace gvk
 			aSerializer.archive(numColors);
 			aSerializer.archive(totalColorsSize);
 
-			aSerializer.archive(aSerializer.binary_data(colorsData.data(), totalColorsSize));
+			aSerializer.archive_memory(colorsData.data(), totalColorsSize);
 
 			return create_colors_buffer(colorsData, aColorsSet, std::move(aSyncHandler));
 		}
@@ -850,7 +847,7 @@ namespace gvk
 			aSerializer.archive(numBoneWeights);
 			aSerializer.archive(totalBoneWeightsSize);
 
-			aSerializer.archive(aSerializer.binary_data(boneWeightsData.data(), totalBoneWeightsSize));
+			aSerializer.archive_memory(boneWeightsData.data(), totalBoneWeightsSize);
 
 			return create_bone_weights_buffer(boneWeightsData, std::move(aSyncHandler));
 		}
@@ -932,7 +929,7 @@ namespace gvk
 			aSerializer.archive(numBoneIndices);
 			aSerializer.archive(totalBoneIndicesSize);
 
-			aSerializer.archive(aSerializer.binary_data(boneIndicesData.data(), totalBoneIndicesSize));
+			aSerializer.archive_memory(boneIndicesData.data(), totalBoneIndicesSize);
 
 			return create_bone_indices_buffer(boneIndicesData, std::move(aSyncHandler));
 		}
@@ -1066,7 +1063,7 @@ namespace gvk
 			aSerializer.archive(numTexCoords);
 			aSerializer.archive(totalTexCoordsSize);
 
-			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+			aSerializer.archive_memory(texCoordsData.data(), totalTexCoordsSize);
 
 			return create_2d_texture_coordinates_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
 		}
@@ -1143,7 +1140,7 @@ namespace gvk
 			aSerializer.archive(numTexCoords);
 			aSerializer.archive(totalTexCoordsSize);
 
-			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+			aSerializer.archive_memory(texCoordsData.data(), totalTexCoordsSize);
 
 			return create_2d_texture_coordinates_flipped_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
 		}
@@ -1220,7 +1217,7 @@ namespace gvk
 			aSerializer.archive(numTexCoords);
 			aSerializer.archive(totalTexCoordsSize);
 
-			aSerializer.archive(aSerializer.binary_data(texCoordsData.data(), totalTexCoordsSize));
+			aSerializer.archive_memory(texCoordsData.data(), totalTexCoordsSize);
 
 			return create_3d_texture_coordinates_buffer(texCoordsData, aTexCoordSet, std::move(aSyncHandler));
 		}

@@ -18,11 +18,10 @@ namespace gvk
 		}
 		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
 			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
-			(*aSerializer)->archive((*aSerializer)->binary_data(aColor.data(), sizeof(aColor)));
+			(*aSerializer)->archive_memory(aColor.data(), sizeof(aColor));
 		}
 		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-			auto mapping = stagingBuffer->map_memory(avk::mapping_access::write);
-			(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), sizeof(aColor)));
+			(*aSerializer)->archive_buffer(stagingBuffer);
 		}
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
@@ -113,11 +112,10 @@ namespace gvk
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
 				sb->fill(texData, 0, avk::sync::not_required());
-				(*aSerializer)->archive((*aSerializer)->binary_data(texData, texSize));
+				(*aSerializer)->archive_memory(texData, texSize);
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				auto mapping = sb->map_memory(avk::mapping_access::write);
-				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
+				(*aSerializer)->archive_buffer(sb);
 			}
 		}
 		// ============ RGB 8-bit formats ==========
@@ -167,11 +165,10 @@ namespace gvk
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
 				sb->fill(pixels, 0, avk::sync::not_required());
-				(*aSerializer)->archive((*aSerializer)->binary_data(pixels, imageSize));
+				(*aSerializer)->archive_memory(pixels, imageSize);
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				auto mapping = sb->map_memory(avk::mapping_access::write);
-				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
+				(*aSerializer)->archive_buffer(sb);
 			}
 		}
 		// ============ RGB 16-bit float formats (HDR) ==========
@@ -221,11 +218,10 @@ namespace gvk
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
 				sb->fill(pixels, 0, avk::sync::not_required());
-				(*aSerializer)->archive((*aSerializer)->binary_data(pixels, imageSize));
+				(*aSerializer)->archive_memory(pixels, imageSize);
 			}
 			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				auto mapping = sb->map_memory(avk::mapping_access::write);
-				(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), imageSize));
+				(*aSerializer)->archive_buffer(sb);
 			}
 		}
 		else {
@@ -304,11 +300,10 @@ namespace gvk
 					}
 					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
 						sb->fill(texData, 0, avk::sync::not_required());
-						(*aSerializer)->archive((*aSerializer)->binary_data(texData, texSize));
+						(*aSerializer)->archive_memory(texData, texSize);
 					}
 					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-						auto mapping = sb->map_memory(avk::mapping_access::write);
-						(*aSerializer)->archive((*aSerializer)->binary_data(mapping.get(), texSize));
+						(*aSerializer)->archive_buffer(sb);
 					}
 
 					// Memory writes are not overlapping => no barriers should be fine.
