@@ -448,7 +448,7 @@ namespace gvk
 			aSerializer.archive_memory(positionsData.data(), totalPositionsSize);
 			aSerializer.archive_memory(indicesData.data(), totalIndicesSize);
 
-			return create_vertex_and_index_buffers(std::make_tuple(positionsData, indicesData), aUsageFlags, std::move(aSyncHandler));
+			return create_vertex_and_index_buffers(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags, std::move(aSyncHandler));
 		}
 		else {
 			aSerializer.archive(numPositions);
@@ -599,16 +599,16 @@ namespace gvk
 
 	avk::buffer create_tangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer)
 	{
-		size_t numTangets = 0;
+		size_t numTangents = 0;
 		size_t totalTangentsSize = 0;
 
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			auto tangentsData = get_tangents(aModelsAndSelectedMeshes);
 
-			numTangets = tangentsData.size();
-			totalTangentsSize = sizeof(tangentsData[0]) * numTangets;
+			numTangents = tangentsData.size();
+			totalTangentsSize = sizeof(tangentsData[0]) * numTangents;
 
-			aSerializer.archive(numTangets);
+			aSerializer.archive(numTangents);
 			aSerializer.archive(totalTangentsSize);
 
 			aSerializer.archive_memory(tangentsData.data(), totalTangentsSize);
@@ -616,12 +616,12 @@ namespace gvk
 			return create_tangents_buffer(tangentsData, std::move(aSyncHandler));
 		}
 		else {
-			aSerializer.archive(numTangets);
+			aSerializer.archive(numTangents);
 			aSerializer.archive(totalTangentsSize);
 
 			auto tangentsBuffer = context().create_buffer(
 				avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_total_size(totalTangentsSize, numTangets)
+				avk::vertex_buffer_meta::create_from_total_size(totalTangentsSize, numTangents)
 			);
 
 			fill_device_buffer_from_cache_file(tangentsBuffer, totalTangentsSize, aSyncHandler, aSerializer);
