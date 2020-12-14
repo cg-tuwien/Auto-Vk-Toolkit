@@ -401,23 +401,27 @@ namespace gvk
 		return colorsBuffer;
 	}
 
-	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
 	{
 		std::vector<glm::vec4> boneWeightsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
 			const auto& modelRef = std::get<avk::resource_reference<const gvk::model_t>>(pair);
 			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(boneWeightsData, modelRef.get().bone_weights_for_mesh(meshIndex));
+				insert_into(boneWeightsData, modelRef.get().bone_weights_for_mesh(meshIndex, aNormalizeBoneWeights));
 			}
 		}
 
 		return boneWeightsData;
 	}
 	
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler)
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler) {
+		return create_bone_weights_buffer(aModelsAndSelectedMeshes, false, std::move(aSyncHandler));
+	}
+
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler)
 	{
-		auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes);
+		auto boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights);
 		
 		auto boneWeightsBuffer = context().create_buffer(
 			avk::memory_usage::device, {},
