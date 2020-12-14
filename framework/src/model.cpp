@@ -522,7 +522,9 @@ namespace gvk
 				if (aNormalizeBoneWeights) {
 					// Blender can save meshes with a total weight sum > 1. So first scale down by the total sum (we need to consider all weights, not only the first four!)
 					float sum = 0.0f;
-					for (auto &w : vTempWeightsPerVertex[i]) sum += std::get<float>(w);
+					for (auto& w : vTempWeightsPerVertex[i]) {
+						sum += std::get<float>(w);
+					}
 					if (sum > 0.0f) weights /= sum;
 					if (!didWarnNonNormalized && sum > 1.001f) {
 						LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than one.", aMeshIndex));
