@@ -507,7 +507,7 @@ namespace gvk
 			}
 			
 			// We've got bone weights. Proceed as planned.
-			bool didWarnNonNormalized = false;
+			bool hasNonNormalizedBoneWeights = false;
 			for (decltype(n) i = 0; i < n; ++i) {
 				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
@@ -528,13 +528,13 @@ namespace gvk
 					if (sum > 0.0f) {
 						weights /= sum;
 					}
-					if (!didWarnNonNormalized && sum > 1.001f) {
-						LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than one.", aMeshIndex));
-						didWarnNonNormalized = true;
-					}
+					hasNonNormalizedBoneWeights = sum > 1.001f || hasNonNormalizedBoneWeights;
 					// if we have more than 4 weights, assign all the unconsidered ones to the 4th bone
 					weights.w = 1.0f - weights.x - weights.y - weights.z;
 				}
+			}
+			if (hasNonNormalizedBoneWeights) {
+				LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
 			}
 		}
 		return result;
