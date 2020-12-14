@@ -482,7 +482,7 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::bone_weights_for_mesh(mesh_index_t aMeshIndex) const
+	std::vector<glm::vec4> model_t::bone_weights_for_mesh(mesh_index_t aMeshIndex, bool aNormalizeBoneWeights) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
@@ -507,6 +507,7 @@ namespace gvk
 			}
 			
 			// We've got bone weights. Proceed as planned.
+			bool didWarnNonNormalized = false;
 			for (decltype(n) i = 0; i < n; ++i) {
 				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
@@ -515,6 +516,24 @@ namespace gvk
 				const auto numIndexWeightPairs = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
 				for (int j = 0; j < numIndexWeightPairs; ++j) {
 					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
+				}
+
+				// "normalize" the weights, if requested, so they add up to one
+				if (aNormalizeBoneWeights) {
+					// Blender can save meshes with a total weight sum > 1. So first scale down by the total sum (we need to consider all weights, not only the first four!)
+					float sum = 0.0f;
+					for (auto& w : vTempWeightsPerVertex[i]) {
+						sum += std::get<float>(w);
+					}
+					if (sum > 0.0f) {
+						weights /= sum;
+					}
+					if (!didWarnNonNormalized && sum > 1.001f) {
+						LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than one.", aMeshIndex));
+						didWarnNonNormalized = true;
+					}
+					// if we have more than 4 weights, assign all the unconsidered ones to the 4th bone
+					weights.w = 1.0f - weights.x - weights.y - weights.z;
 				}
 			}
 		}
@@ -683,11 +702,11 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
+	std::vector<glm::vec4> model_t::bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices, bool aNormalizeBoneWeights) const
 	{
 		std::vector<glm::vec4> result;
 		for (auto meshIndex : aMeshIndices) {
-			auto tmp = bone_weights_for_mesh(meshIndex);
+			auto tmp = bone_weights_for_mesh(meshIndex, aNormalizeBoneWeights);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;

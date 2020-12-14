@@ -173,11 +173,12 @@ namespace gvk
 		/** Gets all the bone weights for the mesh at the given index.
 		 *	If the mesh has no bone weights, a vector filled with values is
 		 *	returned regardless. All the values will be set to (1,0,0,0) in this case.
-		 *	@param		aMeshIndex		The index corresponding to the mesh
+		 *	@param		aMeshIndex		       The index corresponding to the mesh
+		 *  @param      aNormalizeBoneWeights  Normalize the weights, so they add up to one
 		 *	@return		Vector of bone weights, converted to `glm::vec4`
 		 *				of length `number_of_vertices_for_mesh()`
 		 */
-		std::vector<glm::vec4> bone_weights_for_mesh(mesh_index_t aMeshIndex) const;
+		std::vector<glm::vec4> bone_weights_for_mesh(mesh_index_t aMeshIndex, bool aNormalizeBoneWeights = false) const;
 
 		/** Gets all the "mesh-local" bone indices for the mesh at the given index.
 		 *	If the mesh has no bone indices, a vector filled with values is
@@ -334,7 +335,7 @@ namespace gvk
 		std::vector<glm::vec3> tangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 		std::vector<glm::vec3> bitangents_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 		std::vector<glm::vec4> colors_for_meshes(std::vector<mesh_index_t> aMeshIndices, int aSet = 0) const;
-		std::vector<glm::vec4> bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
+		std::vector<glm::vec4> bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices, bool aNormalizeBoneWeights = false) const;
 		std::vector<glm::uvec4> bone_indices_for_meshes(std::vector<mesh_index_t> aMeshIndices) const;
 
 		template <typename T>
