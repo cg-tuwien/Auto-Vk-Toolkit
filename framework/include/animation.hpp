@@ -420,6 +420,9 @@ namespace gvk
 		 */
 		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip) const;
 
+		/** Returns the total number of animated nodes stored in an animation */
+		size_t number_of_animated_nodes() const;
+		
 		/** Returns the animated_node data structure at the given index
 		 *	@param	aNodeIndex			Index referring to the node that shall be returned
 		 */

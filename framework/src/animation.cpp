@@ -99,6 +99,11 @@ namespace gvk
 		return result;
 	}
 
+	size_t animation::number_of_animated_nodes() const
+	{
+		return mAnimationData.size();
+	}
+	
 	std::reference_wrapper<animated_node> animation::get_animated_node_at(size_t aNodeIndex)
 	{
 		assert(aNodeIndex < mAnimationData.size());
