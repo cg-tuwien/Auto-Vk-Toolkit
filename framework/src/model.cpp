@@ -525,7 +525,9 @@ namespace gvk
 					for (auto& w : vTempWeightsPerVertex[i]) {
 						sum += std::get<float>(w);
 					}
-					if (sum > 0.0f) weights /= sum;
+					if (sum > 0.0f) {
+						weights /= sum;
+					}
 					if (!didWarnNonNormalized && sum > 1.001f) {
 						LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than one.", aMeshIndex));
 						didWarnNonNormalized = true;
