@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	static avk::image create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gvk::serializer*> aSerializer = {})
+	static avk::image create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{avk::memory_access::transfer_read_access});
@@ -16,12 +16,12 @@ namespace gvk
 		if (!aSerializer) {
 			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
 		}
-		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+		else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
 			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
-			(*aSerializer)->archive_memory(aColor.data(), sizeof(aColor));
+			aSerializer->get().archive_memory(aColor.data(), sizeof(aColor));
 		}
-		else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-			(*aSerializer)->archive_buffer(stagingBuffer);
+		else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+			aSerializer->get().archive_buffer(stagingBuffer);
 		}
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
@@ -66,7 +66,12 @@ namespace gvk
 		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	static avk::image create_image_from_file_cached(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {}, std::optional<gvk::serializer*> aSerializer = {})
+	static avk::image create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+	}
+
+	static avk::image create_image_from_file_cached(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {}, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		std::vector<avk::buffer> stagingBuffers;
 		int width = 0;
@@ -77,7 +82,7 @@ namespace gvk
 			size_t texSize = 0;
 			void* texData = nullptr;
 			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 				if (!aAlreadyLoadedGliTexture.has_value()) {
 					aAlreadyLoadedGliTexture = gli::load(aPath);
 				}
@@ -95,9 +100,9 @@ namespace gvk
 			}
 
 			if (aSerializer) {
-				(*aSerializer)->archive(texSize);
-				(*aSerializer)->archive(width);
-				(*aSerializer)->archive(height);
+				aSerializer->get().archive(texSize);
+				aSerializer->get().archive(width);
+				aSerializer->get().archive(height);
 			}
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
@@ -109,12 +114,12 @@ namespace gvk
 			if (!aSerializer) {
 				sb->fill(texData, 0, avk::sync::not_required());
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
 				sb->fill(texData, 0, avk::sync::not_required());
-				(*aSerializer)->archive_memory(texData, texSize);
+				aSerializer->get().archive_memory(texData, texSize);
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				(*aSerializer)->archive_buffer(sb);
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+				aSerializer->get().archive_buffer(sb);
 			}
 		}
 		// ============ RGB 8-bit formats ==========
@@ -122,7 +127,7 @@ namespace gvk
 			size_t imageSize = 0;
 			stbi_uc* pixels = nullptr;
 			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 				stbi_set_flip_vertically_on_load(aFlip);
 				int desiredColorChannels = STBI_rgb_alpha;
 
@@ -148,9 +153,9 @@ namespace gvk
 			}
 
 			if (aSerializer) {
-				(*aSerializer)->archive(imageSize);
-				(*aSerializer)->archive(width);
-				(*aSerializer)->archive(height);
+				aSerializer->get().archive(imageSize);
+				aSerializer->get().archive(width);
+				aSerializer->get().archive(height);
 			}
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
@@ -162,12 +167,12 @@ namespace gvk
 			if (!aSerializer) {
 				sb->fill(pixels, 0, avk::sync::not_required());
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
 				sb->fill(pixels, 0, avk::sync::not_required());
-				(*aSerializer)->archive_memory(pixels, imageSize);
+				aSerializer->get().archive_memory(pixels, imageSize);
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				(*aSerializer)->archive_buffer(sb);
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+				aSerializer->get().archive_buffer(sb);
 			}
 		}
 		// ============ RGB 16-bit float formats (HDR) ==========
@@ -175,7 +180,7 @@ namespace gvk
 			size_t imageSize = 0;
 			float* pixels = nullptr;
 			if (!aSerializer ||
-				(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+				(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 				stbi_set_flip_vertically_on_load(true);
 				int desiredColorChannels = STBI_rgb_alpha;
 
@@ -201,9 +206,9 @@ namespace gvk
 			}
 
 			if (aSerializer) {
-				(*aSerializer)->archive(imageSize);
-				(*aSerializer)->archive(width);
-				(*aSerializer)->archive(height);
+				aSerializer->get().archive(imageSize);
+				aSerializer->get().archive(width);
+				aSerializer->get().archive(height);
 			}
 
 			auto& sb = stagingBuffers.emplace_back(context().create_buffer(
@@ -215,12 +220,12 @@ namespace gvk
 			if (!aSerializer) {
 				sb->fill(pixels, 0, avk::sync::not_required());
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
 				sb->fill(pixels, 0, avk::sync::not_required());
-				(*aSerializer)->archive_memory(pixels, imageSize);
+				aSerializer->get().archive_memory(pixels, imageSize);
 			}
-			else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-				(*aSerializer)->archive_buffer(sb);
+			else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+				aSerializer->get().archive_buffer(sb);
 			}
 		}
 		else {
@@ -246,12 +251,12 @@ namespace gvk
 			if (avk::is_block_compressed_format(aFormat)) {
 				size_t levels = 0;
 				if (!aSerializer ||
-					(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+					(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 					assert(aAlreadyLoadedGliTexture.has_value());
 					levels = aAlreadyLoadedGliTexture.value().levels();
 				}
 				if (aSerializer) {
-					(*aSerializer)->archive(levels);
+					aSerializer->get().archive(levels);
 				}
 				// 1st level is contained in stagingBuffer
 				//
@@ -265,15 +270,15 @@ namespace gvk
 					glm::tvec3<GLsizei> levelExtent;
 
 					if (!aSerializer ||
-						(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+						(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 						texSize = aAlreadyLoadedGliTexture.value().size(level);
 						texData = aAlreadyLoadedGliTexture.value().data(0, 0, level);
 						auto& gliTex = aAlreadyLoadedGliTexture.value();
 						levelExtent = gliTex.extent(level);
 					}
 					if (aSerializer) {
-						(*aSerializer)->archive(texSize);
-						(*aSerializer)->archive(levelExtent);
+						aSerializer->get().archive(texSize);
+						aSerializer->get().archive(levelExtent);
 					}
 #if _DEBUG
 					{
@@ -297,12 +302,12 @@ namespace gvk
 					if (!aSerializer) {
 						sb->fill(texData, 0, avk::sync::not_required());
 					}
-					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize) {
+					else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
 						sb->fill(texData, 0, avk::sync::not_required());
-						(*aSerializer)->archive_memory(texData, texSize);
+						aSerializer->get().archive_memory(texData, texSize);
 					}
-					else if (aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::deserialize) {
-						(*aSerializer)->archive_buffer(sb);
+					else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+						aSerializer->get().archive_buffer(sb);
 					}
 
 					// Memory writes are not overlapping => no barriers should be fine.
@@ -326,19 +331,23 @@ namespace gvk
 		return img;
 	}
 
+	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer,const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
+	{
+		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aAlreadyLoadedGliTexture, aSerializer);
+	}
 
 	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
 		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aAlreadyLoadedGliTexture);
 	}
 
-	static avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gvk::serializer*> aSerializer = {})
+	static avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		std::optional<vk::Format> imFmt = {};
 
 		std::optional<gli::texture> gliTex = {};
 		if (!aSerializer ||
-			(aSerializer && (*aSerializer)->mode() == gvk::serializer::mode::serialize)) {
+			(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 			gliTex = gli::load(aPath);
 			if (!gliTex.value().empty()) {
 
@@ -461,7 +470,7 @@ namespace gvk
 		}
 
 		if (aSerializer) {
-			(*aSerializer)->archive(imFmt);
+			aSerializer->get().archive(imFmt);
 		}
 
 		if (!imFmt.has_value()) {
@@ -469,6 +478,11 @@ namespace gvk
 		}
 
 		return create_image_from_file_cached(aPath, imFmt.value(), aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(gliTex), aSerializer);
+	}
+
+	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
@@ -588,37 +602,40 @@ namespace gvk
 	extern avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 
 	/** *cached versions for serialization */
-	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
-	extern std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec3> get_normals_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
-	extern avk::buffer create_normals_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec3> get_tangents_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
-	extern avk::buffer create_tangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec3> get_bitangents_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, gvk::serializer& aSerializer);
-	extern avk::buffer create_bitangents_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec4> get_colors_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, gvk::serializer& aSerializer);
-	extern avk::buffer create_colors_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec4> get_bone_weights_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, gvk::serializer& aSerializer);
-	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::uvec4> get_bone_indices_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset, gvk::serializer& aSerializer);
-	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern avk::buffer create_bone_weights_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
-	extern avk::buffer create_2d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
-	extern avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
-	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, gvk::serializer& aSerializer);
-	extern avk::buffer create_3d_texture_coordinates_buffer_cached(const std::vector<std::tuple<avk::resource_reference<const model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet, avk::sync aSyncHandler, gvk::serializer& aSerializer);
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet);
+	extern avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
+	extern avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
+	extern avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
+	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
+	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
+	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
+	extern avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+		gvk::serializer& aSerializer,
 		const std::vector<gvk::material_config>& aMaterialConfigs,
-		bool aLoadTexturesInSrgb,
-		bool aFlipTextures,
-		avk::image_usage aImageUsage,
-		avk::filter_mode aTextureFilterMode,
-		avk::border_handling_mode aBorderHandlingMode,
-		avk::sync aSyncHandler,
-		gvk::serializer& aSerializer);
+		bool aLoadTexturesInSrgb = false,
+		bool aFlipTextures = false,
+		avk::image_usage aImageUsage = avk::image_usage::general_texture,
+		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
+		avk::border_handling_mode aBorderHandlingMode = avk::border_handling_mode::repeat,
+		avk::sync aSyncHandler = avk::sync::wait_idle());
 
 }

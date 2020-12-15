@@ -245,21 +245,21 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					: std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>{};
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(
-					modelAndMeshes, {}, avk::sync::wait_idle(), ser
+				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(ser,
+					modelAndMeshes, {}, avk::sync::wait_idle()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(
-					modelAndMeshes, 0, avk::sync::wait_idle(), ser
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(ser,
+					modelAndMeshes, 0, avk::sync::wait_idle()
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer_cached(
-					modelAndMeshes, avk::sync::wait_idle(), ser
+				auto normalsBuffer = gvk::create_normals_buffer_cached(ser,
+					modelAndMeshes, avk::sync::wait_idle()
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
@@ -284,12 +284,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
+			ser,
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
 			avk::border_handling_mode::repeat,
-			avk::sync::wait_idle(),
-			ser
+			avk::sync::wait_idle()
 		);
 
 		endPart = gvk::context().get_time();
