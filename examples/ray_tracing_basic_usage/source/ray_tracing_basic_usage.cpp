@@ -136,7 +136,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render() override
+	void render(unsigned int aFramePreviousRenderCallsCount) override
 	{
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();

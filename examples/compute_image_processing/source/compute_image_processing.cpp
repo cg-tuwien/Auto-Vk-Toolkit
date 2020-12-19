@@ -134,16 +134,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image())
 		);
 
-#if _DEBUG
 		mComputePipelines[0].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[1].enable_shared_ownership(); // Make it usable with the updater
 		mComputePipelines[2].enable_shared_ownership(); // Make it usable with the updater
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[0])).update(mComputePipelines[0]);
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[1])).update(mComputePipelines[1]);
-		mUpdater.on(gvk::shader_files_changed_event(mComputePipelines[2])).update(mComputePipelines[2]);
-		
-		gvk::current_composition()->add_element(mUpdater);
-#endif
+
+		mUpdater.emplace();
+		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[0])).update(mComputePipelines[0]);
+		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[1])).update(mComputePipelines[1]);
+		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[2])).update(mComputePipelines[2]);
+
 		
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
 		mComputeFence = gvk::context().create_fence(true); // Create in signaled state, because the first operation we'll call 
@@ -238,7 +237,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render() override
+	void render(unsigned int aFramePreviousRenderCallsCount) override
 	{
 		// Update the UBO's data:
 		auto* mainWnd = gvk::context().main_window();
@@ -324,11 +323,6 @@ private: // v== Member variables ==v
 	avk::fence mComputeFence;
 
 	float mRotationSpeed;
-
-#if _DEBUG
-	gvk::updater mUpdater;
-#endif
-
 }; // compute_image_processing_app
 
 int main() // <== Starting point ==

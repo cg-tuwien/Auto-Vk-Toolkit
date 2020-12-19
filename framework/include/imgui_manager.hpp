@@ -29,7 +29,7 @@ namespace gvk
 
 		void update() override;
 
-		void render() override;
+		void render(unsigned int aFramePreviousRenderCallsCount) override;
 
 		void finalize() override;
 

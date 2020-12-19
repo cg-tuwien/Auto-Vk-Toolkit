@@ -133,7 +133,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render() override
+	void render(unsigned int aFramePreviousRenderCallsCount) override
 	{
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
 		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start() * mRotationSpeed;

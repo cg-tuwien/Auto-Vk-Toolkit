@@ -104,8 +104,10 @@ namespace gvk
 		 *	This method is called whenever this invokee should
 		 *	perform its rendering tasks. It is called right after
 		 *	all the @ref update methods have been invoked.
+		 * 
+		 * @param aFramePreviousRenderCallsCount indicates the number of previous render calls so far in the current frame
 		 */
-		virtual void render() {}
+		virtual void render(unsigned int aFramePreviousRenderCallsCount) {}
 
 		/**	@brief Render gizmos for this invokee
 		 *
