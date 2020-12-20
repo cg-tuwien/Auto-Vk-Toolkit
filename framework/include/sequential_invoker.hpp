@@ -36,7 +36,7 @@ namespace gvk
 			for (auto& e : elements)
 			{
 				if (e->is_enabled()) {
-					e->update();										
+					e->update();
 				}
 			}
 		}
