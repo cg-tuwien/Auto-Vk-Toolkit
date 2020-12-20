@@ -29,28 +29,29 @@ namespace gvk
 	public:
 		/**
 		 * @brief Constructor which automatically generates a name for this object
+		 * @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee(int pExecutionOrder = 0)
+		invokee(int aExecutionOrder = 0)
 			: mName{ "invokee #" + std::to_string(sGeneratedNameId++) }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mExecutionOrder{ pExecutionOrder }
+			, mExecutionOrder{ aExecutionOrder }
 		{ }
 
 		/**	@brief Constructor
-		 *	@param pName Name by which this object can be identified
-		 *	@param pIsEnabled Enabled means that this object will receive the method invocations during the loop
-		 *  @param pExecutionOrder sets the desired execution order of this invokee (default = 0)
+		 *	@param aName Name by which this object can be identified
+		 *	@param aIsEnabled Enabled means that this object will receive the method invocations during the loop
+		 *  @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee(std::string pName, bool pIsEnabled = true, int pExecutionOrder = 0) 
-			: mName{ pName }
+		invokee(std::string aName, bool aIsEnabled = true, int aExecutionOrder = 0) 
+			: mName{ aName }
 			, mWasEnabledLastFrame{ false }
-			, mEnabled{ pIsEnabled }
+			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mExecutionOrder { pExecutionOrder }
+			, mExecutionOrder { aExecutionOrder }
 		{ }
 
 		virtual ~invokee()

@@ -4,8 +4,8 @@
 class draw_a_triangle_app : public gvk::invokee
 {
 public: // v== cgb::invokee overrides which will be invoked by the framework ==v
-	draw_a_triangle_app(avk::queue& aQueue, unsigned int trianglePart, int pExecutionOrder = 0)
-		: gvk::invokee(pExecutionOrder), mQueue{ &aQueue }, trianglePart{ trianglePart }
+	draw_a_triangle_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder = 0)
+		: gvk::invokee(aExecutionOrder), mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }
 	{}
 
 	void initialize() override
@@ -82,7 +82,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 
-		const auto pushConstants = trianglePart;
+		const auto pushConstants = mTrianglePart;
 		cmdBfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), &pushConstants);
 		
 		// first invokee needs to clear up the backbuffer image: main window render pass clears on load
@@ -106,7 +106,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	
 private: // v== Member variables ==v
 
-	unsigned int trianglePart = 0;
+	unsigned int mTrianglePart = 0;
 	std::optional<avk::renderpass> mRenderPass;
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
