@@ -4,21 +4,12 @@
 class draw_a_triangle_app : public gvk::invokee
 {
 public: // v== cgb::invokee overrides which will be invoked by the framework ==v
-	draw_a_triangle_app(avk::queue& aQueue, unsigned int trianglePart, int pExecutionOrder = 0, std::optional<std::vector<invokee*>> invokeeList = {})
-		: gvk::invokee(pExecutionOrder), mQueue{ &aQueue }, trianglePart{ trianglePart }, invokeeList{ invokeeList }
+	draw_a_triangle_app(avk::queue& aQueue, unsigned int trianglePart, int pExecutionOrder = 0)
+		: gvk::invokee(pExecutionOrder), mQueue{ &aQueue }, trianglePart{ trianglePart }
 	{}
 
 	void initialize() override
-	{
-		// the invokee which receives the other invokees list to create the UI
-		bool isGUIBuilder = invokeeList.has_value();
-		
-		if (isGUIBuilder)
-		{
-			invokeeList->push_back(this);
-			// Print some information about the available memory on the selected physical device:
-			gvk::context().print_available_memory_types();
-		}
+	{		
 		auto wnd = gvk::context().main_window();
 
 		std::vector<avk::attachment> attachments;
@@ -65,40 +56,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 				gvk::swapchain_resized_event(gvk::context().main_window()),
 				gvk::shader_files_changed_event(mPipeline)
 			)
-			.update(mPipeline);				
-
-		if (isGUIBuilder)
-		{
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
-			if (imguiManager != nullptr) {
-				imguiManager->add_callback([this]() {					
-					ImGui::Begin("Hello, world!");
-					ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-					ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-
-					for (auto& ik : *this->invokeeList)
-					{
-						bool isEnabled = ik->is_enabled();						
-						std::string name = fmt::format("Disable/Enable Invokee [{}]", ik->name());
-						ImGui::Checkbox(name.c_str(), &isEnabled);
-						if (isEnabled != ik->is_enabled())
-						{
-							if (!isEnabled) ik->disable();
-							else ik->enable();
-						}
-					}
-					
-					static std::vector<float> values;
-					values.push_back(1000.0f / ImGui::GetIO().Framerate);
-					if (values.size() > 90) {
-						values.erase(values.begin());
-					}
-					ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
-					ImGui::End();
-				});
-			}
-		}
+			.update(mPipeline);
 	}
 
 	void update() override
@@ -147,7 +105,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	}
 	
 private: // v== Member variables ==v
-	std::optional<std::vector<invokee*>> invokeeList;
+
 	unsigned int trianglePart = 0;
 	std::optional<avk::renderpass> mRenderPass;
 	avk::queue* mQueue;
@@ -171,15 +129,42 @@ int main() // <== Starting point ==
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
 		
-		// Create instances of our invokee:
-		
+		// Create instances of our invokee:		
 		auto app1 = draw_a_triangle_app(singleQueue, 2, -1);
 		auto app2 = draw_a_triangle_app(singleQueue, 1, -2);
-		auto app3 = draw_a_triangle_app(singleQueue, 0, -3, std::vector<gvk::invokee*>({ &app1, &app2 }));
-
+		auto app3 = draw_a_triangle_app(singleQueue, 0, -3);
+				
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
+		
+		auto apps = std::vector<draw_a_triangle_app*>{ &app1, &app2, &app3 };
+		ui.add_callback([&apps]() {	
 
+			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+			for (auto* app : apps)
+			{
+				bool isEnabled = app->is_enabled();
+				std::string name = fmt::format("Disable/Enable Invokee [{}]", app->name());
+				ImGui::Checkbox(name.c_str(), &isEnabled);
+				if (isEnabled != app->is_enabled())
+				{
+					if (!isEnabled) app->disable();
+					else app->enable();
+				}
+			}
+
+			static std::vector<float> values;
+			values.push_back(1000.0f / ImGui::GetIO().Framerate);
+			if (values.size() > 90) {
+				values.erase(values.begin());
+			}
+			ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+			
+		});
+		
 
 		// GO:
 		gvk::start(
