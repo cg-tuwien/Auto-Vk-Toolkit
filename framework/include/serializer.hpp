@@ -34,7 +34,7 @@
 
 namespace gvk {
 
-	/** @brief Serializer
+	/** @brief serializer
 	 *  
 	 *  This type serializes/deserializes objects to/from binary files using the cereal
 	 *  serialization library. The serializer must be initialised either with a
@@ -44,6 +44,10 @@ namespace gvk {
 	{
 	public:
 
+		/** @brief serialize
+		 *
+		 *  This type represents an output archive to save data in binary form to a file.
+		 */
 		class serialize {
 			std::ofstream mOfstream;
 			cereal::BinaryOutputArchive mArchive;
@@ -51,11 +55,16 @@ namespace gvk {
 		public:
 			serialize() = delete;
 
-			serialize(const std::string& aPath) :
-				mOfstream(aPath, std::ios::binary),
+			/** @brief Construct, outputting a binary file to the provided path
+			 *
+			 *  @param[in] aFile The filename including the full path where to save the cached file
+			 */
+			serialize(const std::string& aFile) :
+				mOfstream(aFile, std::ios::binary),
 				mArchive(mOfstream)
 			{}
 
+			/* Construct from other serialize */
 			serialize(serialize&& aOther) noexcept :
 				mOfstream(std::move(aOther.mOfstream)),
 				mArchive(mOfstream)
@@ -66,6 +75,12 @@ namespace gvk {
 			serialize& operator=(const serialize&) = delete;
 			~serialize() = default;
 
+			/** @brief Serializes an Object
+			 *
+			 *  This function serializes the passed object to a binary file
+			 *
+			 *  @param[in] aValue The object to serialize
+			 */
 			template<typename Type>
 			void operator()(Type&& aValue)
 			{
@@ -73,6 +88,10 @@ namespace gvk {
 			}
 		};
 
+		/** @brief deserialize
+		 *
+		 *  This type represents an input archive to retrieve data in binary form from a file.
+		 */
 		class deserialize
 		{
 			std::ifstream mIfstream;
@@ -81,11 +100,16 @@ namespace gvk {
 		public:
 			deserialize() = delete;
 
-			deserialize(const std::string& aPath) :
-				mIfstream(aPath, std::ios::binary),
+			/** @brief Construct, reading a binary file from the provided file
+			 *
+			 *  @param[in] aFile The filename including the full path to the binary cached file
+			 */
+			deserialize(const std::string& aFile) :
+				mIfstream(aFile, std::ios::binary),
 				mArchive(mIfstream)
 			{}
 
+			/* Construct from other deserialize */
 			deserialize(deserialize&& aOther) noexcept :
 				mIfstream(std::move(aOther.mIfstream)),
 				mArchive(mIfstream)
@@ -96,6 +120,12 @@ namespace gvk {
 			deserialize& operator=(const deserialize&) = delete;
 			~deserialize() = default;
 
+			/** @brief Deserializes an Object
+			 *
+			 *  This function deserializes the object from a binary file.
+			 *
+			 *  @param[in] aValue The object to fill from file
+			 */
 			template<typename Type>
 			void operator()(Type&& aValue)
 			{
@@ -105,11 +135,19 @@ namespace gvk {
 
 		serializer() = delete;
 
+		/** @brief Construct a serializer with serializing capabilities
+		 *
+		 *  @param[in] aMode A serialize object
+		 */
 		serializer(serialize&& aMode) noexcept :
 			mArchive(std::move(aMode)),
 			mMode(mode::serialize)
 		{}
 
+		/** @brief Construct a serializer with deserializing capabilities
+		 *
+		 *  @param[in] aMode A deserialize object
+		 */
 		serializer(deserialize&& aMode) noexcept :
 			mArchive(std::move(aMode)),
 			mMode(mode::deserialize)
@@ -121,11 +159,17 @@ namespace gvk {
 		serializer& operator=(const serializer&) = delete;
 		~serializer() = default;
 
+		/** @brief The possible modes of the serializer
+		 */
 		enum class mode {
 			serialize,
 			deserialize
 		};
 
+		/** @brief Returns the mode of the serializer
+		 *
+		 *  @param[out] The current mode, either serialize or deserialize
+		 */
 		const mode mode() const { return mMode; }
 
 		/** @brief Serializes/Deserializes an Object
@@ -200,6 +244,12 @@ namespace gvk {
 		enum class mode mMode;
 	};
 
+	/** @brief Checks if a cache file exists
+	 *
+	 *  @param[in] aPath The path to a cached file
+	 *
+	 *  @param[out] True if the cache file exists, false otherwise
+	 */
 	static inline bool does_cache_file_exist(const std::string_view aPath)
 	{
 		return std::filesystem::exists(aPath);
