@@ -333,12 +333,12 @@ namespace gvk
 
 	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer,const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
-		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aAlreadyLoadedGliTexture, aSerializer);
+		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(aAlreadyLoadedGliTexture), aSerializer);
 	}
 
 	static avk::image create_image_from_file(const std::string& aPath, vk::Format aFormat, bool aFlip = true, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<gli::texture> aAlreadyLoadedGliTexture = {})
 	{
-		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aAlreadyLoadedGliTexture);
+		return create_image_from_file_cached(aPath, aFormat, aFlip, aMemoryUsage, aImageUsage, std::move(aSyncHandler), std::move(aAlreadyLoadedGliTexture));
 	}
 
 	static avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})

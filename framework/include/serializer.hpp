@@ -49,6 +49,8 @@ namespace gvk {
 			cereal::BinaryOutputArchive mArchive;
 
 		public:
+			serialize() = delete;
+
 			serialize(const std::string& aPath) :
 				mOfstream(aPath, std::ios::binary),
 				mArchive(mOfstream)
@@ -58,6 +60,11 @@ namespace gvk {
 				mOfstream(std::move(aOther.mOfstream)),
 				mArchive(mOfstream)
 			{}
+
+			serialize(const serialize&) = delete;
+			serialize& operator=(serialize&&) noexcept = default;
+			serialize& operator=(const serialize&) = delete;
+			~serialize() = default;
 
 			template<typename Type>
 			void operator()(Type&& aValue)
@@ -72,6 +79,8 @@ namespace gvk {
 			cereal::BinaryInputArchive mArchive;
 
 		public:
+			deserialize() = delete;
+
 			deserialize(const std::string& aPath) :
 				mIfstream(aPath, std::ios::binary),
 				mArchive(mIfstream)
@@ -82,6 +91,11 @@ namespace gvk {
 				mArchive(mIfstream)
 			{}
 
+			deserialize(const deserialize&) = delete;
+			deserialize& operator=(deserialize&&) noexcept = default;
+			deserialize& operator=(const deserialize&) = delete;
+			~deserialize() = default;
+
 			template<typename Type>
 			void operator()(Type&& aValue)
 			{
@@ -89,15 +103,23 @@ namespace gvk {
 			}
 		};
 
-		serializer(serialize&& aMode) :
+		serializer() = delete;
+
+		serializer(serialize&& aMode) noexcept :
 			mArchive(std::move(aMode)),
 			mMode(mode::serialize)
 		{}
 
-		serializer(deserialize&& aMode) :
+		serializer(deserialize&& aMode) noexcept :
 			mArchive(std::move(aMode)),
 			mMode(mode::deserialize)
 		{}
+
+		serializer(serializer&&) noexcept = default;
+		serializer(const serializer&) = delete;
+		serializer& operator=(serializer&&) noexcept = default;
+		serializer& operator=(const serializer&) = delete;
+		~serializer() = default;
 
 		enum class mode {
 			serialize,
@@ -162,7 +184,7 @@ namespace gvk {
 		 *
 		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
 		 */
-		inline void archive_buffer(avk::buffer& aValue)
+		inline void archive_buffer(avk::resource_reference<avk::buffer_t> aValue)
 		{
 			size_t size = aValue.get().config().size;
 			auto mapping =
@@ -178,7 +200,7 @@ namespace gvk {
 		enum class mode mMode;
 	};
 
-	static inline bool does_cache_file_exist(const std::string& aPath)
+	static inline bool does_cache_file_exist(const std::string_view aPath)
 	{
 		return std::filesystem::exists(aPath);
 	}

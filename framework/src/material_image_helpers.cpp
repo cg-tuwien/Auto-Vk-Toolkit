@@ -193,7 +193,7 @@ namespace gvk
 		const auto numSamplers = numTexUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
 		imageSamplers.reserve(numSamplers);
 
-		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::sync {
+		auto getSync = [numSamplers, &aSyncHandler, lSyncCount = size_t{0}]() mutable -> avk::sync {
 			++lSyncCount;
 			if (lSyncCount < numSamplers) {
 				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
