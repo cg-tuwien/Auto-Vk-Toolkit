@@ -3,121 +3,152 @@
 
 namespace gvk
 {
+#if VK_HEADER_VERSION >= 162
+#define RAY_TRACING_CONFIG_PARAMETERS vk::PhysicalDeviceAccelerationStructureFeaturesKHR& acsFtrs, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& rtpFtrs, vk::PhysicalDeviceRayQueryFeaturesKHR& rquFtrs
+#define RAY_TRACING_PASS_ON_PARAMETERS acsFtrs, rtpFtrs, rquFtrs
+#else
+#define RAY_TRACING_CONFIG_PARAMETERS vk::PhysicalDeviceRayTracingFeaturesKHR& rtf
+#define RAY_TRACING_PASS_ON_PARAMETERS rtf
+#endif
+	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w)
 	{ }
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
 	{
 		s.mPhysicalDeviceSelectionHint = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
 	{
 		s.mApplicationName = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
 	{
 		s.mApplicationVersion = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
 	{
 		s.mRequiredInstanceExtensions = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
 	{
 		s.mRequiredDeviceExtensions = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface& aValue, Args&... args)
 	{
 		t = &aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, timer_interface* aValue, Args&... args)
 	{
 		t = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface& aValue, Args&... args)
 	{
 		i = &aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invoker_interface* aValue, Args&... args)
 	{
 		i = aValue;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
 	{
 		w.push_back(aValue);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee& aValue, Args&... args)
 	{
 		e.push_back(&aValue);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, invokee* aValue, Args&... args)
 	{
 		e.push_back(aValue);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(validation_layers&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(validation_layers&)> fu, Args&... args)
 	{
 		fu(s.mValidationLayers);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
 	{
 		fu(phdf);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan12Features&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan12Features&)> fu, Args&... args)
 	{
 		fu(v12f);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
+	}
+	
+#if VK_HEADER_VERSION >= 162
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceAccelerationStructureFeaturesKHR&)> fu, Args&... args)
+	{
+		fu(acsFtrs);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, vk::PhysicalDeviceRayTracingFeaturesKHR& rtf, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR&)> fu, Args&... args)
+	{
+		fu(rtpFtrs);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
+	}
+	
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)> fu, Args&... args)
+	{
+		fu(rquFtrs);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
+	}
+#else
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)> fu, Args&... args)
 	{
 		fu(rtf);
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
 	}
+#endif
 
 	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
 	 *
@@ -162,16 +193,28 @@ namespace gvk
 			.setDescriptorIndexing(VK_TRUE)
 			.setBufferDeviceAddress(VK_FALSE);
 
+#if VK_HEADER_VERSION >= 162
+		auto acsFtrs = vk::PhysicalDeviceAccelerationStructureFeaturesKHR{}.setAccelerationStructure(VK_FALSE);
+		auto rtpFtrs = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR{}.setRayTracingPipeline(VK_FALSE);
+		auto rquFtrs = vk::PhysicalDeviceRayQueryFeaturesKHR{}.setRayQuery(VK_FALSE);
+#else
 		vk::PhysicalDeviceRayTracingFeaturesKHR rtf = vk::PhysicalDeviceRayTracingFeaturesKHR{}
 			.setRayTracing(VK_FALSE);
+#endif
 		
 		timer_interface* t = &defaultTimer;
 		invoker_interface* i = &defaultInvoker;
 		std::vector<invokee*> e;
 		std::vector<window*> w;
-		add_config(s, phdf, v12f, rtf, t, i, e, w, args...);
+		add_config(s, phdf, v12f, 
+#if VK_HEADER_VERSION >= 162
+			acsFtrs, rtpFtrs, rquFtrs,
+#else
+			rtf,
+#endif
+			t, i, e, w, args...);
 
-		context().initialize(s, phdf, v12f, rtf);
+		context().initialize(s, phdf, v12f, RAY_TRACING_PASS_ON_PARAMETERS);
 		{
 			composition c(t, i, w, e);
 			c.start();

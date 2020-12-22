@@ -27,7 +27,11 @@ namespace gvk
 			settings aSettings,
 			vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
 			vk::PhysicalDeviceVulkan12Features aVulkan12Features,
+#if VK_HEADER_VERSION >= 162
+			vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccStructureFeatures, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingPipelineFeatures, vk::PhysicalDeviceRayQueryFeaturesKHR& aRayQueryFeatures
+#else
 			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
+#endif
 		);
 		
 		vk::Instance& vulkan_instance() { return mInstance; }
@@ -148,7 +152,15 @@ namespace gvk
 
 		bool shading_rate_image_extension_requested();
 		bool mesh_shader_extension_requested();
+#if VK_HEADER_VERSION >= 162
+		bool ray_tracing_pipeline_extension_requested();
+		bool acceleration_structure_extension_requested();
+		bool ray_query_extension_requested();
+		bool pipeline_library_extension_requested();
+		bool deferred_host_operations_extension_requested();
+#else
 		bool ray_tracing_extension_requested();
+#endif
 		
 		/** Checks whether the given physical device supports all the required extensions,
 		 *	namely those stored in @ref settings::gRequiredDeviceExtensions. 
