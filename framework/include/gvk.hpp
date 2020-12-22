@@ -167,6 +167,10 @@ namespace gvk
 #pragma endregion 
 }
 
+namespace gvk {
+	class serializer;
+}
+
 #include "invokee.hpp"
 #include "invoker_interface.hpp"
 #include "sequential_invoker.hpp"
@@ -183,6 +187,7 @@ namespace gvk
 #include "animation.hpp"
 #include "model.hpp"
 #include "orca_scene.hpp"
+#include "serializer.hpp"
 #include "material_image_helpers.hpp"
 
 #include "composition.hpp"
