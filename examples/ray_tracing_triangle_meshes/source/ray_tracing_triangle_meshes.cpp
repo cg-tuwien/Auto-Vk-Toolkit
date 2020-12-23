@@ -48,7 +48,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler())
 				);
 				
@@ -56,7 +56,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
 				auto texCoordsData = gvk::get_2d_texture_coordinates({ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
 				auto texCoordsTexelBuffer = gvk::context().create_buffer(
-					avk::memory_usage::device, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					avk::memory_usage::device, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::uniform_texel_buffer_meta::create_from_data(texCoordsData)
 						.describe_only_member(texCoordsData[0])
 				);
@@ -69,7 +69,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				// The following call is quite redundant => TODO: optimize!
 				auto [positionsData, indicesData] = gvk::get_vertices_and_indices({ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) });
 				auto indexTexelBuffer = gvk::context().create_buffer(
-					avk::memory_usage::device, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					avk::memory_usage::device, vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::uniform_texel_buffer_meta::create_from_data(indicesData)
 						.set_format<glm::uvec3>() // Combine 3 consecutive elements to one unit
 				);
@@ -423,17 +423,20 @@ int main() // <== Starting point ==
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Triangle Meshes Example"),
 			gvk::required_device_extensions()
-				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
-				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
-				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
-				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
-				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
-				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
-			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues){
+			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+			.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
+			.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+			.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+			.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+			.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues) {
 				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
 			},
-			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures){
-				aRayTracingFeatures.setRayTracing(VK_TRUE);
+			[](vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingFeatures) {
+				aRayTracingFeatures.setRayTracingPipeline(VK_TRUE);
+			},
+				[](vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccelerationStructureFeatures) {
+				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
 			},
 			mainWnd,
 			app,

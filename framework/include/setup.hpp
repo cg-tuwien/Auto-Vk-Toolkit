@@ -153,19 +153,21 @@ namespace gvk
 	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
 	 *
 	 *	You may pass the following configuration parameters:
-	 *	- physical_device_selection_hint&								... To declare which physical device shall be used.
-	 *	- application_name&												... To declare the name of this application
-	 *	- application_version&											... To declare the application version
-	 *	- required_instance_extensions&									... A struct to configure required instance extensions which must be supported by the Vulkan instance and shall be activated.
-	 *	- required_device_extensions&									... A struct to configure required device extensions which must be supported by the device.
-	 *	- timer_interface& or timer_interface*							... Pointer or reference to timer class which handles gvk::time(). The timer must outlive the runtime of start().
-	 *	- invoker_interface& or invoker_interface*						... Pointer or reference to an invoker which invokes all the invokee's members. The invoker must outlive the runtime of start().
-	 *	- window*														... A window that shall be usable during the runtime of start().
-	 *	- invokee& or invokee*											... Pointer or reference to an invokee which outlives the runtime of start().
-	 *	- std::function<void(validation_layers&)						... A function which can be used to modify the struct containing config for validation layers and validation layer features
-	 *	- std::function<void(vk::PhysicalDeviceFeatures&)>				... A function which can be used to modify the vk::PhysicalDeviceFeatures. Modify the values of the passed vk::PhysicalDeviceFeatues directly!
-	 *	- std::function<void(vk::PhysicalDeviceVulkan12Features&)>		... A function which can be used to modify the vk::PhysicalDeviceVulkan12Features. Modify the values of the passed vk::PhysicalDeviceVulkan12Features directly!
-	 *	- std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)>	... A function which can be used to modify the vk::PhysicalDeviceRayTracingFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingFeaturesKHR directly!
+	 *	- physical_device_selection_hint&								              ... To declare which physical device shall be used.
+	 *	- application_name&												              ... To declare the name of this application
+	 *	- application_version&											              ... To declare the application version
+	 *	- required_instance_extensions&									              ... A struct to configure required instance extensions which must be supported by the Vulkan instance and shall be activated.
+	 *	- required_device_extensions&									              ... A struct to configure required device extensions which must be supported by the device.
+	 *	- timer_interface& or timer_interface*							              ... Pointer or reference to timer class which handles gvk::time(). The timer must outlive the runtime of start().
+	 *	- invoker_interface& or invoker_interface*						              ... Pointer or reference to an invoker which invokes all the invokee's members. The invoker must outlive the runtime of start().
+	 *	- window*														              ... A window that shall be usable during the runtime of start().
+	 *	- invokee& or invokee*											              ... Pointer or reference to an invokee which outlives the runtime of start().
+	 *	- std::function<void(validation_layers&)						              ... A function which can be used to modify the struct containing config for validation layers and validation layer features
+	 *	- std::function<void(vk::PhysicalDeviceFeatures&)>				              ... A function which can be used to modify the vk::PhysicalDeviceFeatures. Modify the values of the passed vk::PhysicalDeviceFeatues directly!
+	 *	- std::function<void(vk::PhysicalDeviceVulkan12Features&)>		              ... A function which can be used to modify the vk::PhysicalDeviceVulkan12Features. Modify the values of the passed vk::PhysicalDeviceVulkan12Features directly!
+	 *	- std::function<void(vk::PhysicalDeviceAccelerationStructureFeaturesKHR&)>	  ... A function which can be used to modify the vk::PhysicalDeviceRayTracingFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingFeaturesKHR directly!
+	 *	- std::function<void(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR&)>	      ... A function which can be used to modify the vk::PhysicalDeviceRayTracingPipelineFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingPipelineFeaturesKHR directly!
+	 *	- std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)>	              ... A function which can be used to modify the vk::PhysicalDeviceRayQueryFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayQueryFeaturesKHR directly!
 	 */
 	template <typename... Args>
 	static void start(Args&&... args)

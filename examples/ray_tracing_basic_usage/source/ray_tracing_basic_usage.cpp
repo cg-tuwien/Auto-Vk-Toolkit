@@ -242,7 +242,7 @@ int main() // <== Starting point ==
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Basic Usage Example"),
 			gvk::required_device_extensions()
-				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
+				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
 				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
@@ -251,8 +251,11 @@ int main() // <== Starting point ==
 			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues){
 				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
 			},
-			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures){
-				aRayTracingFeatures.setRayTracing(VK_TRUE);
+			[](vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingFeatures) {
+				aRayTracingFeatures.setRayTracingPipeline(VK_TRUE);
+			},
+			[](vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccelerationStructureFeatures) {
+				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
 			},
 			mainWnd,
 			app,
