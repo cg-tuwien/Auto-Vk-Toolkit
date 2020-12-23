@@ -241,6 +241,7 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Basic Usage Example"),
+#if VK_HEADER_VERSION >= 162
 			gvk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
@@ -257,6 +258,21 @@ int main() // <== Starting point ==
 			[](vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccelerationStructureFeatures) {
 				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
 			},
+#else 
+			gvk::required_device_extensions()
+				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
+				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
+				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues) {
+				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
+			},
+			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures) {
+				aRayTracingFeatures.setRayTracing(VK_TRUE);
+			},
+#endif
 			mainWnd,
 			app,
 			ui
