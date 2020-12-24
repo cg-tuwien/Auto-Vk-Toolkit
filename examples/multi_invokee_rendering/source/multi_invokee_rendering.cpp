@@ -68,12 +68,12 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render(unsigned int aFramePreviousRenderCallsCount) override
+	void render() override
 	{
 		auto mainWnd = gvk::context().main_window();
 
 		// need handling the case where previous invokees had been disabled (or this is the first invokee on the list)
-		bool firstInvokeeInChain = aFramePreviousRenderCallsCount == 0;
+		bool firstInvokeeInChain = !mainWnd->has_consumed_current_image_available_semaphore();
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);

@@ -79,7 +79,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render(unsigned int aFramePreviousRenderCallsCount) override
+	void render() override
 	{
 		auto mainWnd = gvk::context().main_window();
 

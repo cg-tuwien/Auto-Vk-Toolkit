@@ -42,8 +42,7 @@ namespace gvk
 		}
 
 		void execute_renders(const std::vector<invokee*>& elements) override
-		{
-			unsigned int framePreviousRenderCallsCount = 0;
+		{			
 			for (auto& e : elements)
 			{
 				if (e->is_enabled())
@@ -54,8 +53,7 @@ namespace gvk
 					e->apply_recreation_updates();
 				}
 				if (e->is_render_enabled()) {					
-					e->render(framePreviousRenderCallsCount);
-					framePreviousRenderCallsCount++;
+					e->render();					
 				}
 			}
 		}

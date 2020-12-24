@@ -239,7 +239,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 	
-	void render(unsigned int aFramePreviousRenderCallsCount) override
+	void render() override
 	{
 		auto mainWnd = gvk::context().main_window();
 		if (mDestroyOldResourcesInFrame.has_value() && mDestroyOldResourcesInFrame.value() == mainWnd->current_frame()) {

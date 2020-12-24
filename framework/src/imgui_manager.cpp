@@ -299,7 +299,7 @@ namespace gvk
 	    }
 	}
 
-	void imgui_manager::render(unsigned int aFramePreviousRenderCallsCount)
+	void imgui_manager::render()
 	{
 		ImGui_ImplVulkan_NewFrame();
 		ImGui::NewFrame();
@@ -315,7 +315,7 @@ namespace gvk
 
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").	
-		if (aFramePreviousRenderCallsCount == 0) {			
+		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
 			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderPass.value()), referenced(mainWnd->current_backbuffer()));
 			cmdBfr->end_render_pass();
 		}		
@@ -328,7 +328,7 @@ namespace gvk
 
 		// if this is the first render call (other invokees are disabled or only ImGui renders),
 		// then consume imageAvailableSemaphore.
-		if (aFramePreviousRenderCallsCount == 0) {
+		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
 			auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 			mQueue->submit(cmdBfr, imageAvailableSemaphore);
 			mainWnd->handle_lifetime(avk::owned(cmdBfr));
