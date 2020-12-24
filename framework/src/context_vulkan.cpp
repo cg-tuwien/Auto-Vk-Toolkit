@@ -100,7 +100,11 @@ namespace gvk
 		settings aSettings,
 		vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
 		vk::PhysicalDeviceVulkan12Features aVulkan12Features,
+#if VK_HEADER_VERSION >= 162
+		vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccStructureFeatures, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingPipelineFeatures, vk::PhysicalDeviceRayQueryFeaturesKHR& aRayQueryFeatures
+#else
 		vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
+#endif
 	)
 	{
 		mSettings = std::move(aSettings);
@@ -198,15 +202,45 @@ namespace gvk
 	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
 		deviceVulkan12Features.setPNext(&deviceFeatures);
 
+#if VK_HEADER_VERSION >= 162
+		assert(nullptr == aAccStructureFeatures.pNext);
+		assert(nullptr == aRayTracingPipelineFeatures.pNext);
+		assert(nullptr == aRayQueryFeatures.pNext);
+		if ((ray_tracing_pipeline_extension_requested() || ray_query_extension_requested()) && !acceleration_structure_extension_requested()) {
+			mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+
+			if (ray_query_extension_requested()) {
+				aRayQueryFeatures.setPNext(deviceFeatures.pNext);
+				deviceFeatures.setPNext(&aRayQueryFeatures);
+			}
+			if (ray_tracing_pipeline_extension_requested()) {
+				aRayTracingPipelineFeatures.setPNext(deviceFeatures.pNext);
+				deviceFeatures.setPNext(&aRayTracingPipelineFeatures);
+			}
+		}
+		if (acceleration_structure_extension_requested()) {
+			deviceVulkan12Features.setDescriptorIndexing(VK_TRUE);
+			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
+
+			if (!deferred_host_operations_extension_requested()) {
+				mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+			}
+
+			aAccStructureFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aAccStructureFeatures);
+		}
+#else
 		if (ray_tracing_extension_requested()) {
-			aRayTracingFeatures.setPNext(&deviceFeatures);
-			deviceVulkan12Features.setPNext(&aRayTracingFeatures);
+			aRayTracingFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aRayTracingFeatures);
+			
 			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
 		}
+#endif
 
 		if (activateMeshShaderFeature) {
-			meshShaderFeatureNV.pNext = deviceVulkan12Features.pNext;
-			deviceVulkan12Features.setPNext(&meshShaderFeatureNV);
+			meshShaderFeatureNV.pNext = deviceFeatures.pNext;
+			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
 		
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
@@ -373,7 +407,7 @@ namespace gvk
 
 			// Do we already have queues with that queue family?
 			auto num = std::count_if(std::begin(mQueues), std::end(mQueues), [queueFamily](const avk::queue& q) { return q.is_prepared() && q.family_index() == queueFamily; });
-#if _DEBUG
+#ifdef _DEBUG
 			// The previous queues must be consecutively numbered. If they are not.... I have no explanation for it.
 			std::vector<int> check(num, 0);
 			for (int i = 0; i < num; ++i) {
@@ -742,11 +776,43 @@ namespace gvk
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_MESH_SHADER_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}	
 
+#if VK_HEADER_VERSION >= 162
+	bool context_vulkan::ray_tracing_pipeline_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+
+	bool context_vulkan::acceleration_structure_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+
+	bool context_vulkan::ray_query_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_QUERY_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+
+	bool context_vulkan::pipeline_library_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+
+	bool context_vulkan::deferred_host_operations_extension_requested()
+	{
+		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+	}
+#else
 	bool context_vulkan::ray_tracing_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
 	}
+#endif
 
 	bool context_vulkan::supports_all_required_extensions(const vk::PhysicalDevice& device)
 	{

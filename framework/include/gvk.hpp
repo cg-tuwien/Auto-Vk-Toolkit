@@ -167,6 +167,10 @@ namespace gvk
 #pragma endregion 
 }
 
+namespace gvk {
+	class serializer;
+}
+
 #include "event_data.hpp"
 #include "event.hpp"
 #include "files_changed_event.hpp"
@@ -190,6 +194,7 @@ namespace gvk
 #include "animation.hpp"
 #include "model.hpp"
 #include "orca_scene.hpp"
+#include "serializer.hpp"
 #include "material_image_helpers.hpp"
 
 #include "composition.hpp"

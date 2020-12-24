@@ -40,7 +40,31 @@ namespace gvk
 		}
 	}
 
-	std::optional<glm::mat4> model_t::transformation_matrix_traverser(const unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const
+	aiNode* model_t::find_mesh_root_node(unsigned int aMeshIndexToFind) const
+	{
+		return mesh_node_traverser(aMeshIndexToFind, mScene->mRootNode);
+	}
+	
+	aiNode* model_t::mesh_node_traverser(unsigned int aMeshIndexToFind, aiNode* aNode) const
+	{
+		for (unsigned int i = 0; i < aNode->mNumMeshes; i++)
+		{
+			if (aNode->mMeshes[i] == aMeshIndexToFind) {
+				return aNode;
+			}
+		}
+		// Not found => go deeper
+		for (unsigned int i = 0; i < aNode->mNumChildren; i++)
+		{
+			auto* node = mesh_node_traverser(aMeshIndexToFind, aNode->mChildren[i]);
+			if (nullptr != node) {
+				return node;
+			}
+		}
+		return nullptr;
+	}
+	
+	std::optional<glm::mat4> model_t::transformation_matrix_traverser(unsigned int aMeshIndexToFind, const aiNode* aNode, const aiMatrix4x4& aM) const
 	{
 		aiMatrix4x4 nodeM = aM * aNode->mTransformation;
 		for (unsigned int i = 0; i < aNode->mNumMeshes; i++)
@@ -71,24 +95,57 @@ namespace gvk
 		return transformation_matrix_for_mesh(aMeshIndex);
 	}
 
-	size_t model_t::num_bones(mesh_index_t aMeshIndex) const
+	uint32_t model_t::num_actual_bones(mesh_index_t aMeshIndex) const
 	{
 		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
 		if (!mScene->mMeshes[aMeshIndex]->HasBones()) {
-			return 0;
+			return 0u;
 		}
-		return static_cast<size_t>(mScene->mMeshes[aMeshIndex]->mNumBones);
+		return static_cast<uint32_t>(mScene->mMeshes[aMeshIndex]->mNumBones);
 	}
 	
-	std::vector<glm::mat4> model_t::inverse_bind_pose_matrices(mesh_index_t aMeshIndex, unsigned int aMaxNumBones) const
+	uint32_t model_t::num_bone_matrices(mesh_index_t aMeshIndex) const
+	{
+		return std::max(num_actual_bones(aMeshIndex), 1u); // :O what's that, a minimum of one bone matrix? You are seeing it right. That's one bone matrix at least => animation needs that for meshes participating in animation but without bone assignments (i.e. no real indices)
+	}
+
+	uint32_t model_t::num_bone_matrices(std::vector<mesh_index_t> aMeshIndices) const
+	{
+		uint32_t accumulatedCount = 0u;
+		for (auto mi : aMeshIndices) {
+			accumulatedCount += num_bone_matrices(mi);
+		}
+		return accumulatedCount;
+	}
+	
+	std::vector<glm::mat4> model_t::inverse_bind_pose_matrices(mesh_index_t aMeshIndex, bone_matrices_space aSourceSpace) const
 	{
 		assert(mScene->mNumMeshes > aMeshIndex && 0 <= aMeshIndex);
 		std::vector<glm::mat4> result;
 		if (mScene->mMeshes[aMeshIndex]->HasBones()) {
 			auto nb = mScene->mMeshes[aMeshIndex]->mNumBones;
-			for (decltype(nb) i = 0; i < nb && i < aMaxNumBones; ++i) {
-				result.push_back(to_mat4(mScene->mMeshes[aMeshIndex]->mBones[i]->mOffsetMatrix));
+			switch (aSourceSpace) {
+			case bone_matrices_space::mesh_space:
+				for (decltype(nb) i = 0; i < nb; ++i) {
+					result.push_back(to_mat4(mScene->mMeshes[aMeshIndex]->mBones[i]->mOffsetMatrix));
+				}
+				break;
+			case bone_matrices_space::model_space:
+				{
+					const auto meshRootMatrix = transformation_matrix_for_mesh(aMeshIndex);
+					const auto inverseMeshRootMatrix = glm::inverse(meshRootMatrix);
+				
+					for (decltype(nb) i = 0; i < nb; ++i) {
+						result.push_back(meshRootMatrix * to_mat4(mScene->mMeshes[aMeshIndex]->mBones[i]->mOffsetMatrix) * inverseMeshRootMatrix);
+					}
+				}
+				break;
+			default:
+				throw gvk::runtime_error("Given source space is not supported. Supported are bone_matrices_space::mesh_space and bone_matrices_space::model_space.");
 			}
+		}
+		else {
+			result.emplace_back(1.0f); // Identity matrix
 		}
 		return result;
 	}
@@ -425,14 +482,14 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::bone_weights_for_mesh(mesh_index_t aMeshIndex) const
+	std::vector<glm::vec4> model_t::bone_weights_for_mesh(mesh_index_t aMeshIndex, bool aNormalizeBoneWeights) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 0.f, 0.f);
 			}
@@ -450,30 +507,50 @@ namespace gvk
 			}
 			
 			// We've got bone weights. Proceed as planned.
+			bool hasNonNormalizedBoneWeights = false;
 			for (decltype(n) i = 0; i < n; ++i) {
 				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
 
 				auto& weights = result.emplace_back(0.0f, 0.0f, 0.0f, 0.0f);
-				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
-				for (int j = 0; j < numWeights; ++j) {
+				const auto numIndexWeightPairs = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numIndexWeightPairs; ++j) {
 					weights[j] = std::get<float>(vTempWeightsPerVertex[i][j]);
 				}
+
+				// "normalize" the weights, if requested, so they add up to one
+				if (aNormalizeBoneWeights) {
+					// Blender can save meshes with a total weight sum > 1. So first scale down by the total sum (we need to consider all weights, not only the first four!)
+					float sum = 0.0f;
+					for (auto& w : vTempWeightsPerVertex[i]) {
+						sum += std::get<float>(w);
+					}
+					if (sum > 0.0f) {
+						weights /= sum;
+					}
+					hasNonNormalizedBoneWeights = sum > 1.001f || hasNonNormalizedBoneWeights;
+					// if we have more than 4 weights, assign all the unconsidered ones to the 4th bone
+					weights.w = 1.0f - weights.x - weights.y - weights.z;
+				}
+			}
+			if (hasNonNormalizedBoneWeights) {
+				LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
 			}
 		}
 		return result;
 	}
 
-	std::vector<glm::uvec4> model_t::bone_indices_for_mesh(mesh_index_t aMeshIndex) const
+	std::vector<glm::uvec4> model_t::bone_indices_for_mesh(mesh_index_t aMeshIndex, uint32_t aBoneIndexOffset) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
 		auto n = paiMesh->mNumVertices;
 		std::vector<glm::uvec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bone weights. Will return (0,0,0,0) bone indices for each vertex.", aMeshIndex));
+			const uint32_t fallbackIndex = aBoneIndexOffset;
+			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(0u, 0u, 0u, 0u);
+				result.emplace_back(fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex);
 			}
 		}
 		else {
@@ -493,16 +570,40 @@ namespace gvk
 				// sort the current vertex' <bone id, weight> pairs descending by weight (so we can take the four most important ones)
 				std::sort(vTempWeightsPerVertex[i].begin(), vTempWeightsPerVertex[i].end(), [](std::tuple<uint32_t, float> a, std::tuple<uint32_t, float> b) { return std::get<float>(a) > std::get<float>(b); });
 
-				auto& weights = result.emplace_back(0u, 0u, 0u, 0u);
-				const auto numWeights = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
-				for (int j = 0; j < numWeights; ++j) {
-					weights[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]);
+				auto& indices = result.emplace_back(aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset, aBoneIndexOffset);
+				const auto numIndexWeightPairs = std::min(int{ 4 }, static_cast<int>(vTempWeightsPerVertex[i].size()));
+				for (int j = 0; j < numIndexWeightPairs; ++j) {
+					indices[j] = std::get<uint32_t>(vTempWeightsPerVertex[i][j]) + aBoneIndexOffset;
 				}
 			}
 		}
 		return result;
 	}
 
+	std::vector<glm::uvec4> model_t::bone_indices_for_meshes_for_single_target_buffer(const std::vector<mesh_index_t>& aMeshIndices, uint32_t aInitialBoneIndexOffset) const
+	{
+		std::vector<glm::uvec4> result;
+		uint32_t offset = aInitialBoneIndexOffset;
+		for (auto meshIndex : aMeshIndices) {
+			auto tmp = bone_indices_for_mesh(meshIndex, offset);
+			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
+			offset += num_bone_matrices(meshIndex);
+		}
+		return result;
+	}
+
+	std::vector<glm::uvec4> model_t::bone_indices_for_mesh_for_single_target_buffer(mesh_index_t aMeshIndex, const std::vector<mesh_index_t>& aMeshIndicesWithBonesInOrder) const
+	{
+		uint32_t offset = 0u;
+		for (auto mi : aMeshIndicesWithBonesInOrder) {
+			if (mi == aMeshIndex) {
+				return bone_indices_for_mesh(mi, offset);
+			}
+			offset += num_bone_matrices(mi);
+		}
+		throw std::runtime_error("Invalid arguments to model_t::bone_indices_for_mesh_for_single_target_buffer: The list of aMeshIndicesWithBonesInOrder must contain the aMeshIndex.");
+	}
+	
 	int model_t::num_uv_components_for_mesh(mesh_index_t aMeshIndex, int aSet) const
 	{
 		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
@@ -523,13 +624,13 @@ namespace gvk
 		return static_cast<int>(indicesCount);
 	}
 
-	std::vector<size_t> model_t::select_all_meshes() const
+	std::vector<mesh_index_t> model_t::select_all_meshes() const
 	{
-		std::vector<size_t> result;
+		std::vector<mesh_index_t> result;
 		auto n = mScene->mNumMeshes;
 		result.reserve(n);
 		for (decltype(n) i = 0; i < n; ++i) {
-			result.push_back(static_cast<size_t>(i));
+			result.push_back(static_cast<mesh_index_t>(i));
 		}
 		return result;
 	}
@@ -601,11 +702,11 @@ namespace gvk
 		return result;
 	}
 
-	std::vector<glm::vec4> model_t::bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices) const
+	std::vector<glm::vec4> model_t::bone_weights_for_meshes(std::vector<mesh_index_t> aMeshIndices, bool aNormalizeBoneWeights) const
 	{
 		std::vector<glm::vec4> result;
 		for (auto meshIndex : aMeshIndices) {
-			auto tmp = bone_weights_for_mesh(meshIndex);
+			auto tmp = bone_weights_for_mesh(meshIndex, aNormalizeBoneWeights);
 			std::move(std::begin(tmp), std::end(tmp), std::back_inserter(result));
 		}
 		return result;
@@ -721,22 +822,18 @@ namespace gvk
 		return animation_clip_data{ aAnimationIndex, ticksPerSec, aStartTimeTicks, endTicks };
 	}
 
-	animation model_t::prepare_animation_for_meshes_into_strided_contiguous_memory(uint32_t aAnimationIndex,
-	                                                                               const std::vector<mesh_index_t>& aMeshIndices,
-	                                                                               glm::mat4* aBeginningOfTargetStorage,
-	                                                                               size_t aStride,
-	                                                                               std::optional<size_t> aMaxNumBoneMatrices,
-																				   std::optional<size_t> aMaxNumMeshes)
+	animation model_t::prepare_animation(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices)
 	{
-		if (!aMaxNumBoneMatrices.has_value()) {
-			aMaxNumBoneMatrices = aStride;
-		}
-
 		animation result;
-		for (size_t i = 0; i < aMeshIndices.size(); ++i) {
-			result.mMeshIndicesAndTargetStorage.emplace_back(aMeshIndices[i], aBeginningOfTargetStorage + aStride * i);
+
+		std::unordered_map<mesh_index_t, uint32_t> boneIndexOffsetsPerMesh;
+		{
+			uint32_t bio = 0u;
+			for (auto mi : aMeshIndices) {
+				boneIndexOffsetsPerMesh[mi] = bio;
+				bio += num_bone_matrices(mi);
+			}
 		}
-		result.mMaxNumBoneMatrices = aMaxNumBoneMatrices.value();
 		result.mAnimationIndex = aAnimationIndex;
 
 		// --------------------------- helper collections ------------------------------------
@@ -747,17 +844,11 @@ namespace gvk
 		// Which node is modified by bone animation? => Only those with an entry in this map:
 		std::unordered_map<aiNode*, aiNodeAnim*> mapNodeToBoneAnimation;
 
-		// Prepare mesh-specific things:
-		//  - Store the inverse bind pose matrices for each requested mesh's node/bone
-		//  - Store the target indices where the bone matrices shall be written to
-		//  - Store the root transform matrix (mesh space)
-		struct boneMatrixInfo
-		{
-			bone_mesh_data mBoneMeshData;
-			unsigned int mBoneIndex;
-		};
 		// Matrix information per bone per mesh:
-		std::vector<std::unordered_map<aiNode*, boneMatrixInfo>> mapsBoneToMatrixInfo;
+		std::vector<std::unordered_map<aiNode*, bone_mesh_data>> mapsBoneToMatrixInfo;
+
+		// Additional bone_mesh_data entries for mesh root nodes
+		std::vector<std::vector<bone_mesh_data>> fakeBoneToMatrixInfos;
 
 		// Which bones have been added per mesh. This is used to keep track of the bones added
 		// and also serves to add the then un-added bones in their natural order.
@@ -882,25 +973,42 @@ namespace gvk
 			anode.mParentTransform = bUnanimatedParentTransform;
 			if (anode.mAnimatedParentIndex.has_value()) {
 				assert(!(
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[0][0] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[1][1] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[2][2] == 0.0f &&
-					result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform[3][3] == 0.0f
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[0][0] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[1][1] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[2][2] == 0.0f &&
+					result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform[3][3] == 0.0f
 				));
-				anode.mTransform = result.mAnimationData[anode.mAnimatedParentIndex.value()].mTransform * anode.
-					mParentTransform;
+				anode.mGlobalTransform = result.mAnimationData[anode.mAnimatedParentIndex.value()].mGlobalTransform * anode.mParentTransform;
 			}
 			else {
-				anode.mTransform = anode.mParentTransform;
+				anode.mGlobalTransform = anode.mParentTransform;
 			}
+
+			anode.mLocalTransform = to_mat4(bNode->mTransformation);
 
 			// See if we have an inverse bind pose matrix for this node:
 			assert(nullptr == bChannel || mapNameToNode.find(to_string(bChannel->mNodeName))->second == bNode);
-			for (int i = 0; i < mapsBoneToMatrixInfo.size(); ++i) {
+			for (size_t i = 0; i < mapsBoneToMatrixInfo.size(); ++i) {
 				auto it = mapsBoneToMatrixInfo[i].find(bNode);
 				if (std::end(mapsBoneToMatrixInfo[i]) != it) {
-					anode.mBoneMeshTargets.emplace_back(it->second.mBoneMeshData);
-					flagsBonesAddedAsAniNodes[i][it->second.mBoneIndex] = true;
+					anode.mBoneMeshTargets.push_back(it->second);
+					flagsBonesAddedAsAniNodes[i][it->second.mMeshBoneInfo.mMeshLocalBoneIndex] = true;
+				}
+			}
+			// Is this node, by chance, one of the mesh roots? 
+			for (uint32_t x = 0u; x < bNode->mNumMeshes; ++x) {
+				const auto mi = bNode->mMeshes[x];
+				// find its index:
+				assert (fakeBoneToMatrixInfos.size() == aMeshIndices.size());
+				for (size_t i = 0; i < aMeshIndices.size(); ++i) {
+					if (aMeshIndices[i] == mi) {
+						for (auto& bmi : fakeBoneToMatrixInfos[i]) {
+							anode.mBoneMeshTargets.push_back(bmi);
+						}
+						// We're done with these fakers:
+						fakeBoneToMatrixInfos[i].clear();
+						break;
+					}
 				}
 			}
 		};
@@ -941,51 +1049,48 @@ namespace gvk
 		//};
 
 		for (size_t i = 0; i < aMeshIndices.size(); ++i) {
-			if (i >= aMaxNumMeshes.value_or(std::numeric_limits<size_t>::max())) {
-				LOG_WARNING(fmt::format("There are more mesh indices [{}] than the specified maximum number of meshes [{}]. Won't write bone matrixes for mesh indices of {} and greater.", aMeshIndices.size(), aMaxNumMeshes.value_or(std::numeric_limits<size_t>::max()), i));
-				break;
-			}
-			
 			auto& bmi = mapsBoneToMatrixInfo.emplace_back();
+			auto& fkb = fakeBoneToMatrixInfos.emplace_back();
 			auto mi = aMeshIndices[i];
 
 			glm::mat4 inverseMeshRootMatrix = glm::inverse(transformation_matrix_for_mesh(mi));
 
 			assert(mi >= 0u && mi < mScene->mNumMeshes);
-			flagsBonesAddedAsAniNodes.emplace_back(static_cast<size_t>(mScene->mMeshes[mi]->mNumBones), false);
+			flagsBonesAddedAsAniNodes.emplace_back(static_cast<size_t>(num_bone_matrices(mi)), false); // Note: num_bone_matrices(mi) here, but num_actual_bones(mi) down there in the loop!
 			// Vector with a flag for each bone
 
 			// For each bone, create boneMatrixInfo:
-			for (unsigned int bi = 0; bi < mScene->mMeshes[mi]->mNumBones; ++bi) {
-				assert (aMaxNumBoneMatrices.has_value());
-				if (bi >= aMaxNumBoneMatrices.value()) {
-					LOG_WARNING(fmt::format("For mesh #{}, there are more bones [{}] than the specified maximum number of bone matrices [{}]. Will only write up to {} bone matrices.", i, bi, aMaxNumBoneMatrices.value(), aMaxNumBoneMatrices.value()));
-					break;
-				}
+			const auto nb = num_bone_matrices(mi);
+			for (uint32_t bi = 0; bi < nb; ++bi) {
+				if (bi < mScene->mMeshes[mi]->mNumBones) {
+					auto* bone = mScene->mMeshes[mi]->mBones[bi];
 
-				auto* bone = mScene->mMeshes[mi]->mBones[bi];
+					auto it = mapNameToNode.find(to_string(bone->mName));
+					if (it == std::end(mapNameToNode)) {
+						LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
+						continue;
+					}
 
-				auto it = mapNameToNode.find(to_string(bone->mName));
-				if (it == std::end(mapNameToNode)) {
-					LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
-					continue;
-				}
-
-				assert(!bmi.contains(it->second));
-				bmi[it->second] = boneMatrixInfo{
-					bone_mesh_data{
+					assert(!bmi.contains(it->second));
+					bmi[it->second] = bone_mesh_data{
 						to_mat4(bone->mOffsetMatrix),
-						aBeginningOfTargetStorage + i * aStride + bi,
-						inverseMeshRootMatrix
-					},
-					bi
-				};
+						inverseMeshRootMatrix,
+						mesh_bone_info{i, mi, bi, boneIndexOffsetsPerMesh[mi]}
+					};
+				}
+				else {
+					fkb.emplace_back(bone_mesh_data{
+						glm::mat4{1.0f}, // Offset/inverse bind pose matrix should be the identity, because there is nothing to transform here.
+						inverseMeshRootMatrix,
+						mesh_bone_info{i, mi, bi, boneIndexOffsetsPerMesh[mi]}
+					});
+				}
 			}
 		}
 
 		// ---------------------------------------------
 		// AND NOW: Construct the animated_nodes "tree"
-#if _DEBUG
+#ifdef _DEBUG
 		{
 			std::vector<aiNode*> sanityCheck;
 			for (unsigned int i = 0; i < ani->mNumChannels; ++i) {
@@ -1012,8 +1117,7 @@ namespace gvk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(
-					fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -1023,8 +1127,7 @@ namespace gvk
 			while (nullptr != parent) {
 				if (isNodeModifiedByBones(parent) && !isNodeAlreadyAdded(parent).has_value()) {
 					boneAnimatedParents.push(parent);
-					LOG_DEBUG(
-						fmt::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
+					LOG_DEBUG(fmt::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
 				}
 				parent = parent->mParent;
 			}
@@ -1048,25 +1151,31 @@ namespace gvk
 			const auto mi = aMeshIndices[i];
 
 			// Set the bone matrices that are not affected by animation ONCE/NOW:
-			const auto nb = mScene->mMeshes[mi]->mNumBones;
-			for (unsigned int bi = 0; bi < nb; ++bi) {
-				assert (aMaxNumBoneMatrices.has_value());
-				if (bi >= aMaxNumBoneMatrices.value()) {
-					break;
-				}
-				
+			const auto nb = num_bone_matrices(mi); // => i.e. bone MATRICES, not just bones!
+			assert(flagsBonesAddedAsAniNodes[i].size() == nb);
+			for (uint32_t bi = 0; bi < nb; ++bi) {
 				if (flagsBonesAddedAsAniNodes[i][bi]) {
 					continue;
 				}
 
-				auto* bone = mScene->mMeshes[mi]->mBones[bi];
-				auto it = mapNameToNode.find(to_string(bone->mName));
-				assert(std::end(mapNameToNode) != it);
+				if (bi < mScene->mMeshes[mi]->mNumBones) {
+					auto* bone = mScene->mMeshes[mi]->mBones[bi];
+					auto it = mapNameToNode.find(to_string(bone->mName));
+					assert(std::end(mapNameToNode) != it);
 
-				addAnimatedNode(
-					nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
-					it->second, getAnimatedParentIndex(it->second), getUnanimatedParentTransform(it->second)
-				);
+					addAnimatedNode(
+						nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
+						it->second, getAnimatedParentIndex(it->second), getUnanimatedParentTransform(it->second)
+					);
+				}
+				else {
+					auto* meshRootNode = find_mesh_root_node(mi);
+					assert(nullptr != meshRootNode);
+					addAnimatedNode(
+						nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
+						meshRootNode, getAnimatedParentIndex(meshRootNode), getUnanimatedParentTransform(meshRootNode)
+					);
+				}
 			}
 		}
 

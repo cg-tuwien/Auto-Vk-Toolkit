@@ -181,7 +181,7 @@ namespace gvk
 #endif
 			}
 			assert(thiz->mInputBufferSwapPending == false);
-//#if _DEBUG
+//#ifdef _DEBUG
 //				if ((i+1) % 10000 == 0)
 //				{
 //					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));

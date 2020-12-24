@@ -80,6 +80,11 @@ See [`external/universal/include/FileWatcher/FileWatcher.h`](external/universal/
 JSON for Modern C++, Copyright (c) 2013-2019 Niels Lohmann, licensed under the MIT License.    
 See [`external/universal/include/nlohmann/json.hpp`](external/universal/include/FileWatcher/FileWatcher.h) or https://github.com/nlohmann/json for full license details.
 
+**Cereal - A C++11 library for serialization**
+
+Cereal - A C++11 library for serialization, Copyright (c) USCiLab, licensed under the 3-Clause BSD License.    
+See [`external/universal/include/cereal/cereal.hpp`](external/universal/include/cereal/cereal.h) or https://github.com/USCiLab/cereal for full license details.
+
 ## Licenses of 3rd party assets
 
 **3D Models and Textures under Stanford Scan**
