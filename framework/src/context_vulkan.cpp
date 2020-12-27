@@ -872,156 +872,53 @@ namespace gvk
 		return extent;
 	}
 
+	// TODO it makes more sense for swap chain creation to be inside window class perhaps?	
 	void context_vulkan::create_swap_chain_for_window(window* aWindow)
 	{
-		auto srfCaps = mPhysicalDevice.getSurfaceCapabilitiesKHR(aWindow->surface());
-		auto extent = get_resolution_for_window(aWindow);
-		auto surfaceFormat = aWindow->get_config_surface_format(aWindow->surface());
-
-		aWindow->mImageUsage = avk::image_usage::color_attachment			 | avk::image_usage::transfer_destination		| avk::image_usage::presentable;
-		const vk::ImageUsageFlags swapChainImageUsageVk =	vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
-		aWindow->mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
-			.setImageType(vk::ImageType::e2D)
-			.setFormat(surfaceFormat.format)
-			.setExtent(vk::Extent3D(extent.x, extent.y))
-			.setMipLevels(1)
-			.setArrayLayers(1)
-			.setSamples(vk::SampleCountFlagBits::e1)
-			.setTiling(vk::ImageTiling::eOptimal)
-			.setUsage(swapChainImageUsageVk)
-			.setInitialLayout(vk::ImageLayout::eUndefined);
-
-		// Handle queue family ownership:
-
-		std::vector<uint32_t> queueFamilyIndices;
-		for (auto& getter : aWindow->mQueueFamilyIndicesGetter) {
-			auto familyIndex = getter();
-			if (std::end(queueFamilyIndices) == std::find(std::begin(queueFamilyIndices), std::end(queueFamilyIndices), familyIndex)) {
-				queueFamilyIndices.push_back(familyIndex);
-			}
-		}
+		bool onlyUpdate = !!aWindow->mSwapChain;		
+				
+		aWindow->construct_swap_chain_creation_info(onlyUpdate);
 		
-		switch (queueFamilyIndices.size()) {
-		case 0:
-			throw gvk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use add_queue_family_ownership().", aWindow->title()));
-		case 1:
-			aWindow->mImageCreateInfoSwapChain
-				.setSharingMode(vk::SharingMode::eExclusive)
-				.setQueueFamilyIndexCount(0u)
-				.setPQueueFamilyIndices(&queueFamilyIndices[0]); // could also leave at nullptr!
-			break;
-		default:
-			// Have to use separate queue families!
-			// If the queue families differ, then we'll be using the concurrent mode [2]
-			aWindow->mImageCreateInfoSwapChain
-				.setSharingMode(vk::SharingMode::eConcurrent)
-				.setQueueFamilyIndexCount(static_cast<uint32_t>(queueFamilyIndices.size()))
-				.setPQueueFamilyIndices(queueFamilyIndices.data());
-			break;
-		}
+		auto newSwapChain = device().createSwapchainKHRUnique(aWindow->mSwapChainCreateInfo);
+		
+		//context().device().waitIdle(); // TODO: Necessary?
+		auto lifetime_handler = [aWindow](vk::UniqueSwapchainKHR&& rhs) { aWindow->handle_lifetime(std::move(rhs)); };
 
-		// With all settings gathered, create the swap chain!
-		aWindow->mSwapChainCreateInfo = vk::SwapchainCreateInfoKHR{}
-			.setSurface(aWindow->surface())
-			.setMinImageCount(aWindow->get_config_number_of_presentable_images())
-			.setImageFormat(aWindow->mImageCreateInfoSwapChain.format)
-			.setImageColorSpace(surfaceFormat.colorSpace)
-			.setImageExtent(vk::Extent2D{ aWindow->mImageCreateInfoSwapChain.extent.width, aWindow->mImageCreateInfoSwapChain.extent.height })
-			.setImageArrayLayers(aWindow->mImageCreateInfoSwapChain.arrayLayers) // The imageArrayLayers specifies the amount of layers each image consists of. This is always 1 unless you are developing a stereoscopic 3D application. [2]
-			.setImageUsage(aWindow->mImageCreateInfoSwapChain.usage)
-			.setPreTransform(srfCaps.currentTransform) // To specify that you do not want any transformation, simply specify the current transformation. [2]
-			.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque) // => no blending with other windows
-			.setPresentMode(aWindow->get_config_presentation_mode(aWindow->surface()))
-			.setClipped(VK_TRUE) // we don't care about the color of pixels that are obscured, for example because another window is in front of them.  [2]
-			.setOldSwapchain({}) // TODO: This won't be enought, I'm afraid/pretty sure. => advanced chapter
-			.setImageSharingMode(aWindow->mImageCreateInfoSwapChain.sharingMode)
-			.setQueueFamilyIndexCount(aWindow->mImageCreateInfoSwapChain.queueFamilyIndexCount)
-			.setPQueueFamilyIndices(aWindow->mImageCreateInfoSwapChain.pQueueFamilyIndices);
-
-		// Finally, create the swap chain prepare a struct which stores all relevant data (for further use)
-		aWindow->mSwapChain = device().createSwapchainKHRUnique(aWindow->mSwapChainCreateInfo);
-		aWindow->mSwapChainImageFormat = surfaceFormat.format;
-		aWindow->mSwapChainExtent = aWindow->mSwapChainCreateInfo.imageExtent;
-		aWindow->mCurrentFrame = 0; // Start af frame 0
-
-		auto swapChainImages = device().getSwapchainImagesKHR(aWindow->swap_chain());
-		const auto imagesInFlight = swapChainImages.size();
-		assert(imagesInFlight == aWindow->get_config_number_of_presentable_images());
-
-		// and create one image view per image
-		aWindow->mSwapChainImageViews.reserve(imagesInFlight);
-		for (auto& imageHandle : swapChainImages) {
-			// Note:: If you were working on a stereographic 3D application, then you would create a swap chain with multiple layers. You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers. [3]
-			auto& ref = aWindow->mSwapChainImageViews.emplace_back(create_image_view(wrap_image(imageHandle, aWindow->mImageCreateInfoSwapChain, aWindow->mImageUsage, vk::ImageAspectFlagBits::eColor)));
-			ref.enable_shared_ownership(); // Back buffers must be in shared ownership, because they are also stored in the renderpass (see below), and imgui_manager will also require it that way if it is enabled.
-		}
-
-		// Create a renderpass for the back buffers
-		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(const_referenced(aWindow->mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
-		};
-		auto additionalAttachments = aWindow->get_additional_back_buffer_attachments();
-		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
-		aWindow->mBackBufferRenderpass = create_renderpass(renderpassAttachments);
-		aWindow->mBackBufferRenderpass.enable_shared_ownership(); // Also shared ownership on this one... because... why noooot?
-
-		// Create a back buffer per image
-		aWindow->mBackBuffers.reserve(imagesInFlight);
-		for (auto& imView: aWindow->mSwapChainImageViews) {
-			auto imExtent = imView->get_image().config().extent;
-
-			// Create one image view per attachment
-			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
-			imageViews.reserve(renderpassAttachments.size());
-			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
-			for (auto& aa : additionalAttachments) {
-				if (aa.is_used_as_depth_stencil_attachment()) {
-					auto depthView = create_depth_image_view(avk::owned(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment))); // TODO: read_only_* or better general_*?
-					imageViews.emplace_back(std::move(depthView));
-				}
-				else {
-					imageViews.emplace_back(create_image_view(avk::owned(create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment))));
+		// assign the new swap chain instead of the old one, if one exists
+		avk::swap_and_dispose_rhs(newSwapChain, std::move(aWindow->mSwapChain), lifetime_handler);			
+		
+		aWindow->construct_backbuffers(onlyUpdate);
+		
+		if (!onlyUpdate)
+		{
+			aWindow->mCurrentFrame = 0; // Start af frame 0
+			// it has been established that imagesInFlight ==  aWindow->get_config_number_of_presentable_images()
+			auto imagesInFlight = aWindow->get_config_number_of_presentable_images();
+			// ============= SYNCHRONIZATION OBJECTS ===========
+			// per IMAGE:
+			{
+				aWindow->mImagesInFlightFenceIndices.reserve(imagesInFlight);
+				for (uint32_t i = 0; i < imagesInFlight; ++i) {
+					aWindow->mImagesInFlightFenceIndices.push_back(-1);
 				}
 			}
+			assert(aWindow->mImagesInFlightFenceIndices.size() == imagesInFlight);
 
-			aWindow->mBackBuffers.push_back(create_framebuffer(avk::shared(aWindow->mBackBufferRenderpass), std::move(imageViews), imExtent.width, imExtent.height));
-			aWindow->mBackBuffers.back().enable_shared_ownership();
-		}
-		assert(aWindow->mBackBuffers.size() == imagesInFlight);
-
-		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
-		for (auto& bb : aWindow->mBackBuffers) {
-			const auto n = bb->image_views().size();
-			assert(n == aWindow->get_renderpass()->number_of_attachment_descriptions());
-			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(aWindow->get_renderpass()->attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
+			// ============= SYNCHRONIZATION OBJECTS ===========
+			// per CONCURRENT FRAME:
+			{
+				auto framesInFlight = aWindow->get_config_number_of_concurrent_frames();
+				aWindow->mFramesInFlightFences.reserve(framesInFlight);
+				aWindow->mImageAvailableSemaphores.reserve(framesInFlight);
+				aWindow->mInitiatePresentSemaphores.reserve(framesInFlight);
+				for (uint32_t i = 0; i < framesInFlight; ++i) {
+					aWindow->mFramesInFlightFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+					aWindow->mImageAvailableSemaphores.push_back(create_semaphore());
+					aWindow->mInitiatePresentSemaphores.push_back(create_semaphore());
+				}
 			}
+			assert(aWindow->mFramesInFlightFences.size() == aWindow->get_config_number_of_concurrent_frames());
+			assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
 		}
-
-		// ============= SYNCHRONIZATION OBJECTS ===========
-		// per IMAGE:
-		{
-			aWindow->mImagesInFlightFenceIndices.reserve(imagesInFlight);
-			for (uint32_t i = 0; i < imagesInFlight; ++i) {
-				aWindow->mImagesInFlightFenceIndices.push_back(-1);
-			}
-		}
-		assert(aWindow->mImagesInFlightFenceIndices.size() == imagesInFlight);
-
-		// ============= SYNCHRONIZATION OBJECTS ===========
-		// per CONCURRENT FRAME:
-		{
-			auto framesInFlight = aWindow->get_config_number_of_concurrent_frames();
-			aWindow->mFramesInFlightFences.reserve(framesInFlight);
-			aWindow->mImageAvailableSemaphores.reserve(framesInFlight);
-			aWindow->mInitiatePresentSemaphores.reserve(framesInFlight);
-			for (uint32_t i = 0; i < framesInFlight; ++i) {
-				aWindow->mFramesInFlightFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-				aWindow->mImageAvailableSemaphores.push_back(create_semaphore());
-				aWindow->mInitiatePresentSemaphores.push_back(create_semaphore());
-			}
-		}
-		assert(aWindow->mFramesInFlightFences.size() == aWindow->get_config_number_of_concurrent_frames());
-		assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
 	}
 }

@@ -11,6 +11,7 @@ namespace gvk
 
 		using frame_id_t = int64_t;
 		using outdated_swapchain_t = std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
+		using outdated_swapchain_resource_t = std::variant<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
 		
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
@@ -290,7 +291,7 @@ namespace gvk
 		 *	@param aFrameId				The frame these resources are associated with. They will be deleted
 		 *								in frame #current_frame() + number_number_of_frames_in_flight().
 		 */
-		void handle_lifetime(outdated_swapchain_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
+		void handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
@@ -361,10 +362,13 @@ namespace gvk
 			return ref;
 		}
 
-		/** Recreate the swap chain based on the current extent and return the old resources which
-		 *	will not be required anymore in #number_of_frames_in_flight() frames into the future.
-		 */
-		std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>> recreate_swap_chain();
+		/** 
+		 * updates resolution and forwards call to create_swap_chain to recreate the swap chain
+		 */		
+		void recreate_swap_chain();
+
+		void construct_swap_chain_creation_info(bool aOnlyUpdate = false);
+		void construct_backbuffers(bool aOnlyUpdate = false);
 		
 	private:
 		// Helper method used in sync_before_render().
@@ -458,7 +462,7 @@ namespace gvk
 		std::deque<std::tuple<frame_id_t, avk::command_buffer>> mLifetimeHandledCommandBuffers;
 
 		// This container handles old swap chain resources which are to be deleted at a certain future frame
-		std::deque<std::tuple<frame_id_t, outdated_swapchain_t>> mOutdatedSwapChains;
+		std::deque<std::tuple<frame_id_t, outdated_swapchain_resource_t>> mOutdatedSwapChainResources;
 
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
 		avk::queue* mPresentQueue = nullptr;
