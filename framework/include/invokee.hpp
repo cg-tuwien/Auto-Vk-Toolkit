@@ -252,7 +252,12 @@ namespace gvk
 		bool is_render_gizmos_enabled() const { return mRenderGizmosEnabled; }
 
 		/** @brief applies the changes required by the updater, if one is created for this invokee.	*/
-		void apply_recreation_updates() { if (mUpdater.has_value()) mUpdater->apply(); }
+		void apply_recreation_updates()
+		{
+			if (mUpdater.has_value()) {
+				mUpdater->apply();
+			}
+		}
 
 	private:
 		inline static int32_t sGeneratedNameId = 0;
