@@ -262,7 +262,7 @@ namespace gvk
 	private:
 		inline static int32_t sGeneratedNameId = 0;
 		std::string mName;
-		int	mExecutionOrder = 0;
+		int  mExecutionOrder = 0;
 		bool mWasEnabledLastFrame;
 		bool mEnabled;
 		bool mRenderEnabled;
