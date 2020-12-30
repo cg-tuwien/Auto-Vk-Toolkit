@@ -4,7 +4,7 @@
 class ray_tracing_custom_intersection_app : public gvk::invokee
 {
 	struct transformation_matrices {
-		glm::mat4 mViewMatrix;
+		glm::mat4 mCameraTransform;
 	};
 
 	// Define a struct for our vertex input data:
@@ -304,7 +304,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = transformation_matrices { 
-			mQuakeCam.view_matrix()
+			mQuakeCam.global_transformation_matrix()
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
 

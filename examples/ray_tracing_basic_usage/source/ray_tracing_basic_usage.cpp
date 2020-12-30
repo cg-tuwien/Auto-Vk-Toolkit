@@ -4,8 +4,8 @@
 class ray_tracing_basic_usage_app : public gvk::invokee
 {
 	struct push_const_data {
-		glm::mat4 mViewMatrix;
-		glm::vec4 mLightDirection;
+		glm::mat4 mCameraTransform;
+		glm::vec4 mLightDir;
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
@@ -152,7 +152,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 
-			mQuakeCam.view_matrix(),
+			mQuakeCam.global_transformation_matrix(),
 			glm::vec4{mLightDir, 0.0f}
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);

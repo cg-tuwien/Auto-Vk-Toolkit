@@ -74,8 +74,8 @@ hitAttributeEXT vec3 attribs;
 layout(location = 2) rayPayloadEXT float secondaryRayHitValue;
 
 layout(push_constant) uniform PushConstants {
-	mat4 viewMatrix;
-    vec4 lightDir;
+	mat4 mCameraTransform;
+    vec4 mLightDir;
 } pushConstants;
 
 void main()
@@ -89,7 +89,7 @@ void main()
 	const vec2 uv = (barycentrics.x * uv0 + barycentrics.y * uv1 + barycentrics.z * uv2);
 
     vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-    vec3 direction = normalize(pushConstants.lightDir.xyz);
+    vec3 direction = normalize(pushConstants.mLightDir.xyz);
     uint rayFlags = gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
     uint cullMask = 0xff;
     float tmin = 0.001;

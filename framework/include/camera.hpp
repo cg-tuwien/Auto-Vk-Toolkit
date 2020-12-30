@@ -80,9 +80,6 @@ namespace gvk
 		float get_z_buffer_depth(transform& aTransform);
 
 		// Calculates and returns the view matrix of this camera.
-		// The view matrix is calculated based on the following assumptions:
-		//  - forward a.k.a. the camera's look direction is pointing in -z direction
-		//  - TBD: differences OpenGL vs Vulkan
 		glm::mat4 view_matrix() const;
 
 		// This is a shortcut for projection_matrix() * view_matrix(), i.e. it returns 
