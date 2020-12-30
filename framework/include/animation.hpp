@@ -498,5 +498,11 @@ namespace gvk
 		 *  (Second tuple element of mMeshIndicesAndTargetStorage)
 		 */
 		size_t mMaxNumBoneMatrices;
+
+		/** Make serialize a friend, so the serializer can access private data members.
+		 *  (see custom serialization functions in serializer.hpp)
+		 */
+		template<typename Archive>
+		friend void serialize(Archive& aArchive, gvk::animation& aValue);
 	};
 }
