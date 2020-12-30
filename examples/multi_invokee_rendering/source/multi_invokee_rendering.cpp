@@ -1,10 +1,10 @@
 #include <gvk.hpp>
 #include <imgui.h>
 
-class draw_a_triangle_app : public gvk::invokee
+class multi_invokee_rendering_app : public gvk::invokee
 {
 public: // v== cgb::invokee overrides which will be invoked by the framework ==v
-	draw_a_triangle_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder = 0)
+	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder = 0)
 		: gvk::invokee(aExecutionOrder), mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }
 	{}
 
@@ -119,7 +119,7 @@ int main() // <== Starting point ==
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Hello Multi-Invokee World");
-		mainWnd->set_resolution({ 1000, 610 });
+		mainWnd->set_resolution({ 800, 600 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
@@ -130,14 +130,14 @@ int main() // <== Starting point ==
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create instances of our invokee:		
-		auto app1 = draw_a_triangle_app(singleQueue, 2, -1);
-		auto app2 = draw_a_triangle_app(singleQueue, 1, -2);
-		auto app3 = draw_a_triangle_app(singleQueue, 0, -3);
+		auto app1 = multi_invokee_rendering_app(singleQueue, 2, -1);
+		auto app2 = multi_invokee_rendering_app(singleQueue, 1, -2);
+		auto app3 = multi_invokee_rendering_app(singleQueue, 0, -3);
 				
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 		
-		auto apps = std::vector<draw_a_triangle_app*>{ &app1, &app2, &app3 };
+		auto apps = std::vector<multi_invokee_rendering_app*>{ &app1, &app2, &app3 };
 		ui.add_callback([&apps]() {	
 
 			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
