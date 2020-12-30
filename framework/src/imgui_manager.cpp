@@ -321,7 +321,7 @@ namespace gvk
 		}		
 
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));		
+		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
 		cmdBfr->end_render_pass();
 		cmdBfr->end_recording();
