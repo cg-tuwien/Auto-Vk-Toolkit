@@ -19,120 +19,120 @@ namespace gvk
 	{}
 
 
-	camera& camera::set_projection_matrix(const glm::mat4& pMatrix)
+	camera& camera::set_projection_matrix(const glm::mat4& aMatrix)
 	{
 		mProjectionType = projection_type::unknown;
-		mProjectionMatrix = pMatrix;
+		mProjectionMatrix = aMatrix;
 		return *this;
 	}
 
-	camera& camera::set_perspective_projection(float pFov, float pAspect, float pNear, float pFar)
+	camera& camera::set_perspective_projection(float aFov, float aAspect, float aNear, float aFar)
 	{
 		mProjectionType = projection_type::perspective;
-		mFov = pFov;
-		mAspect = pAspect;
-		mNear = pNear;
-		mFar = pFar;
+		mFov = aFov;
+		mAspect = aAspect;
+		mNear = aNear;
+		mFar = aFar;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_orthographic_projection(float pLeft, float pRight, float pBottom, float pTop, float pNear, float pFar)
+	camera& camera::set_orthographic_projection(float aLeft, float aRight, float aBottom, float aTop, float aNear, float aFar)
 	{
 		mProjectionType = projection_type::orthographic;
-		mLeft = pLeft;
-		mRight = pRight;
-		mBottom = pBottom;
-		mTop = pTop;
-		mNear = pNear;
-		mFar = pFar;
+		mLeft = aLeft;
+		mRight = aRight;
+		mBottom = aBottom;
+		mTop = aTop;
+		mNear = aNear;
+		mFar = aFar;
 		update_projection_matrix();
 		return *this;
 	}
 
 
-	camera& camera::set_near_plane_distance(float pValue)
+	camera& camera::set_near_plane_distance(float aValue)
 	{
-		mNear = pValue;
+		mNear = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_far_plane_distance(float pValue)
+	camera& camera::set_far_plane_distance(float aValue)
 	{
-		mFar = pValue;
+		mFar = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_field_of_view(float pValue)
+	camera& camera::set_field_of_view(float aValue)
 	{
-		mFov = pValue;
+		mFov = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_aspect_ratio(float pValue)
+	camera& camera::set_aspect_ratio(float aValue)
 	{
-		mAspect = pValue;
+		mAspect = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_left_border(float pValue)
+	camera& camera::set_left_border(float aValue)
 	{
-		mLeft = pValue;
+		mLeft = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_right_border(float pValue)
+	camera& camera::set_right_border(float aValue)
 	{
-		mRight = pValue;
+		mRight = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_top_border(float pValue)
+	camera& camera::set_top_border(float aValue)
 	{
-		mTop = pValue;
+		mTop = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
-	camera& camera::set_bottom_border(float pValue)
+	camera& camera::set_bottom_border(float aValue)
 	{
-		mBottom = pValue;
-		update_projection_matrix();
-		return *this;
-	}
-
-
-	camera& camera::copy_parameters_from(const camera& pOtherCamera)
-	{
-		mProjectionMatrix = pOtherCamera.mProjectionMatrix;
-		mProjectionType = pOtherCamera.mProjectionType;
-		mNear = pOtherCamera.mNear;
-		mFar = pOtherCamera.mFar;
-		mFov = pOtherCamera.mFov;
-		mAspect = pOtherCamera.mAspect;
-		mLeft = pOtherCamera.mLeft;
-		mRight = pOtherCamera.mRight;
-		mTop = pOtherCamera.mTop;
-		mBottom = pOtherCamera.mBottom;
+		mBottom = aValue;
 		update_projection_matrix();
 		return *this;
 	}
 
 
-	float camera::get_z_buffer_depth(const glm::vec3& pWorldSpacePosition)
+	camera& camera::copy_parameters_from(const camera& aOtherCamera)
 	{
-		auto posSS = projection_and_view_matrix() * glm::vec4(pWorldSpacePosition, 1.0f);
+		mProjectionMatrix = aOtherCamera.mProjectionMatrix;
+		mProjectionType = aOtherCamera.mProjectionType;
+		mNear = aOtherCamera.mNear;
+		mFar = aOtherCamera.mFar;
+		mFov = aOtherCamera.mFov;
+		mAspect = aOtherCamera.mAspect;
+		mLeft = aOtherCamera.mLeft;
+		mRight = aOtherCamera.mRight;
+		mTop = aOtherCamera.mTop;
+		mBottom = aOtherCamera.mBottom;
+		update_projection_matrix();
+		return *this;
+	}
+
+
+	float camera::get_z_buffer_depth(const glm::vec3& aWorldSpacePosition)
+	{
+		auto posSS = projection_and_view_matrix() * glm::vec4(aWorldSpacePosition, 1.0f);
 		float depth = posSS.z / posSS.w;
 		return depth;
 	}
 
-	float camera::get_z_buffer_depth(transform& transform)
+	float camera::get_z_buffer_depth(transform& aTransform)
 	{
 		// TODO: pass transform's world space position:
 		return get_z_buffer_depth(glm::vec3{ 0.f, 0.f, 0.f });
