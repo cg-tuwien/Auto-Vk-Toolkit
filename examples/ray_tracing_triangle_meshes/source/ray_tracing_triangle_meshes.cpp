@@ -209,17 +209,14 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 		mPipeline->print_shader_binding_table_groups();
 
-#if _DEBUG
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-
+		mUpdater.emplace();
 		for (auto& oiv : mOffscreenImageViews) {
 			oiv.enable_shared_ownership();
-			mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
+			mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
 		}
-		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		
-		gvk::current_composition()->add_element(mUpdater);
-#endif
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -408,10 +405,7 @@ private: // v== Member variables ==v
 	avk::ray_tracing_pipeline mPipeline;
 	avk::graphics_pipeline mGraphicsPipeline;
 	gvk::quake_camera mQuakeCam;
-	
-#if _DEBUG
-	gvk::updater mUpdater;
-#endif
+
 }; // ray_tracing_triangle_meshes_app
 
 int main() // <== Starting point ==
