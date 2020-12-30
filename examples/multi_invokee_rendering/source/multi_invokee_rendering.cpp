@@ -140,6 +140,7 @@ int main() // <== Starting point ==
 		auto apps = std::vector<multi_invokee_rendering_app*>{ &app1, &app2, &app3 };
 		ui.add_callback([&apps]() {	
 
+			ImGui::Begin("Hello, Multi-Invokee World!");
 			ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
@@ -162,7 +163,7 @@ int main() // <== Starting point ==
 				values.erase(values.begin());
 			}
 			ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
-			
+			ImGui::End();
 		});
 		
 
