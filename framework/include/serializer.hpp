@@ -329,6 +329,24 @@ namespace glm {
 	{
 		aArchive(aValue.x, aValue.y, aValue.z, aValue.w);
 	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::mat3& aValue)
+	{
+		aArchive(aValue[0], aValue[1], aValue[2]);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::mat4& aValue)
+	{
+		aArchive(aValue[0], aValue[1], aValue[2], aValue[3]);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, glm::quat& aValue)
+	{
+		aArchive(aValue.x, aValue.y, aValue.z, aValue.w);
+	}
 }
 
 namespace gvk {
@@ -412,6 +430,92 @@ namespace gvk {
 			aValue.mAnglesFalloff,
 			aValue.mAttenuation,
 			aValue.mInfo
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::animation_clip_data& aValue)
+	{
+		aArchive(
+			aValue.mAnimationIndex,
+			aValue.mTicksPerSecond,
+			aValue.mStartTicks,
+			aValue.mEndTicks
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::position_key& aValue)
+	{
+		aArchive(
+			aValue.mTime,
+			aValue.mValue
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::rotation_key& aValue)
+	{
+		aArchive(
+			aValue.mTime,
+			aValue.mValue
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::scaling_key& aValue)
+	{
+		aArchive(
+			aValue.mTime,
+			aValue.mValue
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::mesh_bone_info& aValue)
+	{
+		aArchive(
+			aValue.mMeshAnimationIndex,
+			aValue.mMeshIndexInModel,
+			aValue.mMeshLocalBoneIndex,
+			aValue.mGlobalBoneIndexOffset
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::bone_mesh_data& aValue)
+	{
+		aArchive(
+			aValue.mInverseBindPoseMatrix,
+			aValue.mInverseMeshRootMatrix,
+			aValue.mMeshBoneInfo
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::animated_node& aValue)
+	{
+		aArchive(
+			aValue.mPositionKeys,
+			aValue.mRotationKeys,
+			aValue.mScalingKeys,
+			aValue.mSameRotationAndPositionKeyTimes,
+			aValue.mSameScalingAndPositionKeyTimes,
+			aValue.mLocalTransform,
+			aValue.mGlobalTransform,
+			aValue.mAnimatedParentIndex,
+			aValue.mParentTransform,
+			aValue.mBoneMeshTargets
+		);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, gvk::animation& aValue)
+	{
+		aArchive(
+			aValue.mAnimationData,
+			aValue.mAnimationIndex,
+			aValue.mMaxNumBoneMatrices
 		);
 	}
 }
