@@ -33,11 +33,11 @@ namespace gvk
 		 */
 		invokee(int aExecutionOrder = 0)
 			: mName{ "invokee #" + std::to_string(sGeneratedNameId++) }
+			, mExecutionOrder{ aExecutionOrder }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mExecutionOrder{ aExecutionOrder }
 		{ }
 
 		/**	@brief Constructor
