@@ -624,7 +624,7 @@ namespace gvk
 			}
 		}
 
-		// With all settings gathered, create the swap chain!
+		// With all settings gathered, construct/update swap chain creation info.
 		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 			mSwapChainCreateInfo
 				.setImageExtent(vk::Extent2D{ mImageCreateInfoSwapChain.extent.width, mImageCreateInfoSwapChain.extent.height })
