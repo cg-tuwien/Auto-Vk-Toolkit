@@ -378,9 +378,8 @@ namespace gvk
 				nullptr,
 				&mCurrentFrameImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 			if (vk::Result::eSuboptimalKHR == result) {
-				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");
-				//handle_lifetime(recreate_swap_chain());
-				recreate_swap_chain();
+				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");				
+				update_resolution_and_recreate_swap_chain();
 
 				// Workaround for binary semaphores:
 				// Since the semaphore is in a wait state right now, we'll have to wait for it until we can use it again.
@@ -398,9 +397,8 @@ namespace gvk
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
-			//handle_lifetime(recreate_swap_chain());
-			recreate_swap_chain();
+			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));			
+			update_resolution_and_recreate_swap_chain();
 			acquire_next_swap_chain_image_and_prepare_semaphores();
 		}
 
@@ -490,16 +488,14 @@ namespace gvk
 				.setPResults(nullptr);
 			auto result = mPresentQueue->handle().presentKHR(presentInfo);
 			if (vk::Result::eSuboptimalKHR == result) {
-				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");
-				//handle_lifetime(recreate_swap_chain());
-				recreate_swap_chain();
+				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");				
+				update_resolution_and_recreate_swap_chain();
 			}
 			
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
-			//handle_lifetime(recreate_swap_chain());
-			recreate_swap_chain();
+			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));			
+			update_resolution_and_recreate_swap_chain();
 			// Just do nothing. Ignore the failure. This frame is lost.
 		}
 		
@@ -516,8 +512,56 @@ namespace gvk
 	{
 		mPresentQueue = &aPresentQueue;
 	}
+	
+	void window::create_swap_chain(swapchain_creation_mode aCreationMode)
+	{
+		construct_swap_chain_creation_info(aCreationMode);
 
-	void window::recreate_swap_chain()
+		auto newSwapChain = context().device().createSwapchainKHRUnique(mSwapChainCreateInfo);
+
+		auto lifetimeHandler = [this](vk::UniqueSwapchainKHR&& aOldResource) { this->handle_lifetime(std::move(aOldResource)); };
+
+		// assign the new swap chain instead of the old one, if one exists
+		avk::emplace_and_handle_previous(newSwapChain, std::move(mSwapChain), lifetimeHandler);
+
+		construct_backbuffers(aCreationMode);
+
+		// if we are creating a new swap chain from the ground up,
+		// set up fences and other basic initialization
+		// TODO: part of this section needs to be also executed if number of concurrent images change
+		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain)	{
+			mCurrentFrame = 0; // Start af frame 0
+			// it has been established that imagesInFlight ==  aWindow->get_config_number_of_presentable_images()
+			auto imagesInFlight = get_config_number_of_presentable_images();
+			// ============= SYNCHRONIZATION OBJECTS ===========
+			// per IMAGE:
+			{
+				mImagesInFlightFenceIndices.reserve(imagesInFlight);
+				for (uint32_t i = 0; i < imagesInFlight; ++i) {
+					mImagesInFlightFenceIndices.push_back(-1);
+				}
+			}
+			assert(mImagesInFlightFenceIndices.size() == imagesInFlight);
+
+			// ============= SYNCHRONIZATION OBJECTS ===========
+			// per CONCURRENT FRAME:
+			{
+				auto framesInFlight = get_config_number_of_concurrent_frames();
+				mFramesInFlightFences.reserve(framesInFlight);
+				mImageAvailableSemaphores.reserve(framesInFlight);
+				mInitiatePresentSemaphores.reserve(framesInFlight);
+				for (uint32_t i = 0; i < framesInFlight; ++i) {
+					mFramesInFlightFences.push_back(context().create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+					mImageAvailableSemaphores.push_back(context().create_semaphore());
+					mInitiatePresentSemaphores.push_back(context().create_semaphore());
+				}
+			}
+			assert(mFramesInFlightFences.size() == get_config_number_of_concurrent_frames());
+			assert(mImageAvailableSemaphores.size() == get_config_number_of_concurrent_frames());
+		}
+	}
+
+	void window::update_resolution_and_recreate_swap_chain()
 	{
 		update_resolution();
 		std::atomic_bool resolutionUpdated = false;
@@ -526,19 +570,17 @@ namespace gvk
 		mPresentQueue->handle().waitIdle();
 		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }		
 
-		context().create_swap_chain_for_window(this);
+		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
 	}
 
-	void window::construct_swap_chain_creation_info(bool aOnlyUpdate) {
+	void window::construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode) {
 		auto srfCaps = context().physical_device().getSurfaceCapabilitiesKHR(surface());
 		auto extent = context().get_resolution_for_window(this);
 		auto surfaceFormat = get_config_surface_format(surface());
-		if (aOnlyUpdate)
-		{
+		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y));
 		}
-		else
-		{
+		else {
 			mImageUsage = avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::presentable;
 			const vk::ImageUsageFlags swapChainImageUsageVk = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 			mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
@@ -583,14 +625,12 @@ namespace gvk
 		}
 
 		// With all settings gathered, create the swap chain!
-		if (aOnlyUpdate)
-		{
+		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 			mSwapChainCreateInfo
 				.setImageExtent(vk::Extent2D{ mImageCreateInfoSwapChain.extent.width, mImageCreateInfoSwapChain.extent.height })
 				.setOldSwapchain(mSwapChain.get());
 		}
-		else
-		{
+		else {
 			mSwapChainCreateInfo = vk::SwapchainCreateInfoKHR{}
 				.setSurface(surface())
 				.setMinImageCount(get_config_number_of_presentable_images())
@@ -614,7 +654,7 @@ namespace gvk
 		mSwapChainExtent = mSwapChainCreateInfo.imageExtent;
 	}
 
-	void window::construct_backbuffers(bool aOnlyUpdate) {		
+	void window::construct_backbuffers(swapchain_creation_mode aCreationMode) {		
 		const auto swapChainImages = context().device().getSwapchainImagesKHR(swap_chain());
 		const auto imagesInFlight = swapChainImages.size();
 		
@@ -630,7 +670,7 @@ namespace gvk
 				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
 			}
 		};
-		auto lifetime_handler_lambda = [this](outdated_swapchain_resource_t&& rhs) { this->handle_lifetime(std::move(rhs)); };
+		auto lifetimeHandlerLambda = [this](outdated_swapchain_resource_t&& rhs) { this->handle_lifetime(std::move(rhs)); };
 
 		// Create the new image views:
 		std::vector<avk::image_view> newImageViews;
@@ -640,7 +680,7 @@ namespace gvk
 			ref.enable_shared_ownership();							
 		}
 
-		avk::swap_and_dispose_rhs(newImageViews, std::move(mSwapChainImageViews), lifetime_handler_lambda);
+		avk::emplace_and_handle_previous(newImageViews, std::move(mSwapChainImageViews), lifetimeHandlerLambda);
 		
 		
 		auto additionalAttachments = get_additional_back_buffer_attachments();		
@@ -654,7 +694,7 @@ namespace gvk
 		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled())				
 			newRenderPass.enable_shared_ownership();
 
-		avk::swap_and_dispose_rhs(newRenderPass, std::move(mBackBufferRenderpass), lifetime_handler_lambda);
+		avk::emplace_and_handle_previous(newRenderPass, std::move(mBackBufferRenderpass), lifetimeHandlerLambda);
 		
 		std::vector<avk::framebuffer> newBuffers;
 		newBuffers.reserve(imagesInFlight);
@@ -665,15 +705,13 @@ namespace gvk
 			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
 			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case			
-			if (aOnlyUpdate)
-			{
+			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
 				for (int j = 1; j < backBufferImageViews.size(); j++) {					
 					imageViews.emplace_back(gvk::context().create_image_view_from_template(backBufferImageViews[j], imageResize));					
 				}
 			}
-			else
-			{	
+			else {	
 				for (auto& aa : additionalAttachments) {
 					if (aa.is_used_as_depth_stencil_attachment()) {
 						imageViews.emplace_back(context().create_depth_image_view(
@@ -689,7 +727,7 @@ namespace gvk
 			ref.enable_shared_ownership();			
 		}
 		
-		avk::swap_and_dispose_rhs(newBuffers, std::move(mBackBuffers), lifetime_handler_lambda);
+		avk::emplace_and_handle_previous(newBuffers, std::move(mBackBuffers), lifetimeHandlerLambda);
 
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : mBackBuffers) {

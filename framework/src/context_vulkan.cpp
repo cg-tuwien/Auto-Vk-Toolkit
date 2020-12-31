@@ -448,8 +448,8 @@ namespace gvk
 				return false;
 			}
 			// Okay, the window has a surface and vulkan has initialized. 
-			// Let's create more stuff for this window!
-			context().create_swap_chain_for_window(wnd);
+			// Let's create more stuff for this window!			
+			wnd->create_swap_chain(window::swapchain_creation_mode::create_new_swapchain);
 			return true;
 		});
 
@@ -870,55 +870,5 @@ namespace gvk
 			: glm::uvec2(srfCaps.currentExtent.width, srfCaps.currentExtent.height);
 
 		return extent;
-	}
-
-	// TODO it makes more sense for swap chain creation to be inside window class perhaps?	
-	void context_vulkan::create_swap_chain_for_window(window* aWindow)
-	{
-		bool onlyUpdate = !!aWindow->mSwapChain;		
-				
-		aWindow->construct_swap_chain_creation_info(onlyUpdate);
-		
-		auto newSwapChain = device().createSwapchainKHRUnique(aWindow->mSwapChainCreateInfo);
-		
-		//context().device().waitIdle(); // TODO: Necessary?
-		auto lifetime_handler = [aWindow](vk::UniqueSwapchainKHR&& rhs) { aWindow->handle_lifetime(std::move(rhs)); };
-
-		// assign the new swap chain instead of the old one, if one exists
-		avk::swap_and_dispose_rhs(newSwapChain, std::move(aWindow->mSwapChain), lifetime_handler);			
-		
-		aWindow->construct_backbuffers(onlyUpdate);
-		
-		if (!onlyUpdate)
-		{
-			aWindow->mCurrentFrame = 0; // Start af frame 0
-			// it has been established that imagesInFlight ==  aWindow->get_config_number_of_presentable_images()
-			auto imagesInFlight = aWindow->get_config_number_of_presentable_images();
-			// ============= SYNCHRONIZATION OBJECTS ===========
-			// per IMAGE:
-			{
-				aWindow->mImagesInFlightFenceIndices.reserve(imagesInFlight);
-				for (uint32_t i = 0; i < imagesInFlight; ++i) {
-					aWindow->mImagesInFlightFenceIndices.push_back(-1);
-				}
-			}
-			assert(aWindow->mImagesInFlightFenceIndices.size() == imagesInFlight);
-
-			// ============= SYNCHRONIZATION OBJECTS ===========
-			// per CONCURRENT FRAME:
-			{
-				auto framesInFlight = aWindow->get_config_number_of_concurrent_frames();
-				aWindow->mFramesInFlightFences.reserve(framesInFlight);
-				aWindow->mImageAvailableSemaphores.reserve(framesInFlight);
-				aWindow->mInitiatePresentSemaphores.reserve(framesInFlight);
-				for (uint32_t i = 0; i < framesInFlight; ++i) {
-					aWindow->mFramesInFlightFences.push_back(create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-					aWindow->mImageAvailableSemaphores.push_back(create_semaphore());
-					aWindow->mInitiatePresentSemaphores.push_back(create_semaphore());
-				}
-			}
-			assert(aWindow->mFramesInFlightFences.size() == aWindow->get_config_number_of_concurrent_frames());
-			assert(aWindow->mImageAvailableSemaphores.size() == aWindow->get_config_number_of_concurrent_frames());
-		}
 	}
 }

@@ -161,11 +161,6 @@ namespace gvk
 
 		/** Gets the right resolution for the given window, considering the window's size and surface capabilities */
 		glm::uvec2 get_resolution_for_window(window* aWindow);
-		
-		/** Creates the swap chain for the given window and surface with the given parameters
-		 *	@param aWindow		[in] The window to create the swap chain for
-		 */
-		void create_swap_chain_for_window(window* aWindow);
 
 		//pipeline create_ray_tracing_pipeline(
 		//	const std::vector<std::tuple<shader_type, shader*>>& pShaderInfos,
