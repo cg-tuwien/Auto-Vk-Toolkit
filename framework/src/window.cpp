@@ -453,8 +453,9 @@ namespace gvk
 		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages; 
 		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
 
-		if (!has_consumed_current_image_available_semaphore()) {
-			LOG_WARNING(fmt::format("Frame #{}: User has not consumed the 'image available semaphore'. Render results might be corrupted. Use consume_current_image_available_semaphore() every frame!", current_frame()));
+		if (!has_consumed_current_image_available_semaphore()) {			
+			// Being in this branch indicates that image available semaphore has not been consumed yet
+			// meaning that no render calls were (correctly) executed  (hint: check if all invokess are possibly disabled).
 			auto imgAvailable = consume_current_image_available_semaphore();
 			renderFinishedSemaphores.push_back(imgAvailable->handle());
 			renderFinishedSemaphoreStages.push_back(imgAvailable->semaphore_wait_stage());

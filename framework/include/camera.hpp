@@ -47,42 +47,39 @@ namespace gvk
 		float bottom_border() const { return mBottom; }
 
 		// sets the projection matrix
-		camera& set_projection_matrix(const glm::mat4& pMatrix);
+		camera& set_projection_matrix(const glm::mat4& aMatrix);
 		// Constructs and sets a perspective projection matrix with the given parameters
-		camera& set_perspective_projection(float pFov, float pAspect, float pNear, float pFar);
+		camera& set_perspective_projection(float aFov, float aAspect, float aNear, float aFar);
 		// Constructs and sets an orthographic projection matrix with the given parameters
-		camera& set_orthographic_projection(float pLeft, float pRight, float pBottom, float pTop, float pNear, float pFar);
+		camera& set_orthographic_projection(float aLeft, float aRight, float aBottom, float aTop, float aNear, float aFar);
 
 		// sets the distance of the near plane (ortho and perspective) and updates the matrix
-		camera& set_near_plane_distance(float pValue);
+		camera& set_near_plane_distance(float aValue);
 		// sets the distance of the far plane (ortho and perspective) and updates the matrix
-		camera& set_far_plane_distance(float pValue);
+		camera& set_far_plane_distance(float aValue);
 		// sets the field of view angle in radians (perspective only) and updates the matrix
-		camera& set_field_of_view(float pValue);
+		camera& set_field_of_view(float aValue);
 		// sets the aspect ratio (width/height) and updates the matrix
-		camera& set_aspect_ratio(float pValue);
+		camera& set_aspect_ratio(float aValue);
 		// sets the distance of the view cube's left border (ortho only) and updates the matrix
-		camera& set_left_border(float pValue);
+		camera& set_left_border(float aValue);
 		// sets the distance of the view cube's right border (ortho only) and updates the matrix
-		camera& set_right_border(float pValue);
+		camera& set_right_border(float aValue);
 		// sets the distance of the view cube's top border (ortho only) and updates the matrix
-		camera& set_top_border(float pValue);
+		camera& set_top_border(float aValue);
 		// sets the distance of the view cube's bottom border (ortho only) and updates the matrix
-		camera& set_bottom_border(float pValue);
+		camera& set_bottom_border(float aValue);
 
 		// Copies all the camera parameters from the other camera, but leaves the transform unchanged
 		// The parameters copied are all the direct members of this class.
-		camera& copy_parameters_from(const camera& pOtherCamera);
+		camera& copy_parameters_from(const camera& aOtherCamera);
 
 		// calculates the z-buffer depth of the specified position in world space
-		float get_z_buffer_depth(const glm::vec3& pWorldSpacePosition);
+		float get_z_buffer_depth(const glm::vec3& aWorldSpacePosition);
 		// Calculates the z-buffer depth of a given transform's position
-		float get_z_buffer_depth(transform& transform);
+		float get_z_buffer_depth(transform& aTransform);
 
 		// Calculates and returns the view matrix of this camera.
-		// The view matrix is calculated based on the following assumptions:
-		//  - forward a.k.a. the camera's look direction is pointing in -z direction
-		//  - TBD: differences OpenGL vs Vulkan
 		glm::mat4 view_matrix() const;
 
 		// This is a shortcut for projection_matrix() * view_matrix(), i.e. it returns 

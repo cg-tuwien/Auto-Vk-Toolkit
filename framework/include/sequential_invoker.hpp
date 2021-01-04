@@ -15,16 +15,14 @@ namespace gvk
 	public:
 		void execute_handle_enablings(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
+			for (auto& e : elements) {
 				e->handle_enabling();
 			}
 		}
 
 		void execute_fixed_updates(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
+			for (auto& e : elements) {
 				if (e->is_enabled()) {
 					e->fixed_update();
 				}
@@ -33,8 +31,7 @@ namespace gvk
 
 		void execute_updates(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
+			for (auto& e : elements) {
 				if (e->is_enabled()) {
 					e->update();
 				}
@@ -43,18 +40,22 @@ namespace gvk
 
 		void execute_renders(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
-				if (e->is_render_enabled()) {
-					e->render();
+			for (auto& e : elements) {
+				if (e->is_enabled()) {
+					// First, apply potential changes required by the updater of the invokee, 
+					// if one really exist. It is important that those changes are applied
+					// before the next render call.
+					e->apply_recreation_updates();
+				}
+				if (e->is_render_enabled()) {					
+					e->render();					
 				}
 			}
 		}
 
 		void execute_render_gizmos(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
+			for (auto& e : elements) {
 				if (e->is_render_gizmos_enabled()) {
 					e->render_gizmos();
 				}
@@ -63,8 +64,7 @@ namespace gvk
 
 		void execute_handle_disablings(const std::vector<invokee*>& elements) override
 		{
-			for (auto& e : elements)
-			{
+			for (auto& e : elements) {
 				e->handle_disabling();
 			}
 		}

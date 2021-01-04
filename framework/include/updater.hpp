@@ -40,13 +40,16 @@ namespace gvk
 	};
 
 	// An updater that can handle different types of updates
-	class updater : public invokee
+	class updater
 	{
-	public:
-		// Make sure, an updater runs first in render()
-		int execution_order() const override { return std::numeric_limits<int>::min(); }
+	public:		
 		
-		void render() override;
+		/** @brief this function applies the updates as instructed.
+		* As long as this updater is active as a part of invokee, for instance, then
+		* this function is automatically called on the appropriate moment (that is
+		* before the render call of that invokee).
+		*/
+		void apply();
 
 		template <typename E>
 		uint8_t get_event_index_and_possibly_add_event(E e)

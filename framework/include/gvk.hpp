@@ -167,6 +167,17 @@ namespace gvk
 #pragma endregion 
 }
 
+namespace gvk {
+	class serializer;
+}
+
+#include "event_data.hpp"
+#include "event.hpp"
+#include "files_changed_event.hpp"
+#include "swapchain_resized_event.hpp"
+#include "swapchain_changed_event.hpp"
+#include "updater.hpp"
+
 #include "invokee.hpp"
 #include "invoker_interface.hpp"
 #include "sequential_invoker.hpp"
@@ -183,19 +194,13 @@ namespace gvk
 #include "animation.hpp"
 #include "model.hpp"
 #include "orca_scene.hpp"
+#include "serializer.hpp"
 #include "material_image_helpers.hpp"
 
 #include "composition.hpp"
 #include "setup.hpp"
 
 #include "imgui_manager.hpp"
-
-#include "event_data.hpp"
-#include "event.hpp"
-#include "files_changed_event.hpp"
-#include "swapchain_resized_event.hpp"
-#include "swapchain_changed_event.hpp"
-#include "updater.hpp"
 
 #include "cp_interpolation.hpp"
 #include "bezier_curve.hpp"

@@ -4,8 +4,8 @@
 class ray_tracing_triangle_meshes_app : public gvk::invokee
 {
 	struct push_const_data {
-		glm::mat4 mViewMatrix;
-		glm::vec4 mLightDirection;
+		glm::mat4 mCameraTransform;
+		glm::vec4 mLightDir;
 	};
 
 public: // v== xk::invokee overrides which will be invoked by the framework ==v
@@ -48,7 +48,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
+#if VK_HEADER_VERSION >= 162
+#else
+					vk::BufferUsageFlagBits::eRayTracingKHR |
+#endif
+					vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler())
 				);
 				
@@ -56,7 +61,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				auto bufferViewIndex = static_cast<uint32_t>(mTexCoordBufferViews.size());
 				auto texCoordsData = gvk::get_2d_texture_coordinates({ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0);
 				auto texCoordsTexelBuffer = gvk::context().create_buffer(
-					avk::memory_usage::device, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					avk::memory_usage::device, 
+#if VK_HEADER_VERSION >= 162
+#else
+					vk::BufferUsageFlagBits::eRayTracingKHR |
+#endif
+					vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::uniform_texel_buffer_meta::create_from_data(texCoordsData)
 						.describe_only_member(texCoordsData[0])
 				);
@@ -69,7 +79,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				// The following call is quite redundant => TODO: optimize!
 				auto [positionsData, indicesData] = gvk::get_vertices_and_indices({ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) });
 				auto indexTexelBuffer = gvk::context().create_buffer(
-					avk::memory_usage::device, vk::BufferUsageFlagBits::eRayTracingKHR | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
+					avk::memory_usage::device, 
+#if VK_HEADER_VERSION >= 162
+#else
+					vk::BufferUsageFlagBits::eRayTracingKHR |
+#endif
+					vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
 					avk::uniform_texel_buffer_meta::create_from_data(indicesData)
 						.set_format<glm::uvec3>() // Combine 3 consecutive elements to one unit
 				);
@@ -194,17 +209,14 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 		mPipeline->print_shader_binding_table_groups();
 
-#if _DEBUG
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-
+		mUpdater.emplace();
 		for (auto& oiv : mOffscreenImageViews) {
 			oiv.enable_shared_ownership();
-			mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
+			mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
 		}
-		mUpdater.on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		
-		gvk::current_composition()->add_element(mUpdater);
-#endif
 		
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -325,7 +337,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 		// Set the push constants:
 		auto pushConstantsForThisDrawCall = push_const_data { 
-			mQuakeCam.view_matrix(),
+			mQuakeCam.global_transformation_matrix(),
 			glm::vec4{mLightDir, 0.0f}
 		};
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
@@ -393,10 +405,7 @@ private: // v== Member variables ==v
 	avk::ray_tracing_pipeline mPipeline;
 	avk::graphics_pipeline mGraphicsPipeline;
 	gvk::quake_camera mQuakeCam;
-	
-#if _DEBUG
-	gvk::updater mUpdater;
-#endif
+
 }; // ray_tracing_triangle_meshes_app
 
 int main() // <== Starting point ==
@@ -422,6 +431,24 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Triangle Meshes Example"),
+#if VK_HEADER_VERSION >= 162
+			gvk::required_device_extensions()
+				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
+				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues) {
+				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
+			},
+			[](vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingFeatures) {
+				aRayTracingFeatures.setRayTracingPipeline(VK_TRUE);
+			},
+				[](vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccelerationStructureFeatures) {
+				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
+			},
+#else 
 			gvk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
@@ -429,12 +456,13 @@ int main() // <== Starting point ==
 				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
 				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
 				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
-			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues){
+			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues) {
 				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
 			},
-			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures){
+			[](vk::PhysicalDeviceRayTracingFeaturesKHR& aRayTracingFeatures) {
 				aRayTracingFeatures.setRayTracing(VK_TRUE);
 			},
+#endif
 			mainWnd,
 			app,
 			ui

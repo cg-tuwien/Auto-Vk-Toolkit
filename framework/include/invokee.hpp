@@ -29,9 +29,11 @@ namespace gvk
 	public:
 		/**
 		 * @brief Constructor which automatically generates a name for this object
+		 * @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee()
+		invokee(int aExecutionOrder = 0)
 			: mName{ "invokee #" + std::to_string(sGeneratedNameId++) }
+			, mExecutionOrder{ aExecutionOrder }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
@@ -39,15 +41,17 @@ namespace gvk
 		{ }
 
 		/**	@brief Constructor
-		 *	@param pName Name by which this object can be identified
-		 *	@param pIsEnabled Enabled means that this object will receive the method invocations during the loop
+		 *	@param aName Name by which this object can be identified
+		 *	@param aIsEnabled Enabled means that this object will receive the method invocations during the loop
+		 *  @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee(std::string pName, bool pIsEnabled = true) 
-			: mName{ pName }
+		invokee(std::string aName, bool aIsEnabled = true, int aExecutionOrder = 0) 
+			: mName{ aName }
 			, mWasEnabledLastFrame{ false }
-			, mEnabled{ pIsEnabled }
+			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
+			, mExecutionOrder { aExecutionOrder }
 		{ }
 
 		virtual ~invokee()
@@ -67,7 +71,7 @@ namespace gvk
 		 *	render-, etc. methods invoked earlier; invokees with positive execution orders
 		 *	will be invoked later.
 		 */
-		virtual int execution_order() const { return 0; }
+		virtual int execution_order() const { return mExecutionOrder; }
 
 		/**	@brief Initialize this invokee
 		 *
@@ -247,12 +251,29 @@ namespace gvk
 		/** @brief Returns whether rendering this element's gizmos is enabled or not. */
 		bool is_render_gizmos_enabled() const { return mRenderGizmosEnabled; }
 
+		/** @brief applies the changes required by the updater, if one is created for this invokee.	*/
+		void apply_recreation_updates()
+		{
+			if (mUpdater.has_value()) {
+				mUpdater->apply();
+			}
+		}
+
 	private:
 		inline static int32_t sGeneratedNameId = 0;
 		std::string mName;
+		int  mExecutionOrder = 0;
 		bool mWasEnabledLastFrame;
 		bool mEnabled;
 		bool mRenderEnabled;
 		bool mRenderGizmosEnabled;
+
+	protected:
+		/** In case that an updater is required by this invokee, one should be constructed here.
+		* The updater - if needed - can be changed over time. However this is the place where
+		* the active updater is expected to be.
+		*/
+		std::optional<updater> mUpdater;
+
 	};
 }

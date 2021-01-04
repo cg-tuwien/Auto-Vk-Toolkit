@@ -7,6 +7,7 @@ namespace gvk
 	void transform::update_matrix_from_transforms()
 	{
 		mMatrix = matrix_from_transforms(mTranslation, mRotation, mScale);
+		mInverseMatrix = glm::inverse(mMatrix);
 	}
 	
 	void transform::update_transforms_from_matrix()
@@ -40,6 +41,7 @@ namespace gvk
 
 	transform::transform(transform&& other) noexcept
 		: mMatrix{ std::move(other.mMatrix) }
+		, mInverseMatrix{ std::move(other.mInverseMatrix) }
 		, mTranslation{ std::move(other.mTranslation) }
 		, mRotation{ std::move(other.mRotation) }
 		, mScale{ std::move(other.mScale) }
@@ -56,6 +58,7 @@ namespace gvk
 	
 	transform::transform(const transform& other) noexcept
 		: mMatrix{ other.mMatrix }
+		, mInverseMatrix{ other.mInverseMatrix }
 		, mTranslation{ other.mTranslation }
 		, mRotation{ other.mRotation }
 		, mScale{ other.mScale }
@@ -72,6 +75,7 @@ namespace gvk
 	transform& transform::operator=(transform&& other) noexcept
 	{
 		mMatrix = std::move(other.mMatrix);
+		mInverseMatrix = std::move(other.mInverseMatrix);
 		mTranslation = std::move(other.mTranslation);
 		mRotation = std::move(other.mRotation);
 		mScale = std::move(other.mScale);
@@ -89,6 +93,7 @@ namespace gvk
 	transform& transform::operator=(const transform& other) noexcept
 	{
 		mMatrix = other.mMatrix;
+		mInverseMatrix = other.mInverseMatrix;
 		mTranslation = other.mTranslation;
 		mRotation = other.mRotation;
 		mScale = other.mScale;
@@ -131,6 +136,11 @@ namespace gvk
 		return mMatrix;
 	}
 
+	glm::mat4 transform::inverse_local_transformation_matrix() const
+	{
+		return mInverseMatrix;
+	}
+	
 	glm::mat4 transform::global_transformation_matrix() const
 	{
 		if (mParent) {
@@ -139,6 +149,11 @@ namespace gvk
 		else {
 			return mMatrix;
 		}
+	}
+
+	glm::mat4 transform::inverse_global_transformation_matrix() const
+	{
+		return glm::inverse(global_transformation_matrix());
 	}
 
 	void transform::look_at(const glm::vec3& aPosition)

@@ -21,26 +21,31 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) // But not in presentable format, because ImGui comes after
 		);
 
-#if _DEBUG
+		// set up updater
+		// we want to use an updater, so create one:
+		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-		mUpdater.on(
+		mUpdater->on(
 				gvk::swapchain_resized_event(gvk::context().main_window()),
 				gvk::shader_files_changed_event(mPipeline)
 			)
-			.update(mPipeline);
-		
-		gvk::current_composition()->add_element(mUpdater);
-#endif
+			.update(mPipeline);				
+
 		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([](){
-				
+			imguiManager->add_callback([this](){	
+				bool isEnabled = this->is_enabled();
 		        ImGui::Begin("Hello, world!");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-
+				ImGui::Checkbox("Enable/Disable invokee", &isEnabled);				
+				if (isEnabled != this->is_enabled())
+				{					
+					if (!isEnabled) this->disable();
+					else this->enable();					
+				}
 				static std::vector<float> values;
 				values.push_back(1000.0f / ImGui::GetIO().Framerate);
 		        if (values.size() > 90) {
@@ -103,9 +108,6 @@ private: // v== Member variables ==v
 
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
-#if _DEBUG
-	gvk::updater mUpdater;
-#endif
 
 }; // draw_a_triangle_app
 

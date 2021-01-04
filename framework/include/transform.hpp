@@ -34,8 +34,12 @@ namespace gvk
 
 		/** returns the local transformation matrix, disregarding parent transforms */
 		glm::mat4 local_transformation_matrix() const;
+		/** Returns the inverse of the local transformation matrix. This can be used to change basis into this transform's coordinate system. */
+		glm::mat4 inverse_local_transformation_matrix() const;
 		/** returns the global transformation matrix, taking parent transforms into account */
 		glm::mat4 global_transformation_matrix() const;
+		/** returns the inverse of the global transformation matrix */
+		glm::mat4 inverse_global_transformation_matrix() const;
 
 		/** Gets the matrix' x-axis, which can be seen as the local right vector */
 		glm::vec3 x_axis() const { return mMatrix[0]; }
@@ -78,6 +82,8 @@ namespace gvk
 	protected:
 		/** Orthogonal basis + translation in a 4x4 matrix */
 		glm::mat4 mMatrix;
+		/** The inverse of mMatrix */
+		glm::mat4 mInverseMatrix;
 		/** Offset from the coordinate origin */
 		glm::vec3 mTranslation;
 		/** Rotation quaternion */
