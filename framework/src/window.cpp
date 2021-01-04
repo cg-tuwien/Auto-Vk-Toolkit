@@ -691,8 +691,9 @@ namespace gvk
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 		auto newRenderPass = context().create_renderpass(renderpassAttachments);		
 
-		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled())				
+		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled())	{			
 			newRenderPass.enable_shared_ownership();
+		}
 
 		avk::emplace_and_handle_previous(newRenderPass, std::move(mBackBufferRenderpass), lifetimeHandlerLambda);
 		
