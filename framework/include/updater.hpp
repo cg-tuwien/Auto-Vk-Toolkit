@@ -4,9 +4,26 @@
 
 namespace gvk
 {
-	class updater;
+	class updater;	
 	using event_t = std::variant<std::shared_ptr<event>, files_changed_event, swapchain_changed_event, swapchain_resized_event>;
-	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view>;
+	using listener_updatee_t = std::function<void(void)>;
+	using resource_updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view>;
+	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view, listener_updatee_t>;
+
+
+	/**
+	* concept used to allow variadic templates used only on resource_updatee_t type
+	*/
+	template <typename T>
+	concept is_updatee = requires (T& aT, resource_updatee_t& aVar) {
+		aVar = aT;
+	};
+
+	/**
+	* concept used to allow variadic templates used only on is_callee type
+	*/
+	template <typename T>
+	concept is_callee = std::same_as<T, listener_updatee_t>;
 
 	struct update_and_determine_fired
 	{
@@ -25,14 +42,18 @@ namespace gvk
 		void operator()(avk::ray_tracing_pipeline& u);
 		void operator()(avk::image& u);
 		void operator()(avk::image_view& u);
+		void operator()(gvk::listener_updatee_t& u);
 		event_data& mEventData;
 		std::optional<updatee_t> mUpdateeToCleanUp;
 	};
 
 	struct updater_config_proxy
 	{
-		template <typename... Updatees>
+		template <is_updatee... Updatees>
 		void update(Updatees... updatees);
+
+		template <is_callee... Callees>
+		void call(Callees... callees);
 		
 		updater* mUpdater;
 		uint64_t mEventIndicesBitset;
@@ -114,9 +135,15 @@ namespace gvk
 		std::deque<std::tuple<window::frame_id_t, updatee_t>> mUpdateesToCleanUp;
 	};
 
-	template <typename... Updatees>
+	template <is_updatee... Updatees>
 	void updater_config_proxy::update(Updatees... updatees)
 	{
 		(mUpdater->add_updatee(mEventIndicesBitset, updatees, mTtl), ...);
+	};
+
+	template <is_callee... Callees>
+	void updater_config_proxy::call(Callees... callees)
+	{
+		(mUpdater->add_updatee(mEventIndicesBitset, callees, mTtl), ...);
 	}
 }

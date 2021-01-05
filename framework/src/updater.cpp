@@ -80,6 +80,11 @@ namespace gvk
 		std::swap(*newImageView, *u);
 		mUpdateeToCleanUp = std::move(newImageView);
 	}
+
+	void recreate_updatee::operator()(listener_updatee_t& u)
+	{
+		u();
+	}
 	
 	void updater::apply()
 	{
@@ -117,7 +122,7 @@ namespace gvk
 			bool needsUpdate = (std::get<uint64_t>(tpl) & eventsFired) != 0;
 			if (needsUpdate) {
 				recreate_updatee recreator{determinator.mEventData, {}};
-				std::visit(recreator, std::get<updatee_t>(tpl));
+				std::visit(recreator, std::get <updatee_t> (tpl));
 				if (recreator.mUpdateeToCleanUp.has_value()) {
 					mUpdateesToCleanUp.emplace_back(mCurrentUpdaterFrame + std::get<window::frame_id_t>(tpl), std::move(recreator.mUpdateeToCleanUp.value()));
 				}
@@ -131,5 +136,4 @@ namespace gvk
 	{
 		mUpdatees.emplace_back(aEventsBitset, std::move(aUpdatee), aTtl);
 	}
-
 }
