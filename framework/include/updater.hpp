@@ -6,13 +6,12 @@ namespace gvk
 {
 	class updater;	
 	using event_t = std::variant<std::shared_ptr<event>, files_changed_event, swapchain_changed_event, swapchain_resized_event>;
-	using listener_updatee_t = std::function<void(void)>;
+	using event_handler_t = std::function<void(void)>;
 	using resource_updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view>;
-	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view, listener_updatee_t>;
-
+	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view, event_handler_t>;
 
 	/**
-	* concept used to allow variadic templates used only on resource_updatee_t type
+	* concept that allows variadic templates used only on resource_updatee_t type
 	*/
 	template <typename T>
 	concept is_updatee = requires (T& aT, resource_updatee_t& aVar) {
@@ -20,10 +19,10 @@ namespace gvk
 	};
 
 	/**
-	* concept used to allow variadic templates used only on is_callee type
+	* concept that allows variadic templates used only on event_handler_t type
 	*/
 	template <typename T>
-	concept is_callee = std::same_as<T, listener_updatee_t>;
+	concept is_event_handler = std::convertible_to<T, event_handler_t>;
 
 	struct update_and_determine_fired
 	{
@@ -42,7 +41,7 @@ namespace gvk
 		void operator()(avk::ray_tracing_pipeline& u);
 		void operator()(avk::image& u);
 		void operator()(avk::image_view& u);
-		void operator()(gvk::listener_updatee_t& u);
+		void operator()(gvk::event_handler_t& u);
 		event_data& mEventData;
 		std::optional<updatee_t> mUpdateeToCleanUp;
 	};
@@ -52,8 +51,8 @@ namespace gvk
 		template <is_updatee... Updatees>
 		void update(Updatees... updatees);
 
-		template <is_callee... Callees>
-		void call(Callees... callees);
+		template <is_event_handler... Handlers>
+		void invoke(Handlers... handlers);
 		
 		updater* mUpdater;
 		uint64_t mEventIndicesBitset;
@@ -135,15 +134,27 @@ namespace gvk
 		std::deque<std::tuple<window::frame_id_t, updatee_t>> mUpdateesToCleanUp;
 	};
 
+	/**
+	* adds objects of type resource_updatee_t to the update list,
+	* to be updated when the associated event is fired.
+	*
+	* @param aUpdatees		list of resource_updatee_t objects to be added.
+	*/
 	template <is_updatee... Updatees>
-	void updater_config_proxy::update(Updatees... updatees)
+	void updater_config_proxy::update(Updatees... aUpdatees)
 	{
-		(mUpdater->add_updatee(mEventIndicesBitset, updatees, mTtl), ...);
+		(mUpdater->add_updatee(mEventIndicesBitset, aUpdatees, mTtl), ...);
 	};
 
-	template <is_callee... Callees>
-	void updater_config_proxy::call(Callees... callees)
+	/**
+	* adds event handlers to the update list, to be called when the associated event
+	* is fired.
+	* 
+	* @param aHandlers		list of handlers to be added.
+	*/
+	template <is_event_handler... Handlers>
+	void updater_config_proxy::invoke(Handlers... aHandlers)
 	{
-		(mUpdater->add_updatee(mEventIndicesBitset, callees, mTtl), ...);
+		(mUpdater->add_updatee(mEventIndicesBitset, aHandlers, mTtl), ...);
 	}
 }

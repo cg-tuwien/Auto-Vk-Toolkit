@@ -168,7 +168,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::shader_files_changed_event(mPipeline)
 			)
 			.update(mPipeline);
-		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).call(cameraAspectRatioUpdater);
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke(cameraAspectRatioUpdater);
 
 
 		// Add the camera to the composition (and let it handle the updates)

@@ -378,7 +378,7 @@ namespace gvk
 				nullptr,
 				&mCurrentFrameImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 			if (vk::Result::eSuboptimalKHR == result) {
-				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");				
+				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");
 				update_resolution_and_recreate_swap_chain();
 
 				// Workaround for binary semaphores:
@@ -397,7 +397,7 @@ namespace gvk
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));			
+			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			update_resolution_and_recreate_swap_chain();
 			acquire_next_swap_chain_image_and_prepare_semaphores();
 		}
@@ -450,10 +450,10 @@ namespace gvk
 
 		// EXTERN -> WAIT 
 		std::vector<vk::Semaphore> renderFinishedSemaphores;
-		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages; 
+		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages;
 		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
 
-		if (!has_consumed_current_image_available_semaphore()) {			
+		if (!has_consumed_current_image_available_semaphore()) {
 			// Being in this branch indicates that image available semaphore has not been consumed yet
 			// meaning that no render calls were (correctly) executed  (hint: check if all invokess are possibly disabled).
 			auto imgAvailable = consume_current_image_available_semaphore();
@@ -489,13 +489,13 @@ namespace gvk
 				.setPResults(nullptr);
 			auto result = mPresentQueue->handle().presentKHR(presentInfo);
 			if (vk::Result::eSuboptimalKHR == result) {
-				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");				
+				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");
 				update_resolution_and_recreate_swap_chain();
 			}
 			
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));			
+			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			update_resolution_and_recreate_swap_chain();
 			// Just do nothing. Ignore the failure. This frame is lost.
 		}
@@ -569,7 +569,7 @@ namespace gvk
 		context().dispatch_to_main_thread([&resolutionUpdated]() { resolutionUpdated = true; });
 		context().signal_waiting_main_thread();
 		mPresentQueue->handle().waitIdle();
-		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }		
+		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }
 
 		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
 	}
@@ -655,7 +655,7 @@ namespace gvk
 		mSwapChainExtent = mSwapChainCreateInfo.imageExtent;
 	}
 
-	void window::construct_backbuffers(swapchain_creation_mode aCreationMode) {		
+	void window::construct_backbuffers(swapchain_creation_mode aCreationMode) {
 		const auto swapChainImages = context().device().getSwapchainImagesKHR(swap_chain());
 		const auto imagesInFlight = swapChainImages.size();
 		
@@ -678,21 +678,21 @@ namespace gvk
 		newImageViews.reserve(imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
 			auto& ref = newImageViews.emplace_back(context().create_image_view(context().wrap_image(swapChainImages[i], mImageCreateInfoSwapChain, mImageUsage, vk::ImageAspectFlagBits::eColor)));
-			ref.enable_shared_ownership();							
+			ref.enable_shared_ownership();
 		}
 
 		avk::emplace_and_handle_previous(newImageViews, std::move(mSwapChainImageViews), lifetimeHandlerLambda);
 		
 		
-		auto additionalAttachments = get_additional_back_buffer_attachments();		
+		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
 			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
-		auto newRenderPass = context().create_renderpass(renderpassAttachments);		
+		auto newRenderPass = context().create_renderpass(renderpassAttachments);
 
-		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled())	{			
+		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {
 			newRenderPass.enable_shared_ownership();
 		}
 
@@ -706,18 +706,18 @@ namespace gvk
 			// Create one image view per attachment
 			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
-			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case			
+			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
 			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
-				for (int j = 1; j < backBufferImageViews.size(); j++) {					
-					imageViews.emplace_back(gvk::context().create_image_view_from_template(backBufferImageViews[j], imageResize));					
+				for (int j = 1; j < backBufferImageViews.size(); j++) {
+					imageViews.emplace_back(gvk::context().create_image_view_from_template(backBufferImageViews[j], imageResize));
 				}
 			}
-			else {	
+			else {
 				for (auto& aa : additionalAttachments) {
 					if (aa.is_used_as_depth_stencil_attachment()) {
 						imageViews.emplace_back(context().create_depth_image_view(
-							avk::owned(context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)))); // TODO: read_only_* or better general_*?							
+							avk::owned(context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)))); // TODO: read_only_* or better general_*?
 					}
 					else {
 						imageViews.emplace_back(context().create_image_view(
@@ -726,7 +726,7 @@ namespace gvk
 				}
 			}
 			auto& ref = newBuffers.emplace_back(gvk::context().create_framebuffer(avk::shared(mBackBufferRenderpass), std::move(imageViews), extent.x, extent.y));
-			ref.enable_shared_ownership();			
+			ref.enable_shared_ownership();
 		}
 		
 		avk::emplace_and_handle_previous(newBuffers, std::move(mBackBuffers), lifetimeHandlerLambda);

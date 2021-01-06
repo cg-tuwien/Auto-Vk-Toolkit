@@ -213,8 +213,8 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		
 		// As we are updating our image views if swap chain is resized, it is advised to also cleanup our descriptor cache
-		std::function<void(void)> descriptorCleanup = [this]() {this->mDescriptorCache.cleanup(); };
-		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).call(descriptorCleanup);
+		auto descriptorCleanup = [this]() { this->mDescriptorCache.cleanup(); };
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke(descriptorCleanup);
 		for (auto& oiv : mOffscreenImageViews) {
 			oiv.enable_shared_ownership();
 			mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
