@@ -110,7 +110,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			"shaders/texture.frag",
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::culling_mode::disabled,
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)).enable_dynamic_viewport(),
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}),  // But not in presentable format, because ImGui comes after
 			avk::descriptor_binding(0, 0, mUbo[0]),	             // Just take any UBO, as this is just used to describe the pipeline's layout.
 			avk::descriptor_binding(0, 1, mInputImageAndSampler) 

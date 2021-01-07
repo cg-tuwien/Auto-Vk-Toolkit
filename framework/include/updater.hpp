@@ -5,55 +5,91 @@
 namespace gvk
 {
 	class updater;	
-	using event_t = std::variant<std::shared_ptr<event>, files_changed_event, swapchain_changed_event, swapchain_resized_event>;
-	using event_handler_t = std::function<void(void)>;
+	using event_t = std::variant<
+		std::shared_ptr<event>,
+		files_changed_event,
+		swapchain_changed_event,
+		swapchain_resized_event,
+		destroying_graphics_pipeline_event,
+		destroying_compute_pipeline_event,
+		destroying_ray_tracing_pipeline_event,
+		destroying_image_event,
+		destroying_image_view_event
+	>;
+	using event_handler_t = std::variant<
+		std::function<void()>,
+		std::function<void(const avk::graphics_pipeline&)>,
+		std::function<void(const avk::compute_pipeline&)>,
+		std::function<void(const avk::ray_tracing_pipeline&)>,
+		std::function<void(const avk::image&)>,
+		std::function<void(const avk::image_view&)>
+	>;
 	using resource_updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view>;
 	using updatee_t = std::variant<avk::graphics_pipeline, avk::compute_pipeline, avk::ray_tracing_pipeline, avk::image, avk::image_view, event_handler_t>;
 
-	/**
-	* concept that allows variadic templates used only on resource_updatee_t type
-	*/
+	/** Concept that allows variadic templates used only on resource_updatee_t type
+	 */
 	template <typename T>
-	concept is_updatee = requires (T& aT, resource_updatee_t& aVar) {
+	concept is_updatee = requires (T& aT, resource_updatee_t& aVar)
+	{
 		aVar = aT;
 	};
 
-	/**
-	* concept that allows variadic templates used only on event_handler_t type
-	*/
+	/** Concept that allows variadic templates used only on event_handler_t type
+	 */
 	template <typename T>
-	concept is_event_handler = std::convertible_to<T, event_handler_t>;
-
-	struct update_and_determine_fired
+	concept is_event_handler = requires (T& aT, event_handler_t& aVar)
 	{
-		void operator()(std::shared_ptr<event>& e)	{ mFired = e->update(mEventData); }
-		void operator()(files_changed_event& e)		{ mFired = e.update(mEventData); }
-		void operator()(swapchain_changed_event& e)	{ mFired = e.update(mEventData); }
-		void operator()(swapchain_resized_event& e)	{ mFired = e.update(mEventData); }
-		event_data mEventData;
-		bool mFired = false;
+		aVar = aT;
 	};
 
-	struct recreate_updatee
+	struct update_operations_data
 	{
 		void operator()(avk::graphics_pipeline& u);
 		void operator()(avk::compute_pipeline& u);
 		void operator()(avk::ray_tracing_pipeline& u);
 		void operator()(avk::image& u);
 		void operator()(avk::image_view& u);
-		void operator()(gvk::event_handler_t& u);
+		void operator()(event_handler_t& u);
 		event_data& mEventData;
 		std::optional<updatee_t> mUpdateeToCleanUp;
 	};
 
-	struct updater_config_proxy
+	class updater_config_proxy
 	{
-		template <is_updatee... Updatees>
-		void update(Updatees... updatees);
-
-		template <is_event_handler... Handlers>
-		void invoke(Handlers... handlers);
+		friend class updater;
 		
+	public:
+		updater_config_proxy(updater* aUpdater, uint64_t aEventIndicesBitset, window::frame_id_t aTtl)
+			: mUpdater{ aUpdater }
+			, mEventIndicesBitset{ aEventIndicesBitset }
+			, mTtl{ aTtl }
+		{ }
+
+		/**	Specify resources that should be updated by the updater on the occurence of one/multiple event/s.
+		 *	Supported values are:
+		 *	 - avk::graphics_pipeline
+		 *	 - avk::compute_pipeline
+		 *	 - avk::ray_tracing_pipeline
+		 *	 - avk::image
+		 *	 - avk::image_view
+		 */
+		template <is_updatee... Updatees>
+		updater_config_proxy& update(Updatees... updatees);
+
+		/**	Specify event handlers that should be invoked by the updater on the occurence of one/multiple event/s.
+		 *	Supported function signatures are:
+		 *	 - void() .................................. Can be used generally.
+		 *	 - void(const avk::graphics_pipeline&) ..... To be used in conjunction with on(destroying_graphics_pipeline_event()). The pipeline to be destroyed is passed as the first parameter.
+		 *	 - void(const avk::compute_pipeline&) ...... To be used in conjunction with on(destroying_compute_pipeline_event()). The pipeline to be destroyed is passed as the first parameter.
+		 *	 - void(const avk::ray_tracing_pipeline&) .. To be used in conjunction with on(destroying_ray_tracing_pipeline_event()). The pipeline to be destroyed is passed as the first parameter.
+		 *	 - void(const avk::image&) ................. To be used in conjunction with on(destroying_image_event()). The image to be destroyed is passed as the first parameter.
+		 *	 - void(const avk::image_view&) ............ To be used in conjunction with on(destroying_image_view_event()). The image view to be destroyed is passed as the first parameter.
+		 */
+		template <is_event_handler... Handlers>
+		updater_config_proxy& invoke(Handlers... handlers);
+
+	private:
 		updater* mUpdater;
 		uint64_t mEventIndicesBitset;
 		window::frame_id_t mTtl;
@@ -90,11 +126,28 @@ namespace gvk
 			return static_cast<uint8_t>(mEvents.size() - 1);
 		}
 
-		window::frame_id_t get_ttl(std::shared_ptr<event>& e)	{ return 0; }
-		window::frame_id_t get_ttl(files_changed_event& e)		{ return 0; }
-		window::frame_id_t get_ttl(swapchain_changed_event& e)	{ return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(swapchain_resized_event& e)	{ return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(std::shared_ptr<event>& e)                { return 0; }
+		window::frame_id_t get_ttl(files_changed_event& e)                   { return 0; }
+		window::frame_id_t get_ttl(swapchain_changed_event& e)               { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_resized_event& e)               { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(destroying_graphics_pipeline_event& e)    { return 0; }
+		window::frame_id_t get_ttl(destroying_compute_pipeline_event& e)     { return 0; }
+		window::frame_id_t get_ttl(destroying_ray_tracing_pipeline_event& e) { return 0; }
+		window::frame_id_t get_ttl(destroying_image_event& e)                { return 0; }
+		window::frame_id_t get_ttl(destroying_image_view_event& e)           { return 0; }
 
+		/**	Specify one or multiple events which shall trigger an action.
+		 *	Possible events are the following:
+		 *	 - files_changed_event ..................... Triggered after files have changed on disk.                          Example: `gvk::shader_files_changed_event(mPipeline)`
+		 *   - swapchain_changed_event ................. Triggered after the swapchain has changed.                           Example: `gvk::swapchain_changed_event(gvk::context().main_window())`
+		 *   - swapchain_resized_event ................. Triggered after the swapchain has been resized.                      Example: `gvk::swapchain_resized_event(gvk::context().main_window())`
+		 *   - destroying_graphics_pipeline_event ...... Triggered before an old, outdated graphics pipeline is destroyed.    Example: `gvk::destroying_graphics_pipeline_event()`
+		 *   - destroying_compute_pipeline_event ....... Triggered before an old, outdated compute pipeline is destroyed.     Example: `gvk::destroying_compute_pipeline_event()`
+		 *   - destroying_ray_tracing_pipeline_event ... Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `gvk::destroying_ray_tracing_pipeline_event()`
+		 *   - destroying_image_event .................. Triggered before an old, outdated image is destroyed.                Example: `gvk::destroying_image_event()`
+		 *   - destroying_image_view_event ............. Triggered before an old, outdated image view is destroyed.           Example: `gvk::destroying_image_view_event()`
+		 * 
+		 */
 		template <typename... Events>
 		updater_config_proxy on(Events... events)
 		{
@@ -141,9 +194,10 @@ namespace gvk
 	* @param aUpdatees		list of resource_updatee_t objects to be added.
 	*/
 	template <is_updatee... Updatees>
-	void updater_config_proxy::update(Updatees... aUpdatees)
+	updater_config_proxy& updater_config_proxy::update(Updatees... aUpdatees)
 	{
 		(mUpdater->add_updatee(mEventIndicesBitset, aUpdatees, mTtl), ...);
+		return *this;
 	};
 
 	/**
@@ -153,8 +207,9 @@ namespace gvk
 	* @param aHandlers		list of handlers to be added.
 	*/
 	template <is_event_handler... Handlers>
-	void updater_config_proxy::invoke(Handlers... aHandlers)
+	updater_config_proxy& updater_config_proxy::invoke(Handlers... aHandlers)
 	{
 		(mUpdater->add_updatee(mEventIndicesBitset, aHandlers, mTtl), ...);
+		return *this;
 	}
 }

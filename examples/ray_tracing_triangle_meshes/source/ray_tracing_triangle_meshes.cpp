@@ -213,12 +213,13 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		
 		// As we are updating our image views if swap chain is resized, it is advised to also cleanup our descriptor cache
-		auto descriptorCleanup = [this]() { this->mDescriptorCache.cleanup(); };
-		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke(descriptorCleanup);
 		for (auto& oiv : mOffscreenImageViews) {
 			oiv.enable_shared_ownership();
 			mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).update(oiv);
 		}
+		mUpdater->on(gvk::destroying_image_view_event()).invoke([this](const avk::image_view& aImageViewToBeDestroyed){
+			auto numRemoved = mDescriptorCache.remove_sets_with_handle(aImageViewToBeDestroyed->handle());
+		});
 		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window()), gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		
 		// Add the camera to the composition (and let it handle the updates)

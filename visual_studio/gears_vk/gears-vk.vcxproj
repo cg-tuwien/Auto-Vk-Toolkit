@@ -146,6 +146,7 @@
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
     <ClInclude Include="..\..\framework\include\cp_interpolation.hpp" />
     <ClInclude Include="..\..\framework\include\cubic_uniform_b_spline.hpp" />
+    <ClInclude Include="..\..\framework\include\destroying_events.hpp" />
     <ClInclude Include="..\..\framework\include\event.hpp" />
     <ClInclude Include="..\..\framework\include\event_data.hpp" />
     <ClInclude Include="..\..\framework\include\files_changed_event.hpp" />

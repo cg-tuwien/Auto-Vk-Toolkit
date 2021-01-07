@@ -492,6 +492,9 @@
     <ClInclude Include="..\..\framework\include\quadratic_uniform_b_spline.hpp">
       <Filter>gears-vk_include\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\destroying_events.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

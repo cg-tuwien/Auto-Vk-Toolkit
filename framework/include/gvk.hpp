@@ -176,6 +176,7 @@ namespace gvk {
 #include "files_changed_event.hpp"
 #include "swapchain_resized_event.hpp"
 #include "swapchain_changed_event.hpp"
+#include "destroying_events.hpp"
 #include "updater.hpp"
 
 #include "invokee.hpp"

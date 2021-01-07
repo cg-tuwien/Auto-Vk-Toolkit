@@ -2,7 +2,7 @@
 
 namespace gvk
 {
-	void recreate_updatee::operator()(avk::graphics_pipeline& u)
+	void update_operations_data::operator()(avk::graphics_pipeline& u)
 	{
 		auto newPipeline = gvk::context().create_graphics_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::graphics_pipeline_t& aPreparedPipeline){
 			for (auto& vp : aPreparedPipeline.viewports()) {
@@ -19,7 +19,7 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
 	
-	void recreate_updatee::operator()(avk::compute_pipeline& u)
+	void update_operations_data::operator()(avk::compute_pipeline& u)
 	{
 		auto newPipeline = gvk::context().create_compute_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::compute_pipeline_t& aPreparedPipeline){
 			// TODO: Something to alter here?
@@ -29,7 +29,7 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
 	
-	void recreate_updatee::operator()(avk::ray_tracing_pipeline& u)
+	void update_operations_data::operator()(avk::ray_tracing_pipeline& u)
 	{
 		auto newPipeline = gvk::context().create_ray_tracing_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::ray_tracing_pipeline_t& aPreparedPipeline){
 			// TODO: Something to alter here?
@@ -39,7 +39,7 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
 
-	void recreate_updatee::operator()(avk::image& u)
+	void update_operations_data::operator()(avk::image& u)
 	{
 		auto newImage = gvk::context().create_image_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
@@ -57,7 +57,7 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newImage);
 	}
 
-	void recreate_updatee::operator()(avk::image_view& u)
+	void update_operations_data::operator()(avk::image_view& u)
 	{
 		auto currentLayout = u->get_image().current_layout();
 		
@@ -81,53 +81,116 @@ namespace gvk
 		mUpdateeToCleanUp = std::move(newImageView);
 	}
 
-	void recreate_updatee::operator()(event_handler_t& u)
+	void update_operations_data::operator()(event_handler_t& u)
 	{
-		u();
+		std::visit(
+			avk::lambda_overload{
+				[    ](std::function<void()>& f) { f(); },
+				[this](std::function<void(const avk::graphics_pipeline&)>& f){
+					for (auto* p : this->mEventData.mGraphicsPipelinesToBeCleanedUp) {
+						f(*p);
+					}
+				},
+				[this](std::function<void(const avk::compute_pipeline&)>& f) {
+					for (auto* p : this->mEventData.mComputePipelinesToBeCleanedUp) {
+						f(*p);
+					}
+				},
+				[this](std::function<void(const avk::ray_tracing_pipeline&)>& f) {
+					for (auto* p : this->mEventData.mRayTracingPipelinesToBeCleanedUp) {
+						f(*p);
+					}
+				},
+				[this](std::function<void(const avk::image&)>& f) {
+					for (auto* p : this->mEventData.mImagesToBeCleanedUp) {
+						f(*p);
+					}
+				},
+				[this](std::function<void(const avk::image_view&)>& f) {
+					for (auto* p : this->mEventData.mImageViewsToBeCleanedUp) {
+						f(*p);
+					}
+				},
+			},
+			u
+		);
 	}
 	
 	void updater::apply()
 	{
+		event_data eventData;
+
 		// See if we have any resources to clean up:
+		size_t cleanupFrontCount = 0;
 		if (!mUpdateesToCleanUp.empty()) {
 			// If there are different TTL values, it might happen that some resources are not cleaned at the earliest time, but a bit later.
-			auto it = std::upper_bound(
+			auto cleanupIt = std::upper_bound(
 				std::begin(mUpdateesToCleanUp), std::end(mUpdateesToCleanUp),
-				mCurrentUpdaterFrame, [](window::frame_id_t fid, const auto& tpl){
-					return fid < std::get<window::frame_id_t>(tpl); 
+				mCurrentUpdaterFrame, [](window::frame_id_t fid, const auto& tpl) {
+					return fid < std::get<window::frame_id_t>(tpl);
 				}
 			);
-			mUpdateesToCleanUp.erase(std::begin(mUpdateesToCleanUp), it);
-		}
 
+			for (auto it = std::begin(mUpdateesToCleanUp); it != cleanupIt; ++it) {
+				std::visit(
+					avk::lambda_overload{
+						[&eventData](avk::graphics_pipeline& aGraphicsPipeline) { eventData.mGraphicsPipelinesToBeCleanedUp.push_back(&aGraphicsPipeline);  },
+						[&eventData](avk::compute_pipeline& aComputePipeline) { eventData.mComputePipelinesToBeCleanedUp.push_back(&aComputePipeline); },
+						[&eventData](avk::ray_tracing_pipeline& aRayTracingPipeline) { eventData.mRayTracingPipelinesToBeCleanedUp.push_back(&aRayTracingPipeline); },
+						[&eventData](avk::image& aImage) { eventData.mImagesToBeCleanedUp.push_back(&aImage); },
+						[&eventData](avk::image_view& aImageView) { eventData.mImageViewsToBeCleanedUp.push_back(&aImageView); },
+						[](event_handler_t& aEventHandler) { }
+					}, 
+					std::get<updatee_t>(*it)
+				);
+			}
+
+			cleanupFrontCount = std::distance(std::begin(mUpdateesToCleanUp), cleanupIt);
+		}
+		
 		// First of all, perform a static update due to strange FileWatcher behavior :-/
 		files_changed_event::update();
+		
 		// Then perform the individual updates:
-		// 
-		// See which events have fired:
+		//   (See which events have fired)
 		uint64_t eventsFired = 0;
 		assert(cMaxEvents >= mEvents.size());
-		update_and_determine_fired determinator{{}, false};
 		const auto n = std::min(cMaxEvents, mEvents.size());
 		for (size_t i = 0; i < n; ++i) {
-			determinator.mFired = false;
-			std::visit(determinator, mEvents[i]);
-			if (determinator.mFired) {
+			bool fired = std::visit(
+				avk::lambda_overload{
+					[&eventData](std::shared_ptr<event>& e) { return e->update(eventData); },
+					[&eventData](files_changed_event& e) { return e.update(eventData); },
+					[&eventData](swapchain_changed_event& e) { return e.update(eventData); },
+					[&eventData](swapchain_resized_event& e) { return e.update(eventData); },
+					[&eventData](destroying_graphics_pipeline_event& e) { return e.update(eventData); },
+					[&eventData](destroying_compute_pipeline_event& e) { return e.update(eventData); },
+					[&eventData](destroying_ray_tracing_pipeline_event& e) { return e.update(eventData); },
+					[&eventData](destroying_image_event& e) { return e.update(eventData); },
+					[&eventData](destroying_image_view_event& e) { return e.update(eventData); }
+				},
+				mEvents[i]
+			);
+			if (fired) {
 				eventsFired |= (uint64_t{1} << i);
 			}
 		}
 
-		// Update all who had at least one of their relevant events fire:
+		// Update all who had at least one of their relevant events fired:
 		for (auto& tpl : mUpdatees) {
 			bool needsUpdate = (std::get<uint64_t>(tpl) & eventsFired) != 0;
 			if (needsUpdate) {
-				recreate_updatee recreator{determinator.mEventData, {}};
+				update_operations_data recreator{eventData, {}};
 				std::visit(recreator, std::get<updatee_t>(tpl));
 				if (recreator.mUpdateeToCleanUp.has_value()) {
+					// This invalidates iterators of the deque, but it's okay, we have saved the cleanupFrontCount and don't need any iterators to be preserved.
 					mUpdateesToCleanUp.emplace_back(mCurrentUpdaterFrame + std::get<window::frame_id_t>(tpl), std::move(recreator.mUpdateeToCleanUp.value()));
 				}
 			}
 		}
+
+		// Actually clean up (if there is something to clean up):
+		mUpdateesToCleanUp.erase(std::begin(mUpdateesToCleanUp), std::begin(mUpdateesToCleanUp) + cleanupFrontCount);
 
 		++mCurrentUpdaterFrame;
 	}

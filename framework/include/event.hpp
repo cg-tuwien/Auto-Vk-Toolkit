@@ -7,6 +7,8 @@ namespace gvk
 	class event
 	{
 	public:
+		virtual ~event() = default;
+		
 		/**	Called frequently by the `gvk::updater`.
 		 *	An event must evaluate whatever it has to evaluate and must return:
 		 *	 -> true if the event has occured.

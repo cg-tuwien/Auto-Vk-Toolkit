@@ -157,10 +157,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// set up updater
 		// we want to use an updater, so create one:
 
-		std::function<void(void)> cameraAspectRatioUpdater = [this]() {
-			this->mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);			
-		};
-
 		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater->on(
@@ -168,7 +164,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::shader_files_changed_event(mPipeline)
 			)
 			.update(mPipeline);
-		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke(cameraAspectRatioUpdater);
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke([this]() {
+			this->mQuakeCam.set_aspect_ratio(gvk::context().main_window()->aspect_ratio());
+		});
 
 
 		// Add the camera to the composition (and let it handle the updates)

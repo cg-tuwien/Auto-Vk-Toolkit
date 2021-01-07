@@ -58,6 +58,11 @@ namespace gvk
 		}
 
 		std::vector<old_new_extent> mExtents;
-		std::optional<vk::Extent2D> mSwapchainImageExtent;	
+		std::optional<vk::Extent2D> mSwapchainImageExtent;
+		std::vector<avk::graphics_pipeline*> mGraphicsPipelinesToBeCleanedUp;
+		std::vector<avk::compute_pipeline*> mComputePipelinesToBeCleanedUp;
+		std::vector<avk::ray_tracing_pipeline*> mRayTracingPipelinesToBeCleanedUp;
+		std::vector<avk::image*> mImagesToBeCleanedUp;
+		std::vector<avk::image_view*> mImageViewsToBeCleanedUp;
 	};
 }
