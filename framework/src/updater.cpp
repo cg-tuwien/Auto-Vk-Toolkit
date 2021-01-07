@@ -80,6 +80,11 @@ namespace gvk
 		std::swap(*newImageView, *u);
 		mUpdateeToCleanUp = std::move(newImageView);
 	}
+
+	void recreate_updatee::operator()(event_handler_t& u)
+	{
+		u();
+	}
 	
 	void updater::apply()
 	{
@@ -131,5 +136,4 @@ namespace gvk
 	{
 		mUpdatees.emplace_back(aEventsBitset, std::move(aUpdatee), aTtl);
 	}
-
 }

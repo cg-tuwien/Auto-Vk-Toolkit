@@ -9,8 +9,19 @@ namespace gvk
 		friend class context_vulkan;
 	public:
 
+		/**
+		*	this struct is used to distinguish between updating
+		*	an existing swap chain, vs. creating a new one initially.
+		*/
+		enum struct swapchain_creation_mode
+		{
+			update_existing_swapchain,
+			create_new_swapchain
+		};
+
 		using frame_id_t = int64_t;
 		using outdated_swapchain_t = std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
+		using outdated_swapchain_resource_t = std::variant<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
 		
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
@@ -290,7 +301,7 @@ namespace gvk
 		 *	@param aFrameId				The frame these resources are associated with. They will be deleted
 		 *								in frame #current_frame() + number_number_of_frames_in_flight().
 		 */
-		void handle_lifetime(outdated_swapchain_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
+		void handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
@@ -361,12 +372,37 @@ namespace gvk
 			return ref;
 		}
 
-		/** Recreate the swap chain based on the current extent and return the old resources which
-		 *	will not be required anymore in #number_of_frames_in_flight() frames into the future.
+		/**
+		* create or update the swap chain (along with auxiliary resources) for this window depending on 
+		* the aCreationMode. Additionally, backbuffers are also created or updated.
+		* 
+		* @param aCreationMode inidicates whether the swap chain is being created for the first time, 
+		* or whether the existing swapchain has to be updated
+		*/
+		void create_swap_chain(swapchain_creation_mode aCreationMode);
+
+		/** 
+		 * updates resolution and forwards call to create_swap_chain to recreate the swap chain
 		 */
-		std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>> recreate_swap_chain();
-		
+		void update_resolution_and_recreate_swap_chain();
+
 	private:
+		/**
+		* constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is 
+		* created.
+		* 
+		* @param aCreationMode indicates whether to create or just update the existing constructs.
+		*/
+		void construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode);
+
+		/**
+		* constructs or updates window backbuffers after the swap chain has been created or modified.
+		*
+		* @param aCreationMode indicates whether to just update or create the backbuffers from the ground up.
+		*/
+		void construct_backbuffers(swapchain_creation_mode aCreationMode);
+		
+	
 		// Helper method used in sync_before_render().
 		// If the swap chain must be re-created, it will recursively invoke itself.
 		void acquire_next_swap_chain_image_and_prepare_semaphores();
@@ -458,7 +494,7 @@ namespace gvk
 		std::deque<std::tuple<frame_id_t, avk::command_buffer>> mLifetimeHandledCommandBuffers;
 
 		// This container handles old swap chain resources which are to be deleted at a certain future frame
-		std::deque<std::tuple<frame_id_t, outdated_swapchain_t>> mOutdatedSwapChains;
+		std::deque<std::tuple<frame_id_t, outdated_swapchain_resource_t>> mOutdatedSwapChainResources;
 
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
 		avk::queue* mPresentQueue = nullptr;
