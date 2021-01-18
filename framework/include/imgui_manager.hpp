@@ -43,6 +43,9 @@ namespace gvk
 		bool is_user_interaction_enabled() const { return mUserInteractionEnabled; }
 
 	private:
+		void upload_fonts();
+		void construct_render_pass();
+
 		avk::queue* mQueue;
 		avk::descriptor_pool mDescriptorPool;
 		avk::command_pool mCommandPool;

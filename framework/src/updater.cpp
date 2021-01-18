@@ -18,7 +18,7 @@ namespace gvk
 		std::swap(*newPipeline, *u);
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
-	
+
 	void update_operations_data::operator()(avk::compute_pipeline& u)
 	{
 		auto newPipeline = gvk::context().create_compute_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::compute_pipeline_t& aPreparedPipeline){
@@ -28,7 +28,7 @@ namespace gvk
 		std::swap(*newPipeline, *u);
 		mUpdateeToCleanUp = std::move(newPipeline); // new == old by now
 	}
-	
+
 	void update_operations_data::operator()(avk::ray_tracing_pipeline& u)
 	{
 		auto newPipeline = gvk::context().create_ray_tracing_pipeline_from_template(const_referenced(u), [&ed = mEventData](avk::ray_tracing_pipeline_t& aPreparedPipeline){
@@ -60,7 +60,7 @@ namespace gvk
 	void update_operations_data::operator()(avk::image_view& u)
 	{
 		auto currentLayout = u->get_image().current_layout();
-		
+
 		auto newImageView = gvk::context().create_image_view_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
@@ -74,7 +74,7 @@ namespace gvk
 			// Nothing to do here
 		});
 		newImageView.enable_shared_ownership();
-		
+
 		newImageView->get_image().transition_to_layout(currentLayout); // Wait idle... what else could we do?
 
 		std::swap(*newImageView, *u);
@@ -115,7 +115,7 @@ namespace gvk
 			u
 		);
 	}
-	
+
 	void updater::apply()
 	{
 		event_data eventData;
@@ -140,17 +140,17 @@ namespace gvk
 						[&eventData](avk::image& aImage) { eventData.mImagesToBeCleanedUp.push_back(&aImage); },
 						[&eventData](avk::image_view& aImageView) { eventData.mImageViewsToBeCleanedUp.push_back(&aImageView); },
 						[](event_handler_t& aEventHandler) { }
-					}, 
+					},
 					std::get<updatee_t>(*it)
 				);
 			}
 
 			cleanupFrontCount = std::distance(std::begin(mUpdateesToCleanUp), cleanupIt);
 		}
-		
+
 		// First of all, perform a static update due to strange FileWatcher behavior :-/
 		files_changed_event::update();
-		
+
 		// Then perform the individual updates:
 		//   (See which events have fired)
 		uint64_t eventsFired = 0;
@@ -163,6 +163,9 @@ namespace gvk
 					[&eventData](files_changed_event& e) { return e.update(eventData); },
 					[&eventData](swapchain_changed_event& e) { return e.update(eventData); },
 					[&eventData](swapchain_resized_event& e) { return e.update(eventData); },
+					[&eventData](swapchain_format_changed_event& e) { return e.update(eventData); },
+					[&eventData](concurrent_frames_count_changed_event& e) { return e.update(eventData); },
+					[&eventData](swapchain_additional_attachments_changed_event& e) { return e.update(eventData); },
 					[&eventData](destroying_graphics_pipeline_event& e) { return e.update(eventData); },
 					[&eventData](destroying_compute_pipeline_event& e) { return e.update(eventData); },
 					[&eventData](destroying_ray_tracing_pipeline_event& e) { return e.update(eventData); },
@@ -194,7 +197,7 @@ namespace gvk
 
 		++mCurrentUpdaterFrame;
 	}
-	
+
 	void updater::add_updatee(uint64_t aEventsBitset, updatee_t aUpdatee, window::frame_id_t aTtl)
 	{
 		mUpdatees.emplace_back(aEventsBitset, std::move(aUpdatee), aTtl);

@@ -4,12 +4,15 @@
 
 namespace gvk
 {
-	class updater;	
+	class updater;
 	using event_t = std::variant<
 		std::shared_ptr<event>,
 		files_changed_event,
 		swapchain_changed_event,
 		swapchain_resized_event,
+		swapchain_format_changed_event,
+		concurrent_frames_count_changed_event,
+		swapchain_additional_attachments_changed_event,
 		destroying_graphics_pipeline_event,
 		destroying_compute_pipeline_event,
 		destroying_ray_tracing_pipeline_event,
@@ -58,7 +61,7 @@ namespace gvk
 	class updater_config_proxy
 	{
 		friend class updater;
-		
+
 	public:
 		updater_config_proxy(updater* aUpdater, uint64_t aEventIndicesBitset, window::frame_id_t aTtl)
 			: mUpdater{ aUpdater }
@@ -89,6 +92,10 @@ namespace gvk
 		template <is_event_handler... Handlers>
 		updater_config_proxy& invoke(Handlers... handlers);
 
+		template <typename... Events>
+		updater_config_proxy then_on(Events... events);
+
+
 	private:
 		updater* mUpdater;
 		uint64_t mEventIndicesBitset;
@@ -98,8 +105,9 @@ namespace gvk
 	// An updater that can handle different types of updates
 	class updater
 	{
-	public:		
-		
+	public:
+
+		friend class updater_config_proxy;
 		/** @brief this function applies the updates as instructed.
 		* As long as this updater is active as a part of invokee, for instance, then
 		* this function is automatically called on the appropriate moment (that is
@@ -107,10 +115,12 @@ namespace gvk
 		*/
 		void apply();
 
+		void update_events();
+
 		template <typename E>
-		uint8_t get_event_index_and_possibly_add_event(E e)
+		uint8_t get_event_index_and_possibly_add_event(E e, const size_t aBeginOffset = 0)
 		{
-			auto it = std::find_if(std::begin(mEvents), std::end(mEvents), [&e](auto& x){
+			auto it = std::find_if(std::begin(mEvents) + aBeginOffset, std::end(mEvents), [&e](auto& x){
 				if (!std::holds_alternative<E>(x)) {
 					return false;
 				}
@@ -126,27 +136,33 @@ namespace gvk
 			return static_cast<uint8_t>(mEvents.size() - 1);
 		}
 
-		window::frame_id_t get_ttl(std::shared_ptr<event>& e)                { return 0; }
-		window::frame_id_t get_ttl(files_changed_event& e)                   { return 0; }
-		window::frame_id_t get_ttl(swapchain_changed_event& e)               { return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(swapchain_resized_event& e)               { return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(destroying_graphics_pipeline_event& e)    { return 0; }
-		window::frame_id_t get_ttl(destroying_compute_pipeline_event& e)     { return 0; }
-		window::frame_id_t get_ttl(destroying_ray_tracing_pipeline_event& e) { return 0; }
-		window::frame_id_t get_ttl(destroying_image_event& e)                { return 0; }
-		window::frame_id_t get_ttl(destroying_image_view_event& e)           { return 0; }
+		window::frame_id_t get_ttl(std::shared_ptr<event>& e)							 { return 0; }
+		window::frame_id_t get_ttl(files_changed_event& e)								 { return 0; }
+		window::frame_id_t get_ttl(swapchain_changed_event& e)							 { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_resized_event& e)							 { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_format_changed_event& e)					 { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(concurrent_frames_count_changed_event& e)			 { return 0; }
+		window::frame_id_t get_ttl(swapchain_additional_attachments_changed_event& e)	 { return 0; }
+		window::frame_id_t get_ttl(destroying_graphics_pipeline_event& e)				 { return 0; }
+		window::frame_id_t get_ttl(destroying_compute_pipeline_event& e)				 { return 0; }
+		window::frame_id_t get_ttl(destroying_ray_tracing_pipeline_event& e)			 { return 0; }
+		window::frame_id_t get_ttl(destroying_image_event& e)							 { return 0; }
+		window::frame_id_t get_ttl(destroying_image_view_event& e)						 { return 0; }
 
 		/**	Specify one or multiple events which shall trigger an action.
 		 *	Possible events are the following:
-		 *	 - files_changed_event ..................... Triggered after files have changed on disk.                          Example: `gvk::shader_files_changed_event(mPipeline)`
-		 *   - swapchain_changed_event ................. Triggered after the swapchain has changed.                           Example: `gvk::swapchain_changed_event(gvk::context().main_window())`
-		 *   - swapchain_resized_event ................. Triggered after the swapchain has been resized.                      Example: `gvk::swapchain_resized_event(gvk::context().main_window())`
-		 *   - destroying_graphics_pipeline_event ...... Triggered before an old, outdated graphics pipeline is destroyed.    Example: `gvk::destroying_graphics_pipeline_event()`
-		 *   - destroying_compute_pipeline_event ....... Triggered before an old, outdated compute pipeline is destroyed.     Example: `gvk::destroying_compute_pipeline_event()`
-		 *   - destroying_ray_tracing_pipeline_event ... Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `gvk::destroying_ray_tracing_pipeline_event()`
-		 *   - destroying_image_event .................. Triggered before an old, outdated image is destroyed.                Example: `gvk::destroying_image_event()`
-		 *   - destroying_image_view_event ............. Triggered before an old, outdated image view is destroyed.           Example: `gvk::destroying_image_view_event()`
-		 * 
+		 *	 - files_changed_event ............................	Triggered after files have changed on disk.                          Example: `gvk::shader_files_changed_event(mPipeline)`
+		 *   - swapchain_changed_event ........................	Triggered after the swapchain has changed.                           Example: `gvk::swapchain_changed_event(gvk::context().main_window())`
+		 *   - swapchain_resized_event ........................	Triggered after the swapchain has been resized.                      Example: `gvk::swapchain_resized_event(gvk::context().main_window())`
+		 *   - swapchain_format_changed_event .................	Triggered after the swapchain format has changed.                    Example: `gvk::swapchain_format_changed_event(gvk::context().main_window())`
+		 *   - concurrent_frames_count_changed_event...........	Triggered after window #framesInFlight has changed.                  Example: `gvk::concurrent_frames_count_changed_event(gvk::context().main_window())`
+		 *   - swapchain_additional_attachments_changed_event..	Triggered after window additional attachments have changed.          Example: `gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())`
+		 *   - destroying_graphics_pipeline_event .............	Triggered before an old, outdated graphics pipeline is destroyed.    Example: `gvk::destroying_graphics_pipeline_event()`
+		 *   - destroying_compute_pipeline_event ..............	Triggered before an old, outdated compute pipeline is destroyed.     Example: `gvk::destroying_compute_pipeline_event()`
+		 *   - destroying_ray_tracing_pipeline_event ..........	Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `gvk::destroying_ray_tracing_pipeline_event()`
+		 *   - destroying_image_event .........................	Triggered before an old, outdated image is destroyed.                Example: `gvk::destroying_image_event()`
+		 *   - destroying_image_view_event .................... Triggered before an old, outdated image view is destroyed.           Example: `gvk::destroying_image_view_event()`
+		 *
 		 */
 		template <typename... Events>
 		updater_config_proxy on(Events... events)
@@ -159,7 +175,7 @@ namespace gvk
 					ttl = std::max(ttl, w->number_of_frames_in_flight());
 				});
 			}
-			
+
 			updater_config_proxy result{this, 0u, ttl};
 			((result.mEventIndicesBitset |= (uint64_t{1} << get_event_index_and_possibly_add_event(std::move(events)))), ...);
 			return result;
@@ -203,7 +219,7 @@ namespace gvk
 	/**
 	* adds event handlers to the update list, to be called when the associated event
 	* is fired.
-	* 
+	*
 	* @param aHandlers		list of handlers to be added.
 	*/
 	template <is_event_handler... Handlers>
@@ -211,5 +227,35 @@ namespace gvk
 	{
 		(mUpdater->add_updatee(mEventIndicesBitset, aHandlers, mTtl), ...);
 		return *this;
+	}
+
+	/** adds a list of events to the chain which must be evaluated
+	*	only after the previous events on the chain have invoked their callbacks
+	*
+	*	@param events		list of events
+	*/
+	template <typename... Events>
+	updater_config_proxy updater_config_proxy::then_on(Events... events)
+	{
+		// determine ttl
+		window::frame_id_t ttl = 0;
+		((ttl = std::max(ttl, mUpdater->get_ttl(events))), ...);
+		if (0 == ttl) {
+			gvk::context().execute_for_each_window([&ttl](window* w) {
+				ttl = std::max(ttl, w->number_of_frames_in_flight());
+				});
+		}
+
+		// find the correct index offset for placing events on the evaluation list
+		auto indicesBitset = mEventIndicesBitset; // cannot be zero, there is at least one event
+		int offset = -1;
+		while (indicesBitset != 0) {
+			indicesBitset = indicesBitset >> 1;
+			offset++;
+		}
+
+		updater_config_proxy result{ mUpdater, 0u, ttl };
+		((result.mEventIndicesBitset |= (uint64_t{ 1 } << mUpdater->get_event_index_and_possibly_add_event(std::move(events), offset))), ...);
+		return result;
 	}
 }

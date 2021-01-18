@@ -143,6 +143,7 @@
     <ClInclude Include="..\..\framework\include\camera.hpp" />
     <ClInclude Include="..\..\framework\include\catmull_rom_spline.hpp" />
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp" />
+    <ClInclude Include="..\..\framework\include\concurrent_frames_count_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\conversion_utils.hpp" />
     <ClInclude Include="..\..\framework\include\cp_interpolation.hpp" />
     <ClInclude Include="..\..\framework\include\cubic_uniform_b_spline.hpp" />
@@ -183,7 +184,9 @@
     <ClInclude Include="..\..\framework\include\settings.hpp" />
     <ClInclude Include="..\..\framework\include\setup.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_invoker.hpp" />
+    <ClInclude Include="..\..\framework\include\swapchain_additional_attachments_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\swapchain_changed_event.hpp" />
+    <ClInclude Include="..\..\framework\include\swapchain_format_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\swapchain_resized_event.hpp" />
     <ClInclude Include="..\..\framework\include\timer_frame_type.hpp" />
     <ClInclude Include="..\..\framework\include\timer_interface.hpp" />

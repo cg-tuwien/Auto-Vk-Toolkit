@@ -22,10 +22,10 @@ namespace gvk
 		using frame_id_t = int64_t;
 		using outdated_swapchain_t = std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
 		using outdated_swapchain_resource_t = std::variant<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
-		
+
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
-		
+
 		window() = default;
 		window(window&&) noexcept = default;
 		window(const window&) = delete;
@@ -44,15 +44,12 @@ namespace gvk
 
 		/** Set to true to create a resizable window, set to false to prevent the window from being resized */
 		void enable_resizing(bool aEnable);
-		
+
 		/** Request a framebuffer for this window which is capable of sRGB formats */
 		void request_srgb_framebuffer(bool aRequestSrgb);
 
 		/** Sets the presentation mode for this window's swap chain. */
 		void set_presentaton_mode(gvk::presentation_mode aMode);
-
-		/** Sets the number of samples for MSAA */
-		void set_number_of_samples(vk::SampleCountFlagBits aNumSamples);
 
 		/** Sets the number of presentable images for a swap chain */
 		void set_number_of_presentable_images(uint32_t aNumImages);
@@ -62,8 +59,8 @@ namespace gvk
 		 */
 		void set_number_of_concurrent_frames(frame_id_t aNumConcurrent);
 
-		/** Sets additional attachments which shall be added to the back buffer 
-		 *	in addition to the obligatory color attachment.  
+		/** Sets additional attachments which shall be added to the back buffer
+		 *	in addition to the obligatory color attachment.
 		 */
 		void set_additional_back_buffer_attachments(std::vector<avk::attachment> aAdditionalAttachments);
 
@@ -72,7 +69,7 @@ namespace gvk
 
 		/** Returns true if the window shall be resizable, false if it shall not be. */
 		bool get_config_shall_be_resizable() const;
-		
+
 		/** Gets the requested surface format for the given surface.
 		 *	A default value will be set if no other value has been configured.
 		 */
@@ -82,16 +79,6 @@ namespace gvk
 		 *	A default value will be set if no other value has been configured.
 		 */
 		vk::PresentModeKHR get_config_presentation_mode(const vk::SurfaceKHR& aSurface);
-
-		/**	Gets the number of samples that has been configured.
-		 *	A default value will be set if no other value has been configured.
-		 */
-		vk::SampleCountFlagBits get_config_number_of_samples();
-
-		/** Gets the multi sampling-related config info struct for the Vk-pipeline config.
-		 *	A default value will be set if no other value has been configured.
-		 */
-		vk::PipelineMultisampleStateCreateInfo get_config_multisample_state_create_info();
 
 		/** Get the minimum number of concurrent/presentable images for a swap chain.
 		*	If no value is set, the surfaces minimum number + 1 will be returned.
@@ -107,33 +94,33 @@ namespace gvk
 		 */
 		std::vector<avk::attachment> get_additional_back_buffer_attachments();
 
-		
+
 		/** Gets this window's surface */
-		const auto& surface() const { 
-			return mSurface.get(); 
+		const auto& surface() const {
+			return mSurface.get();
 		}
 		/** Gets this window's swap chain */
-		const auto& swap_chain() const { 
-			return mSwapChain.get(); 
+		const auto& swap_chain() const {
+			return mSwapChain.get();
 		}
 		/** Gets this window's swap chain's image format */
-		const auto& swap_chain_image_format() const { 
-			return mSwapChainImageFormat; 
+		const auto& swap_chain_image_format() const {
+			return mSwapChainImageFormat;
 		}
 		/** Gets this window's swap chain's color space */
-		const auto& swap_chain_color_space() const { 
-			return mSwapChainColorSpace; 
+		const auto& swap_chain_color_space() const {
+			return mSwapChainColorSpace;
 		}
 		/** Gets this window's swap chain's dimensions */
 		auto swap_chain_extent() const {
-			return mSwapChainExtent; 
+			return mSwapChainExtent;
 		}
 		/** Gets this window's swap chain's image at the specified index. */
-		avk::resource_reference<avk::image_t> swap_chain_image_at_index(size_t aIdx) { 
+		avk::resource_reference<avk::image_t> swap_chain_image_at_index(size_t aIdx) {
 			return avk::referenced(mSwapChainImageViews[aIdx]->get_image()); // TODO: Would it be better to include the owning_resource in the resource_reference?
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
-		std::vector<avk::resource_reference<avk::image_t>> swap_chain_image_views() 	{ 
+		std::vector<avk::resource_reference<avk::image_t>> swap_chain_image_views() 	{
 			std::vector<avk::resource_reference<avk::image_t>> allImageViews;
 			allImageViews.reserve(mSwapChainImageViews.size());
 			for (auto& imView : mSwapChainImageViews) {
@@ -142,7 +129,7 @@ namespace gvk
 			return allImageViews;
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		avk::resource_reference<avk::image_view_t> swap_chain_image_view_at_index(size_t aIdx) { 
+		avk::resource_reference<avk::image_view_t> swap_chain_image_view_at_index(size_t aIdx) {
 			return avk::referenced(mSwapChainImageViews[aIdx]);
 		}
 
@@ -151,25 +138,25 @@ namespace gvk
 			std::vector<avk::resource_reference<avk::framebuffer_t>> allFramebuffers;
 			allFramebuffers.reserve(mBackBuffers.size());
 			for (auto& fb : mBackBuffers) {
-				allFramebuffers.push_back(avk::referenced(fb)); 
+				allFramebuffers.push_back(avk::referenced(fb));
 			}
-			return allFramebuffers; 
+			return allFramebuffers;
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		avk::resource_reference<const avk::framebuffer_t> backbuffer_at_index(size_t aIdx) const { 
+		avk::resource_reference<const avk::framebuffer_t> backbuffer_at_index(size_t aIdx) const {
 			return avk::const_referenced(mBackBuffers[aIdx]);
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		avk::resource_reference<avk::framebuffer_t> backbuffer_at_index(size_t aIdx) { 
+		avk::resource_reference<avk::framebuffer_t> backbuffer_at_index(size_t aIdx) {
 			return avk::referenced(mBackBuffers[aIdx]);
 		}
 
 		/** Gets the number of how many frames are (potentially) concurrently rendered into,
 		 *	or put differently: How many frames are (potentially) "in flight" at the same time.
 		 */
-		frame_id_t number_of_frames_in_flight() const { 
+		frame_id_t number_of_frames_in_flight() const {
 			return static_cast<frame_id_t>(mFramesInFlightFences.size());
 		}
 
@@ -177,18 +164,18 @@ namespace gvk
 		size_t number_of_swapchain_images() const {
 			return mSwapChainImageViews.size();
 		}
-		
+
 		/** Gets the current frame index. */
-		frame_id_t current_frame() const { 
-			return mCurrentFrame; 
+		frame_id_t current_frame() const {
+			return mCurrentFrame;
 		}
 
 		/** Returns the "in flight index" for the requested frame.
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		frame_id_t in_flight_index_for_frame(std::optional<frame_id_t> aFrameId = {}) const { 
-			return aFrameId.value_or(current_frame()) % number_of_frames_in_flight(); 
+		frame_id_t in_flight_index_for_frame(std::optional<frame_id_t> aFrameId = {}) const {
+			return aFrameId.value_or(current_frame()) % number_of_frames_in_flight();
 		}
 		/** Returns the "in flight index" for the requested frame. */
 		frame_id_t current_in_flight_index() const {
@@ -212,7 +199,7 @@ namespace gvk
 		avk::resource_reference<avk::framebuffer_t> previous_backbuffer() {
 			return avk::referenced(mBackBuffers[previous_image_index()]);
 		}
-		
+
 		/** Returns the swap chain image for the current frame. */
 		auto current_image() {
 			return swap_chain_image_at_index(current_image_index());
@@ -271,7 +258,7 @@ namespace gvk
 		 *	That means, before an image is handed over to the presentation engine, the given semaphore must be signaled.
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
-		 *	
+		 *
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
@@ -315,13 +302,13 @@ namespace gvk
 
 		/** Remove all the outdated swap chain resources which are safe to be removed in this frame. */
 		void clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId);
-		
+
 		/**
 		 *	Called BEFORE all the render callbacks are invoked.
 		 *	This is where fences are waited on and resources are freed.
 		 */
 		void sync_before_render();
-		
+
 		/**
 		 *	This is THE "render into backbuffer" method.
 		 *	Invoked every frame internally, from `composition.hpp`
@@ -361,7 +348,7 @@ namespace gvk
 		bool has_consumed_current_image_available_semaphore() const {
 			return !mCurrentFrameImageAvailableSemaphore.has_value();
 		}
-		
+
 		/** Get a reference to the image available semaphore of the current frame. */
 		avk::resource_reference<avk::semaphore_t> consume_current_image_available_semaphore() {
 			if (!mCurrentFrameImageAvailableSemaphore.has_value()) {
@@ -373,24 +360,24 @@ namespace gvk
 		}
 
 		/**
-		* create or update the swap chain (along with auxiliary resources) for this window depending on 
+		* create or update the swap chain (along with auxiliary resources) for this window depending on
 		* the aCreationMode. Additionally, backbuffers are also created or updated.
-		* 
-		* @param aCreationMode inidicates whether the swap chain is being created for the first time, 
+		*
+		* @param aCreationMode inidicates whether the swap chain is being created for the first time,
 		* or whether the existing swapchain has to be updated
 		*/
 		void create_swap_chain(swapchain_creation_mode aCreationMode);
 
-		/** 
+		/**
 		 * updates resolution and forwards call to create_swap_chain to recreate the swap chain
 		 */
 		void update_resolution_and_recreate_swap_chain();
 
 	private:
 		/**
-		* constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is 
+		* constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is
 		* created.
-		* 
+		*
 		* @param aCreationMode indicates whether to create or just update the existing constructs.
 		*/
 		void construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode);
@@ -401,30 +388,28 @@ namespace gvk
 		* @param aCreationMode indicates whether to just update or create the backbuffers from the ground up.
 		*/
 		void construct_backbuffers(swapchain_creation_mode aCreationMode);
-		
-	
+
+		void update_concurrent_frame_synchronization(swapchain_creation_mode aCreationMode);
+
+
 		// Helper method used in sync_before_render().
 		// If the swap chain must be re-created, it will recursively invoke itself.
 		void acquire_next_swap_chain_image_and_prepare_semaphores();
-		
+
 		// Helper method that fills the given 2 vectors with the present semaphore dependencies for the given frame-id
 		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, frame_id_t aFrameId) const;
-		
+
+
+
 #pragma region configuration properties
 		// A function which returns whether or not the window should be resizable
 		bool mShallBeResizable = false;
-		
+
 		// A function which returns the surface format for this window's surface
 		avk::unique_function<vk::SurfaceFormatKHR(const vk::SurfaceKHR&)> mSurfaceFormatSelector;
 
 		// A function which returns the desired presentation mode for this window's surface
 		avk::unique_function<vk::PresentModeKHR(const vk::SurfaceKHR&)> mPresentationModeSelector;
-
-		// A function which returns the MSAA sample count for this window's surface
-		avk::unique_function<vk::SampleCountFlagBits()> mNumberOfSamplesGetter;
-
-		// A function which returns the MSAA state for this window's surface
-		avk::unique_function<vk::PipelineMultisampleStateCreateInfo()> mMultisampleCreateInfoBuilder;
 
 		// A function which returns the desired number of presentable images in the swap chain
 		avk::unique_function<uint32_t()> mNumberOfPresentableImagesGetter;
@@ -465,12 +450,12 @@ namespace gvk
 #pragma endregion
 
 #pragma region indispensable sync elements
-		// Fences to synchronize between frames 
-		std::vector<avk::fence> mFramesInFlightFences; 
-		// Semaphores to wait for an image to become available 
-		std::vector<avk::semaphore> mImageAvailableSemaphores; 
+		// Fences to synchronize between frames
+		std::vector<avk::fence> mFramesInFlightFences;
+		// Semaphores to wait for an image to become available
+		std::vector<avk::semaphore> mImageAvailableSemaphores;
 		// Semaphores to signal when the current frame may be presented
-		std::vector<avk::semaphore> mInitiatePresentSemaphores; 
+		std::vector<avk::semaphore> mInitiatePresentSemaphores;
 		// Fences to make sure that no two images are written into concurrently
 		std::vector<int> mImagesInFlightFenceIndices;
 
@@ -507,5 +492,30 @@ namespace gvk
 		// Must be consumed EXACTLY ONCE per frame
 		std::optional<avk::resource_reference<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
 
+#pragma region recreation management
+		struct recreation_determinator
+		{
+			enum struct reason
+			{
+				suboptimal_swap_chain,
+				invalid_swap_chain,
+				backbuffer_attachments_changed,
+				presentation_mode_changed,
+				concurrent_frames_count_changed,
+				presentable_images_count_changed,
+				image_format_changed
+			};
+
+			void reset()									{ mInvalidatedProperties.reset(); }
+			void set_recreation_required_for(reason reason)	{ mInvalidatedProperties[static_cast<size_t>(reason)] = true; }
+			bool is_recreation_required_for(reason reason)	const { return mInvalidatedProperties.test(static_cast<size_t>(reason)); }
+			bool is_any_recreation_necessary()				const { return mInvalidatedProperties.any(); }
+			bool has_concurrent_frames_count_changed_only() const { return mInvalidatedProperties.test(static_cast<size_t>(reason::concurrent_frames_count_changed)) && mInvalidatedProperties.count() == 1; }
+			bool is_swapchain_recreation_necessary()		const { return is_any_recreation_necessary() && !has_concurrent_frames_count_changed_only(); }
+		private:
+			std::bitset<8> mInvalidatedProperties = 0;
+		} mResourceRecreationDeterminator;
+#pragma endregion
 	};
+
 }

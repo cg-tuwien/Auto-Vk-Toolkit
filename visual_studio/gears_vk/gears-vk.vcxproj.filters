@@ -495,6 +495,15 @@
     <ClInclude Include="..\..\framework\include\destroying_events.hpp">
       <Filter>gears-vk_include\updater</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\swapchain_format_changed_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\concurrent_frames_count_changed_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\swapchain_additional_attachments_changed_event.hpp">
+      <Filter>gears-vk_include\updater</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

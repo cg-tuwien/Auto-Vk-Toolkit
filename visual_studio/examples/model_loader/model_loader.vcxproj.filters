@@ -37,5 +37,6 @@
       <Filter>precompiled_headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\examples\model_loader\source\camera_path.hpp" />
+    <ClInclude Include="..\..\..\examples\model_loader\source\ui_helper.hpp" />
   </ItemGroup>
 </Project>

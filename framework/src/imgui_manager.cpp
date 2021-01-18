@@ -52,7 +52,7 @@ namespace gvk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
 		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
 		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
-		
+
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
@@ -62,56 +62,40 @@ namespace gvk
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
 		// allocate. MinImageCount is not actually used even though there is a check at init time that its value is greater than 1.
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
-	    init_info.MinImageCount = std::max(static_cast<uint32_t>(2u), std::max(static_cast<uint32_t>(wnd->number_of_frames_in_flight()), static_cast<uint32_t>(wnd->number_of_swapchain_images())));
+	    init_info.MinImageCount = 2u;
 	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
 	    init_info.CheckVkResultFn = gvk::context().check_vk_result;
 
-		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
-			std::vector<avk::attachment> attachments;
-			attachments.push_back(avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::load, avk::color(0), avk::on_store::store_in_presentable_format));
-			for (auto a : wnd->get_additional_back_buffer_attachments()) {
-				a.mLoadOperation = avk::on_load::dont_care;
-				a.mStoreOperation = avk::on_store::dont_care;
-				attachments.push_back(a);
-			}
-			mRenderpass = context().create_renderpass(
-				attachments,
-				[](avk::renderpass_sync& rpSync) {
-					if (rpSync.is_external_pre_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-					}
-					if (rpSync.is_external_post_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-						rpSync.mDestinationMemoryDependency = {};
-					}
-				}
-			);
+		// copy current state of init_info in for later use
+		// this shenanigans is necessary for ImGui to keep functioning when certain rendering properties (renderpass) are changed (and to give it new image count)
+		auto restartImGui = [this, wnd, init_info]() {
+			ImGui_ImplVulkan_Shutdown(); // shut imgui down and restart with base init_info
+			ImGui_ImplVulkan_InitInfo new_init_info = init_info; // can't be temp
+			new_init_info.ImageCount = std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()); // opportunity to update image count
+			ImGui_ImplVulkan_Init(&new_init_info, this->mRenderpass.value()->handle()); // restart imgui
+			// Have to upload fonts just like the first time:
+			upload_fonts();
+		};
 
-			// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
-			attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store);
-			mClearRenderPass = context().create_renderpass(
-				attachments,
-				[](avk::renderpass_sync& rpSync) {
-					if (rpSync.is_external_pre_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-					}
-					if (rpSync.is_external_post_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-						rpSync.mDestinationMemoryDependency = {};
-					}
-				}
-			);
+		// set up an updater
+		mUpdater.emplace();
+		if (!mRenderpass.has_value()) { // Not specified in the constructor => create a default one
+			construct_render_pass();
+
+			mUpdater->on(gvk::swapchain_format_changed_event(wnd),
+						 gvk::swapchain_additional_attachments_changed_event(wnd)
+			).invoke([this, restartImGui]() {
+				ImGui::EndFrame(); //end previous (not rendered) frame
+				construct_render_pass(); // reconstruct render pass
+				restartImGui();
+				ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
+			});
 		}
+		mUpdater->on(gvk::concurrent_frames_count_changed_event(wnd)).invoke([restartImGui]() {
+			ImGui::EndFrame(); //end previous (not rendered) frame
+			restartImGui();
+			ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
+		});
 
 		// Init it:
 	    ImGui_ImplVulkan_Init(&init_info, mRenderpass.value()->handle());
@@ -153,20 +137,12 @@ namespace gvk
 		gvk::context().dispatch_to_main_thread([](){
 		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
 		});
-#endif		
+#endif
 
 		// Upload fonts:
-		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
-		cmdBfr->begin_recording();
-		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
-		cmdBfr->end_recording();
-		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = mQueue->submit_and_handle_with_semaphore(owned(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
-		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
-		wnd->add_render_finished_semaphore_for_current_frame(avk::owned(semaph));
+		upload_fonts();
 	}
 
-	
 	void imgui_manager::update()
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -175,6 +151,14 @@ namespace gvk
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 	    io.DeltaTime = gvk::time().delta_time();
+
+
+		// new frame and callbacks have to be here, to give the updater an opportunity to clean up (callbacks may cause update events)
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
+		for (auto& a : mCallback) {
+			a();
+		}
 
 		if (!mUserInteractionEnabled) {
 			return;
@@ -208,7 +192,7 @@ namespace gvk
 			    case ImGuiMouseCursor_ResizeNS:
 					input().set_cursor_mode(cursor::vertical_resize_cursor);
 					break;
-			    case ImGuiMouseCursor_ResizeEW: 
+			    case ImGuiMouseCursor_ResizeEW:
 					input().set_cursor_mode(cursor::horizontal_resize_cursor);
 					break;
 			    case ImGuiMouseCursor_ResizeNESW:
@@ -295,30 +279,23 @@ namespace gvk
 		    //if (axes_count > 0 && buttons_count > 0)
 		    //    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
 		    //else
-		    //    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;	    	
+		    //    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
 	    }
 	}
 
 	void imgui_manager::render()
 	{
-		ImGui_ImplVulkan_NewFrame();
-		ImGui::NewFrame();
-		
-		for (auto& a : mCallback) {
-			a(); // TODO: Invoke here or in update()?
-		}
-		
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
-		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit); 
+		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 
 		// if no invokee has written on the attachment (no previous render calls this frame),
-		// reset layout (cannot be "store_in_presentable_format").	
+		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
 			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderPass.value()), referenced(mainWnd->current_backbuffer()));
 			cmdBfr->end_render_pass();
-		}		
+		}
 
 		assert(mRenderpass.has_value());
 		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
@@ -336,7 +313,6 @@ namespace gvk
 		else {
 			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mQueue->submit_and_handle_with_semaphore(avk::owned(cmdBfr))));
 		}
-		
 	}
 
 	void imgui_manager::finalize()
@@ -351,5 +327,68 @@ namespace gvk
 		mUserInteractionEnabled = aEnableOrNot;
 	}
 
-	void set_renderpass(avk::renderpass aRenderpass);
+	void imgui_manager::upload_fonts()
+	{
+		auto cmdBfr = this->mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		cmdBfr->begin_recording();
+		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
+		cmdBfr->end_recording();
+		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
+		auto semaph = mQueue->submit_and_handle_with_semaphore(owned(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
+		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
+		context().main_window()->add_render_finished_semaphore_for_current_frame(avk::owned(semaph));
+	}
+
+	void imgui_manager::construct_render_pass()
+	{
+		auto* wnd = gvk::context().main_window();
+		std::vector<avk::attachment> attachments;
+		attachments.push_back(avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::load, avk::color(0), avk::on_store::store_in_presentable_format));
+		for (auto a : wnd->get_additional_back_buffer_attachments()) {
+			a.mLoadOperation = avk::on_load::dont_care;
+			a.mStoreOperation = avk::on_store::dont_care;
+			attachments.push_back(a);
+		}
+		auto newRenderPass = context().create_renderpass(
+			attachments,
+			[](avk::renderpass_sync& rpSync) {
+				if (rpSync.is_external_pre_sync()) {
+					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
+				}
+				if (rpSync.is_external_post_sync()) {
+					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+					rpSync.mDestinationMemoryDependency = {};
+				}
+			}
+		);
+
+		// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
+		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store);
+		auto newClearRenderPass = context().create_renderpass(
+			attachments,
+			[](avk::renderpass_sync& rpSync) {
+				if (rpSync.is_external_pre_sync()) {
+					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
+				}
+				if (rpSync.is_external_post_sync()) {
+					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+					rpSync.mDestinationMemoryDependency = {};
+				}
+			}
+		);
+
+		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };
+		avk::emplace_and_handle_previous(newRenderPass, std::move(mRenderpass), lifetimeHandlerLambda);
+		avk::emplace_and_handle_previous(newClearRenderPass, std::move(mClearRenderPass), lifetimeHandlerLambda);
+	}
 }
