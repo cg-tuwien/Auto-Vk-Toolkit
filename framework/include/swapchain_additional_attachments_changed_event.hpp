@@ -3,10 +3,10 @@
 
 namespace gvk
 {
-	/** this event occurs when the number of additional attachments change
-	*
-	* ATTENTION! current implementation has a weak conditioning and only checks for count!!
-	* implement -efficient- pair check between each attachment if necessary!
+	/** This event occurs when the number of additional attachments changes.
+	 *
+	 *  ATTENTION: Current implementation has a weak conditioning and only checks for count.
+	 *  Implement -efficient- pair check between each attachment if necessary!
 	 */
 	class swapchain_additional_attachments_changed_event : public event
 	{

@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	/** this event occurs when the number of concurrent frames changes.
+	/** This event occurs when the number of concurrent frames changes.
 	 */
 	class concurrent_frames_count_changed_event : public event
 	{
