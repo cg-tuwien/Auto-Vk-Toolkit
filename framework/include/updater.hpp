@@ -136,31 +136,31 @@ namespace gvk
 			return static_cast<uint8_t>(mEvents.size() - 1);
 		}
 
-		window::frame_id_t get_ttl(std::shared_ptr<event>& e)							 { return 0; }
-		window::frame_id_t get_ttl(files_changed_event& e)								 { return 0; }
-		window::frame_id_t get_ttl(swapchain_changed_event& e)							 { return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(swapchain_resized_event& e)							 { return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(swapchain_format_changed_event& e)					 { return e.get_window()->number_of_frames_in_flight(); }
-		window::frame_id_t get_ttl(concurrent_frames_count_changed_event& e)			 { return 0; }
-		window::frame_id_t get_ttl(swapchain_additional_attachments_changed_event& e)	 { return 0; }
-		window::frame_id_t get_ttl(destroying_graphics_pipeline_event& e)				 { return 0; }
-		window::frame_id_t get_ttl(destroying_compute_pipeline_event& e)				 { return 0; }
-		window::frame_id_t get_ttl(destroying_ray_tracing_pipeline_event& e)			 { return 0; }
-		window::frame_id_t get_ttl(destroying_image_event& e)							 { return 0; }
-		window::frame_id_t get_ttl(destroying_image_view_event& e)						 { return 0; }
+		window::frame_id_t get_ttl(std::shared_ptr<event>& e)                            { return 0; }
+		window::frame_id_t get_ttl(files_changed_event& e)                               { return 0; }
+		window::frame_id_t get_ttl(swapchain_changed_event& e)                           { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_resized_event& e)                           { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(swapchain_format_changed_event& e)                    { return e.get_window()->number_of_frames_in_flight(); }
+		window::frame_id_t get_ttl(concurrent_frames_count_changed_event& e)             { return 0; }
+		window::frame_id_t get_ttl(swapchain_additional_attachments_changed_event& e)    { return 0; }
+		window::frame_id_t get_ttl(destroying_graphics_pipeline_event& e)                { return 0; }
+		window::frame_id_t get_ttl(destroying_compute_pipeline_event& e)                 { return 0; }
+		window::frame_id_t get_ttl(destroying_ray_tracing_pipeline_event& e)             { return 0; }
+		window::frame_id_t get_ttl(destroying_image_event& e)                            { return 0; }
+		window::frame_id_t get_ttl(destroying_image_view_event& e)                       { return 0; }
 
 		/**	Specify one or multiple events which shall trigger an action.
-		 *	Possible events are the following:
-		 *	 - files_changed_event ............................	Triggered after files have changed on disk.                          Example: `gvk::shader_files_changed_event(mPipeline)`
-		 *   - swapchain_changed_event ........................	Triggered after the swapchain has changed.                           Example: `gvk::swapchain_changed_event(gvk::context().main_window())`
-		 *   - swapchain_resized_event ........................	Triggered after the swapchain has been resized.                      Example: `gvk::swapchain_resized_event(gvk::context().main_window())`
-		 *   - swapchain_format_changed_event .................	Triggered after the swapchain format has changed.                    Example: `gvk::swapchain_format_changed_event(gvk::context().main_window())`
-		 *   - concurrent_frames_count_changed_event...........	Triggered after window #framesInFlight has changed.                  Example: `gvk::concurrent_frames_count_changed_event(gvk::context().main_window())`
-		 *   - swapchain_additional_attachments_changed_event..	Triggered after window additional attachments have changed.          Example: `gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())`
-		 *   - destroying_graphics_pipeline_event .............	Triggered before an old, outdated graphics pipeline is destroyed.    Example: `gvk::destroying_graphics_pipeline_event()`
-		 *   - destroying_compute_pipeline_event ..............	Triggered before an old, outdated compute pipeline is destroyed.     Example: `gvk::destroying_compute_pipeline_event()`
-		 *   - destroying_ray_tracing_pipeline_event ..........	Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `gvk::destroying_ray_tracing_pipeline_event()`
-		 *   - destroying_image_event .........................	Triggered before an old, outdated image is destroyed.                Example: `gvk::destroying_image_event()`
+		 *  Possible events are the following:
+		 *   - files_changed_event ............................ Triggered after files have changed on disk.                          Example: `gvk::shader_files_changed_event(mPipeline)`
+		 *   - swapchain_changed_event ........................ Triggered after the swapchain has changed.                           Example: `gvk::swapchain_changed_event(gvk::context().main_window())`
+		 *   - swapchain_resized_event ........................ Triggered after the swapchain has been resized.                      Example: `gvk::swapchain_resized_event(gvk::context().main_window())`
+		 *   - swapchain_format_changed_event ................. Triggered after the swapchain format has changed.                    Example: `gvk::swapchain_format_changed_event(gvk::context().main_window())`
+		 *   - concurrent_frames_count_changed_event........... Triggered after window #framesInFlight has changed.                  Example: `gvk::concurrent_frames_count_changed_event(gvk::context().main_window())`
+		 *   - swapchain_additional_attachments_changed_event.. Triggered after window additional attachments have changed.          Example: `gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())`
+		 *   - destroying_graphics_pipeline_event ............. Triggered before an old, outdated graphics pipeline is destroyed.    Example: `gvk::destroying_graphics_pipeline_event()`
+		 *   - destroying_compute_pipeline_event .............. Triggered before an old, outdated compute pipeline is destroyed.     Example: `gvk::destroying_compute_pipeline_event()`
+		 *   - destroying_ray_tracing_pipeline_event .......... Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `gvk::destroying_ray_tracing_pipeline_event()`
+		 *   - destroying_image_event ......................... Triggered before an old, outdated image is destroyed.                Example: `gvk::destroying_image_event()`
 		 *   - destroying_image_view_event .................... Triggered before an old, outdated image view is destroyed.           Example: `gvk::destroying_image_view_event()`
 		 *
 		 */

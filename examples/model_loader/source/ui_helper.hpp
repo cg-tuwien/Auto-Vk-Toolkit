@@ -18,16 +18,16 @@ public:
 	}
 };
 const std::unordered_map<std::type_index, ImGuiDataType> imgui_data_type_determinator::imguiDataTypesMap = {
-	{ std::type_index(typeid(signed char)),		ImGuiDataType_S8	},
-	{ std::type_index(typeid(unsigned char)),	ImGuiDataType_U8	},
-	{ std::type_index(typeid(short)),			ImGuiDataType_S16	},
-	{ std::type_index(typeid(unsigned short)),	ImGuiDataType_U16	},
-	{ std::type_index(typeid(int)),				ImGuiDataType_S32	},
-	{ std::type_index(typeid(unsigned int)),	ImGuiDataType_U32	},
-	{ std::type_index(typeid(uint64_t)),		ImGuiDataType_U64	},
-	{ std::type_index(typeid(int64_t)),			ImGuiDataType_S64	},
-	{ std::type_index(typeid(float)),			ImGuiDataType_Float	},
-	{ std::type_index(typeid(double)),			ImGuiDataType_Double},
+	{ std::type_index(typeid(signed char)),     ImGuiDataType_S8    },
+	{ std::type_index(typeid(unsigned char)),   ImGuiDataType_U8    },
+	{ std::type_index(typeid(short)),           ImGuiDataType_S16   },
+	{ std::type_index(typeid(unsigned short)),  ImGuiDataType_U16   },
+	{ std::type_index(typeid(int)),             ImGuiDataType_S32   },
+	{ std::type_index(typeid(unsigned int)),    ImGuiDataType_U32   },
+	{ std::type_index(typeid(uint64_t)),        ImGuiDataType_U64   },
+	{ std::type_index(typeid(int64_t)),         ImGuiDataType_S64   },
+	{ std::type_index(typeid(float)),           ImGuiDataType_Float },
+	{ std::type_index(typeid(double)),          ImGuiDataType_Double},
 };
 
 /** structure used to setup an ImGui slider with callback

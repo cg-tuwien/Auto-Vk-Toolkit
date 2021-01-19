@@ -9,7 +9,9 @@ namespace gvk
 		mShallBeResizable = aEnable;
 
 		if (is_alive()) {
-			glfwSetWindowAttrib(mHandle.value().mHandle, GLFW_RESIZABLE, aEnable ? GLFW_TRUE : GLFW_FALSE);
+			context().dispatch_to_main_thread([this, aEnable]() {
+				glfwSetWindowAttrib(mHandle.value().mHandle, GLFW_RESIZABLE, aEnable ? GLFW_TRUE : GLFW_FALSE);
+			});
 		}
 	}
 

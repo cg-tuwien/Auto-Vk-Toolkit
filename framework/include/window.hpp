@@ -360,12 +360,12 @@ namespace gvk
 		}
 
 		/**
-		* create or update the swap chain (along with auxiliary resources) for this window depending on
-		* the aCreationMode. Additionally, backbuffers are also created or updated.
-		*
-		* @param aCreationMode inidicates whether the swap chain is being created for the first time,
-		* or whether the existing swapchain has to be updated
-		*/
+		 * create or update the swap chain (along with auxiliary resources) for this window depending on
+		 * the aCreationMode. Additionally, backbuffers are also created or updated.
+		 *
+		 * @param aCreationMode inidicates whether the swap chain is being created for the first time,
+		 * or whether the existing swapchain has to be updated
+		 */
 		void create_swap_chain(swapchain_creation_mode aCreationMode);
 
 		/**
@@ -375,20 +375,23 @@ namespace gvk
 
 	private:
 		/**
-		* constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is
-		* created.
-		*
-		* @param aCreationMode indicates whether to create or just update the existing constructs.
-		*/
+		 * constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is
+		 * created.
+		 *
+		 * @param aCreationMode indicates whether to create or just update the existing constructs.
+		 */
 		void construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode);
 
 		/**
-		* constructs or updates window backbuffers after the swap chain has been created or modified.
-		*
-		* @param aCreationMode indicates whether to just update or create the backbuffers from the ground up.
-		*/
+		 * constructs or updates window backbuffers after the swap chain has been created or modified.
+		 *
+		 * @param aCreationMode indicates whether to just update or create the backbuffers from the ground up.
+		 */
 		void construct_backbuffers(swapchain_creation_mode aCreationMode);
 
+		/** Update the number of fences and semaphores which handle concurrent frames synchronization
+		 *  @param aCreationMode indicates whether a new creation or an update is needed.
+	     */
 		void update_concurrent_frame_synchronization(swapchain_creation_mode aCreationMode);
 
 
@@ -505,15 +508,37 @@ namespace gvk
 				presentable_images_count_changed,
 				image_format_changed
 			};
+			/** Reset the state of the determinator. This should be done per frame once the required changes have been applied. */
+			void reset() { mInvalidatedProperties.reset(); }
 
-			void reset()									{ mInvalidatedProperties.reset(); }
-			void set_recreation_required_for(reason reason)	{ mInvalidatedProperties[static_cast<size_t>(reason)] = true; }
-			bool is_recreation_required_for(reason reason)	const { return mInvalidatedProperties.test(static_cast<size_t>(reason)); }
-			bool is_any_recreation_necessary()				const { return mInvalidatedProperties.any(); }
+			/** Signal that recreation is potentially required and state the reason.
+			 *  @param aReason the reason for the recreation
+			 */
+			void set_recreation_required_for(reason aReason)      { mInvalidatedProperties[static_cast<size_t>(aReason)] = true; }
+
+			/** Probe whether recreation is required due to a specific reason.
+			 *  @param aReason the reason for the recreation
+			 *  @return true if the bit specified by aReason has been set to 1.
+			 */
+			bool is_recreation_required_for(reason aReason) const { return mInvalidatedProperties.test(static_cast<size_t>(aReason)); }
+
+			/** Check whether any recreation is necessary.
+			 *  This is a useful before more specific conditions are probed.
+			 *  @return true if any of the bits have been set to 1.
+			 */
+			bool is_any_recreation_necessary()              const { return mInvalidatedProperties.any(); }
+
+			/** Check whether a change to number of concurrent frames is the only reason for requiring recreation.
+			 *  @return true if 'concurrent_frames_count_changed' is the only bit set to 1.
+			 */
 			bool has_concurrent_frames_count_changed_only() const { return mInvalidatedProperties.test(static_cast<size_t>(reason::concurrent_frames_count_changed)) && mInvalidatedProperties.count() == 1; }
-			bool is_swapchain_recreation_necessary()		const { return is_any_recreation_necessary() && !has_concurrent_frames_count_changed_only(); }
+
+			/** Check whether swapchain requires recreation.
+			 *  @return true if any of the bits other than 'concurrent_frames_count_changed' are set to 1.
+			 */
+			bool is_swapchain_recreation_necessary()        const { return is_any_recreation_necessary() && !has_concurrent_frames_count_changed_only(); }
 		private:
-			std::bitset<8> mInvalidatedProperties = 0;
+			std::bitset<8> mInvalidatedProperties = 0; // increase the length of bitset if more reasons are added.
 		} mResourceRecreationDeterminator;
 #pragma endregion
 	};
