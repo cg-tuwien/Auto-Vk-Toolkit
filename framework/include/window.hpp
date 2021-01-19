@@ -498,15 +498,17 @@ namespace gvk
 #pragma region recreation management
 		struct recreation_determinator
 		{
+			/** Formulate the reason why resource recreation has become necessary.
+			 */
 			enum struct reason
 			{
-				suboptimal_swap_chain,
-				invalid_swap_chain,
-				backbuffer_attachments_changed,
-				presentation_mode_changed,
-				concurrent_frames_count_changed,
-				presentable_images_count_changed,
-				image_format_changed
+				suboptimal_swap_chain,                      // Indicates that 'vk::Result::eSuboptimalKHR' has been returned as the result of acquireNextImageKHR or presentKHR.
+				invalid_swap_chain,                         // Indicates that the swapchain is out of date or otherwise in an invalid state.
+				backbuffer_attachments_changed,             // Indicates that the additional attachments of the backbuffer have changed.
+				presentation_mode_changed,                  // Indicates that the presentation mode has changed.
+				concurrent_frames_count_changed,            // Indicates that the number of concurrent frames has been modified.
+				presentable_images_count_changed,           // Indicates that the number of presentable images has been modified.
+				image_format_changed                        // Indicates that the image format of the framebuffer has been modified.
 			};
 			/** Reset the state of the determinator. This should be done per frame once the required changes have been applied. */
 			void reset() { mInvalidatedProperties.reset(); }
