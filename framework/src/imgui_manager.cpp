@@ -78,16 +78,24 @@ namespace gvk
 				attachments,
 				[](avk::renderpass_sync& rpSync) {
 					if (rpSync.is_external_pre_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
+						rpSync.mSourceStage = avk::pipeline_stage::all_graphics;
+						rpSync.mSourceMemoryDependency = avk::memory_access::any_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::all_graphics;
+						rpSync.mDestinationMemoryDependency = avk::memory_access::any_access;
+						//rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output | avk::pipeline_stage::early_fragment_tests | avk::pipeline_stage::late_fragment_tests;
+						//rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access | avk::memory_access::depth_stencil_attachment_write_access;
+						//rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+						//rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
 					}
 					if (rpSync.is_external_post_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mSourceStage = avk::pipeline_stage::all_graphics;
+						rpSync.mSourceMemoryDependency = avk::memory_access::any_access;
 						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
 						rpSync.mDestinationMemoryDependency = {};
+						//rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						//rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						//rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+						//rpSync.mDestinationMemoryDependency = {};
 					}
 				}
 			);
@@ -98,16 +106,24 @@ namespace gvk
 				attachments,
 				[](avk::renderpass_sync& rpSync) {
 					if (rpSync.is_external_pre_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-						rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
+						rpSync.mSourceStage = avk::pipeline_stage::all_graphics;
+						rpSync.mSourceMemoryDependency = avk::memory_access::any_access;
+						rpSync.mDestinationStage = avk::pipeline_stage::all_graphics;
+						rpSync.mDestinationMemoryDependency = avk::memory_access::any_access;
+						//rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						//rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						//rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
+						//rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
 					}
 					if (rpSync.is_external_post_sync()) {
-						rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-						rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						rpSync.mSourceStage = avk::pipeline_stage::all_graphics;
+						rpSync.mSourceMemoryDependency = avk::memory_access::any_access;
 						rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
 						rpSync.mDestinationMemoryDependency = {};
+						//rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
+						//rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
+						//rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+						//rpSync.mDestinationMemoryDependency = {};
 					}
 				}
 			);

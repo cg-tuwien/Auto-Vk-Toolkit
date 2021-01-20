@@ -124,6 +124,13 @@ namespace gvk
 		}
 #endif
 
+		// Automatically add some extensions:
+		if (std::find(std::begin(mSettings.mValidationLayers.mFeaturesToEnable), std::end(mSettings.mValidationLayers.mFeaturesToEnable), vk::ValidationFeatureEnableEXT::eSynchronizationValidation) != std::end(mSettings.mValidationLayers.mFeaturesToEnable)) {
+			if (std::find(std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions), VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
+				mSettings.mRequiredInstanceExtensions.add_extension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); // Not sure if this is really necessary
+			}
+		}
+
 		// The window surface needs to be created right after the instance creation 
 		// and before physical device selection, because it can actually influence 
 		// the physical device selection.

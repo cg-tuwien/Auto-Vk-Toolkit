@@ -134,6 +134,9 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 			mainWnd,
 			app,
 			ui

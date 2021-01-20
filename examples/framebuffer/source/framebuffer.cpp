@@ -259,6 +259,9 @@ int main() // <== Starting point ==
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Framebuffers"),
 			mainWnd,
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 			app,
 			ui
 		);		

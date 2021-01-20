@@ -241,6 +241,9 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Real-Time Ray Tracing - Basic Usage Example"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 #if VK_HEADER_VERSION >= 162
 			gvk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)

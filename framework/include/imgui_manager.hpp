@@ -7,11 +7,11 @@ namespace gvk
 	{
 	public:
 		/**	Create an ImGui manager element.
-		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui".
+		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui_manager".
 		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other invokees.
 		 *									Therefore, use a high execution order. Default value is 100000.
 		 */
-		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui", std::optional<avk::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mExecutionOrder{ aExecutionOrder }

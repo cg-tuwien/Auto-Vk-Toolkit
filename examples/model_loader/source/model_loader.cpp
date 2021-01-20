@@ -366,6 +366,9 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Model Loader"),
+			[](gvk::validation_layers& config){
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 			mainWnd,
 			app,
 			ui

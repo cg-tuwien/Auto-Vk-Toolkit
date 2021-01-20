@@ -35,25 +35,26 @@ namespace gvk
 																									   // TODO: Verify the above ^ comment
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 
-		// 3. Generate MIP-maps/transition to target layout:
-		if (img->config().mipLevels > 1u) {
-			// generat_mip_maps will perform the final layout transitiion
-			img->set_target_layout(finalTargetLayout);
-			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler,
-				// We have to sync copy_buffer_to_image with generate_mip_maps:
-				[&img](avk::command_buffer_t& cb, avk::pipeline_stage dstStage, std::optional<avk::read_memory_access> dstAccess){
-					cb.establish_image_memory_barrier_rw(img.get(),
-						avk::pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
-						avk::write_memory_access{ avk::memory_access::transfer_write_access }, /* -> */ dstAccess
-					);
-				},
-				avk::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
-			);
-		}
-		else {
-			img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		assert(img->config().mipLevels == 1u);
+		//// 3. Generate MIP-maps/transition to target layout:
+		//if (img->config().mipLevels > 1u) {
+		//	// generat_mip_maps will perform the final layout transitiion
+		//	img->set_target_layout(finalTargetLayout);
+		//	img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler,
+		//		// We have to sync copy_buffer_to_image with generate_mip_maps:
+		//		[&img](avk::command_buffer_t& cb, avk::pipeline_stage dstStage, std::optional<avk::read_memory_access> dstAccess){
+		//			cb.establish_image_memory_barrier_rw(img.get(),
+		//				avk::pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
+		//				avk::write_memory_access{ avk::memory_access::transfer_write_access }, /* -> */ dstAccess
+		//			);
+		//		},
+		//		avk::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
+		//	);
+		//}
+		//else {
+			img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::presets::default_handler_before_operation, avk::sync::presets::default_handler_after_operation));
 			aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{avk::memory_access::transfer_write_access});
-		}
+		//}
 
 		auto result = aSyncHandler.submit_and_sync();
 		assert (!result.has_value());
@@ -244,8 +245,8 @@ namespace gvk
 
 		// 2. Copy buffer to image
 		assert(stagingBuffers.size() == 1);
-		avk::copy_buffer_to_image(avk::const_referenced(stagingBuffers.front()), avk::referenced(img), {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																																						// TODO: Verify the above ^ comment
+		avk::copy_buffer_to_image(avk::const_referenced(stagingBuffers.front()), avk::referenced(img), {}, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::presets::default_handler_before_operation, avk::sync::presets::default_handler_after_operation));  // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+																																						// TODO: The above ^ comment was wrong. Image layout transitions perform memory reads and writes.
 		// Are MIP-maps required?
 		if (img->config().mipLevels > 1u) {
 			if (avk::is_block_compressed_format(aFormat)) {
@@ -316,7 +317,7 @@ namespace gvk
 			}
 			else {
 				// For uncompressed formats, create MIP-maps via BLIT:
-				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::presets::default_handler_before_operation, avk::sync::presets::default_handler_after_operation));
 			}
 		}
 
