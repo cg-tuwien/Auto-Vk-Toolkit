@@ -388,7 +388,7 @@ namespace gvk
 		);
 
 		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };
-		avk::emplace_and_handle_previous(newRenderPass, std::move(mRenderpass), lifetimeHandlerLambda);
-		avk::emplace_and_handle_previous(newClearRenderPass, std::move(mClearRenderPass), lifetimeHandlerLambda);
+		avk::swap_and_lifetime_handle_rhs(newRenderPass, std::move(mRenderpass), lifetimeHandlerLambda);
+		avk::swap_and_lifetime_handle_rhs(newClearRenderPass, std::move(mClearRenderPass), lifetimeHandlerLambda);
 	}
 }
