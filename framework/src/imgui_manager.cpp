@@ -62,8 +62,10 @@ namespace gvk
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
 		// allocate. MinImageCount is not actually used even though there is a check at init time that its value is greater than 1.
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
-		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(gvk::context().main_window()->surface());
-	    init_info.MinImageCount = 2u;
+		// ImGui has a hard-coded floor for MinImageCount which is 2.
+		// Take the max of min image count supported by the phys. device and imgui:
+		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
+	    init_info.MinImageCount = std::max(2u, surfaceCap.minImageCount);
 	    init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
 	    init_info.CheckVkResultFn = gvk::context().check_vk_result;
 
