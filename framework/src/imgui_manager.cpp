@@ -62,8 +62,9 @@ namespace gvk
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
 		// allocate. MinImageCount is not actually used even though there is a check at init time that its value is greater than 1.
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
+		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(gvk::context().main_window()->surface());
 	    init_info.MinImageCount = 2u;
-	    init_info.ImageCount = std::max(init_info.MinImageCount, static_cast<uint32_t>(wnd->number_of_swapchain_images()));
+	    init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
 	    init_info.CheckVkResultFn = gvk::context().check_vk_result;
 
 		// copy current state of init_info in for later use
@@ -71,7 +72,7 @@ namespace gvk
 		auto restartImGui = [this, wnd, init_info]() {
 			ImGui_ImplVulkan_Shutdown(); // shut imgui down and restart with base init_info
 			ImGui_ImplVulkan_InitInfo new_init_info = init_info; // can't be temp
-			new_init_info.ImageCount = std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()); // opportunity to update image count
+			new_init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images())); // opportunity to update image count
 			ImGui_ImplVulkan_Init(&new_init_info, this->mRenderpass.value()->handle()); // restart imgui
 			// Have to upload fonts just like the first time:
 			upload_fonts();

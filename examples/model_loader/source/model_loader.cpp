@@ -38,7 +38,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mPresentationModeCombo = model_loader_ui_generator::get_presentation_mode_imgui_element();
 		mSrgbFrameBufferCheckbox = model_loader_ui_generator::get_framebuffer_mode_imgui_element();
 		mNumConcurrentFramesSlider = model_loader_ui_generator::get_number_of_concurrent_frames_imgui_element();
-		mNumPresentableImagesSlider = model_loader_ui_generator::get_number_of_presentable_images_imgui_element(3, surfaceCap.minImageCount, surfaceCap.maxImageCount);
+		mNumPresentableImagesSlider = model_loader_ui_generator::get_number_of_presentable_images_imgui_element(3, std::max(2u, surfaceCap.minImageCount), surfaceCap.maxImageCount);
 		mResizableWindowCheckbox = model_loader_ui_generator::get_window_resize_imgui_element();
 		mAdditionalAttachmentsCheckbox = model_loader_ui_generator::get_additional_attachments_imgui_element();
 
