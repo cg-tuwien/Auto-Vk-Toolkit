@@ -216,12 +216,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					else this->enable();
 				}
 
-				mPresentationModeCombo->invokeImGui();
 				mSrgbFrameBufferCheckbox->invokeImGui();
 				mResizableWindowCheckbox->invokeImGui();
 				mAdditionalAttachmentsCheckbox->invokeImGui();
 				mNumConcurrentFramesSlider->invokeImGui();
 				mNumPresentableImagesSlider->invokeImGui();
+				mPresentationModeCombo->invokeImGui();
 
 				ImGui::End();
 			});

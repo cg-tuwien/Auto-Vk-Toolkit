@@ -496,11 +496,9 @@ namespace gvk
 
 		construct_swap_chain_creation_info(aCreationMode);
 
-		auto newSwapChain = context().device().createSwapchainKHRUnique(mSwapChainCreateInfo);
 		auto lifetimeHandler = [this](vk::UniqueSwapchainKHR&& aOldResource) { this->handle_lifetime(std::move(aOldResource)); };
-
 		// assign the new swap chain instead of the old one, if one exists
-		avk::swap_and_lifetime_handle_rhs(newSwapChain, std::move(mSwapChain), lifetimeHandler);
+		avk::assign_and_lifetime_handle_previous(mSwapChain, context().device().createSwapchainKHRUnique(mSwapChainCreateInfo), lifetimeHandler);
 
 		construct_backbuffers(aCreationMode);
 
@@ -693,7 +691,7 @@ namespace gvk
 			ref.enable_shared_ownership();
 		}
 
-		avk::swap_and_lifetime_handle_rhs(newImageViews, std::move(mSwapChainImageViews), lifetimeHandlerLambda);
+		avk::assign_and_lifetime_handle_previous(mSwapChainImageViews, std::move(newImageViews), lifetimeHandlerLambda);
 
 		bool additionalAttachmentsChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::backbuffer_attachments_changed);
 		bool imageFormatChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed);
@@ -712,7 +710,7 @@ namespace gvk
 			if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {
 				newRenderPass.enable_shared_ownership();
 			}
-			avk::swap_and_lifetime_handle_rhs(newRenderPass, std::move(mBackBufferRenderpass), lifetimeHandlerLambda);
+			avk::assign_and_lifetime_handle_previous(mBackBufferRenderpass, std::move(newRenderPass), lifetimeHandlerLambda);
 		}
 
 		std::vector<avk::framebuffer> newBuffers;
@@ -748,7 +746,7 @@ namespace gvk
 			ref.enable_shared_ownership();
 		}
 
-		avk::swap_and_lifetime_handle_rhs(newBuffers, std::move(mBackBuffers), lifetimeHandlerLambda);
+		avk::assign_and_lifetime_handle_previous(mBackBuffers, std::move(newBuffers), lifetimeHandlerLambda);
 
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : mBackBuffers) {

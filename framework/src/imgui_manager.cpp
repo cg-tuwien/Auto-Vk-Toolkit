@@ -296,7 +296,7 @@ namespace gvk
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderPass.value()), referenced(mainWnd->current_backbuffer()));
+			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass.value()), referenced(mainWnd->current_backbuffer()));
 			cmdBfr->end_render_pass();
 		}
 
@@ -352,7 +352,7 @@ namespace gvk
 			a.mStoreOperation = avk::on_store::dont_care;
 			attachments.push_back(a);
 		}
-		auto newRenderPass = context().create_renderpass(
+		auto newRenderpass = context().create_renderpass(
 			attachments,
 			[](avk::renderpass_sync& rpSync) {
 				if (rpSync.is_external_pre_sync()) {
@@ -372,7 +372,7 @@ namespace gvk
 
 		// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
 		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store);
-		auto newClearRenderPass = context().create_renderpass(
+		auto newClearRenderpass = context().create_renderpass(
 			attachments,
 			[](avk::renderpass_sync& rpSync) {
 				if (rpSync.is_external_pre_sync()) {
@@ -391,7 +391,7 @@ namespace gvk
 		);
 
 		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };
-		avk::swap_and_lifetime_handle_rhs(newRenderPass, std::move(mRenderpass), lifetimeHandlerLambda);
-		avk::swap_and_lifetime_handle_rhs(newClearRenderPass, std::move(mClearRenderPass), lifetimeHandlerLambda);
+		avk::assign_and_lifetime_handle_previous(mRenderpass, std::move(newRenderpass), lifetimeHandlerLambda);
+		avk::assign_and_lifetime_handle_previous(mClearRenderpass, std::move(newClearRenderpass), lifetimeHandlerLambda);
 	}
 }
