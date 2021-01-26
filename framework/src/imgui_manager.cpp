@@ -155,135 +155,133 @@ namespace gvk
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 	    io.DeltaTime = gvk::time().delta_time();
 
-
-		// new frame and callbacks have to be here, to give the updater an opportunity to clean up (callbacks may cause update events)
-		ImGui_ImplVulkan_NewFrame();
-		ImGui::NewFrame();
-		for (auto& a : mCallback) {
-			a();
-		}
-
-		if (!mUserInteractionEnabled) {
-			return;
-		}
-
-		// Mouse buttons and cursor position:
-		io.MouseDown[0] = input().mouse_button_down(0);
-		io.MouseDown[1] = input().mouse_button_down(1);
-		io.MouseDown[2] = input().mouse_button_down(2);
-		io.MouseDown[3] = input().mouse_button_down(3);
-		io.MouseDown[4] = input().mouse_button_down(4);
-		const auto cursorPos = input().cursor_position();
-		io.MousePos = ImVec2(cursorPos.x, cursorPos.y);
-		// Mouse cursor:
-		if (!input().is_cursor_disabled()) {
-			const auto mouseCursorCurValue = ImGui::GetMouseCursor();
-			if (static_cast<int>(mouseCursorCurValue) != mMouseCursorPreviousValue) {
-				switch (mouseCursorCurValue) {
-				case ImGuiMouseCursor_None:
-					input().set_cursor_mode(cursor::cursor_hidden);
-					break;
-				case ImGuiMouseCursor_Arrow:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
-			    case ImGuiMouseCursor_TextInput:
-					input().set_cursor_mode(cursor::ibeam_cursor);
-					break;
-			    case ImGuiMouseCursor_ResizeAll:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
-			    case ImGuiMouseCursor_ResizeNS:
-					input().set_cursor_mode(cursor::vertical_resize_cursor);
-					break;
-			    case ImGuiMouseCursor_ResizeEW:
-					input().set_cursor_mode(cursor::horizontal_resize_cursor);
-					break;
-			    case ImGuiMouseCursor_ResizeNESW:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
-			    case ImGuiMouseCursor_ResizeNWSE:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
-			    case ImGuiMouseCursor_Hand:
-					input().set_cursor_mode(cursor::hand_cursor);
-					break;
-			    case ImGuiMouseCursor_NotAllowed:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
-				default:
-					input().set_cursor_mode(cursor::arrow_cursor);
-					break;
+		if (mUserInteractionEnabled) {
+			// Mouse buttons and cursor position:
+			io.MouseDown[0] = input().mouse_button_down(0);
+			io.MouseDown[1] = input().mouse_button_down(1);
+			io.MouseDown[2] = input().mouse_button_down(2);
+			io.MouseDown[3] = input().mouse_button_down(3);
+			io.MouseDown[4] = input().mouse_button_down(4);
+			const auto cursorPos = input().cursor_position();
+			io.MousePos = ImVec2(cursorPos.x, cursorPos.y);
+			// Mouse cursor:
+			if (!input().is_cursor_disabled()) {
+				const auto mouseCursorCurValue = ImGui::GetMouseCursor();
+				if (static_cast<int>(mouseCursorCurValue) != mMouseCursorPreviousValue) {
+					switch (mouseCursorCurValue) {
+					case ImGuiMouseCursor_None:
+						input().set_cursor_mode(cursor::cursor_hidden);
+						break;
+					case ImGuiMouseCursor_Arrow:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					case ImGuiMouseCursor_TextInput:
+						input().set_cursor_mode(cursor::ibeam_cursor);
+						break;
+					case ImGuiMouseCursor_ResizeAll:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					case ImGuiMouseCursor_ResizeNS:
+						input().set_cursor_mode(cursor::vertical_resize_cursor);
+						break;
+					case ImGuiMouseCursor_ResizeEW:
+						input().set_cursor_mode(cursor::horizontal_resize_cursor);
+						break;
+					case ImGuiMouseCursor_ResizeNESW:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					case ImGuiMouseCursor_ResizeNWSE:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					case ImGuiMouseCursor_Hand:
+						input().set_cursor_mode(cursor::hand_cursor);
+						break;
+					case ImGuiMouseCursor_NotAllowed:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					default:
+						input().set_cursor_mode(cursor::arrow_cursor);
+						break;
+					}
+					mMouseCursorPreviousValue = static_cast<int>(mouseCursorCurValue);
 				}
-				mMouseCursorPreviousValue = static_cast<int>(mouseCursorCurValue);
+			}
+			// Scroll position:
+			io.MouseWheelH += static_cast<float>(input().scroll_delta().x);
+			io.MouseWheel  += static_cast<float>(input().scroll_delta().y);
+			// Update keys:
+			io.KeysDown[ImGuiKey_Tab]           = input().key_down(key_code::tab);
+			io.KeysDown[ImGuiKey_LeftArrow]     = input().key_down(key_code::left);
+			io.KeysDown[ImGuiKey_RightArrow]    = input().key_down(key_code::right);
+			io.KeysDown[ImGuiKey_UpArrow]       = input().key_down(key_code::up);
+			io.KeysDown[ImGuiKey_DownArrow]     = input().key_down(key_code::down);
+			io.KeysDown[ImGuiKey_PageUp]        = input().key_down(key_code::page_up);
+			io.KeysDown[ImGuiKey_PageDown]      = input().key_down(key_code::page_down);
+			io.KeysDown[ImGuiKey_Home]          = input().key_down(key_code::home);
+			io.KeysDown[ImGuiKey_End]           = input().key_down(key_code::end);
+			io.KeysDown[ImGuiKey_Insert]        = input().key_down(key_code::insert);
+			io.KeysDown[ImGuiKey_Delete]        = input().key_down(key_code::del);
+			io.KeysDown[ImGuiKey_Backspace]     = input().key_down(key_code::backspace);
+			io.KeysDown[ImGuiKey_Space]         = input().key_down(key_code::space);
+			io.KeysDown[ImGuiKey_Enter]         = input().key_down(key_code::enter);
+			io.KeysDown[ImGuiKey_Escape]        = input().key_down(key_code::escape);
+			io.KeysDown[ImGuiKey_KeyPadEnter]   = input().key_down(key_code::numpad_enter);
+			io.KeysDown[ImGuiKey_A]             = input().key_down(key_code::a);
+			io.KeysDown[ImGuiKey_C]             = input().key_down(key_code::c);
+			io.KeysDown[ImGuiKey_V]             = input().key_down(key_code::v);
+			io.KeysDown[ImGuiKey_X]             = input().key_down(key_code::x);
+			io.KeysDown[ImGuiKey_Y]             = input().key_down(key_code::y);
+			io.KeysDown[ImGuiKey_Z]             = input().key_down(key_code::z);
+			// Modifiers are not reliable across systems
+			io.KeyCtrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
+			io.KeyShift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
+			io.KeyAlt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
+			// Characters:
+			for (auto c : input().entered_characters()) {
+				io.AddInputCharacter(c);
+			}
+			// Update gamepads:
+			memset(io.NavInputs, 0, sizeof(io.NavInputs));
+			if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == ImGuiConfigFlags_NavEnableGamepad) {
+				// TODO: Need abstraction for glfwGetJoystickButtons in cgb::input() for this to work properly
+				//// Update gamepad inputs
+				//#define MAP_BUTTON(NAV_NO, BUTTON_NO)       { if (buttons_count > BUTTON_NO && buttons[BUTTON_NO] == GLFW_PRESS) io.NavInputs[NAV_NO] = 1.0f; }
+				//#define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float v = (axes_count > AXIS_NO) ? axes[AXIS_NO] : V0; v = (v - V0) / (V1 - V0); if (v > 1.0f) v = 1.0f; if (io.NavInputs[NAV_NO] < v) io.NavInputs[NAV_NO] = v; }
+				//int axes_count = 0, buttons_count = 0;
+				//const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
+				//const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &buttons_count);
+				//MAP_BUTTON(ImGuiNavInput_Activate,   0);     // Cross / A
+				//MAP_BUTTON(ImGuiNavInput_Cancel,     1);     // Circle / B
+				//MAP_BUTTON(ImGuiNavInput_Menu,       2);     // Square / X
+				//MAP_BUTTON(ImGuiNavInput_Input,      3);     // Triangle / Y
+				//MAP_BUTTON(ImGuiNavInput_DpadLeft,   13);    // D-Pad Left
+				//MAP_BUTTON(ImGuiNavInput_DpadRight,  11);    // D-Pad Right
+				//MAP_BUTTON(ImGuiNavInput_DpadUp,     10);    // D-Pad Up
+				//MAP_BUTTON(ImGuiNavInput_DpadDown,   12);    // D-Pad Down
+				//MAP_BUTTON(ImGuiNavInput_FocusPrev,  4);     // L1 / LB
+				//MAP_BUTTON(ImGuiNavInput_FocusNext,  5);     // R1 / RB
+				//MAP_BUTTON(ImGuiNavInput_TweakSlow,  4);     // L1 / LB
+				//MAP_BUTTON(ImGuiNavInput_TweakFast,  5);     // R1 / RB
+				//MAP_ANALOG(ImGuiNavInput_LStickLeft, 0,  -0.3f,  -0.9f);
+				//MAP_ANALOG(ImGuiNavInput_LStickRight,0,  +0.3f,  +0.9f);
+				//MAP_ANALOG(ImGuiNavInput_LStickUp,   1,  +0.3f,  +0.9f);
+				//MAP_ANALOG(ImGuiNavInput_LStickDown, 1,  -0.3f,  -0.9f);
+				//#undef MAP_BUTTON
+				//#undef MAP_ANALOG
+				//if (axes_count > 0 && buttons_count > 0)
+				//    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+				//else
+				//    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
 			}
 		}
-		// Scroll position:
-		io.MouseWheelH += static_cast<float>(input().scroll_delta().x);
-		io.MouseWheel  += static_cast<float>(input().scroll_delta().y);
-		// Update keys:
-	    io.KeysDown[ImGuiKey_Tab]			= input().key_down(key_code::tab);
-	    io.KeysDown[ImGuiKey_LeftArrow]		= input().key_down(key_code::left);
-	    io.KeysDown[ImGuiKey_RightArrow]	= input().key_down(key_code::right);
-	    io.KeysDown[ImGuiKey_UpArrow]		= input().key_down(key_code::up);
-	    io.KeysDown[ImGuiKey_DownArrow]		= input().key_down(key_code::down);
-	    io.KeysDown[ImGuiKey_PageUp]		= input().key_down(key_code::page_up);
-	    io.KeysDown[ImGuiKey_PageDown]		= input().key_down(key_code::page_down);
-	    io.KeysDown[ImGuiKey_Home]			= input().key_down(key_code::home);
-	    io.KeysDown[ImGuiKey_End]			= input().key_down(key_code::end);
-	    io.KeysDown[ImGuiKey_Insert]		= input().key_down(key_code::insert);
-	    io.KeysDown[ImGuiKey_Delete]		= input().key_down(key_code::del);
-	    io.KeysDown[ImGuiKey_Backspace]		= input().key_down(key_code::backspace);
-	    io.KeysDown[ImGuiKey_Space]			= input().key_down(key_code::space);
-	    io.KeysDown[ImGuiKey_Enter]			= input().key_down(key_code::enter);
-	    io.KeysDown[ImGuiKey_Escape]		= input().key_down(key_code::escape);
-	    io.KeysDown[ImGuiKey_KeyPadEnter]	= input().key_down(key_code::numpad_enter);
-	    io.KeysDown[ImGuiKey_A]				= input().key_down(key_code::a);
-	    io.KeysDown[ImGuiKey_C]				= input().key_down(key_code::c);
-	    io.KeysDown[ImGuiKey_V]				= input().key_down(key_code::v);
-	    io.KeysDown[ImGuiKey_X]				= input().key_down(key_code::x);
-	    io.KeysDown[ImGuiKey_Y]				= input().key_down(key_code::y);
-	    io.KeysDown[ImGuiKey_Z]				= input().key_down(key_code::z);
-		// Modifiers are not reliable across systems
-	    io.KeyCtrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
-	    io.KeyShift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
-	    io.KeyAlt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
-		// Characters:
-		for (auto c : input().entered_characters()) {
-			io.AddInputCharacter(c);
+
+		// start of new frame and callback invocations have to be in the update() call of the invokee,
+		// ... to give the updater an opportunity to clean up (callbacks themselves may cause update events)
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
+		for (auto& cb : mCallback) {
+			cb();
 		}
-        // Update gamepads:
-		memset(io.NavInputs, 0, sizeof(io.NavInputs));
-	    if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == ImGuiConfigFlags_NavEnableGamepad) {
-	    	// TODO: Need abstraction for glfwGetJoystickButtons in cgb::input() for this to work properly
-		    //// Update gamepad inputs
-		    //#define MAP_BUTTON(NAV_NO, BUTTON_NO)       { if (buttons_count > BUTTON_NO && buttons[BUTTON_NO] == GLFW_PRESS) io.NavInputs[NAV_NO] = 1.0f; }
-		    //#define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float v = (axes_count > AXIS_NO) ? axes[AXIS_NO] : V0; v = (v - V0) / (V1 - V0); if (v > 1.0f) v = 1.0f; if (io.NavInputs[NAV_NO] < v) io.NavInputs[NAV_NO] = v; }
-		    //int axes_count = 0, buttons_count = 0;
-		    //const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
-		    //const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &buttons_count);
-		    //MAP_BUTTON(ImGuiNavInput_Activate,   0);     // Cross / A
-		    //MAP_BUTTON(ImGuiNavInput_Cancel,     1);     // Circle / B
-		    //MAP_BUTTON(ImGuiNavInput_Menu,       2);     // Square / X
-		    //MAP_BUTTON(ImGuiNavInput_Input,      3);     // Triangle / Y
-		    //MAP_BUTTON(ImGuiNavInput_DpadLeft,   13);    // D-Pad Left
-		    //MAP_BUTTON(ImGuiNavInput_DpadRight,  11);    // D-Pad Right
-		    //MAP_BUTTON(ImGuiNavInput_DpadUp,     10);    // D-Pad Up
-		    //MAP_BUTTON(ImGuiNavInput_DpadDown,   12);    // D-Pad Down
-		    //MAP_BUTTON(ImGuiNavInput_FocusPrev,  4);     // L1 / LB
-		    //MAP_BUTTON(ImGuiNavInput_FocusNext,  5);     // R1 / RB
-		    //MAP_BUTTON(ImGuiNavInput_TweakSlow,  4);     // L1 / LB
-		    //MAP_BUTTON(ImGuiNavInput_TweakFast,  5);     // R1 / RB
-		    //MAP_ANALOG(ImGuiNavInput_LStickLeft, 0,  -0.3f,  -0.9f);
-		    //MAP_ANALOG(ImGuiNavInput_LStickRight,0,  +0.3f,  +0.9f);
-		    //MAP_ANALOG(ImGuiNavInput_LStickUp,   1,  +0.3f,  +0.9f);
-		    //MAP_ANALOG(ImGuiNavInput_LStickDown, 1,  -0.3f,  -0.9f);
-		    //#undef MAP_BUTTON
-		    //#undef MAP_ANALOG
-		    //if (axes_count > 0 && buttons_count > 0)
-		    //    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-		    //else
-		    //    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
-	    }
 	}
 
 	void imgui_manager::render()
