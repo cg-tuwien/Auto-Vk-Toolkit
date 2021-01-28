@@ -43,6 +43,9 @@ namespace gvk
 		bool is_user_interaction_enabled() const { return mUserInteractionEnabled; }
 
 	private:
+		void upload_fonts();
+		void construct_render_pass();
+
 		avk::queue* mQueue;
 		avk::descriptor_pool mDescriptorPool;
 		avk::command_pool mCommandPool;
@@ -50,7 +53,7 @@ namespace gvk
 
 		// this render pass is used to reset the attachment if no invokee has previously written on it
 		// TODO is there a better solution(?)
-		std::optional<avk::renderpass> mClearRenderPass;
+		std::optional<avk::renderpass> mClearRenderpass;
 		std::vector<avk::unique_function<void()>> mCallback;
 		int mExecutionOrder;
 		int mMouseCursorPreviousValue;

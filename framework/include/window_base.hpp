@@ -47,7 +47,7 @@ namespace gvk
 		/** The window title */
 		const std::string& title() const { return mTitle; }
 
-		/** Returns the monitor handle or std::nullopt if there is 
+		/** Returns the monitor handle or std::nullopt if there is
 		 *  no monitor assigned to this window (e.g. not running
 		 *  in full-screen mode.
 		 */
@@ -64,7 +64,7 @@ namespace gvk
 		void set_is_in_use(bool value);
 
 		/** Set a new resolution for this window. This will also update
-		 *  this window's underlying framebuffer 
+		 *  this window's underlying framebuffer
 		 *  TODO: Resize underlying framebuffer!
 		 */
 		void set_resolution(window_size pExtent);
@@ -82,10 +82,7 @@ namespace gvk
 		/** Indicates whether or not this window has already been created. */
 		bool is_alive() const { return mHandle.has_value(); }
 
-		/** Indicates whether or not this window must be recreated (because parameters have changed or so). */
-		bool must_be_recreated() const { return mRecreationRequired; }
-
-		/** Sets this window to fullscreen mode 
+		/** Sets this window to fullscreen mode
 		 *	@param	pOnWhichMonitor	Handle to the monitor where to present the window in full screen mode
 		 */
 		void switch_to_fullscreen_mode(monitor_handle pOnWhichMonitor = monitor_handle::primary_monitor());
@@ -101,15 +98,15 @@ namespace gvk
 
 		void update_cursor_position();
 
-		/** Get the cursor position w.r.t. the given window 
+		/** Get the cursor position w.r.t. the given window
 		 */
 		glm::dvec2 cursor_position() const;
 
-		/** Determine the window's extent 
+		/** Determine the window's extent
 		 */
 		glm::uvec2 resolution() const;
 
-		/** Returns whether or not the cursor is hidden 
+		/** Returns whether or not the cursor is hidden
 		 *	Threading: This method must always be called from the main thread
 		 */
 		bool is_cursor_disabled() const;
@@ -122,7 +119,7 @@ namespace gvk
 		bool mIsInUse;
 
 		/** Unique window id */
-		uint32_t mWindowId; 
+		uint32_t mWindowId;
 
 		/** Handle of this window */
 		std::optional<window_handle> mHandle;
@@ -135,11 +132,8 @@ namespace gvk
 
 		/** A flag which tells if this window is enabled for receiving input (w.r.t. a running composition) */
 		bool mIsInputEnabled;
-		
-		// A flag to indicate that window recreation is required in order to apply new parameters 
-		bool mRecreationRequired;
 
-		// The requested window size which only has effect BEFORE the window was created 
+		// The requested window size which only has effect BEFORE the window was created
 		window_size mRequestedSize;
 
 		// The position of the cursor

@@ -1,6 +1,7 @@
 #include <gvk.hpp>
 #include <imgui.h>
 #include "camera_path.hpp"
+#include "ui_helper.hpp"
 
 class model_loader_app : public gvk::invokee
 {
@@ -32,6 +33,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void initialize() override
 	{
+		// use helper functions to create ImGui elements
+		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(gvk::context().main_window()->surface());
+		mPresentationModeCombo = model_loader_ui_generator::get_presentation_mode_imgui_element();
+		mSrgbFrameBufferCheckbox = model_loader_ui_generator::get_framebuffer_mode_imgui_element();
+		mNumConcurrentFramesSlider = model_loader_ui_generator::get_number_of_concurrent_frames_imgui_element();
+		mNumPresentableImagesSlider = model_loader_ui_generator::get_number_of_presentable_images_imgui_element(3, surfaceCap.minImageCount, surfaceCap.maxImageCount);
+		mResizableWindowCheckbox = model_loader_ui_generator::get_window_resize_imgui_element();
+		mAdditionalAttachmentsCheckbox = model_loader_ui_generator::get_additional_attachments_imgui_element();
+
 		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
@@ -60,7 +70,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					gvk::additional_vertex_data(newElement.mNormals,	[&]() { return sponza->normals_for_mesh(index);								} )
 				);
 			}
-			
+
 			// 2. Build all the buffers for the GPU
 			// 2.1 Positions:
 			newElement.mPositionsBuffer = gvk::context().create_buffer(
@@ -69,7 +79,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 			newElement.mPositionsBuffer->fill(
 				newElement.mPositions.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler()) 
+				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.2 Texture Coordinates:
 			newElement.mTexCoordsBuffer = gvk::context().create_buffer(
@@ -100,7 +110,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 		}
 
-		// For all the different materials, transfer them in structs which are well 
+		// For all the different materials, transfer them in structs which are well
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
@@ -116,7 +126,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_usage::host_visible, {},
 			avk::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
-		
+
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_visible, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
@@ -125,7 +135,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			gpuMaterials.data(), 0,
 			avk::sync::not_required()
 		);
-		
+
 		mImageSamplers = std::move(imageSamplers);
 
 		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
@@ -142,7 +152,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
-			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
+			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth
 			// attachment, which has been configured when creating the window. See main() function!
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
 			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
@@ -159,14 +169,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
-		mUpdater->on(
-				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
-			)
-			.update(mPipeline);
+
 		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke([this]() {
 			this->mQuakeCam.set_aspect_ratio(gvk::context().main_window()->aspect_ratio());
 		});
+
+		//first make sure render pass is updated
+		mUpdater->on(gvk::swapchain_format_changed_event(gvk::context().main_window()),
+					 gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())
+		).invoke([this]() {
+			std::vector<avk::attachment> renderpassAttachments = {
+				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
+			};
+			if (mAdditionalAttachmentsCheckbox->checked())	{
+				renderpassAttachments.push_back(avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care));
+			}
+			auto renderPass = gvk::context().create_renderpass(renderpassAttachments);
+			gvk::context().replace_render_pass_for_pipeline(mPipeline, std::move(renderPass));
+		}).then_on( // ... next, at this point, we are sure that the render pass is correct -> check if there are events that would update the pipeline
+			gvk::swapchain_changed_event(gvk::context().main_window()),
+			gvk::shader_files_changed_event(mPipeline)
+		).update(mPipeline);
 
 
 		// Add the camera to the composition (and let it handle the updates)
@@ -192,6 +215,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					if (!isEnabled) this->disable();
 					else this->enable();
 				}
+
+				mSrgbFrameBufferCheckbox->invokeImGui();
+				mResizableWindowCheckbox->invokeImGui();
+				mAdditionalAttachmentsCheckbox->invokeImGui();
+				mNumConcurrentFramesSlider->invokeImGui();
+				mNumPresentableImagesSlider->invokeImGui();
+				mPresentationModeCombo->invokeImGui();
+
 				ImGui::End();
 			});
 		}
@@ -203,13 +234,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
-		
+
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdbfr->begin_recording();
 		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
-		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
+		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer)
@@ -217,7 +248,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		for (auto& drawCall : mDrawCalls) {
 			// Set the push constants:
-			auto pushConstantsForThisDrawCall = transformation_matrices { 
+			auto pushConstantsForThisDrawCall = transformation_matrices {
 				// Set model matrix for this mesh:
 				glm::scale(glm::vec3(0.01f) * mScale),
 				// Set material index for this mesh:
@@ -240,7 +271,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-		
+
 		// Submit the draw call and take care of the command buffer's lifetime:
 		mQueue->submit(cmdbfr, imageAvailableSemaphore);
 		mainWnd->handle_lifetime(avk::owned(cmdbfr));
@@ -335,9 +366,17 @@ private: // v== Member variables ==v
 	gvk::quake_camera mQuakeCam;
 
 	glm::vec3 mScale;
-	
+
 	std::optional<camera_path> mCameraPath;
-	
+
+	// imgui elements
+	std::optional<combo_box_container> mPresentationModeCombo;
+	std::optional<check_box_container> mSrgbFrameBufferCheckbox;
+	std::optional<slider_container<int>> mNumConcurrentFramesSlider;
+	std::optional<slider_container<int>> mNumPresentableImagesSlider;
+	std::optional<check_box_container> mResizableWindowCheckbox;
+	std::optional<check_box_container> mAdditionalAttachmentsCheckbox;
+
 }; // model_loader_app
 
 int main() // <== Starting point ==
@@ -345,9 +384,10 @@ int main() // <== Starting point ==
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Model Loader");
-		mainWnd->set_resolution({ 640, 480 });
+
+		mainWnd->set_resolution({ 1000, 480 });
 		mainWnd->enable_resizing(true);
-		mainWnd->set_additional_back_buffer_attachments({ 
+		mainWnd->set_additional_back_buffer_attachments({
 			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
 		});
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
@@ -357,7 +397,7 @@ int main() // <== Starting point ==
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
-		
+
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = model_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
@@ -376,5 +416,3 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-
-

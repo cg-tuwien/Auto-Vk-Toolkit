@@ -7,13 +7,15 @@ namespace gvk
 	void window::enable_resizing(bool aEnable)
 	{
 		mShallBeResizable = aEnable;
-		
+
 		if (is_alive()) {
-			mRecreationRequired = true;
+			context().dispatch_to_main_thread([this, aEnable]() {
+				glfwSetWindowAttrib(mHandle.value().mHandle, GLFW_RESIZABLE, aEnable ? GLFW_TRUE : GLFW_FALSE);
+			});
 		}
 	}
 
-	
+
 	void window::request_srgb_framebuffer(bool aRequestSrgb)
 	{
 		// Which formats are supported, depends on the surface.
@@ -50,7 +52,7 @@ namespace gvk
 		};
 
 		if (is_alive()) {
-			mRecreationRequired = true;
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::image_format_changed);
 		}
 	}
 
@@ -86,32 +88,10 @@ namespace gvk
 			return *selPresModeItr;
 		};
 
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
+		// If the window has already been created, the new setting can't
+		// be applied unless the swapchain is being recreated.
 		if (is_alive()) {
-			mRecreationRequired = true;
-		}
-	}
-
-	void window::set_number_of_samples(vk::SampleCountFlagBits aNumSamples)
-	{
-		mNumberOfSamplesGetter = [lSamples = aNumSamples]() { return lSamples; };
-
-		mMultisampleCreateInfoBuilder = [this]() {
-			auto samples = mNumberOfSamplesGetter();
-			return vk::PipelineMultisampleStateCreateInfo()
-				.setSampleShadingEnable(vk::SampleCountFlagBits::e1 == samples ? VK_FALSE : VK_TRUE) // disable/enable?
-				.setRasterizationSamples(samples)
-				.setMinSampleShading(1.0f) // Optional
-				.setPSampleMask(nullptr) // Optional
-				.setAlphaToCoverageEnable(VK_FALSE) // Optional
-				.setAlphaToOneEnable(VK_FALSE); // Optional
-		};
-
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
-		if (is_alive()) {
-			mRecreationRequired = true;
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::presentation_mode_changed);
 		}
 	}
 
@@ -119,10 +99,10 @@ namespace gvk
 	{
 		mNumberOfPresentableImagesGetter = [lNumImages = aNumImages]() { return lNumImages; };
 
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
+		// If the window has already been created, the new setting can't
+		// be applied unless the swapchain is being recreated.
 		if (is_alive()) {
-			mRecreationRequired = true;
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed);
 		}
 	}
 
@@ -130,10 +110,10 @@ namespace gvk
 	{
 		mNumberOfConcurrentFramesGetter = [lNumConcurrent = aNumConcurrent]() { return lNumConcurrent; };
 
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
+		// If the window has already been created, the new setting can't
+		// be applied unless synchronization infrastructure is being recreated.
 		if (is_alive()) {
-			mRecreationRequired = true;
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::concurrent_frames_count_changed);
 		}
 	}
 
@@ -141,10 +121,10 @@ namespace gvk
 	{
 		mAdditionalBackBufferAttachmentsGetter = [lAdditionalAttachments = std::move(aAdditionalAttachments)]() { return lAdditionalAttachments; };
 
-		// If the window has already been created, the new setting can't 
-		// be applied unless the window is being recreated.
+		// If the window has already been created, the new setting can't
+		// be applied unless the swapchain is being recreated.
 		if (is_alive()) {
-			mRecreationRequired = true;
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::backbuffer_attachments_changed);
 		}
 	}
 
@@ -170,7 +150,7 @@ namespace gvk
 			initialize_after_open();
 
 			// There will be some pending work regarding this newly created window stored within the
-			// context's events, like creating a swap chain and so on. 
+			// context's events, like creating a swap chain and so on.
 			// Why wait? Invoke them now!
 			context().work_off_event_handlers();
 		});
@@ -199,26 +179,6 @@ namespace gvk
 		}
 		// Determine the presentation mode:
 		return mPresentationModeSelector(aSurface);
-	}
-
-	vk::SampleCountFlagBits window::get_config_number_of_samples()
-	{
-		if (!mNumberOfSamplesGetter) {
-			// Set the default:
-			set_number_of_samples(vk::SampleCountFlagBits::e1);
-		}
-		// Determine the number of samples:
-		return mNumberOfSamplesGetter();
-	}
-
-	vk::PipelineMultisampleStateCreateInfo window::get_config_multisample_state_create_info()
-	{
-		if (!mMultisampleCreateInfoBuilder) {
-			// Set the default:
-			set_number_of_samples(vk::SampleCountFlagBits::e1);
-		}
-		// Get the config struct:
-		return mMultisampleCreateInfoBuilder();
 	}
 
 	uint32_t window::get_config_number_of_presentable_images()
@@ -260,7 +220,7 @@ namespace gvk
 		}
 
 		aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
-		
+
 		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), aCommandBuffer.own());
 		// ^ Prefer code duplication over recursive_mutex
 	}
@@ -278,7 +238,7 @@ namespace gvk
 	{
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
-		
+
 		// Find all to remove
 		auto to_remove = std::remove_if(
 			std::begin(mPresentSemaphoreDependencies), std::end(mPresentSemaphoreDependencies),
@@ -306,7 +266,7 @@ namespace gvk
 
 		// Up to the frame with id 'maxTTL', all command buffers can be safely removed
 		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
-		
+
 		// 1. SINGLE USE COMMAND BUFFERS
 		// Can not use the erase-remove idiom here because that would invalidate iterators and references
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
@@ -334,7 +294,7 @@ namespace gvk
 
 		// Up to the frame with id 'maxTTL', all swap chain resources can be safely removed
 		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
-		
+
 		auto eraseBegin = std::begin(mOutdatedSwapChainResources);
 		if (std::end(mOutdatedSwapChainResources) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
 			return;
@@ -358,16 +318,27 @@ namespace gvk
 
 	void window::acquire_next_swap_chain_image_and_prepare_semaphores()
 	{
+		if (mResourceRecreationDeterminator.is_any_recreation_necessary())	{
+			if (mResourceRecreationDeterminator.has_concurrent_frames_count_changed_only())	{ //only update framesInFlight fences/semaphores
+				mPresentQueue->handle().waitIdle(); // ensure the semaphors which we are going to potentially delete are not being used
+				update_concurrent_frame_synchronization(swapchain_creation_mode::update_existing_swapchain);
+				mResourceRecreationDeterminator.reset();
+			}
+			else { //recreate the whole swap chain then
+				update_resolution_and_recreate_swap_chain();
+			}
+		}
+
 		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 		auto imgAvailableSem = image_available_semaphore_for_frame();
 
 		// Update previous image index before getting a new image index for the current frame:
 		mPreviousFrameImageIndex = mCurrentFrameImageIndex;
-			
+
 		try
 		{
 			auto result = context().device().acquireNextImageKHR(
-				swap_chain(), // the swap chain from which we wish to acquire an image 
+				swap_chain(), // the swap chain from which we wish to acquire an image
 				// At this point, I have to rant about the `timeout` parameter:
 				// The spec says: "timeout specifies how long the function waits, in nanoseconds, if no image is available."
 				// HOWEVER, don't think that a numeric_limit<int64_t>::max() will wait for nine quintillion nanoseconds!
@@ -379,7 +350,7 @@ namespace gvk
 				&mCurrentFrameImageIndex); // a variable to output the index of the swap chain image that has become available. The index refers to the VkImage in our swapChainImages array. We're going to use that index to pick the right command buffer. [1]
 			if (vk::Result::eSuboptimalKHR == result) {
 				LOG_INFO("Swap chain is suboptimal in acquire_next_swap_chain_image_and_prepare_semaphores. Going to recreate it...");
-				update_resolution_and_recreate_swap_chain();
+				mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::suboptimal_swap_chain);
 
 				// Workaround for binary semaphores:
 				// Since the semaphore is in a wait state right now, we'll have to wait for it until we can use it again.
@@ -394,12 +365,14 @@ namespace gvk
 				fen->wait_until_signalled();
 
 				acquire_next_swap_chain_image_and_prepare_semaphores();
+				return;
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
 			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
-			update_resolution_and_recreate_swap_chain();
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			acquire_next_swap_chain_image_and_prepare_semaphores();
+			return;
 		}
 
 		// It could be that the image index that has been returned is currently in flight.
@@ -416,7 +389,7 @@ namespace gvk
 		// Set the image available semaphore to be consumed:
 		mCurrentFrameImageAvailableSemaphore = std::ref(imgAvailableSem);
 	}
-	
+
 	void window::sync_before_render()
 	{
 		// Wait for the fence before proceeding, GPU -> CPU synchronization via fence
@@ -443,12 +416,12 @@ namespace gvk
 
 		acquire_next_swap_chain_image_and_prepare_semaphores();
 	}
-	
+
 	void window::render_frame()
 	{
 		const auto cf = current_fence();
 
-		// EXTERN -> WAIT 
+		// EXTERN -> WAIT
 		std::vector<vk::Semaphore> renderFinishedSemaphores;
 		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages;
 		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
@@ -462,7 +435,7 @@ namespace gvk
 		}
 
 		// TODO: What if the user has not submitted any renderFinishedSemaphores?
-		
+
 		// WAIT -> SIGNAL
 		auto signalSemaphore = current_initiate_present_semaphore();
 
@@ -490,20 +463,21 @@ namespace gvk
 			auto result = mPresentQueue->handle().presentKHR(presentInfo);
 			if (vk::Result::eSuboptimalKHR == result) {
 				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");
-				update_resolution_and_recreate_swap_chain();
+				mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::suboptimal_swap_chain);
+				// swap chain will be recreated in the next frame
 			}
-			
 		}
 		catch (vk::OutOfDateKHRError omg) {
 			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
-			update_resolution_and_recreate_swap_chain();
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			// Just do nothing. Ignore the failure. This frame is lost.
+			// swap chain will be recreated in the next frame
 		}
-		
+
 		// increment frame counter
 		++mCurrentFrame;
 	}
-	
+
 	void window::add_queue_family_ownership(avk::queue& aQueue)
 	{
 		mQueueFamilyIndicesGetter.emplace_back([pQueue = &aQueue](){ return pQueue->family_index(); });
@@ -513,53 +487,75 @@ namespace gvk
 	{
 		mPresentQueue = &aPresentQueue;
 	}
-	
+
 	void window::create_swap_chain(swapchain_creation_mode aCreationMode)
 	{
+		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain) {
+			mCurrentFrame = 0; // Start af frame 0
+		}
+
 		construct_swap_chain_creation_info(aCreationMode);
 
-		auto newSwapChain = context().device().createSwapchainKHRUnique(mSwapChainCreateInfo);
-
 		auto lifetimeHandler = [this](vk::UniqueSwapchainKHR&& aOldResource) { this->handle_lifetime(std::move(aOldResource)); };
-
 		// assign the new swap chain instead of the old one, if one exists
-		avk::emplace_and_handle_previous(newSwapChain, std::move(mSwapChain), lifetimeHandler);
+		avk::assign_and_lifetime_handle_previous(mSwapChain, context().device().createSwapchainKHRUnique(mSwapChainCreateInfo), lifetimeHandler);
 
 		construct_backbuffers(aCreationMode);
 
-		// if we are creating a new swap chain from the ground up,
+		// if we are creating a new swap chain from the ground up, or if the number of presentable images change
 		// set up fences and other basic initialization
-		// TODO: part of this section needs to be also executed if number of concurrent images change
-		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain)	{
-			mCurrentFrame = 0; // Start af frame 0
-			// it has been established that imagesInFlight ==  aWindow->get_config_number_of_presentable_images()
+		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain ||
+			mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed)) {
+
 			auto imagesInFlight = get_config_number_of_presentable_images();
 			// ============= SYNCHRONIZATION OBJECTS ===========
 			// per IMAGE:
-			{
-				mImagesInFlightFenceIndices.reserve(imagesInFlight);
-				for (uint32_t i = 0; i < imagesInFlight; ++i) {
-					mImagesInFlightFenceIndices.push_back(-1);
-				}
-			}
-			assert(mImagesInFlightFenceIndices.size() == imagesInFlight);
 
-			// ============= SYNCHRONIZATION OBJECTS ===========
-			// per CONCURRENT FRAME:
-			{
-				auto framesInFlight = get_config_number_of_concurrent_frames();
-				mFramesInFlightFences.reserve(framesInFlight);
-				mImageAvailableSemaphores.reserve(framesInFlight);
-				mInitiatePresentSemaphores.reserve(framesInFlight);
-				for (uint32_t i = 0; i < framesInFlight; ++i) {
-					mFramesInFlightFences.push_back(context().create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
-					mImageAvailableSemaphores.push_back(context().create_semaphore());
-					mInitiatePresentSemaphores.push_back(context().create_semaphore());
-				}
+			mImagesInFlightFenceIndices.clear();
+			mImagesInFlightFenceIndices.reserve(imagesInFlight);
+			for (uint32_t i = 0; i < imagesInFlight; ++i) {
+				mImagesInFlightFenceIndices.push_back(-1);
 			}
-			assert(mFramesInFlightFences.size() == get_config_number_of_concurrent_frames());
-			assert(mImageAvailableSemaphores.size() == get_config_number_of_concurrent_frames());
+
+			assert(mImagesInFlightFenceIndices.size() == imagesInFlight);
 		}
+
+		// if we are creating a new swap chain from the ground up, or if the number of concurrent frames change
+		// set up fences and other basic initialization
+		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain ||
+			mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::concurrent_frames_count_changed)) {
+			update_concurrent_frame_synchronization(aCreationMode);
+		}
+
+		mResourceRecreationDeterminator.reset();
+	}
+
+	void window::update_concurrent_frame_synchronization(swapchain_creation_mode aCreationMode)
+	{
+		// ============= SYNCHRONIZATION OBJECTS ===========
+			// per CONCURRENT FRAME:
+
+		auto framesInFlight = get_config_number_of_concurrent_frames();
+
+		mFramesInFlightFences.clear();
+		mImageAvailableSemaphores.clear();
+		mInitiatePresentSemaphores.clear();
+		mFramesInFlightFences.reserve(framesInFlight);
+		mImageAvailableSemaphores.reserve(framesInFlight);
+		mInitiatePresentSemaphores.reserve(framesInFlight);
+		for (uint32_t i = 0; i < framesInFlight; ++i) {
+			mFramesInFlightFences.push_back(context().create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
+			mImageAvailableSemaphores.push_back(context().create_semaphore());
+			mInitiatePresentSemaphores.push_back(context().create_semaphore());
+		}
+
+		// when updating, the current fence must be unsignaled.
+		if (aCreationMode == window::swapchain_creation_mode::update_existing_swapchain) {
+			current_fence()->reset();
+		}
+
+		assert(mFramesInFlightFences.size() == get_config_number_of_concurrent_frames());
+		assert(mImageAvailableSemaphores.size() == get_config_number_of_concurrent_frames());
 	}
 
 	void window::update_resolution_and_recreate_swap_chain()
@@ -580,6 +576,9 @@ namespace gvk
 		auto surfaceFormat = get_config_surface_format(surface());
 		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
 			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y));
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed)) {
+				mImageCreateInfoSwapChain.setFormat(surfaceFormat.format);
+			}
 		}
 		else {
 			mImageUsage = avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::presentable;
@@ -630,6 +629,17 @@ namespace gvk
 			mSwapChainCreateInfo
 				.setImageExtent(vk::Extent2D{ mImageCreateInfoSwapChain.extent.width, mImageCreateInfoSwapChain.extent.height })
 				.setOldSwapchain(mSwapChain.get());
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentation_mode_changed)) {
+				mSwapChainCreateInfo.setPresentMode(get_config_presentation_mode(surface()));
+			}
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed)) {
+				mSwapChainCreateInfo.setMinImageCount(get_config_number_of_presentable_images());
+			}
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed)) {
+				mSwapChainCreateInfo.setImageColorSpace(surfaceFormat.colorSpace);
+				mSwapChainCreateInfo.setImageFormat(mImageCreateInfoSwapChain.format);
+				mSwapChainImageFormat = surfaceFormat.format;
+			}
 		}
 		else {
 			mSwapChainCreateInfo = vk::SwapchainCreateInfoKHR{}
@@ -658,7 +668,7 @@ namespace gvk
 	void window::construct_backbuffers(swapchain_creation_mode aCreationMode) {
 		const auto swapChainImages = context().device().getSwapchainImagesKHR(swap_chain());
 		const auto imagesInFlight = swapChainImages.size();
-		
+
 		assert(imagesInFlight == get_config_number_of_presentable_images()); // TODO: Can it happen that these two ever differ? If so => handle!
 
 		auto extent = context().get_resolution_for_window(this);
@@ -681,23 +691,28 @@ namespace gvk
 			ref.enable_shared_ownership();
 		}
 
-		avk::emplace_and_handle_previous(newImageViews, std::move(mSwapChainImageViews), lifetimeHandlerLambda);
-		
-		
+		avk::assign_and_lifetime_handle_previous(mSwapChainImageViews, std::move(newImageViews), lifetimeHandlerLambda);
+
+		bool additionalAttachmentsChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::backbuffer_attachments_changed);
+		bool imageFormatChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed);
+
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
 			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
-		auto newRenderPass = context().create_renderpass(renderpassAttachments);
 
-		if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {
-			newRenderPass.enable_shared_ownership();
+		//recreate render pass only if really necessary, otherwise keep using the old one
+		if (aCreationMode == swapchain_creation_mode::create_new_swapchain || imageFormatChanged || additionalAttachmentsChanged)
+		{
+			auto newRenderPass = context().create_renderpass(renderpassAttachments);
+			if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {
+				newRenderPass.enable_shared_ownership();
+			}
+			avk::assign_and_lifetime_handle_previous(mBackBufferRenderpass, std::move(newRenderPass), lifetimeHandlerLambda);
 		}
 
-		avk::emplace_and_handle_previous(newRenderPass, std::move(mBackBufferRenderpass), lifetimeHandlerLambda);
-		
 		std::vector<avk::framebuffer> newBuffers;
 		newBuffers.reserve(imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
@@ -707,7 +722,9 @@ namespace gvk
 			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
 			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
-			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
+			// reuse image views if updating, however not if there are new additional attachments
+			// if the number of presentation images is now higher than the previous creation, we need new image views on top of previous ones
+			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain && !additionalAttachmentsChanged && i < mBackBuffers.size()) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
 				for (int j = 1; j < backBufferImageViews.size(); j++) {
 					imageViews.emplace_back(gvk::context().create_image_view_from_template(backBufferImageViews[j], imageResize));
@@ -728,8 +745,8 @@ namespace gvk
 			auto& ref = newBuffers.emplace_back(gvk::context().create_framebuffer(avk::shared(mBackBufferRenderpass), std::move(imageViews), extent.x, extent.y));
 			ref.enable_shared_ownership();
 		}
-		
-		avk::emplace_and_handle_previous(newBuffers, std::move(mBackBuffers), lifetimeHandlerLambda);
+
+		avk::assign_and_lifetime_handle_previous(mBackBuffers, std::move(newBuffers), lifetimeHandlerLambda);
 
 		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
 		for (auto& bb : mBackBuffers) {
