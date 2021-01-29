@@ -199,8 +199,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
 
 		const std::string cacheFilePath(aPathToOrcaScene + ".cache");
-		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
-		auto ser = cacheFileExists ?
+		// If a cache file exists, i.e. the scene was serialized during a previous load, initialize the serializer in deserialize mode,
+		// else initialize the serializer in serialize mode to create the cache file while processing the scene.
+		auto serializer = gvk::does_cache_file_exist(cacheFilePath) ?
 			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
 			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
 
@@ -209,68 +210,90 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		float endPart = 0.0f;
 		std::vector<std::tuple<std::string, float>> times;
 
-		if (!cacheFileExists) {
+		// Load orca scene for usage and serialization, loading the scene is not required if a cache file exists, i.e. mode == deserialize
+		if (serializer.mode() == gvk::serializer::mode::serialize) {
 			// Load an ORCA scene from file:
 			orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 			// Get all the different materials from the whole scene:
 			distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+
 			endPart = gvk::context().get_time();
-			times.emplace_back(std::make_tuple("no cache file, load orca file", endPart - startPart));
+			times.emplace_back(std::make_tuple("no cache file, loading orca file", endPart - startPart));
 			startPart = gvk::context().get_time();
 		}
+
+		// Get number of distinc materials from orca scene and serialize it or retrieve the number from the serializer
+		size_t numDistinctMaterials = (serializer.mode() == gvk::serializer::mode::serialize) ? distinctMaterialsOrca.size() : 0;
+		serializer.archive(numDistinctMaterials);
 
 		// The following loop gathers all the vertex and index data PER MATERIAL and constructs the buffers and materials.
 		// Later, we'll use ONE draw call PER MATERIAL to draw the whole scene.
 		std::vector<gvk::material_config> allMatConfigs;
 		mDrawCalls.clear();
-
-		size_t numIterations = cacheFileExists ? 0 : distinctMaterialsOrca.size();
-		ser.archive(numIterations);
-		auto pair = distinctMaterialsOrca.begin();
-		for (int i = 0; i < numIterations; ++i) {
-			size_t numIterations2 = cacheFileExists ? 0 : pair->second.size();
-			ser.archive(numIterations2);
-			const auto indices = cacheFileExists ? std::vector<gvk::model_and_mesh_indices>() : pair->second;
-			if (!cacheFileExists) {
-				allMatConfigs.push_back(pair->first);
-				pair = std::next(pair);
+		auto materials = distinctMaterialsOrca.begin();
+		for (int materialIndex = 0; materialIndex < numDistinctMaterials; ++materialIndex) {
+			// meshIndices is only needed during serialization, otherwise the serializer handles everything
+			// in the respective *_cached functions and meshIndices may be empty when passed to the
+			// respective functions.
+			size_t numMeshIndices;
+			std::vector<gvk::model_and_mesh_indices> meshIndices;
+			if (serializer.mode() == gvk::serializer::mode::serialize) {
+				allMatConfigs.push_back(materials->first);
+				meshIndices = materials->second;
+				numMeshIndices = materials->second.size();
+				materials = std::next(materials);
 			}
+			// Serialize or retrieve the number of model_and_mesh_indices for the material
+			serializer.archive(numMeshIndices);
 
-			for (int j = 0; j < numIterations2; ++j) {
-				auto getModelData = [&]() -> gvk::model_data& { return orca->model_at_index(indices[j].mModelIndex); };
-				auto modelAndMeshes = !cacheFileExists
-					? [&]() -> std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> {
-					return { gvk::make_models_and_meshes_selection(getModelData().mLoadedModel, indices[j].mMeshIndices) };
-				}()
-					: std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>>{};
+			for (int meshIndicesIndex = 0; meshIndicesIndex < numMeshIndices; ++meshIndicesIndex) {
+				// Convinience function to retrieve the model data via the mesh indices from the orca scene while in serialize mode
+				auto getModelData = [&]() -> gvk::model_data& { return orca->model_at_index(meshIndices[meshIndicesIndex].mModelIndex); };
+
+				// modelAndMeshes is only needed during serialization, otherwise the following buffers are filled by the
+				// serializer from the cache file in the repsective *_cached functions and modelAndMeshes may be empty.
+				std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> modelAndMeshes;
+				if (serializer.mode() == gvk::serializer::mode::serialize) {
+					modelAndMeshes = gvk::make_models_and_meshes_selection(getModelData().mLoadedModel, meshIndices[meshIndicesIndex].mMeshIndices);
+				}
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(ser,
-					modelAndMeshes, {}, avk::sync::wait_idle()
+				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(
+					serializer, modelAndMeshes, {}, avk::sync::wait_idle()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(ser,
-					modelAndMeshes, 0, avk::sync::wait_idle()
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(
+					serializer, modelAndMeshes, 0, avk::sync::wait_idle()
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer_cached(ser,
-					modelAndMeshes, avk::sync::wait_idle()
+				auto normalsBuffer = gvk::create_normals_buffer_cached(
+					serializer, modelAndMeshes, avk::sync::wait_idle()
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
-				size_t numIterations3 = cacheFileExists ? 0 : getModelData().mInstances.size();
-				ser.archive(numIterations3);
-				auto instances = cacheFileExists ? std::vector<gvk::model_instance_data>() : getModelData().mInstances;
-				ser.archive(instances);
-				for (int k = 0; k < numIterations3; ++k) {
+				// Get the number of instances from the model and serialize it or retrieve it from the serializer
+				size_t numInstances = (serializer.mode() == gvk::serializer::mode::serialize) ? getModelData().mInstances.size() : 0;
+				serializer.archive(numInstances);
+
+				// Create a draw calls for instances with the current material
+				for (int instanceIndex = 0; instanceIndex < numInstances; ++instanceIndex) {
 					auto& newElement = mDrawCalls.emplace_back();
-					newElement.mMaterialIndex = cacheFileExists ? i : static_cast<int>(allMatConfigs.size()) - 1;
-					newElement.mModelMatrix = gvk::matrix_from_transforms(instances[k].mTranslation, glm::quat(instances[k].mRotation), instances[k].mScaling);
+					newElement.mMaterialIndex = materialIndex;
+
+					// Create model matrix of instance and serialize it or retrieve it from the serializer
+					if (serializer.mode() == gvk::serializer::mode::serialize) {
+						auto instances = getModelData().mInstances;
+						newElement.mModelMatrix = gvk::matrix_from_transforms(
+							instances[instanceIndex].mTranslation, glm::quat(instances[instanceIndex].mRotation), instances[instanceIndex].mScaling
+						);
+					}
+					serializer.archive(newElement.mModelMatrix);
+
 					newElement.mPositionsBuffer = positionsBuffer;
 					newElement.mIndexBuffer = indicesBuffer;
 					newElement.mTexCoordsBuffer = texCoordsBuffer;
@@ -282,9 +305,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
 		startPart = gvk::context().get_time();
 
-		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
+		// Convert the materials that were gathered above into a GPU-compatible format and serialize it
+		// during the conversion in convert_for_gpu_usage_cached. If the serializer was initialized in
+		// mode deserialize, allMatConfigs may be empty since the serializer retreives everything needed
+		// from the cache file
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
-			ser,
+			serializer,
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
