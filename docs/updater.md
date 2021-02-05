@@ -95,7 +95,7 @@ In the above example, the renderpass belonging to `mPipeline` requires recreatio
 * _Note about shader files being changed on the file system:_ The loaded shader files are watched for changes, i.e. the SPIR-V versions of shader files in the target directory. The most convenient way to get them updated is to leave the _Post Build Helper_ running in the background. Ensure that its setting "Do not monitor files during app execution" is _not_ enabled. The _Post Build Helper_ will automatically compile shader files to SPIR-V at runtime if it detects changes to the original shader source files.
 * A `avk::graphics_pipeline` object will re-use its previously assigned renderpass without modification after recreation.
 
-## Examples
+## Example Applications
 
 Usage examples can be found at the following places:
 * **hello_world** example at [`hello_world.cpp#L25`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/hello_world/source/hello_world.cpp#L25)
