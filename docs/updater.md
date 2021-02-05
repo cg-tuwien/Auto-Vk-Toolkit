@@ -5,7 +5,7 @@ _Gears-Vk_ features functionality to automatically update resources (like images
 * `gvk::swapchain_changed_event`: This event occurs when the swapchain is recreated for any reason.
 * `gvk::swapchain_format_changed_event`: This event occurs when the image format of the swapchain has changed. Currently, this can be triggered when invoking `window::request_srgb_framebuffer` for the given window.
 * `gvk::swapchain_additional_attachments_changed_event`: This event occurs when window's additional attachments change. The set of additional attachments may change when invoking `window::set_additional_back_buffer_attachments`.
-* `gvk::concurrent_frames_count_changed_event`: This event occurs when the number of concurrent frames has been changed by the user. Currently, this the number of concurrent frames is modified by invoking `window::set_number_of_concurrent_frames`.
+* `gvk::concurrent_frames_count_changed_event`: This event occurs when the number of concurrent frames has been changed by the user. The number of concurrent frames is modified by invoking `window::set_number_of_concurrent_frames`.
 * `gvk::destroying_graphics_pipeline_event`: This event occurs when an outdated graphics pipeline is destroyed.
 * `gvk::destroying_compute_pipeline_event`: This event occurs when an outdated compute pipeline is destroyed.
 * `gvk::destroying_ray_tracing_pipeline_event`: This event occurs when an outdated ray tracing pipeline is destroyed.
@@ -16,7 +16,7 @@ _Gears-Vk_ features functionality to automatically update resources (like images
 
 ## How to use
 
-The event handling and the automatic updater mechanisms are available via `gvk::updater` class. The access to an updater is restricted to objects of type `gvk::invokee`. This means that each `gvk::invokee` object possesses its own `gvk::updater` instance, functioning in isolation from other updater instances. This updater can be made available by the following call:
+The event handling and the automatic updater mechanisms are available via `gvk::updater` class. The access to an updater is restricted to objects of type `gvk::invokee`. This means that each `gvk::invokee` object possesses its own `gvk::updater` instance, functioning in isolation from other updater instances. An invokee's updater is unset by default and can be activated by the following call:
 ```
 mUpdater.emplace();
 ```
@@ -26,9 +26,9 @@ The general schema for using an updater is the following:
 mUpdater.on(event... events).[update(...)|invoke(...)][.then_on(event... events).[update(...)|invoke(...)]]*
 ```
 
-* `events`: a comma seperated list of event objects. The events are in a logical _or_ relationship, which means that the bound callbacks are invoked if _any_ of the events occur.
-* `on(event... events)`: bind the following up `update` or `invoke` call to a list of events.
-* `update(updatee... updatees)`: automatically updates the given comma seperated list of objects once the bound event occurs. The following resources can be updated:
+* `events`: A comma separated list of event objects. The events are in a logical _or_ relationship, which means that the bound callbacks are invoked if _any_ of the events occur.
+* `on(event... events)`: The list of events that trigger the subsequently specified actions defined by `update` or `invoke` calls.
+* `update(updatee... updatees)`: Comma separated list of updatees which are updated after _any_ of the previously defined events has occured. The following resources can be updated by passing them to this method:
   * `avk::graphics_pipeline`
   * `avk::compute_pipeline`
   * `avk::ray_tracing_pipeline`
@@ -73,7 +73,7 @@ In the above example, the renderpass belonging to `mPipeline` requires recreatio
 ## Common Use-Cases
 * Swapchain recreation can lead to changes to image properties. This may cause any pipeline, renderpass, framebuffer or image view that directly works with swapchain to end in an invalid state. The updater mechanism is meant to streamline the recreation process of those objects, as well as to allow any user-defined behaviour to execute in cases where such events occur.
 * Shader hot reloading: Update graphics/compute/ray-tracing pipelines after (SPIR-V) shader files have been updated on the file system.
-* Adapt to number of concurrent frame changes: setup any necessary sync mechanism.
+* Adapt to changes in the number of concurrent frames, by setting up possibly required synchronization mechanisms.
 
 ## Notes on Swapchain recreation
 
@@ -83,14 +83,13 @@ In the above example, the renderpass belonging to `mPipeline` requires recreatio
   * number of presentation images,
   * number of concurrent frames,
   * backbuffer image format,
-  * out of data, or suboptimal swapchain detection by vulkan.
+  * out of data, or suboptimal swapchain detection by Vulkan.
 * The swapchain can only resize if the `window` has been configured to allow being resized (via `window::enable_resizing`).   
 
 ## General Notes
 * The updater mechanism is invoked just before the `render()` call of the associated `gvk::invokee`.
-* When you hand over resources that shall be automatically updated to the `gvk::updater`, the `gvk::updater` needs to take ownership of them. Therefore, you'll have to pay the price of enabling shared resource ownership (by the means of `avk::owning_resource::enable_shared_ownership`) for all of these resources.
-* _Note about shader files being changed on the file system:_ The loaded shader files are watches for changes, i.e. the SPIR-V versions of shader files in the target directory. The most convenient way to get them updated is to leave the _Post Build Helper_ running in the background. Ensure that its setting "Do not monitor files during app execution" is _not_ enabled, and the _Post Build Helper_ will automatically compile shader files to SPIR-V at runtime if it detects changes to the original shader source files.
-* To use an updater independently, a new subtype of `gvk::invokee` can be created.
+* When resources are handed over to the updater mechanism to be updated automatically, the `gvk::updater` needs to take ownership of them. Therefore, you'll have to pay the price of enabling shared resource ownership (by the means of `avk::owning_resource::enable_shared_ownership`) for all of these resources.
+* _Note about shader files being changed on the file system:_ The loaded shader files are watched for changes, i.e. the SPIR-V versions of shader files in the target directory. The most convenient way to get them updated is to leave the _Post Build Helper_ running in the background. Ensure that its setting "Do not monitor files during app execution" is _not_ enabled. The _Post Build Helper_ will automatically compile shader files to SPIR-V at runtime if it detects changes to the original shader source files.
 * A `avk::graphics_pipeline` object will re-use its previously assigned renderpass without modification after recreation.
 
 ## Examples
