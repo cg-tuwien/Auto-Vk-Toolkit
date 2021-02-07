@@ -115,7 +115,9 @@ namespace gvk
 		*/
 		void apply();
 
-		void update_events();
+		/** this function executes any static calls that are meant to be invoked once per frame
+		 */
+		static void prepare_for_current_frame();
 
 		template <typename E>
 		uint8_t get_event_index_and_possibly_add_event(E e, const size_t aBeginOffset = 0)

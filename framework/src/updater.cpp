@@ -148,9 +148,6 @@ namespace gvk
 			cleanupFrontCount = std::distance(std::begin(mUpdateesToCleanUp), cleanupIt);
 		}
 
-		// First of all, perform a static update due to strange FileWatcher behavior :-/
-		files_changed_event::update();
-
 		// Then perform the individual updates:
 		//   (See which events have fired)
 		uint64_t eventsFired = 0;
@@ -201,5 +198,11 @@ namespace gvk
 	void updater::add_updatee(uint64_t aEventsBitset, updatee_t aUpdatee, window::frame_id_t aTtl)
 	{
 		mUpdatees.emplace_back(aEventsBitset, std::move(aUpdatee), aTtl);
+	}
+
+	void updater::prepare_for_current_frame()
+	{
+		// perform a static update due to strange FileWatcher behavior :-/
+		files_changed_event::update();
 	}
 }
