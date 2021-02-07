@@ -168,3 +168,4 @@ class SOME_TYPE {
 	friend void serialize(Archive& aArchive, SOME_TYPE& aValue);
 }
 ```
+For custom serialization function examples see **serializer** at [`serializer.hpp#L259`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp#L259)
