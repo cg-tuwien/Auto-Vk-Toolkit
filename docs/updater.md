@@ -4,7 +4,7 @@ _Gears-Vk_ features functionality to automatically update resources (like images
 * `gvk::swapchain_resized_event`: This event occurs when the swapchain's dimensions have changed.
 * `gvk::swapchain_changed_event`: This event occurs when the swapchain is recreated for any reason.
 * `gvk::swapchain_format_changed_event`: This event occurs when the image format of the swapchain has changed. Currently, this can be triggered when invoking `window::request_srgb_framebuffer` for the given window.
-* `gvk::swapchain_additional_attachments_changed_event`: This event occurs when window's additional attachments change. The set of additional attachments may change when invoking `window::set_additional_back_buffer_attachments`.
+* `gvk::swapchain_additional_attachments_changed_event`: This event occurs when a window's additional attachments change. The set of additional attachments may change when invoking `window::set_additional_back_buffer_attachments`.
 * `gvk::concurrent_frames_count_changed_event`: This event occurs when the number of concurrent frames has been changed by the user. The number of concurrent frames is modified by invoking `window::set_number_of_concurrent_frames`.
 * `gvk::destroying_graphics_pipeline_event`: This event occurs when an outdated graphics pipeline is destroyed.
 * `gvk::destroying_compute_pipeline_event`: This event occurs when an outdated compute pipeline is destroyed.
