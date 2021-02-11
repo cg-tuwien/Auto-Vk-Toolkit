@@ -51,8 +51,8 @@ It is important to note that the order in which the events are evaluated is not 
 ```
 mPipeline.enable_shared_ownership(); // Make it usable with the updater
 mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window()), 
-      gvk::shader_files_changed_event(mPipeline))
-  .update(mPipeline);
+        gvk::shader_files_changed_event(mPipeline)
+    ).update(mPipeline);
 ```
 
 In the above example, the `gvk::updater mUpdater` is configured so that the `mPipeline` is updated when at least one of two _events_ occurs: either when the swapchain of the main window has been resized, or when one of the `mPipeline`'s shader files have been changed on the file system. 
