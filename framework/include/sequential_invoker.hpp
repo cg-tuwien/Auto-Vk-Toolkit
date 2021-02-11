@@ -40,15 +40,16 @@ namespace gvk
 
 		void execute_renders(const std::vector<invokee*>& elements) override
 		{
+			updater::prepare_for_current_frame();
 			for (auto& e : elements) {
 				if (e->is_enabled()) {
-					// First, apply potential changes required by the updater of the invokee, 
+					// First, apply potential changes required by the updater of the invokee,
 					// if one really exist. It is important that those changes are applied
 					// before the next render call.
 					e->apply_recreation_updates();
 				}
-				if (e->is_render_enabled()) {					
-					e->render();					
+				if (e->is_render_enabled()) {
+					e->render();
 				}
 			}
 		}
