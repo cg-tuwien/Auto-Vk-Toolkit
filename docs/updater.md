@@ -16,7 +16,7 @@ _Gears-Vk_ features functionality to automatically update resources (like images
 
 ## How to use
 
-The event handling and the automatic updater mechanisms are available via `gvk::updater` class. The access to an updater is restricted to objects of type `gvk::invokee`. This means that each `gvk::invokee` object possesses its own `gvk::updater` instance, functioning in isolation from other updater instances. An invokee's updater is unset by default and can be activated by the following call:
+The event handling and the automatic updater mechanisms are available via instances of the `gvk::updater` class. The access to an updater is restricted to objects of type `gvk::invokee`. This means that each `gvk::invokee` object possesses its own `gvk::updater` instance, functioning in isolation from other updater instances. An invokee's updater is unset by default and can be activated by the following call:
 ```
 mUpdater.emplace();
 ```
