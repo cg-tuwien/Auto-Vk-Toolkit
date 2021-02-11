@@ -11,7 +11,7 @@ _Gears-Vk_ features functionality to automatically update resources (like images
 * `gvk::destroying_ray_tracing_pipeline_event`: This event occurs when an outdated ray tracing pipeline is destroyed.
 * `gvk::destroying_image_event`: This event occurs when an outdated image is destroyed.
 * `gvk::destroying_image_view_event`: This event occurs when an outdated image view is destroyed.
-* `gvk::files_changed_event`: This event occurs when any of the given files have been modified on the file system.
+* `gvk::files_changed_event`: This event occurs when any of the associated files have been modified on the file system.
 
 
 ## How to use
