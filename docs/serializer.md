@@ -1,8 +1,8 @@
 # Serializer
-Gears-Vk features an object serializer to improve load times of huge 3D models or ORCA scenes by
-serializing all the processed and ready to use data into a cache file during the first run. In
-further runs, the data can be directly deserialized into types and structures used by Gears-Vk
-and expensive parsing and processing of huge models or scenes is avoided.
+_Gears-Vk_ features a object serializer to improve load times of resources like huge 3D models or
+ORCA scenes by serializing all the processed and ready to use data into a cache file during the
+first run. In further runs, the data can be directly deserialized into types and structures used by
+_Gears-Vk_ and expensive parsing and processing of huge models or scenes can be avoided.
 
 ### Serializer modes
 * `gvk::serialize(const std::string&)`: Creates an object for serializing into the given file path
@@ -23,7 +23,7 @@ and expensive parsing and processing of huge models or scenes is avoided.
 #### Check if the serializer already created a **cache** file
 * `gvk::does_cache_file_exist(const std::string_view)`
 
-#### Various \*\_cached variations of orca scene loading functions to ease serializer usage and simplify code
+#### Various \*\_cached variations of ORCA scene loading functions to ease serializer usage and simplify code
 * `get_vertices_and_indices_cached(gvk::serializer& aSerializer, ...)`
 * `create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, ...)`
 * `get_normals_cached(gvk::serializer& aSerializer, ...)`
@@ -53,7 +53,7 @@ and expensive parsing and processing of huge models or scenes is avoided.
 
 # How to use
 The serializer is available via `gvk::serializer` class and can be used for, i.e. improving load
-times of huge orca scenes. It is initialized either by a `gvk::serializer::serialize` or a
+times of ORCA scenes. It is initialized either by a `gvk::serializer::serialize` or a
 `gvk::serializer::deserialize` object, where both take a path to a **cache** file.
 `gvk::serializer::serialize` creates and writes to the **cache** file and
 `gvk::serializer::deserialize` reads from the **cache** file at the given path. A helper function
@@ -72,7 +72,7 @@ the serializer, which either returns **serializer::mode::serialize** or
 function template is called on the serializer object. This function serializes the given object to
 the **cache** file if the mode of the serialize is **serialize** or deserializes the object from the
 **cache** file into the given object if the mode is **deserialize**. The following code shows how a
-typical serializer usage can look like when used during orca scene loading.
+typical serializer usage can look like when used during ORCA scene loading.
 ```
 std::vector<glm::vec3> positions;
 if (serializer.mode() == gvk::serializer::mode::serialize) {
@@ -84,10 +84,10 @@ size_t numPositions = (serializer.mode() == gvk::serializer::mode::serialize) ? 
 serializer.archive(numPositions);
 ```
 
-The serializer features spezialised functions for serializing and deserializing a block of memory
+The serializer features specialised functions for serializing and deserializing blocks of memory
 and host visible buffers. Both can be used separately but are especially usefull when used in
-conjunction to, i.e. serialize/deserialize image data. Image data loaded from a file can be
-serialized using `archive_memory`
+conjunction to, e.g. serialize/deserialize image data. Image data loaded from a file can be
+serialized using `gvk::serializer::archive_memory`:
 ```
 size_t imageSize;
 // Load image frome file
@@ -95,9 +95,8 @@ void* pixels = load_image(pathToImage, &imageSize);
 
 serializer.archive_memory(pixels, imageSize);
 ```
-before it is copied into a host visible GPU buffer. In further program runs, i.e. when
-deserializing, the serializer can copy the image data directly from the cached file into a host
-visible GPU buffer using `archive_buffer`
+Serialization happens before the memory is copied into a host visible GPU buffer. In further program runs, i.e. when deserializing, the serializer can copy the image data directly from the cached file into a host
+visible buffer using `gvk::serializer::archive_buffer`:
 ```
 // Create host visible staging buffer for filling on host side
 auto sb = avk::create_buffer(
@@ -108,12 +107,11 @@ auto sb = avk::create_buffer(
 
 aSerializer.archive_buffer(sb);
 ```
-which avoids an extra memory allocation in main memory for the image data before the copy into a host
-visible GPU buffer.
+`gvk::serializer::archive_buffer` avoids an extra memory allocation in main memory for the image data but copies directly into a host visible GPU buffer.
 
 ## \*\_cached functions
 
-Gears-Vk features \*\_cached function variants of various helper functions for orca scene loading to
+_Gears-Vk_ features *_cached* function variants of various helper functions for ORCA scene loading to
 ease serializer usage and avoid constant writing of different code paths for both modes of the
 serializer. For example, to retrieve a 2D texture coordinates buffer for model data
 (**modelAndMeshes**), one can use
@@ -137,13 +135,13 @@ data (in above example the content of the returned buffer, i.e. the 2D texture c
 For further \*\_cached function usage see `void load_orca_scene_cached(...)` in the **orca_loader** example at [`orca_loader.cpp#L187`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/orca_loader/source/orca_loader.cpp#L187)
 
 ## Custom type serialization
-Every type needs a special template function which defines how a type is serialized. Often used
+Every type needs a special template function which defines how a type is serialized. For often used
 types such as `glm::vec3`, `glm::mat4`, etc. and various `std` types this special function is
-already defined in **serializer.hpp**. To add serialization ability to a custom type, a
+already defined in **serializer.hpp** at [`serializer.hpp#L259`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp#L259). To add serialization ability to a custom type, a
 **serialize** function template in the same namespace as the custom type must be created. The
 function template takes two arguments, an **Archive** and your custom **Type** as reference, and
 passes every member of the **Type** to the **Archive**. If one of the members is also a custom
-type, a separate **serialize** function template must be created.
+type, a separate `serialize` function template must be created.
 ```
 nampespace SOME_NAMESPACE {
 	struct SOME_TYPE {
