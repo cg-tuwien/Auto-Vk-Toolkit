@@ -1,13 +1,9 @@
-Author
-======
+The JPG files were downloaded from:
 
-This is the work of Emil Persson, aka Humus.
-http://www.humus.name
+https://www.humus.name/Textures/Yokohama3.zip
 
+The KTX and DDS files were created for gears-vk from the JPG files using ImageViewer available at:
 
+https://github.com/kopaka1822/ImageViewer
 
-License
-=======
-
-This work is licensed under a Creative Commons Attribution 3.0 Unported License.
-http://creativecommons.org/licenses/by/3.0/
+For copyright and license information see license.txt.
