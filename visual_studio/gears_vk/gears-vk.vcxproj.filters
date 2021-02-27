@@ -121,7 +121,7 @@
     <ClCompile Include="..\..\framework\src\quadratic_uniform_b_spline.cpp">
       <Filter>gears-vk_src\utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\framework\src\imager_resource.cpp">
+    <ClCompile Include="..\..\framework\src\image_resource.cpp">
       <Filter>gears-vk_src\data</Filter>
     </ClCompile>
   </ItemGroup>

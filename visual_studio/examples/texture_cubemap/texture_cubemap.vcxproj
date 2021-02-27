@@ -27,7 +27,7 @@
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\cubemap_yokohama_rgba.ktx" />
+    <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.frag" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.vert" />
     <None Include="..\..\..\examples\texture_cubemap\shaders\skybox.frag" />
@@ -55,6 +55,7 @@
     <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg" />
     <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg" />
     <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

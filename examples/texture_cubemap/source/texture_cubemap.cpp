@@ -2,6 +2,8 @@
 #include <imgui.h>
 #include "image_resource.hpp"
 
+#define USE_SERIALIZER
+
 class texture_cubemap_app : public gvk::invokee
 {
 	struct data_for_draw_call
@@ -40,6 +42,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mDescriptorCacheSkybox = gvk::context().create_descriptor_cache();
 		mDescriptorCacheReflect = gvk::context().create_descriptor_cache();
 
+		// Test caching with cubemap
+		const std::string cacheFilePath("assets/cubemap.cache");
+		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
+		auto serializer = cacheFileExists ?
+			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
+			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+
 		// Load a cubemap image file
 		// The cubemap texture coordinates start in the upper right corner of the skybox faces,
 		// which coincides with the memory layout of the textures. Therefore we don't need to flip them along the y axis.
@@ -48,16 +57,25 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		gvk::image_resource cubemap_image_resource;
 
-		bool load_ktx = false;
-		if (load_ktx) {
-			cubemap_image_resource = gvk::image_resource_t::create_image_resource_from_file("assets/cubemap_yokohama_rgba.ktx", true, true, false);
+		// Load the textures for all cubemap faces from one file (.ktx or .dds format), or from six individual files
+		bool load_single_file = true;
+		if (load_single_file) {
+			bool load_dds = false;
+			if (load_dds)
+			{
+				cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t("assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds", true, true, false));
+			}
+			else
+			{
+				cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t("assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx", true, true, false));
+			}
 		}
 		else {
 			std::vector<std::string> cubemap_files{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
-			cubemap_image_resource = gvk::image_resource_t::create_image_resource_from_file(cubemap_files, true, true, false);
+			cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t(cubemap_files, true, true, false));
 		}
 
-		auto cubemap_image = gvk::create_cubemap_from_file(cubemap_image_resource);
+		auto cubemap_image = gvk::create_cubemap_from_image_resource_cached(serializer, cubemap_image_resource);
 
 		auto cubemap_sampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
 		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image->format(), avk::image_usage::general_cube_map_texture);
@@ -194,25 +212,37 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
 		);
 
-#if _DEBUG
-		mPipelineSkybox.enable_shared_ownership(); // Make it usable with the updater
-		mPipelineReflect.enable_shared_ownership(); // Make it usable with the updater
+		mUpdater.emplace();
 
-		mUpdaterSkybox.on(
-			gvk::swapchain_resized_event(gvk::context().main_window()),
-			gvk::shader_files_changed_event(mPipelineSkybox)
-		)
-			.update(mPipelineSkybox);
+		// Make pipelines usable with the updater
+		mPipelineSkybox.enable_shared_ownership(); 
+		mPipelineReflect.enable_shared_ownership();
 
-		mUpdaterReflect.on(
-			gvk::swapchain_resized_event(gvk::context().main_window()),
-			gvk::shader_files_changed_event(mPipelineReflect)
-		)
-			.update(mPipelineReflect);
+		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke([this]() {
+			this->mQuakeCam.set_aspect_ratio(gvk::context().main_window()->aspect_ratio());
+			});
 
-		gvk::current_composition()->add_element(mUpdaterSkybox);
-		gvk::current_composition()->add_element(mUpdaterReflect);
-#endif
+		//first make sure render pass is updated
+		mUpdater->on(gvk::swapchain_format_changed_event(gvk::context().main_window()),
+			gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())
+		).invoke([this]() {
+			std::vector<avk::attachment> renderpassAttachments = {
+				// But not in presentable format, because ImGui comes after
+				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	
+				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
+			};
+			auto renderPass = gvk::context().create_renderpass(renderpassAttachments);
+			gvk::context().replace_render_pass_for_pipeline(mPipelineSkybox, std::move(renderPass));
+			gvk::context().replace_render_pass_for_pipeline(mPipelineReflect, std::move(renderPass));
+			// ... next, at this point, we are sure that the render pass is correct -> check if there are events that would update the pipeline
+			}).then_on(
+				gvk::swapchain_changed_event(gvk::context().main_window()),
+				gvk::shader_files_changed_event(mPipelineSkybox)
+			).update(mPipelineSkybox)
+			.then_on(
+				gvk::swapchain_changed_event(gvk::context().main_window()),
+				gvk::shader_files_changed_event(mPipelineReflect)
+			).update(mPipelineReflect);;
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 2.5f });
@@ -376,13 +406,8 @@ private: // v== Member variables ==v
 
 	const float mScaleSkybox = 100.f;
 	const glm::mat4 mModelMatrixSkybox = glm::scale(glm::vec3(mScaleSkybox));
-
-#if _DEBUG
-	gvk::updater mUpdaterSkybox;
-	gvk::updater mUpdaterReflect;
-#endif
-
-}; // texture_cubemap_app
+}; 
+// texture_cubemap_app
 
 int main() // <== Starting point ==
 {

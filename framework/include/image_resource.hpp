@@ -4,292 +4,274 @@
 namespace gvk
 {
 	class image_resource_t;
+	class image_resource_impl_t;
 
 	typedef std::unique_ptr<image_resource_t> image_resource;
 
-
-	class image_resource_t
+	// interface of image_resource type, used for abstraction and implementor in bridge pattern
+	class image_resource_base_t
 	{
 	public:
+		// type that represents the size of 1D, 2D, and 3D images
 		typedef vk::Extent3D extent_type;
 
-		virtual ~image_resource_t()
-		{
-		};
+		// load image resource into memory
+		// perform this as an extra step to facilitate caching of image resources
+		virtual void load() = 0;
 
-		// FIXME: define consistent meaning of aLoadHdrIfPossible; stb_image converts image data to or from float format, but other image loading libraries, like GLI, do not
-		// Likewise, sRGB is ignored for GLI loader
-		static image_resource create_image_resource_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-			int aPreferredNumberOfTextureComponents = 4);
+		virtual vk::Format get_format() const = 0;
 
-		// Order of faces +X, -X, +Y, -Y, +Z, -Z
-		static image_resource create_image_resource_from_file(const std::vector<std::string>& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-			int aPreferredNumberOfTextureComponents = 4);
+		virtual vk::ImageType target() const = 0;
 
-		virtual vk::Format get_format() = 0;
+		// size of image resource, in pixels
+		virtual extent_type extent(uint32_t level = 0) const = 0;
 
-		virtual vk::ImageType target() = 0; 
+		// Note: the return type cannot be const void* because this would result in a compile-time error with the deserializer;
+		// The function cannot be const either or gli would call a function overload that returns a const void*
+		virtual void* get_data(uint32_t layer, uint32_t face, uint32_t level) = 0;
+		// size of whole image resource, in bytes
+		virtual size_t size() const = 0;
+		// size of one mipmap leve of image resource, in bytes
+		virtual size_t size(uint32_t level) const = 0;
 
-		virtual extent_type extent() = 0;
-		virtual extent_type extent(size_t level) = 0;
+		virtual bool empty() const = 0;
 
-		virtual void* get_data(size_t layer, size_t face, size_t level) = 0;
-		virtual size_t size(size_t level) = 0;
-
-		virtual bool empty() = 0;
-
-		const std::string path()
-		{
-			return mPath;
-		}
-
-		// Default implementations for subclasses that don't support these optional features
-
-		// Mipmap levels; 1 if no Mipmapping, 0 if Mipmaps should be created after loading
-		virtual size_t levels()
-		{
-			return 1;
-		} 
+		// Vulkan uses uint32_t type for levels and layers (faces)
+		virtual uint32_t levels() const = 0;
 
 		// array layers, for texture arrays
-		virtual size_t layers()
-		{
-			return 1;
-		}
+		virtual uint32_t layers() const = 0;
 
-		// faces in cubemap, must be 6 for cubemaps, 1 for anything else
-		virtual size_t faces()
-		{
-			return 1;
-		}
+		// faces in image, must be 6 for cubemaps, 1 for anything else
+		virtual uint32_t faces() const = 0;
 
+		// returns true if image format and image library support y-flipping when loading
 		// TODO: make protected or remove?
-		virtual bool can_flip()
+		virtual bool can_flip() const = 0;
+
+		// returns if image resource is a hdr format
+		virtual bool is_hdr() const = 0;
+
+		std::string path() const
 		{
-			return false;
+			return mPaths[0];
 		}
 
-		virtual bool is_hdr()
+		std::vector<std::string> paths() const
 		{
-			return false;
+			return mPaths;
 		}
 
 	protected:
-		image_resource_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: mPath(aPath), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+		
+		image_resource_base_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: mPaths({ aPath }), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+		{
+		}
+		
+		// for cubemaps loaded from six individual images
+		image_resource_base_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: mPaths(aPaths), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 
-		virtual void flip()
-		{
-			throw std::exception();
-		}
+		// Note that boolean flags are not applicable in all cases; stb_image converts image data to or from float format, but other image loading libraries, like GLI, do not;
+		// Likewise, sRGB is ignored for GLI loader, and it may not be possible to flip images on loading (e.g. compressed textures)
+		static std::unique_ptr<image_resource_impl_t> load_image_resource_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+			int aPreferredNumberOfTextureComponents = 4);
+		
+		// for cubemaps loaded from six individual files
+		// Order of faces +X, -X, +Y, -Y, +Z, -Z
+		static std::unique_ptr<image_resource_impl_t> load_image_resource_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4);
+		
+		std::vector<std::string> mPaths;
 
-		std::string mPath;
+		// if image should be flipped vertically when loaded, if possible
 		bool mFlip;
 		bool mHDR;
 		bool msRGB;
 		int mPreferredNumberOfTextureComponents;
 	};
 
-	class composite_cubemap_image_resource_t : public image_resource_t
+	// base class of implementor of image_resource type in bridge pattern
+	class image_resource_impl_t : public image_resource_base_t
 	{
 	public:
-		composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			// TODO: how to handle names of composite?
-			: image_resource_t(aPaths[0], aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		// Default implementations for subclasses that don't support these optional features
+
+		// Mipmap levels; 1 if no Mipmapping, 0 if Mipmaps should be created after loading
+		virtual uint32_t levels() const
 		{
-			assert(aPaths.size() == 6);
-
-			for (auto path : aPaths)
-			{
-				image_resource i = create_image_resource_from_file(path, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents);
-
-				assert(!i->empty());
-				assert(i->layers() == 1);
-				// target must be 2D
-				assert(i->target() == vk::ImageType::e2D);
-				// must not be a cubemap
-				assert(i->faces() == 1);
-
-				if (image_resources.size() > 0)
-				{
-					// all image resources must have the same format, target and extent
-					image_resource& i0 = image_resources[0];
-					assert(i->get_format() == i0->get_format());
-					assert(i->target() == i0->target());
-					assert(i->extent() == i0->extent());
-					// Mipmap levels must agree
-					assert(i->levels() == i0->levels());
-				}
-
-				image_resources.push_back(std::move(i));
-			}
-
-			assert(image_resources.size() == 6);
-		};
-
-		virtual ~composite_cubemap_image_resource_t()
-		{
-		};
-
-		virtual vk::Format get_format()
-		{
-			return image_resources[0]->get_format();
-		}
-
-		virtual vk::ImageType target()
-		{
-			return image_resources[0]->target();
-		}
-
-		virtual extent_type extent()
-		{
-			return image_resources[0]->extent();
-		}
-
-		virtual extent_type extent(size_t level)
-		{
-			return image_resources[0]->extent(level);
-		}
-
-		virtual void* get_data(size_t layer, size_t face, size_t level)
-		{
-			//return map_to_resource(layer, face)->get_data(0, 0, level);
-			return image_resources[face]->get_data(0, 0, level);
-		}
-
-		virtual size_t size(size_t level)
-		{
-			return image_resources[0]->size(level);
-		}
-
-		virtual size_t levels()
-		{
-			return image_resources[0]->levels();
-		}
-
-		virtual size_t layers()
-		{
-			// TODO support arrays
 			return 1;
 		}
 
-		// faces in cubemap
-		virtual size_t faces()
+		// array layers, for texture arrays
+		virtual uint32_t layers() const
 		{
-			return 6;
+			return 1;
 		}
 
-		virtual bool empty()
+		// faces in cubemap, must be 6 for cubemaps, 1 for anything else
+		virtual uint32_t faces() const
 		{
-			return image_resources[0]->empty();
+			return 1;
 		}
 
-		virtual bool is_hdr()
+		// TODO: make protected or remove?
+		virtual bool can_flip() const
 		{
-			return image_resources[0]->is_hdr();
+			return false;
 		}
 
-		const std::string path()
+		virtual bool is_hdr() const
 		{
-			return mPath;
+			return false;
+		}
+
+	protected:
+		image_resource_impl_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		{
+		}
+
+		image_resource_impl_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		{
+		}
+	};
+
+	// base class of abstraction in bridge pattern
+	class image_resource_t : public image_resource_base_t
+	{
+	public:
+		image_resource_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		{
+		}
+
+		image_resource_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		{
+		}
+
+		virtual void load()
+		{
+			if (!empty())
+			{
+				return;
+			}
+
+			assert(mPaths.size() == 1 || mPaths.size() == 6);
+
+			if (mPaths.size() == 1)
+			{
+				pimpl = load_image_resource_from_file(mPaths[0], mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+			}
+			else
+			{
+				pimpl = load_image_resource_from_file(mPaths, mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+			}
+
+			pimpl->load();
+		}
+
+		virtual vk::Format get_format() const
+		{
+			assert(!empty());
+
+			return pimpl->get_format();
+		}
+
+		virtual vk::ImageType target() const
+		{
+			assert(!empty());
+
+			return pimpl->target();
+		}
+
+		virtual extent_type extent(uint32_t level = 0) const
+		{
+			assert(!empty());
+			assert(level < pimpl->levels());
+
+			return pimpl->extent(level);
+		}
+
+		virtual void* get_data(uint32_t layer, uint32_t face, uint32_t level)
+		{
+			assert(!empty());
+			assert(layer < pimpl->layers());
+			assert(face < pimpl->faces());
+			assert(level < pimpl->levels());
+
+			return pimpl->get_data(layer, face, level);
+		}
+
+		virtual size_t size() const
+		{
+			assert(!empty());
+
+			return pimpl->size();
+		}
+
+		virtual size_t size(uint32_t level) const
+		{
+			assert(!empty());
+			assert(level < pimpl->levels());
+
+			return pimpl->size(level);
+		}
+
+		virtual uint32_t levels() const
+		{
+			assert(!empty());
+
+			return pimpl->levels();
+		}
+
+		// array layers, for texture arrays
+		virtual uint32_t layers() const
+		{
+			assert(!empty());
+
+			return pimpl->layers();
+		}
+
+		// faces in image, must be 6 for cubemaps, 1 for anything else
+		virtual uint32_t faces() const
+		{
+			assert(!empty());
+
+			return pimpl->faces();
+		}
+
+		// TODO: make protected or remove?
+		virtual bool can_flip() const
+		{
+			assert(!empty());
+
+			return pimpl->can_flip();
+		}
+
+		virtual bool is_hdr() const
+		{
+			assert(!empty());
+
+			return pimpl->is_hdr();
+		}
+
+		virtual bool empty() const
+		{
+			return !(pimpl && !pimpl->empty());
 		}
 
 	private:
-		/*
-		class image_resource_selection : public image_resource
-		{
-		public:
-			// NOTE selecting individual Mipmap levels or ranges of faces is probably not very useful and thus not supported, aNumFaces should be limited to either 1 or 6?
-			image_resource_selection(image_resource& aImageResource, size_t aBaseLayer, size_t aNumLayers = 1, size_t aBaseFace = 0, size_t aNumFaces = 1)
-				: mImageResource(aImageResource), mBaseLayer(aBaseLayer), mNumLayers(aNumLayers), mBaseFace(aBaseFace), mNumFaces(aNumFaces)
-			{
-				assert(mNumLayers > 0);
-				assert(mNumFaces == 1 || mNumFaces == 6);
-				assert(mBaseLayer + mNumLayers <= mImageResource->layers());
-				assert(mBaseFace + mNumFaces <= mImageResource->faces());
-			}
+		// pimpl idiom: use unique_ptr
+		// allocate pimpl in out-of-line constructor
+		// deallocate in out-of-line destructor (complete type only known after class definition)
+		// for user-defined destructor, there is no compiler-generated copy constructor and move-assignment operator; define out-of-line if needed
 
-			virtual ~image_resource_selection()
-			{
-			};
-
-			virtual vk::Format get_format()
-			{
-				return mImageResource->get_format();
-			}
-
-			virtual gli::target target()
-			{
-				return mImageResource->target();
-			}
-
-			virtual extent_type extent()
-			{
-				return mImageResource->extent();
-			}
-
-			virtual extent_type extent(size_t level)
-			{
-				return mImageResource->extent(level);
-			}
-
-
-			virtual void* get_data(size_t layer, size_t face, size_t level)
-			{
-				return mImageResource->get_data(mBaseLayer + layer, mBaseFace + face, level);
-			}
-			virtual size_t size(size_t level)
-			{
-				return mImageResource->size(level);
-			}
-
-			virtual size_t levels()
-			{
-				return mImageResource->levels();
-			}
-			// array layers, for texture arrays
-			virtual size_t layers()
-			{
-				return mNumLayers;
-			}
-			// faces in cubemap
-			virtual size_t faces()
-			{
-				return mNumFaces;
-			}
-
-			virtual bool empty()
-			{
-				return mImageResource->empty();
-			}
-
-			virtual bool is_hdr()
-			{
-				return mImageResource->is_hdr();
-			}
-
-			const std::string path()
-			{
-				return mImageResource->path();
-			}
-		private:
-			image_resource& mImageResource;
-			size_t mBaseLayer, mNumLayers;
-			size_t mBaseFace, mNumFaces;
-		};
-		*/
-		image_resource& map_to_resource(size_t layer, size_t face)
-		{
-			// TODO: handle cubemap arrays
-			assert(layer == 0);
-
-			assert(0 <= face && face < 6);
-
-			return image_resources[face];
-		}
-
-		std::vector<image_resource> image_resources;
+		// pointer-to-implementation
+		std::unique_ptr<image_resource_impl_t> pimpl;
 	};
 }

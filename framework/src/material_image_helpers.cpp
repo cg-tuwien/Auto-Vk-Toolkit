@@ -2,6 +2,329 @@
 
 namespace gvk
 {
+	/*
+	static auto select_format(int aPreferredNumberOfTextureComponents, bool aLoadHdr, bool aLoadSrgb)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		if (!imFmt.has_value() && aLoadHdr) {
+			//if (stbi_is_hdr(aPath.c_str())) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = default_rgb16f_4comp_format();
+				break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = default_rgb16f_3comp_format();
+				break;
+			case 2:
+				imFmt = default_rgb16f_2comp_format();
+				break;
+			case 1:
+				imFmt = default_rgb16f_1comp_format();
+				break;
+			default:
+				imFmt = default_rgb16f_4comp_format();
+				break;
+			}
+			//}
+		}
+
+		if (!imFmt.has_value() && aLoadSrgb) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = gvk::default_srgb_4comp_format();
+				break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = gvk::default_srgb_3comp_format();
+				break;
+			case 2:
+				imFmt = gvk::default_srgb_2comp_format();
+				break;
+			case 1:
+				imFmt = gvk::default_srgb_1comp_format();
+				break;
+			default:
+				imFmt = gvk::default_srgb_4comp_format();
+				break;
+			}
+		}
+
+		if (!imFmt.has_value()) {
+			switch (aPreferredNumberOfTextureComponents) {
+			case 4:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+				// Attention: There's a high likelihood that your GPU does not support formats with less than four color components!
+			case 3:
+				imFmt = gvk::default_rgb8_3comp_format();
+				break;
+			case 2:
+				imFmt = gvk::default_rgb8_2comp_format();
+				break;
+			case 1:
+				imFmt = gvk::default_rgb8_1comp_format();
+				break;
+			default:
+				imFmt = gvk::default_rgb8_4comp_format();
+				break;
+			}
+		}
+
+		return imFmt;
+	}
+
+	static auto map_format_gli_to_vk(const gli::format gliFmt)
+	{
+		std::optional<vk::Format> imFmt = {};
+
+		switch (gliFmt) {
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+		case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc1RgbUnormBlock;
+			break;
+		case gli::format::FORMAT_RGB_DXT1_SRGB_BLOCK8:
+			imFmt = vk::Format::eBc1RgbSrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT1_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc1RgbaUnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT1_SRGB_BLOCK8:
+			imFmt = vk::Format::eBc1RgbaSrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT3_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc2UnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT3_SRGB_BLOCK16:
+			imFmt = vk::Format::eBc2SrgbBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT5_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc3UnormBlock;
+			break;
+		case gli::format::FORMAT_RGBA_DXT5_SRGB_BLOCK16:
+			imFmt = vk::Format::eBc3SrgbBlock;
+			break;
+		case gli::format::FORMAT_R_ATI1N_UNORM_BLOCK8:
+			imFmt = vk::Format::eBc4UnormBlock;
+			break;
+			// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#RGTC
+			// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
+		case gli::format::FORMAT_R_ATI1N_SNORM_BLOCK8:
+			imFmt = vk::Format::eBc4SnormBlock;
+			break;
+		case gli::format::FORMAT_RG_ATI2N_UNORM_BLOCK16:
+			imFmt = vk::Format::eBc5UnormBlock;
+			break;
+		case gli::format::FORMAT_RG_ATI2N_SNORM_BLOCK16:
+			imFmt = vk::Format::eBc5SnormBlock;
+			break;
+
+			// uncompressed formats, TODO other values?
+		case gli::format::FORMAT_RGBA8_UNORM_PACK8:
+			imFmt = vk::Format::eR8G8B8A8Unorm;
+			break;
+
+		}
+
+		return imFmt;
+	}
+	*/
+
+	avk::image create_cubemap_from_image_resource_cached(image_resource& aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	{
+		// image must have flag set to be used for cubemap
+		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
+
+		return create_image_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+	}
+
+	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	{
+		image_resource cubemap_image_resource(new image_resource_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+
+		return gvk::create_cubemap_from_image_resource_cached(cubemap_image_resource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+	}
+
+	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	{
+		image_resource cubemap_image_resource(new image_resource_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+
+		return gvk::create_cubemap_from_image_resource_cached(cubemap_image_resource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+	}
+
+	avk::image create_image_from_image_resource_cached(image_resource& aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	{
+		uint32_t width = 0;
+		uint32_t height = 0;
+		vk::Format format = vk::Format::eUndefined;
+		uint32_t numLayers = 0;
+
+		if (!aSerializer ||
+			(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
+
+			// load the image to memory
+			aImageResource->load();
+
+			assert(!aImageResource->empty());
+
+			if (aImageResource->target() != vk::ImageType::e2D) {
+				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as 2D image. Can't load it.", aImageResource->path()));
+			}
+
+			bool is_cube_compatible = (static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0;
+			if (is_cube_compatible && aImageResource->faces() != 6) {
+				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cubemap image.", aImageResource->path()));
+			}
+
+			width = aImageResource->extent().width;
+			height = aImageResource->extent().height;
+
+			format = aImageResource->get_format();
+
+			// number of layers in Vulkan image: equals (number of layers) x (number of faces) in image_resource
+			// a cubemap image in Vulkan must have six layers, one for each side of the cube
+			// TODO: support texture/cubemap arrays
+			numLayers = aImageResource->faces();
+		}
+
+		if (aSerializer) {
+			aSerializer->get().archive(width);
+			aSerializer->get().archive(height);
+			aSerializer->get().archive(format);
+			aSerializer->get().archive(numLayers);
+		}
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		// TODO: if image resource does not have a full mipmap pyramid, create image with fewer levels
+		auto img = context().create_image(width, height, format, numLayers, aMemoryUsage, aImageUsage);
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
+		// 1. Transition image layout to eTransferDstOptimal
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
+
+		// 2. Copy buffer to image
+		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
+
+		size_t maxLevels = 0;
+		size_t maxFaces = 0;
+
+		if (!aSerializer ||
+			(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
+
+			// number of levels to load from image resource
+			maxLevels = aImageResource->levels();
+
+			maxFaces = aImageResource->faces();
+
+			// if number of levels is 0, generate all mipmaps after loading
+			if (maxLevels == 0)
+			{
+				maxLevels = 1;
+			}
+
+			assert(maxLevels >= 1);
+			// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
+			assert(maxLevels == 1 || maxLevels == img->config().mipLevels);
+		}
+
+		if (aSerializer) {
+			aSerializer->get().archive(maxLevels);
+			aSerializer->get().archive(maxFaces);
+		}
+
+		std::vector<avk::buffer> stagingBuffers;
+
+		// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
+		for (uint32_t level = 0; level < maxLevels; ++level)
+		{
+			for (uint32_t face = 0; face < maxFaces; ++face)
+			{
+				size_t texSize = 0;
+				void* texData = nullptr;
+				gvk::image_resource_t::extent_type levelExtent;
+
+				if (!aSerializer ||
+					(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
+					texSize = aImageResource->size(level);
+					texData = aImageResource->get_data(0, face, level);
+					levelExtent = aImageResource->extent(level);
+				}
+				if (aSerializer) {
+					aSerializer->get().archive(texSize);
+					aSerializer->get().archive(levelExtent);
+				}
+#if _DEBUG
+				{
+					auto imgExtent = img->config().extent;
+					auto levelDivisor = 1u << level;
+					imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
+					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
+					imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
+					assert(levelExtent.width == static_cast<int>(imgExtent.width));
+					assert(levelExtent.height == static_cast<int>(imgExtent.height));
+					assert(levelExtent.depth == static_cast<int>(imgExtent.depth));
+				}
+#endif
+
+				auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+					AVK_STAGING_BUFFER_MEMORY_USAGE,
+					vk::BufferUsageFlagBits::eTransferSrc,
+					avk::generic_buffer_meta::create_from_size(texSize)
+				));
+
+				if (!aSerializer) {
+					sb->fill(texData, 0, avk::sync::not_required());
+				}
+				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
+					sb->fill(texData, 0, avk::sync::not_required());
+					aSerializer->get().archive_memory(texData, texSize);
+				}
+				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
+					aSerializer->get().archive_buffer(sb);
+					LOG_INFO_EM("Buffer loaded from cache");
+				}
+
+				// Memory writes are not overlapping => no barriers should be fine.
+				avk::copy_buffer_to_image_layer_mip_level(avk::const_referenced(sb), avk::referenced(img), face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
+				// TODO: Verify the above ^ comment
+			}
+		}
+
+		if (maxLevels == 1 && img->config().mipLevels > 1)
+		{
+			// can't create MIP-maps for compressed formats
+			assert(!avk::is_block_compressed_format(aImageResource->get_format()));
+
+			// For uncompressed formats, create MIP-maps via BLIT:
+			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		}
+
+		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
+
+		// 3. Transition image layout to its target layout and handle lifetime of things via sync
+		img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+		auto result = aSyncHandler.submit_and_sync();
+		assert(!result.has_value());
+		return img;
+	}
+
+	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	{
+		image_resource res(new image_resource_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+
+		return gvk::create_image_from_image_resource_cached(res, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+	}
+
 	static inline std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb,

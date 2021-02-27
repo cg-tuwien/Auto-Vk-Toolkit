@@ -31,13 +31,13 @@
     <None Include="..\..\..\examples\texture_cubemap\shaders\skybox.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\cubemap_yokohama_rgba.ktx">
-      <Filter>assets</Filter>
-    </None>
     <None Include="..\..\..\assets\1st_party\models\cube.obj">
       <Filter>assets</Filter>
     </None>
     <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx">
       <Filter>assets</Filter>
     </None>
   </ItemGroup>
@@ -66,6 +66,9 @@
       <Filter>assets</Filter>
     </Image>
     <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds">
       <Filter>assets</Filter>
     </Image>
   </ItemGroup>

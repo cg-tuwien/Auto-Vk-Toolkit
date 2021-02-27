@@ -519,3 +519,11 @@ namespace gvk {
 		);
 	}
 }
+
+namespace vk {
+	template<typename Archive>
+	void serialize(Archive& aArchive, vk::Extent3D& aValue)
+	{
+		aArchive(aValue.width, aValue.height, aValue.depth);
+	}
+}

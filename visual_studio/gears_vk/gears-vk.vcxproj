@@ -34,7 +34,7 @@
     <ClCompile Include="..\..\framework\src\cp_interpolation.cpp" />
     <ClCompile Include="..\..\framework\src\cubic_uniform_b_spline.cpp" />
     <ClCompile Include="..\..\framework\src\files_changed_event.cpp" />
-    <ClCompile Include="..\..\framework\src\imager_resource.cpp" />
+    <ClCompile Include="..\..\framework\src\image_resource.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />
