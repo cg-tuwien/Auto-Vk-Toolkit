@@ -259,14 +259,21 @@ namespace gvk
 			}
 		}
 
-	private:
-		inline static int32_t sGeneratedNameId = 0;
-		std::string mName;
-		int  mExecutionOrder = 0;
-		bool mWasEnabledLastFrame;
-		bool mEnabled;
-		bool mRenderEnabled;
-		bool mRenderGizmosEnabled;
+		/** @brief Returns true if this invokee has an updater */
+		bool has_updater()
+		{
+			return mUpdater.has_value();
+		}
+
+		/** @brief Emplaces an updater in mUpdater if there is none, and returns a reference to the newly
+		 *         created updater or the already existing one. */
+		updater& get_or_create_upadater()
+		{
+			if (!has_updater()) {
+				mUpdater.emplace();
+			}
+			return mUpdater.value();
+		}
 
 	protected:
 		/** In case that an updater is required by this invokee, one should be constructed here.
@@ -275,5 +282,13 @@ namespace gvk
 		*/
 		std::optional<updater> mUpdater;
 
+	private:
+		inline static int32_t sGeneratedNameId = 0;
+		std::string mName;
+		int  mExecutionOrder = 0;
+		bool mWasEnabledLastFrame;
+		bool mEnabled;
+		bool mRenderEnabled;
+		bool mRenderGizmosEnabled;
 	};
 }
