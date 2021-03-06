@@ -20,7 +20,7 @@ namespace gvk
 		bool update(event_data& aData) override
 		{
 			const auto curImageViewHandle = mWindow->swap_chain_image_view_at_index(0)->handle();
-			const auto result = mPrevImageViewHandle != curImageViewHandle;
+			const auto result = mPrevImageViewHandle != static_cast<VkImageView>(curImageViewHandle);
 			if (result) {
 				aData.mSwapchainImageExtent = mWindow->swap_chain_extent();
 			}
