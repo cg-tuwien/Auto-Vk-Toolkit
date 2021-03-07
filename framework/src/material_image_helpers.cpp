@@ -397,6 +397,12 @@ namespace gvk
 
 	static inline std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags, avk::sync aSyncHandler)
 	{
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		
+		// Sync before: 
+		// TODO: This is actually not necessary, because the command submission makes the data available => remove this barrier, actually?!?!!
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
 		auto [positionsData, indicesData] = aVerticesAndIndices;
 
 		auto positionsBuffer = context().create_buffer(
@@ -404,7 +410,7 @@ namespace gvk
 			avk::vertex_buffer_meta::create_from_data(positionsData)
 				.describe_only_member(positionsData[0], avk::content_description::position)
 		);
-		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}));
+		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
 
@@ -412,9 +418,15 @@ namespace gvk
 			avk::memory_usage::device, aUsageFlags,
 			avk::index_buffer_meta::create_from_data(indicesData)
 		);
-		indexBuffer->fill(indicesData.data(), 0, std::move(aSyncHandler));
+		indexBuffer->fill(indicesData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let indicesData go out of scope, since its data has been copied to a
 		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+
+		// Finish him:
+		aSyncHandler.submit_and_sync(); // Return command buffer is not supported here.
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
