@@ -1,16 +1,19 @@
 # Serializer
-_Gears-Vk_ features a object serializer to improve load times of resources like huge 3D models or ORCA scenes by serializing all the processed and ready to use data into a cache file during the first run. In further runs, the data can be directly deserialized into types and structures used by _Gears-Vk_ and expensive parsing and processing of huge models or scenes can be avoided.
+_Gears-Vk_ features an object serializer to improve load times of resources like huge 3D models or ORCA scenes by serializing all the processed and ready to use data into a cache file during the first run. In further runs, the data can be directly deserialized into types and structures used by _Gears-Vk_ and expensive parsing and processing of huge models or scenes can be avoided.
 
 # How to use
-Serialization functionality is available via `gvk::serializer` class and can be used for, i.e. improving load times of ORCA scenes. The serializer is initialized either by a `gvk::serializer::serialize` or a `gvk::serializer::deserialize` object, where both take a path to a **cache** file. `gvk::serializer::serialize` creates and writes to the **cache** file and `gvk::serializer::deserialize` reads from the **cache** file at the given path. A helper function `gvk::does_cache_file_exist(const std::string_view)` can be used to determine which initialization method shall be used. With **pathToOrcaScene** beeing a string to a ORCA scene file, the serializer initialization could look as follows.
+Serialization functionality is available via `gvk::serializer` class. The serializer is initialized
+by providing a path to the cache file and the desired mode. If the mode is set to `gvk::serializer::mode::serialize`, the file at the given path is created or overwritten if it already exists. If the mode is set to `gvk::serializer::mode::deserialize`, the serializer reads from the cache file at the given path. A helper function `gvk::does_cache_file_exist(const std::string_view)` can be used to determine which initialization mode shall be used. The serializer initialization for storing or loading a cached ORCA scene could look like follows:
 ```
 const std::string cacheFilePath(pathToOrcaScene + ".cache");
 
-auto serializer = gvk::does_cache_file_exist(cacheFilePath) ?
-	gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
-	gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+auto serializer = gvk::serializer(cacheFilePath, gvk::does_cache_file_exist(cacheFilePath) ? gvk::serializer::mode::deserialize : gvk::serializer::mode::serialize);
 ```
-After initialization, the current **mode** of the serializer can be retrived by calling `mode()` on the serializer, which either returns `gvk::serializer::mode::serialize` or `gvk::serializer::mode::deserialize`. To serialize or deserialize a type, the `gvk::serializer::archive(Type&&)` function template is called on the serializer object. This function serializes the given object to the **cache** file if the mode of the serialize is `gvk::serializer::mode::serialize` or deserializes the object from the **cache** file into the given object if the mode is `gvk::serializer::mode::deserialize`. Using the serializer for normals, vertices and indices could look like:
+A convenience constructor is available, if the serializer shall determine the mode to use. If the file at the given path exists, the serializer is initialized for reading in mode `gvk::serializer::mode::deserialize`, else for writing in mode `gvk::serializer::mode::deserialize`:
+```
+auto serializer = gvk::serializer(cacheFilePath);
+```
+After initialization, the current _mode_ of the serializer can be retrived by calling `mode()` on the serializer, which either returns `gvk::serializer::mode::serialize` or `gvk::serializer::mode::deserialize`. To serialize or deserialize a type, the `gvk::serializer::archive(Type&&)` function template is called on the serializer object. This function serializes the given object to the cache file if the mode is `gvk::serializer::mode::serialize`, or deserializes the object from the cache file into the given object if the mode is `gvk::serializer::mode::deserialize`. Using the serializer for normals, vertices and indices can be implemented like follows:
 ```
 std::vector<glm::vec3> normals;
 std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndices;
@@ -21,15 +24,20 @@ if (serializer.mode() == gvk::serializer::mode::serialize) {
 serializer.archive(normals);
 serializer.archive(verticesAndIndices);
 ```
-First, variables are defined to hold the desired normals and verticesAndIndices. If the serializers mode is `gvk::serializer::mode::serialize`, the vector of normals and the tuple of vertices and indices are retrieved from _Gears-Vk_ helper functions and `serializer.archive(...)` serializes `std::vector<glm::vec3>` and `std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>` to the **cache** file. If the serializers mode is `gvk::serializer::mode::deserialize`, calls to the helper functions are not necessary anymore because both variables can be retrieved from the **cache** file in `serializer.archive(...)`.
+First, variables are defined to hold the desired normals and verticesAndIndices. If the serializer's mode is `gvk::serializer::mode::serialize`, the vector of normals and the tuple of vertices and indices are retrieved with the helper functions in [`material_image_helpers.hpp`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/material_image_helpers.hpp). `serializer.archive(...)` serializes `std::vector<glm::vec3>` and `std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>` to the cache file. If the serializer's mode is `gvk::serializer::mode::deserialize`, calls to the helper functions are not necessary anymore because both variables can be retrieved from the cache file in `serializer.archive(...)`.
 
-The serializer features specialised functions for serializing and deserializing blocks of memory and host visible buffers. Both can be used separately but are especially usefull when used in conjunction to, e.g. serialize/deserialize image data. Image data loaded from a file can be serialized using `gvk::serializer::archive_memory` and in further program runs, i.e. when deserializing, directly copied into a host visible buffer using `gvk::serializer::archive_buffer`:
+The serializer features specialized functions for serializing and deserializing blocks of memory and host visible buffers. Both can be used separately but are especially usefull when used in conjunction, e.g. to serialize/deserialize image data. Image data loaded from a file can be serialized using `gvk::serializer::archive_memory` and in further program runs, i.e. when deserializing, directly copied into a host visible buffer using `gvk::serializer::archive_buffer`:
 ```
 size_t imageSize;
 void* pixels;
 if (serializer.mode() == gvk::serializer::mode::serialize) {
-	// Load image frome file
-	pixels = load_image(pathToImage, &imageSize);
+	// Load image frome file using stb image lib
+	int channelsInFile = 0;
+	int width = 0;
+	int height = 0;
+	int desiredColorChannels = STBI_rgb_alpha;
+	pixels = stbi_load(pathToImage.c_str(), &width, &height, &channelsInFile, desiredColorChannels);
+	imageSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(desiredColorChannels);
 
 	serializer.archive_memory(pixels, imageSize);
 }
@@ -49,16 +57,16 @@ else {
 	serializer.archive_buffer(sb);
 }
 ```
-When serializing, image data is loaded with some image loading function, represented by the generic `load_image` in the code, which returns a pointer to the data and the imageSize. `serializer.archive_memory` is then used to serialize the image data to the **cache** file and `serializer.archive` is used to either serialize or deserialize the size of the image. After creating a host visible staging buffer with the size of the image, the buffer is either filled by it's own `sb->fill` function or directly from the **cache** file using `gvk::serializer::archive_buffer`, which avoids an extra memory allocation in main memory for the image data but copies directly into a host visible GPU buffer.
+When serializing, image data needs to be loaded with some user provided image loading function, `stbi_load` in the example code above, which returns a pointer to the data and the values to calculate the total image size. `serializer.archive_memory` is then used to serialize the image data to the cache file and `serializer.archive` is used to either serialize or deserialize the size of the image. After creating a host visible staging buffer with the size of the image, the buffer is either filled by it's own `sb->fill` function or directly from the cache file using `gvk::serializer::archive_buffer`, which avoids an extra memory allocation in main memory for the image data but copies directly into a host visible GPU buffer.
 
 ## \*\_cached functions
-_Gears-Vk_ features *_cached* function variants of various helper functions for ORCA scene loading to ease serializer usage and avoid constant writing of different code paths for both modes of the serializer. For example, to retrieve a 2D texture coordinates buffer for model data (modelAndMeshes), one can use
+_Gears-Vk_ features `*_cached` function variants for various work loads that support serialization/deserialization. They are intended to simplify serializer usage and avoid the need of implementing different code paths for both modes of the serializer. For example, to retrieve 2D texture coordinates buffer for model data (modelAndMeshes), `gvk::create_2d_texture_coordinates_buffer_cached` can be used:
 ```
 auto texCoordsBuffer = gvk::create_2d_texture_coordinates_buffer_cached(
 	serializer, modelAndMeshes, 0, avk::sync::wait_idle()
 );
 ```
-instead of the longer version
+The equivalent functionality without usage of a `*_cached` function variant would be like follows in this case:
 ```
 avk::buffer texCoordsBuffer;
 if (serializer.mode() == gvk::serializer::mode::serialize) {
@@ -68,7 +76,7 @@ if (serializer.mode() == gvk::serializer::mode::serialize) {
 }
 serializer.archive_buffer(texCoordsBuffer);
 ```
-The \*\_cached functions internaly take case of either serializing or deserialising the necessary data (in above example the content of the returned buffer, i.e. the 2D texture coordinates). All \*\_cached functions are designed to be easily integrated into existing, non-serialized code paths. The following code shows a non-serialized way of loading a ORCA scene using helper functions of _Gears-Vk_ and creating buffers for positions, indices and texture coordinates. The code omits iterating through all materials and just creates buffers for the first mesh of one material.
+The `*_cached` functions internally either serialize or deserialize the necessary data (in the above example, that would be the content of the returned buffer, i.e. the 2D texture coordinates). All `*_cached` functions are designed to integrate well into existing, non-serialized code paths. The following code shows a non-serialized way of loading an ORCA scene and creating buffers for positions, indices and texture coordinates. The code omits iterating through all materials and just creates buffers for the first mesh of one material.
 ```
 // Load an ORCA scene from file
 auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
@@ -92,7 +100,7 @@ auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
 	modelAndMeshes, 0, avk::sync::wait_idle()
 );
 ```
-Integrating the serializer into above code is easily done by introducing a condition at the beginning, to avoid scene loading from file, and swap some helper functions for their \*\_cached ones:
+Integrating the serializer into above code is easily done by introducing a condition at the beginning, to avoid scene loading from file, and swap some helper functions for their `*_cached` counterparts:
 ```
 gvk::orca_scene orca;
 std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
@@ -127,9 +135,9 @@ auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(
 );
 ```
 
-For further \*\_cached function usage and a complete ORCA scene loading example see `void load_orca_scene_cached(...)` in the **orca_loader** example at [`orca_loader.cpp#L187`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/orca_loader/source/orca_loader.cpp#L187)
+For further `*_cached` function usage see `void load_orca_scene_cached(...)` in the **orca_loader** example at [`orca_loader.cpp#L187`](https://github.com/cg-tuwien/Gears-Vk/blob/master/examples/orca_loader/source/orca_loader.cpp#L187)
 
-#### Available \*\_cached variants of scene and model loading functions to ease serializer usage and simplify code
+#### Available \*\_cached variants of scene and model loading functions
 * `get_vertices_and_indices_cached(gvk::serializer& aSerializer, ...)`
 * `create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, ...)`
 * `get_normals_cached(gvk::serializer& aSerializer, ...)`
@@ -159,7 +167,9 @@ For further \*\_cached function usage and a complete ORCA scene loading example 
 
 
 ## Custom type serialization
-Every type needs a special template function which defines how a type is serialized. For often used types such as `glm::vec3`, `glm::mat4`, etc. and various `std` types this special functions are already defined in [`serializer.hpp`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp). To add serialization ability to a custom type, a **serialize** function template in the same namespace as the custom type must be created. The function template takes two arguments, an **Archive** and your custom **Type** as reference, and passes every member of the **Type** to the **Archive**. If one of the members is also a custom type, a separate `serialize` function template must be created.
+To serialize a custom type, the custom type is required to have a specialized overload to the `serialize` template function which defines how a type is serialized. For commonly used types such as `glm::vec3`, `glm::mat4`, etc. and various types in the `std` namespace such `serialize` overloads are already defined in [`serializer.hpp`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp).
+
+To add serialization ability to a custom type, a `serialize` function template overload in the same namespace as the custom type must be created. The function template takes two arguments, an `Archive` and the custom type's type `Type`. Both parameters must be passed by reference. If one of the members is yet another custom type, a separate `gvk::serialize` function template overload must be created.
 ```
 nampespace SOME_NAMESPACE {
 	struct SOME_TYPE {
@@ -175,11 +185,29 @@ nampespace SOME_NAMESPACE {
 	}
 }
 ```
-If the custom type is a class with private members that must be serialized, the **serialize** template function has to be either declared inside the custom type or defined as a friend when declared extern:
+If the custom type is a class with private members that must be serialized, the `serialize` template function has to be either declared inside the custom type or defined as a friend when declared `extern`:
 ```
 class SOME_TYPE {
 	template<typename Archive>
 	friend void serialize(Archive& aArchive, SOME_TYPE& aValue);
 }
 ```
-For custom serialization function examples see **serializer** at [`serializer.hpp#L259`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp#L259)
+Raw arrays in custom types must be wrapped by a `gvk::serializer::BinaryData` type prior to being passed to the `Archive`. `gkv::serializer` provides a static convenience function for this operation:
+```
+struct Meshlet {
+	unsigned int vertices[64];
+	unsigned int indices[126][3];
+	unsigned char triangle_count;
+	unsigned char vertex_count;
+};
+
+template<typename Archive>
+void serialize(Archive& aArchive, Meshlet& aValue)
+{
+	aArchive(gvk::serializer::binary_data(aValue.vertices, sizeof(SOME_TYPE::vertices)),
+			 gvk::serializer::binary_data(aValue.indices, sizeof(SOME_TYPE::indices)),
+			 aValue.triangle_count,
+			 aValue.vertex_count);
+}
+```
+For custom serialization function examples see [`serializer.hpp#L259`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/serializer.hpp#L259) and following.
