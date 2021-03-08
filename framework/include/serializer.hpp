@@ -102,6 +102,22 @@ namespace gvk {
 			return std::holds_alternative<serialize>(mArchive) ? mode::serialize : mode::deserialize;
 		}
 
+		template<typename Type>
+		using BinaryData = cereal::BinaryData<Type>;
+
+		/** @brief Create binary data for const and non const pointers
+		*   This function creates a wrapper around data, that can be binary serialized.
+		* 
+		*   @param[in] aValue Pointer to the beginning of the data
+		*   @param[in] aSize The size of the data in size
+		*   @return BinaryData structure
+		*/
+		template<typename Type>
+		static BinaryData<Type> binary_data(Type&& aValue, size_t aSize)
+		{
+			return cereal::binary_data(std::forward<Type>(aValue), aSize);
+		}
+
 		/** @brief Serializes/Deserializes an Object
 		 *
 		 *  This function serializes the passed object if the serializer was initialized
@@ -141,10 +157,10 @@ namespace gvk {
 		inline void archive_memory(Type&& aValue, size_t aSize)
 		{
 			if (mode() == mode::serialize) {
-				std::get<serialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
+				std::get<serialize>(mArchive)(binary_data(aValue, aSize));
 			}
 			else {
-				std::get<deserialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
+				std::get<deserialize>(mArchive)(binary_data(aValue, aSize));
 			}
 		}
 
@@ -166,23 +182,6 @@ namespace gvk {
 				aValue->map_memory(avk::mapping_access::read) :
 				aValue->map_memory(avk::mapping_access::write);
 			archive_memory(mapping.get(), size);
-		}
-
-		template<typename Type>
-		using BinaryData = cereal::BinaryData<Type>;
-
-		/** @brief Create binary data for const and non const pointers
-		*   This function creates a wrapper around data, that can be
-		*   binary serialized.
-		* 
-		*   @param[in] aValue Pointer to the beginning of the data
-		*   @param[in] aSize The size of the data in size
-		*   @return BinaryData structure
-		*/
-		template<typename Type>
-		static BinaryData<Type> binary_data(Type&& aValue, size_t aSize)
-		{
-			return cereal::binary_data(std::forward<Type>(aValue), aSize);
 		}
 
 	private:
