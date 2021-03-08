@@ -201,9 +201,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		const std::string cacheFilePath(aPathToOrcaScene + ".cache");
 		// If a cache file exists, i.e. the scene was serialized during a previous load, initialize the serializer in deserialize mode,
 		// else initialize the serializer in serialize mode to create the cache file while processing the scene.
-		auto serializer = gvk::does_cache_file_exist(cacheFilePath) ?
-			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
-			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+		auto serializer = gvk::serializer(cacheFilePath, gvk::does_cache_file_exist(cacheFilePath) ?
+			gvk::serializer::mode::deserialize : gvk::serializer::mode::serialize);
 
 		float start = gvk::context().get_time();
 		float startPart = start;
