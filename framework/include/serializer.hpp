@@ -34,15 +34,157 @@
 
 namespace gvk {
 
+	/** @brief Checks if a cache file exists
+	 *
+	 *  @param[in] aPath The path to a cached file
+	 *
+	 *  @param[out] True if the cache file exists, false otherwise
+	 */
+	static inline bool does_cache_file_exist(const std::string_view aPath)
+	{
+		return std::filesystem::exists(aPath);
+	}
+
 	/** @brief serializer
 	 *  
 	 *  This type serializes/deserializes objects to/from binary files using the cereal
-	 *  serialization library. The serializer must be initialised either with a
-	 *  serializer::serialize or serializer::deserialize object to handle serialization.
+	 *  serialization library.
 	 */
 	class serializer
 	{
 	public:
+
+		/** @brief The possible modes of the serializer
+		 */
+		enum class mode {
+			serialize,
+			deserialize
+		};
+
+		/** @brief Construct a serializer with serializing or deserializing capabilities
+		 *
+		 *  @param[in] aCacheFilePath The path to the cache file
+		 *  @param[in] aMode serializer::mode::serialize for serialization
+		 *					 serializer::mode::deserialize for deserialization
+		 */
+		serializer(std::string_view aCacheFilePath, serializer::mode aMode) :
+			mArchive(aMode == serializer::mode::serialize ?
+				std::variant<deserialize, serialize>{ serializer::serialize(aCacheFilePath) } :
+				std::variant<deserialize, serialize>{ serializer::deserialize(aCacheFilePath) })
+		{}
+
+		/** @brief Construct a serializer with serializing or deserializing capabilities
+		 *  If the cache file from aCacheFilePath does not exists, the serializer is initialized
+		 *  in serialization mode and creates the file for writing, else the serializer is
+		 *  initialised in deserialization mode and reads from the file.
+		 *
+		 *  @param[in] aCacheFilePath The path to the cache file
+		 */
+		serializer(std::string_view aCacheFilePath) :
+			mArchive(does_cache_file_exist(aCacheFilePath) ?
+				std::variant<deserialize, serialize>{ serializer::deserialize(aCacheFilePath) } :
+				std::variant<deserialize, serialize>{ serializer::serialize(aCacheFilePath) })
+		{}
+
+		serializer() = delete;
+		serializer(serializer&&) noexcept = default;
+		serializer(const serializer&) = delete;
+		serializer& operator=(serializer&&) noexcept = default;
+		serializer& operator=(const serializer&) = delete;
+		~serializer() = default;
+
+		/** @brief Returns the mode of the serializer
+		 *
+		 *  @param[out] The current mode, either serialize or deserialize
+		 */
+		mode mode() const
+		{
+			return std::holds_alternative<serialize>(mArchive) ? mode::serialize : mode::deserialize;
+		}
+
+		template<typename Type>
+		using BinaryData = cereal::BinaryData<Type>;
+
+		/** @brief Create binary data for const and non const pointers
+		*   This function creates a wrapper around data, that can be binary serialized.
+		* 
+		*   @param[in] aValue Pointer to the beginning of the data
+		*   @param[in] aSize The size of the data in size
+		*   @return BinaryData structure
+		*/
+		template<typename Type>
+		static BinaryData<Type> binary_data(Type&& aValue, size_t aSize)
+		{
+			return cereal::binary_data(std::forward<Type>(aValue), aSize);
+		}
+
+		/** @brief Serializes/Deserializes an Object
+		 *
+		 *  This function serializes the passed object if the serializer was initialized
+		 *  in serialization mode and deserializes a file into the passed object if the
+		 *	serializer was initialized in deserialization mode.
+		 *
+		 *  @param[in] aValue The object to serialize or to fill from file
+		 *
+		 *  @errors A compiler error such as "cereal could not find any output serialization
+		 *  functions * for the provided type and archive combination." means either a custom
+		 *  serialization * function must be implemented (see Custom Serialization Functions
+		 *  below) or the * custom serialization function is not defined in the same namespace
+		 *  as the type to serialize.
+		 */
+		template<typename Type>
+		inline void archive(Type&& aValue)
+		{
+			if (mode() == mode::serialize) {
+				std::get<serialize>(mArchive)(std::forward<Type>(aValue));
+			}
+			else {
+				std::get<deserialize>(mArchive)(std::forward<Type>(aValue));
+			}
+		}
+
+		/** @brief Serializes/Deserializes raw memory
+		 *
+		 *  This function serializes a block of memory of a specific size if the serializer
+		 *  was initialized in serialization mode and deserializes the same size of memory
+		 *  from file to the location of the pointer passed to this function if the
+		 *  serializer was initialized in deserialization mode.
+		 *
+		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
+		 *  @param[in] aSize The total size of the data in memory
+		 */
+		template<typename Type>
+		inline void archive_memory(Type&& aValue, size_t aSize)
+		{
+			if (mode() == mode::serialize) {
+				std::get<serialize>(mArchive)(binary_data(aValue, aSize));
+			}
+			else {
+				std::get<deserialize>(mArchive)(binary_data(aValue, aSize));
+			}
+		}
+
+		/** @brief Serializes/Deserializes a avk::buffer
+		 *
+		 *  This function serializes the buffer of the internal memory_handle if the serializer
+		 *  was initialized in serialization mode and deserializes the buffer content from file
+		 *  to the buffer of the internal memory_handle if the serializer was initialized in
+		 *  deserialization mode. The passed avk::buffer is internally mapped and unmapped for
+		 *  this operations.
+		 *
+		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
+		 */
+		inline void archive_buffer(avk::resource_reference<avk::buffer_t> aValue)
+		{
+			size_t size = aValue.get().config().size;
+			auto mapping =
+				(mode() == mode::serialize) ?
+				aValue->map_memory(avk::mapping_access::read) :
+				aValue->map_memory(avk::mapping_access::write);
+			archive_memory(mapping.get(), size);
+		}
+
+	private:
 
 		/** @brief serialize
 		 *
@@ -57,10 +199,10 @@ namespace gvk {
 
 			/** @brief Construct, outputting a binary file to the provided path
 			 *
-			 *  @param[in] aFile The filename including the full path where to save the cached file
+			 *  @param[in] aCacheFilePath The filename including the full path where to save the cached file
 			 */
-			serialize(const std::string& aFile) :
-				mOfstream(aFile, std::ios::binary),
+			serialize(const std::string_view aCacheFilePath) :
+				mOfstream(aCacheFilePath, std::ios::binary),
 				mArchive(mOfstream)
 			{}
 
@@ -102,10 +244,10 @@ namespace gvk {
 
 			/** @brief Construct, reading a binary file from the provided file
 			 *
-			 *  @param[in] aFile The filename including the full path to the binary cached file
+			 *  @param[in] aCacheFilePath The filename including the full path to the binary cached file
 			 */
-			deserialize(const std::string& aFile) :
-				mIfstream(aFile, std::ios::binary),
+			deserialize(const std::string_view aCacheFilePath) :
+				mIfstream(aCacheFilePath, std::ios::binary),
 				mArchive(mIfstream)
 			{}
 
@@ -133,127 +275,8 @@ namespace gvk {
 			}
 		};
 
-		serializer() = delete;
-
-		/** @brief Construct a serializer with serializing capabilities
-		 *
-		 *  @param[in] aMode A serialize object
-		 */
-		serializer(serialize&& aMode) noexcept :
-			mArchive(std::move(aMode)),
-			mMode(mode::serialize)
-		{}
-
-		/** @brief Construct a serializer with deserializing capabilities
-		 *
-		 *  @param[in] aMode A deserialize object
-		 */
-		serializer(deserialize&& aMode) noexcept :
-			mArchive(std::move(aMode)),
-			mMode(mode::deserialize)
-		{}
-
-		serializer(serializer&&) noexcept = default;
-		serializer(const serializer&) = delete;
-		serializer& operator=(serializer&&) noexcept = default;
-		serializer& operator=(const serializer&) = delete;
-		~serializer() = default;
-
-		/** @brief The possible modes of the serializer
-		 */
-		enum class mode {
-			serialize,
-			deserialize
-		};
-
-		/** @brief Returns the mode of the serializer
-		 *
-		 *  @param[out] The current mode, either serialize or deserialize
-		 */
-		const mode mode() const { return mMode; }
-
-		/** @brief Serializes/Deserializes an Object
-		 *
-		 *  This function serializes the passed object if the serializer was initialized
-		 *  with a serializer::serialize object and deserializes a file into the passed
-		 *  object if the serializer was initialized with a serializer::deserialize object.
-		 *
-		 *  @param[in] aValue The object to serialize or to fill from file
-		 *
-		 *  @errors A compiler error such as "cereal could not find any output serialization
-		 *  functions * for the provided type and archive combination." means either a custom
-		 *  serialization * function must be implemented (see Custom Serialization Functions
-		 *  below) or the * custom serialization function is not defined in the same namespace
-		 *  as the type to serialize.
-		 */
-		template<typename Type>
-		inline void archive(Type&& aValue)
-		{
-			if (mMode == mode::serialize) {
-				std::get<serialize>(mArchive)(std::forward<Type>(aValue));
-			}
-			else {
-				std::get<deserialize>(mArchive)(std::forward<Type>(aValue));
-			}
-		}
-
-		/** @brief Serializes/Deserializes raw memory
-		 *
-		 *  This function serializes a block of memory of a specific size if the serializer
-		 *  was initialized with a serializer::serialize object and deserializes the same size
-		 *  of memory from file to the location of the pointer passed to this function if the
-		 *  serializer was initialized with a serializer::deserialize object.
-		 *
-		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
-		 *  @param[in] aSize The total size of the data in memory
-		 */
-		template<typename Type>
-		inline void archive_memory(Type&& aValue, size_t aSize)
-		{
-			if (mMode == mode::serialize) {
-				std::get<serialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
-			}
-			else {
-				std::get<deserialize>(mArchive)(cereal::binary_data(std::forward<Type>(aValue), aSize));
-			}
-		}
-
-		/** @brief Serializes/Deserializes a avk::buffer
-		 *
-		 *  This function serializes the buffer of the internal memory_handle if the serializer
-		 *  was initialized with a serializer::serialize object and deserializes the buffer content
-		 *  from file to the buffer of the internal memory_handle if the serializer was initialized with
-		 *  a serializer::deserialize object. The passed avk::buffer is internally mapped and unmapped for
-		 *  this operations.
-		 *
-		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
-		 */
-		inline void archive_buffer(avk::resource_reference<avk::buffer_t> aValue)
-		{
-			size_t size = aValue.get().config().size;
-			auto mapping =
-				(mMode == mode::serialize) ?
-				aValue->map_memory(avk::mapping_access::read) :
-				aValue->map_memory(avk::mapping_access::write);
-			archive_memory(mapping.get(), size);
-		}
-
-
-	private:
 		std::variant<deserialize, serialize> mArchive;
-		enum class mode mMode;
 	};
-
-	/** @brief Checks if a cache file exists
-	 *
-	 *  @param[in] aPath The path to a cached file
-	 *
-	 *  @param[out] True if the cache file exists, false otherwise
-	 */
-	static inline bool does_cache_file_exist(const std::string_view aPath)
-	{
-		return std::filesystem::exists(aPath);
-	}
 }
 
 /** @brief Custom Serialization Functions

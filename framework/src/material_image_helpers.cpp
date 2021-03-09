@@ -342,10 +342,7 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(aTotalSize)
 		);
-		// Map buffer and let serializer fill it
-		// To unmap the buffer after filling for
-		// device buffer transfer, mapping has to
-		// go out of scope
+		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
 
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
