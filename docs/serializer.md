@@ -24,7 +24,7 @@ if (serializer.mode() == gvk::serializer::mode::serialize) {
 serializer.archive(normals);
 serializer.archive(verticesAndIndices);
 ```
-First, variables are defined to hold the desired normals and verticesAndIndices. If the serializer's mode is `gvk::serializer::mode::serialize`, the vector of normals and the tuple of vertices and indices are retrieved with the helper functions in [`material_image_helpers.hpp`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/material_image_helpers.hpp). `serializer.archive(...)` serializes `std::vector<glm::vec3>` and `std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>` to the cache file. If the serializer's mode is `gvk::serializer::mode::deserialize`, calls to the helper functions are not necessary anymore because both variables can be retrieved from the cache file in `serializer.archive(...)`.
+First, variables are defined to hold the data. If the serializer's mode is `gvk::serializer::mode::serialize`, the vector of normals and the tuple of vertices and indices are retrieved with the helper functions in [`material_image_helpers.hpp`](https://github.com/cg-tuwien/Gears-Vk/blob/master/framework/include/material_image_helpers.hpp). `serializer.archive(...)` serializes `std::vector<glm::vec3>` and `std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>` to the cache file. If the serializer's mode is `gvk::serializer::mode::deserialize`, calls to the helper functions are not necessary anymore because both variables can be retrieved from the cache file in `serializer.archive(...)`.
 
 The serializer features specialized functions for serializing and deserializing blocks of memory and host visible buffers. Both can be used separately but are especially usefull when used in conjunction, e.g. to serialize/deserialize image data. Image data loaded from a file can be serialized using `gvk::serializer::archive_memory` and in further program runs, i.e. when deserializing, directly copied into a host visible buffer using `gvk::serializer::archive_buffer`:
 ```
@@ -57,7 +57,7 @@ else {
 	serializer.archive_buffer(sb);
 }
 ```
-When serializing, image data needs to be loaded with some user provided image loading function, `stbi_load` in the example code above, which returns a pointer to the data and the values to calculate the total image size. `serializer.archive_memory` is then used to serialize the image data to the cache file and `serializer.archive` is used to either serialize or deserialize the size of the image. After creating a host visible staging buffer with the size of the image, the buffer is either filled by it's own `sb->fill` function or directly from the cache file using `gvk::serializer::archive_buffer`, which avoids an extra memory allocation in main memory for the image data but copies directly into a host visible GPU buffer.
+In the example code above image data is loaded from file via `stbi_load`, but only when the serializer's mode is `gvk::serializer::mode::serialize`. It returns a pointer to the data and the values to calculate the total image size. `serializer.archive_memory` is then used to serialize the image data to the cache file and `serializer.archive` is used to either serialize or deserialize the size of the image. After creating a host visible staging buffer with the size of the image, the buffer is either filled by its own `avk::buffer_t::fill` function or directly from the cache file using `gvk::serializer::archive_buffer`, which avoids an extra memory allocation in main memory for the image data and copies directly into a host visible GPU buffer.
 
 ## \*\_cached functions
 _Gears-Vk_ features `*_cached` function variants for various work loads that support serialization/deserialization. They are intended to simplify serializer usage and avoid the need of implementing different code paths for both modes of the serializer. For example, to retrieve 2D texture coordinates buffer for model data (modelAndMeshes), `gvk::create_2d_texture_coordinates_buffer_cached` can be used:
@@ -76,7 +76,7 @@ if (serializer.mode() == gvk::serializer::mode::serialize) {
 }
 serializer.archive_buffer(texCoordsBuffer);
 ```
-The `*_cached` functions internally either serialize or deserialize the necessary data (in the above example, that would be the content of the returned buffer, i.e. the 2D texture coordinates). All `*_cached` functions are designed to integrate well into existing, non-serialized code paths. The following code shows a non-serialized way of loading an ORCA scene and creating buffers for positions, indices and texture coordinates. The code omits iterating through all materials and just creates buffers for the first mesh of one material.
+The `*_cached` functions internally either serialize or deserialize the necessary data (in the above example, that would be the content of the returned buffer, i.e. the 2D texture coordinates). All `*_cached` functions are designed to integrate well into existing, non-serialized code paths. The following code shows a non-serialized way of loading an ORCA scene and creating buffers for positions, indices and texture coordinates. The code omits iterating through all materials and just creates buffers for the first mesh that is assigned to the first material returned by `gvk::orca_scene_t::distinct_material_configs_for_all_models`:
 ```
 // Load an ORCA scene from file
 auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
@@ -102,24 +102,17 @@ auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
 ```
 Integrating the serializer into above code is easily done by introducing a condition at the beginning, to avoid scene loading from file, and swap some helper functions for their `*_cached` counterparts:
 ```
-gvk::orca_scene orca;
-std::unordered_map<gvk::material_config, std::vector<gvk::model_and_mesh_indices>> distinctMaterialsOrca;
 std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> modelAndMeshes;
 
 if (serializer.mode() == gvk::serializer::mode::serialize) {
 	// Load an ORCA scene from file
-	orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
+	auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
 	// Get all the different materials from the whole scene
-	distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
+	auto distinctMaterialsOrca = orca->distinct_material_configs_for_all_models();
 
 	// Get mesh indices of the first material
-	std::vector<gvk::model_and_mesh_indices> meshIndices = distinctMaterialsOrca.begin()->second;
+	auto meshIndices = distinctMaterialsOrca.begin()->second;
 	int meshIndicesIndex = 0;
-
-	std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> modelAndMeshes;
-	modelAndMeshes = gvk::make_models_and_meshes_selection(
-		orca->model_at_index(meshIndices[meshIndicesIndex].mModelIndex).mLoadedModel, meshIndices[meshIndicesIndex].mMeshIndices
-	);
 
 	modelAndMeshes = gvk::make_models_and_meshes_selection(orca->model_at_index(meshIndices[meshIndicesIndex].mModelIndex).mLoadedModel, meshIndices[meshIndicesIndex].mMeshIndices);
 }
@@ -204,8 +197,8 @@ struct Meshlet {
 template<typename Archive>
 void serialize(Archive& aArchive, Meshlet& aValue)
 {
-	aArchive(gvk::serializer::binary_data(aValue.vertices, sizeof(SOME_TYPE::vertices)),
-			 gvk::serializer::binary_data(aValue.indices, sizeof(SOME_TYPE::indices)),
+	aArchive(gvk::serializer::binary_data(aValue.vertices, sizeof(Meshlet::vertices)),
+			 gvk::serializer::binary_data(aValue.indices, sizeof(Meshlet::indices)),
 			 aValue.triangle_count,
 			 aValue.vertex_count);
 }
