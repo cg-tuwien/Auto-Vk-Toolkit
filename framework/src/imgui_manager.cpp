@@ -274,18 +274,18 @@ namespace gvk
 				//    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
 			}
 		}
-
 		// start of new frame and callback invocations have to be in the update() call of the invokee,
 		// ... to give the updater an opportunity to clean up (callbacks themselves may cause update events)
 		ImGui_ImplVulkan_NewFrame();
 		ImGui::NewFrame();
-		for (auto& cb : mCallback) {
-			cb();
-		}
 	}
 
 	void imgui_manager::render()
 	{
+		for (auto& cb : mCallback) {
+			cb();
+		}
+		
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		ImGui::Render();
 		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
