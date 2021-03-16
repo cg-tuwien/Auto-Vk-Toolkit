@@ -113,22 +113,29 @@ namespace gvk
 		mChilds.clear();
 	}
 
-	void transform::set_translation(const vec3& pValue)
+	void transform::set_translation(const vec3& aValue)
 	{
-		mTranslation = pValue;
+		mTranslation = aValue;
 		update_matrix_from_transforms();
 	}
 
-	void transform::set_rotation(const quat& pValue)
+	void transform::set_rotation(const quat& aValue)
 	{
-		mRotation = pValue;
+		mRotation = aValue;
 		update_matrix_from_transforms();
 	}
 
-	void transform::set_scale(const vec3& pValue)
+	void transform::set_scale(const vec3& aValue)
 	{
-		mScale = pValue;
+		mScale = aValue;
 		update_matrix_from_transforms();
+	}
+
+	void transform::set_matrix(const glm::mat4& aValue)
+	{
+		mMatrix = aValue;
+		mInverseMatrix = glm::inverse(mMatrix);
+		update_transforms_from_matrix();
 	}
 
 	glm::mat4 transform::local_transformation_matrix() const
