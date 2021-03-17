@@ -72,23 +72,55 @@ namespace gvk
 		}
 	}
 
-	std::vector<double> animation::animation_key_times_within_clip(const animation_clip_data& aClip) const
+	std::vector<double> animation::animation_key_times_for_clip(const animation_clip_data& aClip) const
 	{
+		const double cMachineEpsilon = 2.3e-16;
+		
 		std::set<double> mUniqueKeys;
 		for (auto& anode : mAnimationData) {
-			for (const auto& pk : anode.mPositionKeys) {
-				if (pk.mTime >= aClip.mStartTicks && pk.mTime <= aClip.mEndTicks) {
-					mUniqueKeys.insert(pk.mTime);
+			// POSITION KEYS:
+			for (size_t i = 1; i < anode.mPositionKeys.size(); ++i) {
+				if (anode.mPositionKeys[i].mTime >= aClip.mStartTicks - cMachineEpsilon && anode.mPositionKeys[i].mTime <= aClip.mEndTicks + cMachineEpsilon) {
+					// Check predecessor:
+					if (anode.mPositionKeys[i].mTime - aClip.mStartTicks > cMachineEpsilon) { // => Add PREDECESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mPositionKeys[i - 1].mTime);
+					}
+					// Definitely add this one:
+					mUniqueKeys.insert(anode.mPositionKeys[i].mTime);
+					// Check successor:
+					if (i + 1 < anode.mPositionKeys.size() && aClip.mEndTicks - anode.mPositionKeys[i].mTime > cMachineEpsilon) { // => Add SUCCESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mPositionKeys[i + 1].mTime);
+					}
 				}
 			}
-			for (const auto& rk : anode.mRotationKeys) {
-				if (rk.mTime >= aClip.mStartTicks && rk.mTime <= aClip.mEndTicks) {
-					mUniqueKeys.insert(rk.mTime);
+			// ROTATION KEYS:
+			for (size_t i = 1; i < anode.mRotationKeys.size(); ++i) {
+				if (anode.mRotationKeys[i].mTime >= aClip.mStartTicks - cMachineEpsilon && anode.mRotationKeys[i].mTime <= aClip.mEndTicks + cMachineEpsilon) {
+					// Check predecessor:
+					if (anode.mRotationKeys[i].mTime - aClip.mStartTicks > cMachineEpsilon) { // => Add PREDECESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mRotationKeys[i - 1].mTime);
+					}
+					// Definitely add this one:
+					mUniqueKeys.insert(anode.mRotationKeys[i].mTime);
+					// Check successor:
+					if (i + 1 < anode.mRotationKeys.size() && aClip.mEndTicks - anode.mRotationKeys[i].mTime > cMachineEpsilon) { // => Add SUCCESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mRotationKeys[i + 1].mTime);
+					}
 				}
 			}
-			for (const auto& sk : anode.mScalingKeys) {
-				if (sk.mTime >= aClip.mStartTicks && sk.mTime <= aClip.mEndTicks) {
-					mUniqueKeys.insert(sk.mTime);
+			// SCALE KEYS:
+			for (size_t i = 1; i < anode.mScalingKeys.size(); ++i) {
+				if (anode.mScalingKeys[i].mTime >= aClip.mStartTicks - cMachineEpsilon && anode.mScalingKeys[i].mTime <= aClip.mEndTicks + cMachineEpsilon) {
+					// Check predecessor:
+					if (anode.mScalingKeys[i].mTime - aClip.mStartTicks > cMachineEpsilon) { // => Add PREDECESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mScalingKeys[i - 1].mTime);
+					}
+					// Definitely add this one:
+					mUniqueKeys.insert(anode.mScalingKeys[i].mTime);
+					// Check successor:
+					if (i + 1 < anode.mScalingKeys.size() && aClip.mEndTicks - anode.mScalingKeys[i].mTime > cMachineEpsilon) { // => Add SUCCESSOR unless theres is only epsilon-difference to the CURRENT timestep
+						mUniqueKeys.insert(anode.mScalingKeys[i + 1].mTime);
+					}
 				}
 			}
 		}

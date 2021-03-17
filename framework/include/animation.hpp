@@ -418,7 +418,7 @@ namespace gvk
 		/**	Returns all the unique keyframe time-values of the given animation.
 		 *	@param	aClip				Animation clip which to extract the unique keyframe time-values from
 		 */
-		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip) const;
+		std::vector<double> animation_key_times_for_clip(const animation_clip_data& aClip) const;
 
 		/** Returns the total number of animated nodes stored in an animation */
 		size_t number_of_animated_nodes() const;
