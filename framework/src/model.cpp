@@ -1139,7 +1139,9 @@ namespace gvk
 				addAnimatedNode(mapNodeToBoneAnimation[parentToBeAdded], parentToBeAdded, getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
 				boneAnimatedParents.pop();
 			}
-			addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+			if (!isNodeAlreadyAdded(node)) { // <-- Mostly relevant for the cases where parent nodes have already been added (see while-loop right above) and should not be added again.
+				addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+			}
 		}
 
 		// It could be that there are still bones for which we have not set up an animated_node entry and hence,

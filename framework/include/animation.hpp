@@ -427,27 +427,53 @@ namespace gvk
 		 *	@param	aNodeIndex			Index referring to the node that shall be returned
 		 */
 		std::reference_wrapper<animated_node> get_animated_node_at(size_t aNodeIndex);
-		
+
+		/** Returns the animated_node data structure at the given index
+		 *	@param	aNodeIndex			Index referring to the node that shall be returned
+		 */
+		std::reference_wrapper<const animated_node> get_animated_node_at(size_t aNodeIndex) const;
+
 		/**	Returns the index of the parent node which is also animated by this animation for the given node index.
-		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
 		 */
 		std::optional<size_t> get_animated_parent_index_of(size_t aNodeIndex) const;
 
 		/**	Returns a reference to the parent node which is also animated by this animation for the given node index.
-		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
 		 */
 		std::optional<std::reference_wrapper<animated_node>> get_animated_parent_node_of(size_t aNodeIndex);
+
+		/**	Returns a reference to the parent node which is also animated by this animation for the given node index.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
+		 */
+		std::optional<std::reference_wrapper<const animated_node>> get_animated_parent_node_of(size_t aNodeIndex) const;
 
 		/**	Returns the indices of all nodes that the given node index is an animated parent for within the context of this animation.
 		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
 		 */
-		std::vector<size_t> get_child_indices_of(size_t aNodeIndex) const;
+		std::vector<size_t> get_child_indices_of(std::optional<size_t> aNodeIndex) const;
+
+		/**	Returns the first index of a parent node's child index
+		 *	@param	aNodeIndex			Index referring to the node of which the next animated child shall be returned for.
+		 *	@param	aStartSearchOffset	The absolute/global offset where to start searching for the next child
+		 *	@return	The index of the next child or {} if there is no further child
+		 */
+		std::optional<size_t> get_next_child_index_of(std::optional<size_t> aNodeIndex, size_t aStartSearchOffset = 0) const;
 
 		/**	Returns references to all nodes that the given node index is an animated parent for within the context of this animation.
 		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
 		 */
-		std::vector<std::reference_wrapper<animated_node>> get_child_nodes_of(size_t aNodeIndex);
-		
+		std::vector<std::reference_wrapper<animated_node>> get_child_nodes_of(std::optional<size_t> aNodeIndex);
+
+		/**	Returns references to all nodes that the given node index is an animated parent for within the context of this animation.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
+		 */
+		std::vector<std::reference_wrapper<const animated_node>> get_child_nodes_of(std::optional<size_t> aNodeIndex) const;
+
+		/**	Returns a copy of the internal vector of animated nodes
+		 */
+		auto get_animated_nodes() const { return mAnimationData; }
+
 	private:
 		/** Helper function used during animate() to find two positions of key-elements
 		 *	between which the given aTime lies.
@@ -471,7 +497,7 @@ namespace gvk
 			return std::make_tuple(pos1, pos2);
 		}
 
-		/**	For two kiven keys (each of which must contain a .mTime member of type
+		/**	For two given keys (each of which must contain a .mTime member of type
 		 *	double), and a given aTime value, return the corresponding interpolation
 		 *	factor in the range [0..1].
 		 */

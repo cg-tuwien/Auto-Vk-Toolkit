@@ -142,6 +142,12 @@ namespace gvk
 		return std::ref(mAnimationData[aNodeIndex]);
 	}
 
+	std::reference_wrapper<const animated_node> animation::get_animated_node_at(size_t aNodeIndex) const
+	{
+		assert(aNodeIndex < mAnimationData.size());
+		return std::cref(mAnimationData[aNodeIndex]);
+	}
+
 	std::optional<size_t> animation::get_animated_parent_index_of(size_t aNodeIndex) const
 	{
 		assert(aNodeIndex < mAnimationData.size());
@@ -158,27 +164,62 @@ namespace gvk
 		return {};
 	}
 
-	std::vector<size_t> animation::get_child_indices_of(size_t aNodeIndex) const
+	std::optional<std::reference_wrapper<const animated_node>> animation::get_animated_parent_node_of(size_t aNodeIndex) const
+	{
+		auto parentIndex = get_animated_parent_index_of(aNodeIndex);
+		if (parentIndex.has_value()) {
+			assert(parentIndex.value() < mAnimationData.size());
+			return std::cref(mAnimationData[parentIndex.value()]);
+		}
+		return {};
+	}
+
+	std::vector<size_t> animation::get_child_indices_of(std::optional<size_t> aNodeIndex) const
 	{
 		std::vector<size_t> result;
 		const auto n = mAnimationData.size();
 		assert(aNodeIndex < mAnimationData.size());
-		for (size_t i = aNodeIndex + 1; i < n; ++i) {
-			if (mAnimationData[i].mAnimatedParentIndex.has_value() && mAnimationData[i].mAnimatedParentIndex.value() == aNodeIndex) {
+		for (size_t i = aNodeIndex.value_or(0); i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex == aNodeIndex) {
 				result.push_back(i);
 			}
 		}
 		return result;
 	}
 
-	std::vector<std::reference_wrapper<animated_node>> animation::get_child_nodes_of(size_t aNodeIndex)
+	std::optional<size_t> animation::get_next_child_index_of(std::optional<size_t> aNodeIndex, size_t aStartSearchOffset) const
+	{
+		const auto n = mAnimationData.size();
+		assert(aNodeIndex < mAnimationData.size());
+		for (size_t i = std::max(aNodeIndex.value_or(0), aStartSearchOffset); i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex == aNodeIndex) {
+				return i;
+			}
+		}
+		return {};
+	}
+	
+	std::vector<std::reference_wrapper<animated_node>> animation::get_child_nodes_of(std::optional<size_t> aNodeIndex)
 	{
 		std::vector<std::reference_wrapper<animated_node>> result;
 		const auto n = mAnimationData.size();
 		assert(aNodeIndex < mAnimationData.size());
-		for (size_t i = aNodeIndex + 1; i < n; ++i) {
-			if (mAnimationData[i].mAnimatedParentIndex.has_value() && mAnimationData[i].mAnimatedParentIndex.value() == aNodeIndex) {
+		for (size_t i = aNodeIndex.value_or(0); i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex == aNodeIndex) {
 				result.push_back(std::ref(mAnimationData[i]));
+			}
+		}
+		return result;
+	}
+
+	std::vector<std::reference_wrapper<const animated_node>> animation::get_child_nodes_of(std::optional<size_t> aNodeIndex) const
+	{
+		std::vector<std::reference_wrapper<const animated_node>> result;
+		const auto n = mAnimationData.size();
+		assert(aNodeIndex < mAnimationData.size());
+		for (size_t i = aNodeIndex.value_or(0); i < n; ++i) {
+			if (mAnimationData[i].mAnimatedParentIndex == aNodeIndex) {
+				result.push_back(std::cref(mAnimationData[i]));
 			}
 		}
 		return result;
