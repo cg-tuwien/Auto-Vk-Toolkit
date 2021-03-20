@@ -64,14 +64,14 @@ namespace gvk
 
 	protected:
 		
-		image_resource_base_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: mPaths({ aPath }), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+		image_resource_base_t(const std::string& aPath, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: mPaths({ aPath }), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 		
 		// for cubemaps loaded from six individual images
-		image_resource_base_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: mPaths(aPaths), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+		image_resource_base_t(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: mPaths(aPaths), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 
@@ -129,13 +129,13 @@ namespace gvk
 		}
 
 	protected:
-		image_resource_impl_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		image_resource_impl_t(const std::string& aPath, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 
-		image_resource_impl_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		image_resource_impl_t(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 	};
@@ -144,13 +144,13 @@ namespace gvk
 	class image_resource_t : public image_resource_base_t
 	{
 	public:
-		image_resource_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		image_resource_t(const std::string& aPath, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
 
-		image_resource_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		image_resource_t(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = false, bool aLoadSrgbIfApplicable = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_base_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
 
