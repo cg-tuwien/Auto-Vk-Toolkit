@@ -70,7 +70,7 @@ namespace gvk
 		}
 		
 		// for cubemaps loaded from six individual images
-		image_resource_base_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+		image_resource_base_t(const std::vector<std::string>& aPaths, bool aHdr = false, bool aSrgb = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
 			: mPaths(aPaths), mHDR(aHDR), msRGB(asRGB), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
@@ -88,8 +88,8 @@ namespace gvk
 
 		// if image should be flipped vertically when loaded, if possible
 		bool mFlip;
-		bool mHDR;
-		bool msRGB;
+		bool mHdr;
+		bool mSrgb;
 		int mPreferredNumberOfTextureComponents;
 	};
 
