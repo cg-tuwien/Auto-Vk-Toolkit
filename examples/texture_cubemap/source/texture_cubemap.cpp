@@ -9,16 +9,12 @@ class texture_cubemap_app : public gvk::invokee
 	struct data_for_draw_call
 	{
 		std::vector<glm::vec3> mPositions;
-		//std::vector<glm::vec2> mTexCoords;
 		std::vector<glm::vec3> mNormals;
 		std::vector<uint32_t> mIndices;
 
 		avk::buffer mPositionsBuffer;
-		//avk::buffer mTexCoordsBuffer;
 		avk::buffer mNormalsBuffer;
 		avk::buffer mIndexBuffer;
-
-		//int mMaterialIndex;
 	};
 
 	struct view_projection_matrices {
