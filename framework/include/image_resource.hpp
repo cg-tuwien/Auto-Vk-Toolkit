@@ -15,8 +15,12 @@ namespace gvk
 		// type that represents the size of 1D, 2D, and 3D images
 		typedef vk::Extent3D extent_type;
 
-		virtual ~image_resource_base_t() = 0;
-
+		virtual ~image_resource_base_t() = default;
+	    image_resource_base_t(const image_resource_base_t&) = delete;
+	    image_resource_base_t& operator=(const image_resource_base_t&) = delete;
+	    image_resource_base_t(image_resource_base_t&&) = delete;
+	    image_resource_base_t& operator=(image_resource_base_t&&) = delete;
+		
 		// load image resource into memory
 		// perform this as an extra step to facilitate caching of image resources
 		virtual void load() = 0;
@@ -94,10 +98,6 @@ namespace gvk
 		int mPreferredNumberOfTextureComponents;
 	};
 
-	inline image_resource_base_t::~image_resource_base_t()
-	{
-	}
-
 	// base class of implementor of image_resource type in bridge pattern
 	class image_resource_impl_t : public image_resource_base_t
 	{
@@ -105,7 +105,7 @@ namespace gvk
 		// Default implementations for subclasses that don't support these optional features
 
 		// Mipmap levels; 1 if no Mipmapping, 0 if Mipmaps should be created after loading
-		virtual uint32_t levels() const
+		virtual uint32_t levels() const 
 		{
 			return 1;
 		}
@@ -134,12 +134,12 @@ namespace gvk
 		}
 
 	protected:
-		image_resource_impl_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_resource_impl_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_base_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 
-		image_resource_impl_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_resource_impl_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_base_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}

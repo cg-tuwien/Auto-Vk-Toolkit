@@ -2,12 +2,12 @@
 #include "image_resource.hpp"
 
 namespace gvk
-{
+{	
 	// implementation in bridge pattern
 	class composite_cubemap_image_resource_t : public image_resource_impl_t
 	{
 	public:
-		composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_impl_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 			assert(aPaths.size() == 6);
@@ -112,7 +112,7 @@ namespace gvk
 	class image_resource_gli_t : public image_resource_impl_t
 	{
 	public:
-		image_resource_gli_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_resource_gli_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
@@ -287,7 +287,7 @@ namespace gvk
 		typedef stbi_uc type_8bit;
 
 	public:
-		image_resource_stb_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_resource_stb_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
 		{
 		}
