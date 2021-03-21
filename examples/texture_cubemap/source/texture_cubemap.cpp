@@ -72,9 +72,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		auto cubemap_image = gvk::create_cubemap_from_image_resource_cached(serializer, cubemap_image_resource);
+		// the image format is used after cubemap_image is moved, hence a copy is needed
+		auto cubemap_image_format = cubemap_image->format();
 
 		auto cubemap_sampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
-		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image->format(), avk::image_usage::general_cube_map_texture);
+		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image_format, avk::image_usage::general_cube_map_texture);
 		mImageSamplerCubemap = gvk::context().create_image_sampler(std::move(cubemap_imageView), std::move(cubemap_sampler));
 	
 		// Load a cube as the skybox from file
@@ -222,14 +224,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mUpdater->on(gvk::swapchain_format_changed_event(gvk::context().main_window()),
 			gvk::swapchain_additional_attachments_changed_event(gvk::context().main_window())
 		).invoke([this]() {
-			std::vector<avk::attachment> renderpassAttachments = {
+			const std::vector<avk::attachment> renderpassAttachments = {
 				// But not in presentable format, because ImGui comes after
 				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	
 				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
 			};
-			auto renderPass = gvk::context().create_renderpass(renderpassAttachments);
-			gvk::context().replace_render_pass_for_pipeline(mPipelineSkybox, std::move(renderPass));
-			gvk::context().replace_render_pass_for_pipeline(mPipelineReflect, std::move(renderPass));
+			auto renderPassSkybox = gvk::context().create_renderpass(renderpassAttachments);
+			auto renderPassReflect = gvk::context().create_renderpass(renderpassAttachments);
+			gvk::context().replace_render_pass_for_pipeline(mPipelineSkybox, std::move(renderPassSkybox));
+			gvk::context().replace_render_pass_for_pipeline(mPipelineReflect, std::move(renderPassReflect));
 			// ... next, at this point, we are sure that the render pass is correct -> check if there are events that would update the pipeline
 			}).then_on(
 				gvk::swapchain_changed_event(gvk::context().main_window()),
@@ -288,7 +291,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	{
 		update_uniform_buffers();
 
-		auto mainWnd = gvk::context().main_window();
+		auto *mainWnd = gvk::context().main_window();
 
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -343,11 +346,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	{
 		static int counter = 0;
 		if (++counter == 4) {
-			auto current = std::chrono::high_resolution_clock::now();
-			auto time_span = current - mInitTime;
-			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
+			const auto current = std::chrono::high_resolution_clock::now();
+			const auto time_span = current - mInitTime;
+			const auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
+			const auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
+			const auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
 			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
 		}
 
@@ -365,7 +368,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			gvk::current_composition()->stop();
 		}
 		if (gvk::input().key_pressed(gvk::key_code::f1)) {
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+			auto *imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -409,7 +412,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Texture Cubemap");
+		auto *mainWnd = gvk::context().create_window("Texture Cubemap");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments({ 

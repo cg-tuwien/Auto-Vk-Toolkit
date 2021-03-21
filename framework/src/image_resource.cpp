@@ -7,12 +7,12 @@ namespace gvk
 	class composite_cubemap_image_resource_t : public image_resource_impl_t
 	{
 	public:
-		composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+		composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_impl_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 			assert(aPaths.size() == 6);
 
-			for (auto path : aPaths)
+			for (const auto& path : aPaths)
 			{
 				std::unique_ptr<image_resource_impl_t> i = load_image_resource_from_file(path, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents);
 
@@ -35,10 +35,10 @@ namespace gvk
 				// must not be a cubemap
 				assert(r->faces() == 1);
 
-				if (image_resources.size() > 0)
+				if (!image_resources.empty())
 				{
 					// all image resources must have the same format, target and extent
-					std::unique_ptr<image_resource_impl_t>& r0 = image_resources[0];
+					auto& r0 = image_resources[0];
 					assert(r->get_format() == r0->get_format());
 					assert(r->target() == r0->target());
 					assert(r->extent() == r0->extent());
@@ -50,9 +50,9 @@ namespace gvk
 
 		bool empty() const
 		{
-			bool is_empty = false;
+			auto is_empty = false;
 
-			for (auto& r : image_resources)
+			for (const auto& r : image_resources)
 			{
 				is_empty = is_empty || r->empty();
 			}
@@ -70,12 +70,12 @@ namespace gvk
 			return image_resources[0]->target();
 		}
 
-		extent_type extent(uint32_t level = 0) const
+		extent_type extent(const uint32_t level = 0) const
 		{
 			return image_resources[0]->extent(level);
 		}
 
-		void* get_data(uint32_t layer, uint32_t face, uint32_t level)
+		void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level)
 		{
 			return image_resources[face]->get_data(0, 0, level);
 		}
@@ -85,7 +85,7 @@ namespace gvk
 			return image_resources[0]->size();
 		}
 
-		size_t size(uint32_t level) const
+		size_t size(const uint32_t level) const
 		{
 			return image_resources[0]->size(level);
 		}
@@ -112,7 +112,7 @@ namespace gvk
 	class image_resource_gli_t : public image_resource_impl_t
 	{
 	public:
-		image_resource_gli_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
+		image_resource_gli_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
@@ -152,14 +152,14 @@ namespace gvk
 			}
 		}
 
-		extent_type extent(uint32_t level = 0) const
+		extent_type extent(const uint32_t level = 0) const
 		{
 			auto e = gliTex.extent(level);
 
 			return vk::Extent3D(e[0], e[1], e[2]);
 		};
 
-		void* get_data(uint32_t layer, uint32_t face, uint32_t level)
+		void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level)
 		{
 			return gliTex.data(layer, face, level);
 		};
@@ -169,7 +169,7 @@ namespace gvk
 			return gliTex.size();
 		}
 
-		size_t size(uint32_t level) const
+		size_t size(const uint32_t level) const
 		{
 			return gliTex.size(level);
 		}
@@ -223,7 +223,7 @@ namespace gvk
 	private:
 		static vk::Format map_format_gli_to_vk(const gli::format gliFmt)
 		{
-			vk::Format imFmt = vk::Format::eUndefined;
+			vk::Format imFmt;
 
 			switch (gliFmt) {
 				// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
@@ -271,7 +271,8 @@ namespace gvk
 			case gli::format::FORMAT_RGBA8_UNORM_PACK8:
 				imFmt = vk::Format::eR8G8B8A8Unorm;
 				break;
-
+			default:
+				imFmt = vk::Format::eUndefined;
 			}
 
 			return imFmt;
@@ -286,8 +287,8 @@ namespace gvk
 		typedef stbi_uc type_8bit;
 
 	public:
-		image_resource_stb_t(const std::string& aPath, bool aHDR = false, bool asRGB = false, bool aFlip = false, int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), mData(nullptr, &deleter)
+		image_resource_stb_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
 		{
 		}
 
@@ -338,7 +339,7 @@ namespace gvk
 			return vk::ImageType::e2D;
 		}
 
-		extent_type extent(uint32_t level = 0) const
+		extent_type extent(const uint32_t level = 0) const
 		{
 			// stb_image does not support mipmap levels
 			assert(level == 0);
@@ -346,7 +347,7 @@ namespace gvk
 			return mExtent;
 		};
 
-		void* get_data(uint32_t layer, uint32_t face, uint32_t level)
+		void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level)
 		{
 			// stb_image does not support layers, faces or levels
 			assert(layer == 0 && face == 0 && level == 0);
@@ -359,7 +360,7 @@ namespace gvk
 			return mExtent.width * mExtent.height * mPreferredNumberOfTextureComponents * sizeofPixelPerChannel;
 		}
 
-		size_t size(uint32_t level) const
+		size_t size(const uint32_t level) const
 		{
 			assert(level == 0);
 
@@ -372,7 +373,7 @@ namespace gvk
 		};
 
 	private:
-		static int map_to_stbi_channels(int aPreferredNumberOfTextureComponents)
+		static int map_to_stbi_channels(const int aPreferredNumberOfTextureComponents)
 		{
 			// TODO: autodetect number of channels in file (= 0)?
 			assert(0 < aPreferredNumberOfTextureComponents && aPreferredNumberOfTextureComponents <= 4);
@@ -392,7 +393,7 @@ namespace gvk
 			}
 		}
 
-		static vk::Format select_format(int aPreferredNumberOfTextureComponents, bool aLoadHdr, bool aLoadSrgb)
+		static vk::Format select_format(const int aPreferredNumberOfTextureComponents, const bool aLoadHdr, const bool aLoadSrgb)
 		{
 			vk::Format imFmt = vk::Format::eUndefined;
 
@@ -468,8 +469,7 @@ namespace gvk
 		std::unique_ptr<void, decltype(&deleter)> mData;
 	};
 
-	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents)
+	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::string& aPath, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
 	{
 		// try loading with GLI
 		std::unique_ptr<image_resource_impl_t> retval(new image_resource_gli_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
@@ -490,7 +490,7 @@ namespace gvk
 		return retval;
 	}
 
-	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents)
+	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
 	{
 		std::unique_ptr<image_resource_impl_t> retval(new composite_cubemap_image_resource_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
 		retval->load();
