@@ -71,13 +71,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t(cubemap_files, true, true, false));
 		}
 
-		auto cubemap_image = gvk::create_cubemap_from_image_resource_cached(serializer, cubemap_image_resource);
+		auto cubemapImage = gvk::create_cubemap_from_image_resource_cached(serializer, cubemap_image_resource);
 		// the image format is used after cubemap_image is moved, hence a copy is needed
 		auto cubemap_image_format = cubemap_image->format();
 
-		auto cubemap_sampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
+		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
 		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image_format, avk::image_usage::general_cube_map_texture);
-		mImageSamplerCubemap = gvk::context().create_image_sampler(std::move(cubemap_imageView), std::move(cubemap_sampler));
+		mImageSamplerCubemap = gvk::context().create_image_sampler(gvk::owned(cubemap_imageView), gvk::owned(cubemap_sampler));
 	
 		// Load a cube as the skybox from file
 		// Since the cubemap uses a left-handed coordinate system, we declare the cube to be defined in the same coordinate system as well.
@@ -444,4 +444,3 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-
