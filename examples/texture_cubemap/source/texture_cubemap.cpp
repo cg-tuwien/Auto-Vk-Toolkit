@@ -21,7 +21,7 @@ class texture_cubemap_app : public gvk::invokee
 		glm::mat4 mProjectionMatrix;
 		glm::mat4 mModelViewMatrix;
 		glm::mat4 mInverseModelViewMatrix;
-		float mLODBias = 0.0f;
+		float mLodBias = 0.0f;
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
@@ -38,7 +38,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mDescriptorCacheSkybox = gvk::context().create_descriptor_cache();
 		mDescriptorCacheReflect = gvk::context().create_descriptor_cache();
 
-		// Test caching with cubemap
+		// Load cube map from file or from cache file:
 		const std::string cacheFilePath("assets/cubemap.cache");
 		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
 		auto serializer = cacheFileExists ?
@@ -51,10 +51,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Note that lookup operations in a cubemap are defined in a left-handed coordinate system,
 		// i.e. when looking at the positive Z face from inside the cube, the positive X face is to the right.
 
-		gvk::image_resource cubemap_image_resource;
+		gvk::image_resource cubemapImageResource;
 
 		// Load the textures for all cubemap faces from one file (.ktx or .dds format), or from six individual files
-		bool load_single_file = true;
+		bool loadSingleFile = true;
 		if (load_single_file) {
 			bool load_dds = false;
 			if (load_dds)
@@ -444,5 +444,4 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-
 
