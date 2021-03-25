@@ -2,8 +2,6 @@
 #include <imgui.h>
 #include "image_resource.hpp"
 
-#define USE_SERIALIZER
-
 class texture_cubemap_app : public gvk::invokee
 {
 	struct data_for_draw_call
@@ -55,29 +53,29 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Load the textures for all cubemap faces from one file (.ktx or .dds format), or from six individual files
 		bool loadSingleFile = true;
-		if (load_single_file) {
-			bool load_dds = false;
-			if (load_dds)
+		if (loadSingleFile) {
+			bool loadDds = false;
+			if (loadDds)
 			{
-				cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t("assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds", true, true, false));
+				cubemapImageResource = gvk::create_image_resource("assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds", true, true, false);
 			}
 			else
 			{
-				cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t("assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx", true, true, false));
+				cubemapImageResource = gvk::create_image_resource("assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx", true, true, false);
 			}
 		}
 		else {
-			std::vector<std::string> cubemap_files{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
-			cubemap_image_resource = gvk::image_resource(new gvk::image_resource_t(cubemap_files, true, true, false));
+			std::vector<std::string> cubemapFiles{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
+			cubemapImageResource = gvk::create_image_resource(cubemapFiles, true, true, false);
 		}
 
-		auto cubemapImage = gvk::create_cubemap_from_image_resource_cached(serializer, cubemap_image_resource);
-		// the image format is used after cubemap_image is moved, hence a copy is needed
-		auto cubemap_image_format = cubemap_image->format();
+		auto cubemapImage = gvk::create_cubemap_from_image_resource_cached(serializer, cubemapImageResource);
+		// the image format is used after cubemapImage is moved, hence a copy is needed
+		auto cubemapImageFormat = cubemapImage->format();
 
-		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemap_image->config().mipLevels));
-		auto cubemap_imageView = gvk::context().create_image_view(std::move(cubemap_image), cubemap_image_format, avk::image_usage::general_cube_map_texture);
-		mImageSamplerCubemap = gvk::context().create_image_sampler(gvk::owned(cubemap_imageView), gvk::owned(cubemap_sampler));
+		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemapImage->config().mipLevels));
+		auto cubemapImageView = gvk::context().create_image_view(avk::owned(cubemapImage), cubemapImageFormat, avk::image_usage::general_cube_map_texture);
+		mImageSamplerCubemap = gvk::context().create_image_sampler(avk::owned(cubemapImageView), avk::owned(cubemapSampler));
 	
 		// Load a cube as the skybox from file
 		// Since the cubemap uses a left-handed coordinate system, we declare the cube to be defined in the same coordinate system as well.

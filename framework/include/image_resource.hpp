@@ -6,7 +6,7 @@ namespace gvk
 	class image_resource_t;
 	class image_resource_impl_t;
 
-	typedef std::unique_ptr<image_resource_t> image_resource;
+	using image_resource = avk::owning_resource<image_resource_t>;
 
 	// interface of image_resource type, used for abstraction and implementor in bridge pattern
 	class image_resource_base_t
@@ -16,10 +16,10 @@ namespace gvk
 		typedef vk::Extent3D extent_type;
 
 		virtual ~image_resource_base_t() = default;
+	    image_resource_base_t(image_resource_base_t&&) noexcept = default;
 	    image_resource_base_t(const image_resource_base_t&) = delete;
+	    image_resource_base_t& operator=(image_resource_base_t&&) noexcept = default;
 	    image_resource_base_t& operator=(const image_resource_base_t&) = delete;
-	    image_resource_base_t(image_resource_base_t&&) = delete;
-	    image_resource_base_t& operator=(image_resource_base_t&&) = delete;
 		
 		// load image resource into memory
 		// perform this as an extra step to facilitate caching of image resources
