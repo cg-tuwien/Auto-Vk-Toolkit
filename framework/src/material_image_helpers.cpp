@@ -2,31 +2,31 @@
 
 namespace gvk
 {
-	avk::image create_cubemap_from_image_resource_cached(image_resource& aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_cubemap_from_image_resource_cached(avk::resource_reference<image_resource_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cubemap
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
 
-		return create_image_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_image_resource_cached(avk::referenced(aImageResource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
 		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		image_resource cubemap_image_resource(new image_resource_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+		auto cubemap_image_resource = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_cubemap_from_image_resource_cached(cubemap_image_resource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_resource_cached(avk::referenced(cubemap_image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
 		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		image_resource cubemap_image_resource(new image_resource_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+		auto cubemap_image_resource = create_image_resource(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_cubemap_from_image_resource_cached(cubemap_image_resource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_resource_cached(avk::referenced(cubemap_image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	avk::image create_image_from_image_resource_cached(image_resource& aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_image_from_image_resource_cached(avk::resource_reference<image_resource_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -190,9 +190,9 @@ namespace gvk
 
 	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		image_resource res(new image_resource_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+		auto image_resource = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_image_from_image_resource_cached(res, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return gvk::create_image_from_image_resource_cached(avk::referenced(image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	static inline std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
