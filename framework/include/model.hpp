@@ -403,7 +403,7 @@ namespace gvk
 				return false;
 			}
 			for (size_t i = 0; i < aCollection1.size(); ++i) {
-				if (glm::abs(aCollection1[i].mTime - aCollection2[i].mTime) > std::numeric_limits<double>::epsilon()) {
+				if (glm::abs(aCollection1[i].mTime - aCollection2[i].mTime) > 2.3e-16 /* ~machine epsilon */) {
 					return false;
 				}
 			}

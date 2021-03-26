@@ -167,7 +167,7 @@ namespace gvk
 	{
 		auto dir = aPosition - translation();
 		auto len = dot(dir, dir);
-		if (len <= std::numeric_limits<float>::epsilon()) {
+		if (len <= 1.2e-7 /* ~machine epsilon */) {
 			return;
 		}
 		look_along(dir); // will be normalized within look_along
@@ -175,7 +175,7 @@ namespace gvk
 
 	void transform::look_along(const glm::vec3& aDirection)
 	{
-		if (glm::dot(aDirection, aDirection) < std::numeric_limits<float>::epsilon()) {
+		if (glm::dot(aDirection, aDirection) < 1.2e-7 /* ~machine epsilon */) {
 			LOG_DEBUG("Direction vector passed to transform::look_along has (almost) zero length.");
 			return;
 		}

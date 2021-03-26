@@ -22,8 +22,8 @@ namespace gvk
 		auto find_old_extent(float aOldWidth, float aOldHeight)
 		{
 			return std::find_if(std::begin(mExtents), std::end(mExtents), [aOldWidth, aOldHeight](const old_new_extent& e){
-				return std::abs(aOldWidth  - static_cast<float>(e.mOldExtent.width))  <= std::numeric_limits<float>::epsilon()
-				    && std::abs(aOldHeight - static_cast<float>(e.mOldExtent.height)) <= std::numeric_limits<float>::epsilon();
+				return std::abs(aOldWidth  - static_cast<float>(e.mOldExtent.width))  <= 1.2e-7 /* ~machine epsilon */
+				    && std::abs(aOldHeight - static_cast<float>(e.mOldExtent.height)) <= 1.2e-7 /* ~machine epsilon */;
 			});
 		}
 
