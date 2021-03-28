@@ -1,5 +1,4 @@
 #include <gvk.hpp>
-#include "image_resource.hpp"
 
 namespace gvk
 {	
