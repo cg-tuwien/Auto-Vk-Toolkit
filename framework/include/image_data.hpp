@@ -3,23 +3,23 @@
 
 namespace gvk
 {
-	class image_resource_t;
-	class image_resource_impl_t;
+	class image_data_t;
+	class image_data_implementor;
 
-	using image_resource = avk::owning_resource<image_resource_t>;
+	using image_data = avk::owning_resource<image_data_t>;
 
-	// interface of image_resource type, used for abstraction and implementor in bridge pattern
-	class image_resource_base_t
+	// interface of image_data type, used for abstraction and implementor in bridge pattern
+	class image_data_interface
 	{
 	public:
 		// type that represents the size of 1D, 2D, and 3D images
 		typedef vk::Extent3D extent_type;
 
-		virtual ~image_resource_base_t() = default;
-	    image_resource_base_t(image_resource_base_t&&) noexcept = default;
-	    image_resource_base_t(const image_resource_base_t&) = delete;
-	    image_resource_base_t& operator=(image_resource_base_t&&) noexcept = default;
-	    image_resource_base_t& operator=(const image_resource_base_t&) = delete;
+		virtual ~image_data_interface() = default;
+	    image_data_interface(image_data_interface&&) noexcept = default;
+	    image_data_interface(const image_data_interface&) = delete;
+	    image_data_interface& operator=(image_data_interface&&) noexcept = default;
+	    image_data_interface& operator=(const image_data_interface&) = delete;
 		
 		// load image resource into memory
 		// perform this as an extra step to facilitate caching of image resources
@@ -70,24 +70,24 @@ namespace gvk
 
 	protected:
 		
-		image_resource_base_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		image_data_interface(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: mPaths({ aPath }), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 		
 		// for cubemaps loaded from six individual images
-		image_resource_base_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		image_data_interface(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: mPaths(aPaths), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 
 		// Note that boolean flags are not applicable in all cases; stb_image converts image data to or from float format, but other image loading libraries, like GLI, do not;
 		// Likewise, sRGB is ignored for GLI loader, and it may not be possible to flip images on loading (e.g. compressed textures)
-		static std::unique_ptr<image_resource_impl_t> load_image_resource_from_file(const std::string& aPath, const bool aLoadHdrIfPossible = true, const bool aLoadSrgbIfApplicable = true, const bool aFlip = true, const int aPreferredNumberOfTextureComponents = 4);
+		static std::unique_ptr<image_data_implementor> load_image_data_from_file(const std::string& aPath, const bool aLoadHdrIfPossible = true, const bool aLoadSrgbIfApplicable = true, const bool aFlip = true, const int aPreferredNumberOfTextureComponents = 4);
 		
 		// for cubemaps loaded from six individual files
 		// Order of faces +X, -X, +Y, -Y, +Z, -Z
-		static std::unique_ptr<image_resource_impl_t> load_image_resource_from_file(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = true, const bool aLoadSrgbIfApplicable = true, const bool aFlip = true, const int aPreferredNumberOfTextureComponents = 4);
+		static std::unique_ptr<image_data_implementor> load_image_data_from_file(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = true, const bool aLoadSrgbIfApplicable = true, const bool aFlip = true, const int aPreferredNumberOfTextureComponents = 4);
 		
 		std::vector<std::string> mPaths;
 
@@ -98,8 +98,8 @@ namespace gvk
 		int mPreferredNumberOfTextureComponents;
 	};
 
-	// base class of implementor of image_resource type in bridge pattern
-	class image_resource_impl_t : public image_resource_base_t
+	// base class of implementor of image_data type in bridge pattern
+	class image_data_implementor : public image_data_interface
 	{
 	public:
 		// Default implementations for subclasses that don't support these optional features
@@ -134,28 +134,28 @@ namespace gvk
 		}
 
 	protected:
-		explicit image_resource_impl_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
+		explicit image_data_implementor(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_interface(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 
-		explicit image_resource_impl_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
+		explicit image_data_implementor(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_interface(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 	};
 
 	// base class of abstraction in bridge pattern
-	class image_resource_t : public image_resource_base_t
+	class image_data_t : public image_data_interface
 	{
 	public:
-		explicit image_resource_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		explicit image_data_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_interface(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
 
-		explicit image_resource_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_base_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
+		explicit image_data_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_interface(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
 
@@ -170,11 +170,11 @@ namespace gvk
 
 			if (mPaths.size() == 1)
 			{
-				pimpl = load_image_resource_from_file(mPaths[0], mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+				pimpl = load_image_data_from_file(mPaths[0], mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
 			}
 			else
 			{
-				pimpl = load_image_resource_from_file(mPaths, mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+				pimpl = load_image_data_from_file(mPaths, mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
 			}
 
 			pimpl->load();
@@ -277,6 +277,6 @@ namespace gvk
 		// for user-defined destructor, there is no compiler-generated copy constructor and move-assignment operator; define out-of-line if needed
 
 		// pointer-to-implementation
-		std::unique_ptr<image_resource_impl_t> pimpl;
+		std::unique_ptr<image_data_implementor> pimpl;
 	};
 }

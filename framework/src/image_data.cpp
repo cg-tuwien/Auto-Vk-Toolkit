@@ -3,27 +3,27 @@
 namespace gvk
 {	
 	// implementation in bridge pattern
-	class composite_cubemap_image_resource_t : public image_resource_impl_t
+	class image_data_composite_cubemap : public image_data_implementor
 	{
 	public:
-		explicit composite_cubemap_image_resource_t(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_impl_t(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		explicit image_data_composite_cubemap(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_implementor(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 			assert(aPaths.size() == 6);
 
 			for (const auto& path : aPaths)
 			{
-				std::unique_ptr<image_resource_impl_t> i = load_image_resource_from_file(path, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents);
+				std::unique_ptr<image_data_implementor> i = load_image_data_from_file(path, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents);
 
-				image_resources.push_back(std::move(i));
+				image_data_implementors.push_back(std::move(i));
 			}
 
-			assert(image_resources.size() == 6);
+			assert(image_data_implementors.size() == 6);
 		}
 
 		void load()
 		{
-			for (auto& r : image_resources)
+			for (auto& r : image_data_implementors)
 			{
 				r->load();
 
@@ -34,10 +34,10 @@ namespace gvk
 				// must not be a cubemap
 				assert(r->faces() == 1);
 
-				if (!image_resources.empty())
+				if (!image_data_implementors.empty())
 				{
 					// all image resources must have the same format, target and extent
-					auto& r0 = image_resources[0];
+					auto& r0 = image_data_implementors[0];
 					assert(r->get_format() == r0->get_format());
 					assert(r->target() == r0->target());
 					assert(r->extent() == r0->extent());
@@ -51,7 +51,7 @@ namespace gvk
 		{
 			auto is_empty = false;
 
-			for (const auto& r : image_resources)
+			for (const auto& r : image_data_implementors)
 			{
 				is_empty = is_empty || r->empty();
 			}
@@ -61,37 +61,37 @@ namespace gvk
 
 		vk::Format get_format() const
 		{
-			return image_resources[0]->get_format();
+			return image_data_implementors[0]->get_format();
 		}
 
 		vk::ImageType target() const
 		{
-			return image_resources[0]->target();
+			return image_data_implementors[0]->target();
 		}
 
 		extent_type extent(const uint32_t level = 0) const
 		{
-			return image_resources[0]->extent(level);
+			return image_data_implementors[0]->extent(level);
 		}
 
 		void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level)
 		{
-			return image_resources[face]->get_data(0, 0, level);
+			return image_data_implementors[face]->get_data(0, 0, level);
 		}
 
 		size_t size() const
 		{
-			return image_resources[0]->size();
+			return image_data_implementors[0]->size();
 		}
 
 		size_t size(const uint32_t level) const
 		{
-			return image_resources[0]->size(level);
+			return image_data_implementors[0]->size(level);
 		}
 
 		uint32_t levels() const
 		{
-			return image_resources[0]->levels();
+			return image_data_implementors[0]->levels();
 		}
 
 		uint32_t faces() const
@@ -101,18 +101,18 @@ namespace gvk
 
 		bool is_hdr() const
 		{
-			return image_resources[0]->is_hdr();
+			return image_data_implementors[0]->is_hdr();
 		}
 
 	private:
-		std::vector<std::unique_ptr<image_resource_impl_t>> image_resources;
+		std::vector<std::unique_ptr<image_data_implementor>> image_data_implementors;
 	};
 
-	class image_resource_gli_t : public image_resource_impl_t
+	class image_data_gli : public image_data_implementor
 	{
 	public:
-		explicit image_resource_gli_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		explicit image_data_gli(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_implementor(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 
@@ -280,14 +280,14 @@ namespace gvk
 		gli::texture gliTex;
 	};
 
-	class image_resource_stb_t : public image_resource_impl_t
+	class image_data_stb : public image_data_implementor
 	{
 	private:
-		typedef stbi_uc type_8bit;
+		using type_8bit = stbi_uc;
 
 	public:
-		explicit image_resource_stb_t(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_resource_impl_t(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
+		explicit image_data_stb(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_implementor(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
 		{
 		}
 
@@ -296,8 +296,6 @@ namespace gvk
 			stbi_set_flip_vertically_on_load(mFlip);
 
 			int w = 0, h = 0;
-
-			LOG_INFO_EM(fmt::format("Loading file '{}' with stb...", path()));
 
 			mHDR = mHDR && stbi_is_hdr(path().c_str());
 
@@ -315,9 +313,9 @@ namespace gvk
 				sizeofPixelPerChannel = sizeof(stbi_uc);
 			}
 
-			LOG_INFO_EM(fmt::format("Result: {}", std::string(stbi_failure_reason())));
-			
 			if (!mData) {
+				LOG_INFO_EM(fmt::format("Result: {}", std::string(stbi_failure_reason())));
+			
 				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load{}", path(), mHDR ? "f" : ""));
 			}
 			assert(mData != nullptr);
@@ -468,16 +466,16 @@ namespace gvk
 		std::unique_ptr<void, decltype(&deleter)> mData;
 	};
 
-	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::string& aPath, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
+	std::unique_ptr<image_data_implementor> image_data_interface::load_image_data_from_file(const std::string& aPath, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
 	{
 		// try loading with GLI
-		std::unique_ptr<image_resource_impl_t> retval(new image_resource_gli_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+		std::unique_ptr<image_data_implementor> retval(new image_data_gli(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
 		retval->load();
 
 		// try loading with stb
 		if (retval->empty())
 		{
-			retval = std::unique_ptr<image_resource_impl_t>(new image_resource_stb_t(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+			retval = std::unique_ptr<image_data_implementor>(new image_data_stb(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
 			retval->load();
 		}
 
@@ -489,9 +487,9 @@ namespace gvk
 		return retval;
 	}
 
-	std::unique_ptr<image_resource_impl_t> image_resource_base_t::load_image_resource_from_file(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
+	std::unique_ptr<image_data_implementor> image_data_interface::load_image_data_from_file(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable, const bool aFlip, const int aPreferredNumberOfTextureComponents)
 	{
-		std::unique_ptr<image_resource_impl_t> retval(new composite_cubemap_image_resource_t(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
+		std::unique_ptr<image_data_implementor> retval(new image_data_composite_cubemap(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents));
 		retval->load();
 
 		return retval;
