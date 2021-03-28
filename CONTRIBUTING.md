@@ -74,3 +74,15 @@ namespace namespace_name_lower_case_separated_by_underscores
 
 // Thanks to StackOverflow user GManNickG for providing guidelines very similar to these
 ```
+
+## Further Guidelines
+
+### [[nodiscard]]
+
+Apply the [``[[nodiscard]]``](https://en.cppreference.com/w/cpp/language/attributes/nodiscard) attribute to functions/methods if discarding a return value indicates a memory or resource leak, or a common programmer error.
+
+Discarding a pointer to memory allocated by `std::new` would indicate a memory leak. A discarded return value of a resource type that follows the RAII idiom is not a resource leak, as its destructor is called as soon as the function call finishes.
+
+An example of a common programmer error would be not using the return value of [`std::vector::empty`](https://en.cppreference.com/w/cpp/container/vector/empty). The reasoning is: maybe the programmer wanted to empty the vector, but that is not what [`std::vector::empty`](https://en.cppreference.com/w/cpp/container/vector/empty) does.
+
+_Please note:_ Please name functions/methods so that such confusions like in that example can be avoided in the first place! Use `is_empty` instead of `empty` to express the functionality more clearly!
