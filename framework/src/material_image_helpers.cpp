@@ -2,7 +2,7 @@
 
 namespace gvk
 {
-	avk::image create_cubemap_from_image_resource_cached(avk::resource_reference<image_resource_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_cubemap_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cubemap
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
@@ -26,7 +26,7 @@ namespace gvk
 		return create_cubemap_from_image_resource_cached(avk::referenced(cubemap_image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	avk::image create_image_from_image_resource_cached(avk::resource_reference<image_resource_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_image_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -55,7 +55,7 @@ namespace gvk
 
 			format = aImageResource->get_format();
 
-			// number of layers in Vulkan image: equals (number of layers) x (number of faces) in image_resource
+			// number of layers in Vulkan image: equals (number of layers) x (number of faces) in image_data
 			// a cubemap image in Vulkan must have six layers, one for each side of the cube
 			// TODO: support texture/cubemap arrays
 			numLayers = aImageResource->faces();
@@ -118,7 +118,7 @@ namespace gvk
 			{
 				size_t texSize = 0;
 				void* texData = nullptr;
-				gvk::image_resource_t::extent_type levelExtent;
+				gvk::image_data_t::extent_type levelExtent;
 
 				if (!aSerializer ||
 					(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
@@ -190,9 +190,9 @@ namespace gvk
 
 	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		auto image_resource = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		auto image_data = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_image_from_image_resource_cached(avk::referenced(image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return gvk::create_image_from_image_resource_cached(avk::referenced(image_data), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	static inline std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
