@@ -74,3 +74,13 @@ namespace namespace_name_lower_case_separated_by_underscores
 
 // Thanks to StackOverflow user GManNickG for providing guidelines very similar to these
 ```
+
+## Further Guidelines
+
+### [[nodiscard]]
+
+Apply ``[[nodiscard]`` to functions/methods if discarding a return value indicates a memory or resource leak, or a common programmer error.
+
+An example of a common programmer error would be not using the return value of [`std::vector::empty`](https://en.cppreference.com/w/cpp/container/vector/empty). The reasoning is: Maybe the programmer wanted to empty the vector, but that is not what [`std::vector::empty`](https://en.cppreference.com/w/cpp/container/vector/empty) does.
+
+_Please note:_ Please name functions/methods so that such confusions like in that example can be avoided in the first place! Use `is_empty` instead of `empty` to express the functionality more clearly!
