@@ -1,6 +1,5 @@
 #include <gvk.hpp>
 #include <imgui.h>
-#include "image_resource.hpp"
 
 class texture_cubemap_app : public gvk::invokee
 {
@@ -48,28 +47,28 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// which coincides with the memory layout of the textures. Therefore we don't need to flip them along the y axis.
 		// Note that lookup operations in a cubemap are defined in a left-handed coordinate system,
 		// i.e. when looking at the positive Z face from inside the cube, the positive X face is to the right.
-
-		gvk::image_resource cubemapImageResource;
+		avk::image cubemapImage;
 
 		// Load the textures for all cubemap faces from one file (.ktx or .dds format), or from six individual files
 		bool loadSingleFile = true;
 		if (loadSingleFile) {
 			bool loadDds = false;
+			std::string cubemapFile;
 			if (loadDds)
 			{
-				cubemapImageResource = gvk::create_image_resource("assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds", true, true, false);
+				cubemapFile = "assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds";
 			}
 			else
 			{
-				cubemapImageResource = gvk::create_image_resource("assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx", true, true, false);
+				cubemapFile = "assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx";
 			}
+			cubemapImage = gvk::create_cubemap_from_file_cached(serializer, cubemapFile, true, true, false);
 		}
 		else {
 			std::vector<std::string> cubemapFiles{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" };
-			cubemapImageResource = gvk::create_image_resource(cubemapFiles, true, true, false);
+			cubemapImage = gvk::create_cubemap_from_file_cached(serializer, cubemapFiles, true, true, false);
 		}
 
-		auto cubemapImage = gvk::create_cubemap_from_image_resource_cached(serializer, cubemapImageResource);
 		// the image format is used after cubemapImage is moved, hence a copy is needed
 		auto cubemapImageFormat = cubemapImage->format();
 
