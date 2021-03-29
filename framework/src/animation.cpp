@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	glm::vec3 animation::compute_node_local_translation(const animated_node& aNode, double aTimeInTicks)
+	glm::vec3 animation::compute_node_local_translation(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::vec3 localTranslation;
 
@@ -22,7 +22,7 @@ namespace gvk
 		return localTranslation;
 	}
 
-	glm::quat animation::compute_node_local_rotation(const animated_node& aNode, double aTimeInTicks)
+	glm::quat animation::compute_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::quat localRotation;
 
@@ -42,7 +42,7 @@ namespace gvk
 		return localRotation;
 	}
 
-	glm::vec3 animation::compute_node_local_scale(const animated_node& aNode, double aTimeInTicks)
+	glm::vec3 animation::compute_node_local_scale(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::vec3 localScale;
 
@@ -61,7 +61,7 @@ namespace gvk
 		return localScale;
 	}
 	
-	glm::mat4 animation::compute_node_local_transform(const animated_node& aNode, double aTimeInTicks)
+	glm::mat4 animation::compute_node_local_transform(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::mat4 localTransform;
 
@@ -98,7 +98,7 @@ namespace gvk
 		return localTransform;
 	}
 
-	glm::vec3 animation::compute_inverse_node_local_translation(const animated_node& aNode, double aTimeInTicks)
+	glm::vec3 animation::compute_inverse_node_local_translation(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::vec3 inverseLocalTranslation;
 
@@ -117,7 +117,7 @@ namespace gvk
 		return inverseLocalTranslation;
 	}
 
-	glm::quat animation::compute_inverse_node_local_rotation(const animated_node& aNode, double aTimeInTicks)
+	glm::quat animation::compute_inverse_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::quat localRotation;
 
@@ -137,7 +137,7 @@ namespace gvk
 		return localRotation;
 	}
 
-	glm::vec3 animation::compute_inverse_node_local_scale(const animated_node& aNode, double aTimeInTicks)
+	glm::vec3 animation::compute_inverse_node_local_scale(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::vec3 localScale;
 
@@ -156,7 +156,7 @@ namespace gvk
 		return localScale;
 	}
 	
-	glm::mat4 animation::compute_inverse_node_local_transform(const animated_node& aNode, double aTimeInTicks)
+	glm::mat4 animation::compute_inverse_node_local_transform(const animated_node& aNode, double aTimeInTicks) const
 	{
 		glm::mat4 inverseLocalTransform;
 

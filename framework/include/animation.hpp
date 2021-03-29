@@ -341,7 +341,7 @@ namespace gvk
 		 *	@return	Translation according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the translation part of aNode.mLocalTransform.
 		 */
-		glm::vec3 compute_node_local_translation(const animated_node& aNode, double aTimeInTicks);
+		glm::vec3 compute_node_local_translation(const animated_node& aNode, double aTimeInTicks) const;
 		
 		/**	Computes the node-local rotation at the given animation time (in ticks).
 		 *	@param	aNode				Node to compute the local rotation for
@@ -349,7 +349,7 @@ namespace gvk
 		 *	@return	Rotation according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the rotation part of aNode.mLocalTransform.
 		 */
-		glm::quat compute_node_local_rotation(const animated_node& aNode, double aTimeInTicks);
+		glm::quat compute_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const;
 
 		/**	Computes the node-local scale at the given animation time (in ticks).
 		 *	@param	aNode				Node to compute the local scale for
@@ -357,7 +357,7 @@ namespace gvk
 		 *	@return	Scale according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the scale part of aNode.mLocalTransform.
 		 */
-		glm::vec3 compute_node_local_scale (const animated_node& aNode, double aTimeInTicks);
+		glm::vec3 compute_node_local_scale (const animated_node& aNode, double aTimeInTicks) const;
 		
 		/**	Computes the node-local transformation matrix at the given animation time (in ticks).
 		 *	I.e. disregards any other node (e.g. parents) and only computes the transformation of the
@@ -367,7 +367,7 @@ namespace gvk
 		 *	@return	Transformation matrix according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned matrix will just be the same as aNode.mLocalTransform.
 		 */
-		glm::mat4 compute_node_local_transform(const animated_node& aNode, double aTimeInTicks);
+		glm::mat4 compute_node_local_transform(const animated_node& aNode, double aTimeInTicks) const;
 
 		/**	Computes the node-local translation at the given animation time (in ticks).
 		 *	@param	aNode				Node to compute the local translation for
@@ -375,7 +375,7 @@ namespace gvk
 		 *	@return	Translation according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the translation part of aNode.mLocalTransform.
 		 */
-		glm::vec3 compute_inverse_node_local_translation(const animated_node& aNode, double aTimeInTicks);
+		glm::vec3 compute_inverse_node_local_translation(const animated_node& aNode, double aTimeInTicks) const;
 
 		/**	Computes the node-local rotation at the given animation time (in ticks).
 		 *	@param	aNode				Node to compute the local rotation for
@@ -383,7 +383,7 @@ namespace gvk
 		 *	@return	Rotation according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the rotation part of aNode.mLocalTransform.
 		 */
-		glm::quat compute_inverse_node_local_rotation(const animated_node& aNode, double aTimeInTicks);
+		glm::quat compute_inverse_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const;
 
 		/**	Computes the node-local scale at the given animation time (in ticks).
 		 *	@param	aNode				Node to compute the local scale for
@@ -391,7 +391,7 @@ namespace gvk
 		 *	@return	Scale according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned value will just be the scale part of aNode.mLocalTransform.
 		 */
-		glm::vec3 compute_inverse_node_local_scale(const animated_node& aNode, double aTimeInTicks);
+		glm::vec3 compute_inverse_node_local_scale(const animated_node& aNode, double aTimeInTicks) const;
 
 		/**	Computes the inverse of the node-local transformation matrix at the given animation time (in ticks).
 		 *	I.e. disregards any other node (e.g. parents) and only computes the transformation of the
@@ -401,7 +401,7 @@ namespace gvk
 		 *	@return	Inverse transformation matrix according to the parameters. In case there are no animation keys specified
 		 *			for the node, the returned matrix will just be the same as the inverse of aNode.mLocalTransform.
 		 */
-		glm::mat4 compute_inverse_node_local_transform(const animated_node& aNode, double aTimeInTicks);
+		glm::mat4 compute_inverse_node_local_transform(const animated_node& aNode, double aTimeInTicks) const;
 
 		/** Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
 		 *	with one of the resulting bone matrices is given in mesh space (same as the original input data) again.
