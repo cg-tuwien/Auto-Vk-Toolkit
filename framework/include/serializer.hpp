@@ -184,6 +184,19 @@ namespace gvk {
 			archive_memory(mapping.get(), size);
 		}
 
+		/** @brief Flush the underlying output stream
+		 *
+		 *  This function can be used to explicitely flush the underlying outputstream during
+		 *  serialization and requests all data to be written. During deserialization, this
+		 *  function does nothing
+		 */
+		void flush()
+		{
+			if (mode() == mode::serialize) {
+				std::get<serialize>(mArchive).flush();
+			}
+		}
+
 	private:
 
 		/** @brief serialize
@@ -227,6 +240,16 @@ namespace gvk {
 			void operator()(Type&& aValue)
 			{
 				mArchive(std::forward<Type>(aValue));
+			}
+
+			/** @brief Flush the underlying output stream
+			 *
+			 *  This function can be used to explicitely flush the underlying outputstream
+			 *  and requests all data to be written.
+			 */
+			void flush()
+			{
+				mOfstream.flush();
 			}
 		};
 
