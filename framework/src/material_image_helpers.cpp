@@ -228,7 +228,7 @@ namespace gvk
 			imageSamplers.push_back(
 				context().create_image_sampler(
 					owned(context().create_image_view(
-						owned(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer))
+						owned(create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer))
 					)),
 					owned(context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat))
 				)
