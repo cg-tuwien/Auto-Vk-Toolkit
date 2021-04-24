@@ -88,15 +88,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
 				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 0,
-					avk::sync::wait_idle()
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
 				auto normalsBuffer = gvk::create_normals_buffer(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, 
-					avk::sync::wait_idle()
+					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
@@ -264,14 +262,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached(
-					serializer, modelAndMeshes, 0, avk::sync::wait_idle()
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached<avk::vertex_buffer_meta>(
+					serializer, modelAndMeshes
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer_cached(
-					serializer, modelAndMeshes, avk::sync::wait_idle()
+				auto normalsBuffer = gvk::create_normals_buffer_cached<avk::vertex_buffer_meta>(
+					serializer, modelAndMeshes
 				);
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 

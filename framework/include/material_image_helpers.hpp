@@ -567,6 +567,19 @@ namespace gvk
 		add_tuple_or_indices(aResult, rest...);
 	}
 
+	/**	This is a convenience method that allows to compile a selection of models and mesh indices.
+	 *	Valid usage means passing a model as parameter, and following it up with one or multiple mesh index parameters.
+	 *
+	 *	Model parameters must be bindable by const model&.
+	 *	Mesh index parameters are supported in the forms:
+	 *	 - size_t
+	 *	 - std::vector<size_t>
+	 *
+	 *	Examples of valid parameters:
+	 *	 - make_models_and_meshes_selection(myModel, 1, 2, 3); // => a model and 3x size_t
+	 *	 - make_models_and_meshes_selection(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
+	 *	 - make_models_and_meshes_selection(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
+	 */
 	template <typename... Args>
 	std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>> make_models_and_meshes_selection(const Args&... args)
 	{
@@ -574,60 +587,907 @@ namespace gvk
 		add_tuple_or_indices(result, args...);
 		return result;
 	}
-	
+
+	/** Helper function to fill a given device buffer with a staging buffer whose contents are loaded from a cache file.
+	 *	@param	aSerializer		The serializer in gvk::serializer::mode::deserialize
+	 *	@param	aDevicebuffer	The target buffer
+	 *	@param	aTotalSize		Size of the staging buffer
+	 *	@para	aSyncHandler	Synchronization handler
+	 */
+	static inline void fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::sync& aSyncHandler)
+	{
+		assert(aSerializer.mode() == gvk::serializer::mode::deserialize);
+		
+		// Create host visible staging buffer for filling on host side from file
+		auto sb = context().create_buffer(
+			AVK_STAGING_BUFFER_MEMORY_USAGE,
+			vk::BufferUsageFlagBits::eTransferSrc,
+			avk::generic_buffer_meta::create_from_size(aTotalSize)
+		);
+		// Let the serializer map and fill the buffer
+		aSerializer.archive_buffer(sb);
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		// Sync before
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		// Copy host visible staging buffer to device buffer
+		avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize, avk::sync::with_barriers_into_existing_command_buffer(commandBuffer, {}, {}));
+
+		// Sync after
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+
+		// Take care of the lifetime handling of the stagingBuffer, it might still be in use
+		commandBuffer.set_custom_deleter([
+			lOwnedStagingBuffer{ std::move(sb) }
+		]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
+
+		// Finish him
+		aSyncHandler.submit_and_sync();
+	}
+
+	/**	Get a tuple of <0>:vertices and <1>:indices from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@return	Combined position and index data of all specified model + mesh-indices tuples, where the returned tuple's elements refer to:
+	 *			<0>: vertex positions
+	 *			<1>: indices
+	 */
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet);
-	extern avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
-	extern avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
-	extern avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
-	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
-	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 
-	/** *cached versions for serialization */
+	/**	Get a tuple of <0>:vertices and <1>:indices from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@return	Combined position and index data of all specified model + mesh-indices tuples, where the returned tuple's elements refer to:
+	 *			<0>: vertex positions
+	 *			<1>: indices
+	 */
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
-	extern avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet);
-	extern avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
-	extern avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
-	extern avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
-	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
-	extern avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
-	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet);
-	extern avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, avk::sync aSyncHandler = avk::sync::wait_idle());
 
+	// A concept which requires a type to have a .set_format<glm::uvec3>(avk::content_description)
+	template <typename T>
+	concept has_set_format_for_index_buffer = requires (T x)
+	{
+		x.template set_format<glm::uvec3>(avk::content_description::index);
+	};
+	
+	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
+	template <typename Meta>
+	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
+	{
+		return Meta::create_from_data(aIndicesData).template set_format<glm::uvec3>(avk::content_description::index); // Combine 3 consecutive elements to one unit
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta>
+	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData)
+	{
+		return Meta::create_from_data(aIndicesData).describe_only_member(aIndicesData[0], avk::content_description::index);
+	}
+
+	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
+	 *	@param	aVerticesAndIndices			A tuple containing vertex positions data in the first element, and index data in the second element.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
+	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
+	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
+	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the returned tuple's elements refer to:
+	 *			<0>: buffer containing vertex positions
+	 *			<1>: buffer containing indices
+	 */
+	template <typename... Metas>
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+
+		// Sync before: 
+		// TODO: This is actually not necessary, because the command submission makes the data available => remove this barrier, actually?!?!!
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		const auto& [positionsData, indicesData] = aVerticesAndIndices;
+
+		auto positionsBuffer = context().create_buffer(
+			avk::memory_usage::device, aUsageFlags,
+			avk::vertex_buffer_meta::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position),
+			Metas::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position)...
+		);
+		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		// It is fine to let positionsData go out of scope, since its data has been copied to a
+		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		auto indexBuffer = context().create_buffer(
+			avk::memory_usage::device, aUsageFlags,
+			avk::index_buffer_meta::create_from_data(indicesData),
+			set_up_meta_for_index_buffer<Metas>(indicesData)...
+		);
+		indexBuffer->fill(indicesData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		// It is fine to let indicesData go out of scope, since its data has been copied to a
+		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+
+		// Sync after:
+		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
+
+		// Finish him:
+		aSyncHandler.submit_and_sync(); // Return command buffer is not supported here.
+
+		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+	}
+	
+	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
+	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
+	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
+	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the returned tuple's elements refer to:
+	 *			<0>: buffer containing vertex positions
+	 *			<1>: buffer containing indices
+	 */
+	template <typename... Metas>
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags, std::move(aSyncHandler));
+	}
+	
+	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aVerticesAndIndices			A tuple containing vertex positions data in the first element, and index data in the second element.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
+	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
+	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
+	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the tuple elements refer to:
+	 *			<0>: buffer containing vertex positions
+	 *			<1>: buffer containing indices
+	 */
+	template <typename... Metas>
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		size_t numPositions = 0;
+		size_t totalPositionsSize = 0;
+		size_t numIndices = 0;
+		size_t totalIndicesSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			auto& [positionsData, indicesData] = aVerticesAndIndices;
+
+			numPositions = positionsData.size();
+			totalPositionsSize = sizeof(positionsData[0]) * numPositions;
+			numIndices = indicesData.size();
+			totalIndicesSize = sizeof(indicesData[0]) * numIndices;
+
+			aSerializer.archive(numPositions);
+			aSerializer.archive(totalPositionsSize);
+			aSerializer.archive(numIndices);
+			aSerializer.archive(totalIndicesSize);
+
+			aSerializer.archive_memory(positionsData.data(), totalPositionsSize);
+			aSerializer.archive_memory(indicesData.data(), totalIndicesSize);
+
+			return create_vertex_and_index_buffers<Metas...>(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numPositions);
+			aSerializer.archive(totalPositionsSize);
+			aSerializer.archive(numIndices);
+			aSerializer.archive(totalIndicesSize);
+
+			auto positionsBuffer = context().create_buffer(
+				avk::memory_usage::device, aUsageFlags,
+				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions)
+				.describe_member(0, avk::format_for<glm::vec3>(), avk::content_description::position)
+			);
+
+			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize, aSyncHandler);
+
+			auto indexBuffer = context().create_buffer(
+				avk::memory_usage::device, aUsageFlags,
+				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices)
+			);
+
+			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize, aSyncHandler);
+
+			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+		}
+	}
+
+	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
+	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
+	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
+	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the tuple elements refer to:
+	 *			<0>: buffer containing vertex positions
+	 *			<1>: buffer containing indices
+	 */
+	template <typename... Metas>
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndicesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			verticesAndIndicesData = get_vertices_and_indices(aModelsAndSelectedMeshes);
+		}
+		return create_vertex_and_index_buffers_cached<Metas...>(aSerializer, verticesAndIndicesData, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Create a device buffer that contains the given input data
+	 *	@param	aBufferData					Data to be stored in the buffer
+	 *	@param	aContentDescription			Description of the buffer's content
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename T, typename... Metas>
+	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		auto buffer = context().create_buffer(
+			avk::memory_usage::device, aUsageFlags,
+			avk::generic_buffer_meta::create_from_data(aBufferData),
+			Metas::create_from_data(aBufferData).describe_only_member(aBufferData[0], aContentDescription)...
+		);
+		buffer->fill(aBufferData.data(), 0, std::move(aSyncHandler));
+		// It is fine to let aBufferData go out of scope, since its data has been copied to a
+		// staging buffer within create_buffer, which is lifetime-handled by the command buffer.
+
+		return buffer;
+	}
+
+	/** Create a device buffer that contains the given input data
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aBufferData					Data to be stored in the buffer
+	 *	@param	aContentDescription			Description of the buffer's content
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename T, typename... Metas>
+	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		size_t numBufferEntries = 0;
+		size_t bufferTotalSize = 0;
+
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			numBufferEntries = aBufferData.size();
+			bufferTotalSize = sizeof(aBufferData[0]) * numBufferEntries;
+
+			aSerializer.archive(numBufferEntries);
+			aSerializer.archive(bufferTotalSize);
+
+			aSerializer.archive_memory(aBufferData.data(), bufferTotalSize);
+
+			return create_buffer<T, Metas...>(aBufferData, aContentDescription, aUsageFlags, std::move(aSyncHandler));
+		}
+		else {
+			aSerializer.archive(numBufferEntries);
+			aSerializer.archive(bufferTotalSize);
+
+			auto buffer = context().create_buffer(
+				avk::memory_usage::device, aUsageFlags,
+				avk::vertex_buffer_meta::create_from_total_size(bufferTotalSize, numBufferEntries)
+			);
+
+			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize, aSyncHandler);
+
+			return buffer;
+		}
+	}
+	
+	/**	Get normals from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@return	Combined normals data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+
+	/**	Get normals from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@return	Combined normals data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+
+	/**	Get a buffer containing normals from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing normals from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec3> normalsData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			normalsData = get_normals(aModelsAndSelectedMeshes);
+		}
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, normalsData, avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get tangents from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@return	Combined tangents data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+
+	/**	Get tangents from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@return	Combined tangents data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	
+	/**	Get a buffer containing tangents from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing tangents from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec3> tangentsData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			tangentsData = get_tangents(aModelsAndSelectedMeshes);
+		}
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, tangentsData, avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
+	}
+	
+	/**	Get bitangents from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@return	Combined bitangents data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+
+	/**	Get bitangents from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@return	Combined bitangents data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+
+	/**	Get a buffer containing bitangents from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing bitangents from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec3> bitangentsData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			bitangentsData = get_bitangents(aModelsAndSelectedMeshes);
+		}
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, bitangentsData, avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get colors from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aColorsSet					The zero-based set of vertex colors to get
+	 *	@return	Combined colors data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
+
+	/**	Get colors from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@param	aColorsSet					The zero-based set of vertex colors to get
+	 *	@return	Combined colors data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
+	
+	/**	Get a buffer containing colors from the given input data.
+		 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+		 *										All the data they refer to is combined into a a common result. Their order is maintained.
+		 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+		 *	@param	aSyncHandler				A synchronization handler.
+		 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+		 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+		 *	@return	A buffer in device memory which contains the given input data.
+		 */
+	template <typename... Metas>
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing colors from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec4> colorsData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			colorsData = get_colors(aModelsAndSelectedMeshes, aColorsSet);
+		}
+		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, colorsData, avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get bone weights from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
+	 *	@return	Combined normals data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
+
+	/**	Get bone weights from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
+	 *	@return	Combined normals data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
+
+	/**	Get a buffer containing bone weights from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing bone weights from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec4> boneWeightsData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights);
+		}
+		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, boneWeightsData, avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get bone indices from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
+	
+	/**	Get bone indices from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
+
+	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
+	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
+
+	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
+	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
+
+	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
+	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
+	 *										of all previous #bone-matrices in the set before the mesh with the given index.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
+
+	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
+	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
+	 *										of all previous #bone-matrices in the set before the mesh with the given index.
+	 *	@return	Combined bone indices data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
+	// TODO ^ function definition not found
+	
+	/**	Get a buffer containing bone indices from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing bone indices from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::uvec4> boneIndicesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset);
+		}
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get a buffer containing bone indices from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing bone indices from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::uvec4> boneIndicesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			boneIndicesData = get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset);
+		}
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get a buffer containing bone indices from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
+	 *										of all previous #bone-matrices in the set before the mesh with the given index.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing bone indices from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
+	 *										of all previous #bone-matrices in the set before the mesh with the given index.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::uvec4> boneIndicesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			boneIndicesData = get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices);
+		}
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+
+	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	
+	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices, with their y-coordinates flipped.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	
+	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices, with their y-coordinates flipped.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	
+	/**	Get 3D texture coordinates from the given selection of models and associated mesh indices.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 3D texture coordinates data of all specified model + mesh-indices.
+	 */
+	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	
+	/**	Get 3D texture coordinates from the given selection of models and associated mesh indices.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. The order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@return	Combined 3D texture coordinates data of all specified model + mesh-indices tuples.
+	 */
+	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+
+	/**	Get a buffer containing 2D texture coordinates from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing 2D texture coordinates from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec2> textureCoordinatesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			textureCoordinatesData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
+		}
+		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get a buffer containing 2D texture coordinates from the given input data, with their y-coordinates flipped.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing 2D texture coordinates from the given input data, with their y-coordinates flipped.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec2> textureCoordinatesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			textureCoordinatesData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
+		}
+		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Get a buffer containing 3D texture coordinates from the given input data.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/** Get a buffer containing 3D texture coordinates from the given input data.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename... Metas>
+	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		std::vector<glm::vec3> textureCoordinatesData;
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
+			textureCoordinatesData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
+		}
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+	}
+
+	/**	Convert the given material config into a format that is usable with a GPU buffer for the materials (i.e. properly vec4-aligned),
+	 *	and a set of images and samplers, which are already created on and uploaded to the GPU.
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aMaterialConfigs			The material config in CPU format
+	 *	@param	aLoadTexturesInSrgb			Set to true to load the images in sRGB format if applicable
+	 *	@param	aFlipTextures				Set to true to y-flip images			
+	 *	@param	aImageUsage					How this image is going to be used. Can be a combination of different avk::image_usage values
+	 *	@param	aTextureFilterMode			Texture filtering mode for all the textures. Trilinear or anisotropic filtering modes will trigger MIP-maps to be generated.
+	 *	@param	aBorderHandlingMode			Border handling mode for all the textures			
+	 *	@param	aSyncHandler				A synchronization handler.
+	 *	@reutrn	A tuple with two elements:
+	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
+	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
+	 */
 	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
 		gvk::serializer& aSerializer,
 		const std::vector<gvk::material_config>& aMaterialConfigs,
