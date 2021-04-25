@@ -2,31 +2,31 @@
 
 namespace gvk
 {
-	avk::image create_cubemap_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cubemap
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
 
-		return create_image_from_image_resource_cached(avk::referenced(aImageResource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
 		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		auto cubemap_image_resource = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		auto cubemapImageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_resource_cached(avk::referenced(cubemap_image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
 		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		auto cubemap_image_resource = create_image_resource(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		auto cubemapImageData = get_image_data(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_resource_cached(avk::referenced(cubemap_image_resource), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	avk::image create_image_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -37,28 +37,28 @@ namespace gvk
 			(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 
 			// load the image to memory
-			aImageResource->load();
+			aImageData.load();
 
-			assert(!aImageResource->empty());
+			assert(!aImageData.empty());
 
-			if (aImageResource->target() != vk::ImageType::e2D) {
-				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as 2D image. Can't load it.", aImageResource->path()));
+			if (aImageData.target() != vk::ImageType::e2D) {
+				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as 2D image. Can't load it.", aImageData.path()));
 			}
 
 			bool is_cube_compatible = (static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0;
-			if (is_cube_compatible && aImageResource->faces() != 6) {
-				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cubemap image.", aImageResource->path()));
+			if (is_cube_compatible && aImageData.faces() != 6) {
+				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cubemap image.", aImageData.path()));
 			}
 
-			width = aImageResource->extent().width;
-			height = aImageResource->extent().height;
+			width = aImageData.extent().width;
+			height = aImageData.extent().height;
 
-			format = aImageResource->get_format();
+			format = aImageData.get_format();
 
 			// number of layers in Vulkan image: equals (number of layers) x (number of faces) in image_data
 			// a cubemap image in Vulkan must have six layers, one for each side of the cube
 			// TODO: support texture/cubemap arrays
-			numLayers = aImageResource->faces();
+			numLayers = aImageData.faces();
 		}
 
 		if (aSerializer) {
@@ -89,9 +89,9 @@ namespace gvk
 			(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
 
 			// number of levels to load from image resource
-			maxLevels = aImageResource->levels();
+			maxLevels = aImageData.levels();
 
-			maxFaces = aImageResource->faces();
+			maxFaces = aImageData.faces();
 
 			// if number of levels is 0, generate all mipmaps after loading
 			if (maxLevels == 0)
@@ -118,13 +118,13 @@ namespace gvk
 			{
 				size_t texSize = 0;
 				void* texData = nullptr;
-				gvk::image_data_t::extent_type levelExtent;
+				gvk::image_data::extent_type levelExtent;
 
 				if (!aSerializer ||
 					(aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize)) {
-					texSize = aImageResource->size(level);
-					texData = aImageResource->get_data(0, face, level);
-					levelExtent = aImageResource->extent(level);
+					texSize = aImageData.size(level);
+					texData = aImageData.get_data(0, face, level);
+					levelExtent = aImageData.extent(level);
 				}
 				if (aSerializer) {
 					aSerializer->get().archive(texSize);
@@ -171,7 +171,7 @@ namespace gvk
 		if (maxLevels == 1 && img->config().mipLevels > 1)
 		{
 			// can't create MIP-maps for compressed formats
-			assert(!avk::is_block_compressed_format(aImageResource->get_format()));
+			assert(!avk::is_block_compressed_format(aImageData.get_format()));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
@@ -190,9 +190,9 @@ namespace gvk
 
 	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		auto image_data = create_image_resource(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		auto imageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_image_from_image_resource_cached(avk::referenced(image_data), aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return gvk::create_image_from_image_data_cached(imageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
 	static inline std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(

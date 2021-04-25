@@ -72,36 +72,36 @@ namespace gvk
 	}
 
 	// create image_data from texture files
-	static image_data create_image_resource(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	static image_data get_image_data(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4)
 	{
-		image_data_t result(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		image_data result(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
 		return result;
 	}
 
-	static image_data create_image_resource(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	static image_data get_image_data(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4)
 	{
-		image_data_t result(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
+		image_data result(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
 		return result;
 	}
 
-	// create cubemap from an image resource
-	avk::image create_cubemap_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	// create cubemap from image data
+	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	static avk::image create_cubemap_from_image_resource_cached(gvk::serializer& aSerializer, avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device, 
+	static avk::image create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device, 
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_cubemap_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	static avk::image create_cubemap_from_image_resource(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static avk::image create_cubemap_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_cubemap_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
 	// create cubemap from a single file
@@ -138,20 +138,20 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	// create image from an image resource
-	avk::image create_image_from_image_resource_cached(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	// create image from image data
+	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	static avk::image create_image_from_image_resource_cached(gvk::serializer& aSerializer, avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static avk::image create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_image_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	static avk::image create_image_from_image_resource(avk::resource_reference<image_data_t> aImageResource, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static avk::image create_image_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_image_from_image_resource_cached(aImageResource, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
 	// create image from a file

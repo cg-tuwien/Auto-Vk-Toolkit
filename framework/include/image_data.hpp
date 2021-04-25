@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	class image_data_t;
+	class image_data;
 	class image_data_implementor;
 
 
@@ -148,12 +148,12 @@ namespace gvk
 	class image_data : public image_data_interface
 	{
 	public:
-		explicit image_data_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_data(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_data_interface(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
 
-		explicit image_data_t(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_data(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_data_interface(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), pimpl(nullptr)
 		{
 		}
