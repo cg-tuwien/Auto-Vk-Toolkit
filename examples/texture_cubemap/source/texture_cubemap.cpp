@@ -5,10 +5,6 @@ class texture_cubemap_app : public gvk::invokee
 {
 	struct data_for_draw_call
 	{
-		std::vector<glm::vec3> mPositions;
-		std::vector<glm::vec3> mNormals;
-		std::vector<uint32_t> mIndices;
-
 		avk::buffer mPositionsBuffer;
 		avk::buffer mNormalsBuffer;
 		avk::buffer mIndexBuffer;
@@ -84,32 +80,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			auto& newElement = mDrawCallsSkybox.emplace_back();
 
-			gvk::mesh_index_t index = 0;
-
-			gvk::append_indices_and_vertex_data(
-				gvk::additional_index_data(newElement.mIndices, [&]() { return cube->indices_for_mesh<uint32_t>(index);								}),
-				gvk::additional_vertex_data(newElement.mPositions, [&]() { return cube->positions_for_mesh(index);							})
-			);
-
 			// 2. Build all the buffers for the GPU
-			// 2.1 Positions:
-			newElement.mPositionsBuffer = gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_data(newElement.mPositions)
-			);
-			newElement.mPositionsBuffer->fill(
-				newElement.mPositions.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			);
-			// 2.4 Indices:
-			newElement.mIndexBuffer = gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::index_buffer_meta::create_from_data(newElement.mIndices)
-			);
-			newElement.mIndexBuffer->fill(
-				newElement.mIndices.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			);
+			std::vector<gvk::mesh_index_t> indices = { 0 };
+
+			auto modelMeshSelection = gvk::make_models_and_meshes_selection(cube, indices);
+
+			auto [mPositionsBuffer, mIndexBuffer] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+
+			newElement.mPositionsBuffer = std::move(mPositionsBuffer);
+			newElement.mIndexBuffer = std::move(mIndexBuffer);
 		}
 
 		// Load object from file
@@ -118,42 +97,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			auto& newElement = mDrawCallsReflect.emplace_back();
 
-			gvk::mesh_index_t index = 0;
-
-			gvk::append_indices_and_vertex_data(
-				gvk::additional_index_data(newElement.mIndices, [&]() { return object->indices_for_mesh<uint32_t>(index);								}),
-				gvk::additional_vertex_data(newElement.mPositions, [&]() { return object->positions_for_mesh(index);							}),
-				gvk::additional_vertex_data(newElement.mNormals, [&]() { return object->normals_for_mesh(index);								})
-			);
-
 			// 2. Build all the buffers for the GPU
-			// 2.1 Positions:
-			newElement.mPositionsBuffer = gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_data(newElement.mPositions)
-			);
-			newElement.mPositionsBuffer->fill(
-				newElement.mPositions.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			);
-			// 2.3 Normals:
-			newElement.mNormalsBuffer = gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_data(newElement.mNormals)
-			);
-			newElement.mNormalsBuffer->fill(
-				newElement.mNormals.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			);
-			// 2.4 Indices:
-			newElement.mIndexBuffer = gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::index_buffer_meta::create_from_data(newElement.mIndices)
-			);
-			newElement.mIndexBuffer->fill(
-				newElement.mIndices.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			);
+			std::vector<gvk::mesh_index_t> indices = { 0 };
+
+			auto modelMeshSelection = gvk::make_models_and_meshes_selection(object, indices);
+
+			auto [mPositionsBuffer, mIndexBuffer] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+
+			newElement.mPositionsBuffer = std::move(mPositionsBuffer);
+			newElement.mIndexBuffer = std::move(mIndexBuffer);
+
+			newElement.mNormalsBuffer = gvk::create_normals_buffer({ modelMeshSelection });
 		}
 
 		mViewProjBufferSkybox = gvk::context().create_buffer(
