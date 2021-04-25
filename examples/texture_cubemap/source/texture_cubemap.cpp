@@ -255,7 +255,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-//				ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
 				ImGui::End();
 			});
 		}
@@ -341,25 +340,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		static int counter = 0;
-		if (++counter == 4) {
-			const auto current = std::chrono::high_resolution_clock::now();
-			const auto time_span = current - mInitTime;
-			const auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			const auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			const auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
-			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
-		}
-
-		if (gvk::input().key_pressed(gvk::key_code::h)) {
-			// Log a message:
-			LOG_INFO_EM("Hello cg_base!");
-		}
-		if (gvk::input().key_pressed(gvk::key_code::c)) {
-			// Center the cursor:
-			auto resolution = gvk::context().main_window()->resolution();
-			gvk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
-		}
 		if (gvk::input().key_pressed(gvk::key_code::escape)) {
 			// Stop the current composition:
 			gvk::current_composition()->stop();
@@ -378,8 +358,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	}
 
 private: // v== Member variables ==v
-
-	std::chrono::high_resolution_clock::time_point mInitTime;
 
 	avk::queue* mQueue;
 	avk::descriptor_cache mDescriptorCacheSkybox;
