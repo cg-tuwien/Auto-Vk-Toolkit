@@ -6,7 +6,6 @@ namespace gvk
 	class image_data_t;
 	class image_data_implementor;
 
-	using image_data = avk::owning_resource<image_data_t>;
 
 	// interface of image_data type, used for abstraction and implementor in bridge pattern
 	class image_data_interface
@@ -146,7 +145,7 @@ namespace gvk
 	};
 
 	// base class of abstraction in bridge pattern
-	class image_data_t : public image_data_interface
+	class image_data : public image_data_interface
 	{
 	public:
 		explicit image_data_t(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
