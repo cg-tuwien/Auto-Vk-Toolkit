@@ -26,8 +26,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCacheSkybox = gvk::context().create_descriptor_cache();
-		mDescriptorCacheReflect = gvk::context().create_descriptor_cache();
+		mDescriptorCache = gvk::context().create_descriptor_cache();
 
 		// Load cube map from file or from cache file:
 		const std::string cacheFilePath("assets/cubemap.cache");
@@ -247,7 +246,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		cmdbfr->begin_render_pass_for_framebuffer(mPipelineSkybox->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 
 		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineSkybox));
-		cmdbfr->bind_descriptors(mPipelineSkybox->layout(), mDescriptorCacheSkybox.get_or_create_descriptor_sets({
+		cmdbfr->bind_descriptors(mPipelineSkybox->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
 			}));
@@ -263,7 +262,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineReflect));
-		cmdbfr->bind_descriptors(mPipelineReflect->layout(), mDescriptorCacheReflect.get_or_create_descriptor_sets({
+		cmdbfr->bind_descriptors(mPipelineReflect->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, mViewProjBufferReflect),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
 			}));
@@ -312,8 +311,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 private: // v== Member variables ==v
 
 	avk::queue* mQueue;
-	avk::descriptor_cache mDescriptorCacheSkybox;
-	avk::descriptor_cache mDescriptorCacheReflect;
+	avk::descriptor_cache mDescriptorCache;
 
 	avk::buffer mViewProjBufferSkybox;
 	avk::buffer mViewProjBufferReflect;
