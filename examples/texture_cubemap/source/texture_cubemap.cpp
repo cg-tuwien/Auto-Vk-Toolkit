@@ -214,8 +214,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void update_uniform_buffers()
 	{
 		// mirror x axis to transform cubemap coordinates to righ-handed coordinates
-		auto mirroredViewMatrix = mQuakeCam.view_matrix();
-		mirroredViewMatrix[0] *= -1.f; 
+		auto mirroredViewMatrix = gvk::mirror_matrix(mQuakeCam.view_matrix());
 
 		view_projection_matrices viewProjMat{
 			mQuakeCam.projection_matrix(),
@@ -226,10 +225,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::sync::not_required());
 
-		// scale skybox, mirror x axis 
-		viewProjMat.mModelViewMatrix = mirroredViewMatrix * mModelMatrixSkybox;
-		// Cancel out translation
-		viewProjMat.mModelViewMatrix[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		// scale skybox, mirror x axis, cancel out translation
+		viewProjMat.mModelViewMatrix = gvk::cancel_translation_from_matrix(mirroredViewMatrix * mModelMatrixSkybox);
 
 		mViewProjBufferSkybox->fill(&viewProjMat, 0, avk::sync::not_required());
 	}

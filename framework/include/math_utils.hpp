@@ -12,6 +12,10 @@ namespace gvk
 	/// extract the translation part out of a matrix
 	extern glm::vec3 get_translation_from_matrix(const glm::mat4& m);
 
+	glm::mat4 cancel_translation_from_matrix(const glm::mat4& m);
+
+	glm::mat4 mirror_matrix(const glm::mat4& m, const glm::length_t axis = 0);
+
 	/// <summary>
 	/// Solve a system of equations with 3 unknowns.
 	/// </summary>
