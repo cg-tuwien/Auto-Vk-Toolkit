@@ -29,8 +29,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void initialize() override
 	{
-		mInitTime = std::chrono::high_resolution_clock::now();
-
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCacheSkybox = gvk::context().create_descriptor_cache();
 		mDescriptorCacheReflect = gvk::context().create_descriptor_cache();
