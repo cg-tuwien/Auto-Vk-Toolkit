@@ -6,7 +6,7 @@ namespace gvk
 	class image_data_composite_cubemap : public image_data_implementor
 	{
 	public:
-		explicit image_data_composite_cubemap(const std::vector<std::string>& aPaths, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+		explicit image_data_composite_cubemap(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
 			: image_data_implementor(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
 		{
 			assert(aPaths.size() == 6);

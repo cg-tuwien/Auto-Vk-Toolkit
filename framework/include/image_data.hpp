@@ -91,8 +91,8 @@ namespace gvk
 		
 		std::vector<std::string> mPaths;
 
-		bool mHDR;
-		bool msRGB;
+		bool mHdr;
+		bool mSrgb;
 		// if image should be flipped vertically when loaded, if possible
 		bool mFlip;
 		int mPreferredNumberOfTextureComponents;
