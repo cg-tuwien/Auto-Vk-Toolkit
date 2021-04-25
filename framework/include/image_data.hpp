@@ -71,13 +71,13 @@ namespace gvk
 	protected:
 		
 		image_data_interface(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: mPaths({ aPath }), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+			: mPaths({ aPath }), mLoadHdrIfPossible(aLoadHdrIfPossible), mLoadSrgbIfApplicable(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 		
 		// for cubemaps loaded from six individual images
 		image_data_interface(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: mPaths(aPaths), mHDR(aLoadHdrIfPossible), msRGB(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
+			: mPaths(aPaths), mLoadHdrIfPossible(aLoadHdrIfPossible), mLoadSrgbIfApplicable(aLoadSrgbIfApplicable), mFlip(aFlip), mPreferredNumberOfTextureComponents(aPreferredNumberOfTextureComponents)
 		{
 		}
 
@@ -91,8 +91,8 @@ namespace gvk
 		
 		std::vector<std::string> mPaths;
 
-		bool mHdr;
-		bool mSrgb;
+		bool mLoadHdrIfPossible;
+		bool mLoadSrgbIfApplicable;
 		// if image should be flipped vertically when loaded, if possible
 		bool mFlip;
 		int mPreferredNumberOfTextureComponents;
@@ -170,11 +170,11 @@ namespace gvk
 
 			if (mPaths.size() == 1)
 			{
-				pimpl = load_image_data_from_file(mPaths[0], mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+				pimpl = load_image_data_from_file(mPaths[0], mLoadHdrIfPossible, mLoadSrgbIfApplicable, mFlip, mPreferredNumberOfTextureComponents);
 			}
 			else
 			{
-				pimpl = load_image_data_from_file(mPaths, mHDR, msRGB, mFlip, mPreferredNumberOfTextureComponents);
+				pimpl = load_image_data_from_file(mPaths, mLoadHdrIfPossible, mLoadSrgbIfApplicable, mFlip, mPreferredNumberOfTextureComponents);
 			}
 
 			pimpl->load();

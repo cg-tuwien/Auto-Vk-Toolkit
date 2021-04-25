@@ -7,13 +7,13 @@ namespace gvk
 	{
 	public:
 		explicit image_data_composite_cubemap(const std::vector<std::string>& aPaths, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_data_implementor(aPaths, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+			: image_data_implementor(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 			assert(aPaths.size() == 6);
 
 			for (const auto& path : aPaths)
 			{
-				std::unique_ptr<image_data_implementor> i = load_image_data_from_file(path, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents);
+				std::unique_ptr<image_data_implementor> i = load_image_data_from_file(path, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
 				image_data_implementors.push_back(std::move(i));
 			}
@@ -111,8 +111,8 @@ namespace gvk
 	class image_data_gli : public image_data_implementor
 	{
 	public:
-		explicit image_data_gli(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_data_implementor(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents)
+		explicit image_data_gli(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_implementor(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents)
 		{
 		}
 
@@ -128,7 +128,7 @@ namespace gvk
 
 		vk::Format get_format() const
 		{
-			// TODO: what if mHDR == false but file has a HDR format? Likewise, msRGB is not considered here.
+			// TODO: what if mLoadHdrIfPossible == false but file has a HDR format? Likewise, mLoadSrgbIfApplicable is not considered here.
 			return map_format_gli_to_vk(gliTex.format());
 		};
 
@@ -286,8 +286,8 @@ namespace gvk
 		using type_8bit = stbi_uc;
 
 	public:
-		explicit image_data_stb(const std::string& aPath, const bool aHDR = false, const bool asRGB = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
-			: image_data_implementor(aPath, aHDR, asRGB, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
+		explicit image_data_stb(const std::string& aPath, const bool aLoadHdrIfPossible = false, const bool aLoadSrgbIfApplicable = false, const bool aFlip = false, const int aPreferredNumberOfTextureComponents = 4)
+			: image_data_implementor(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents), mExtent(0, 0, 0), mChannelsInFile(0), sizeofPixelPerChannel(0), mFormat(vk::Format::eUndefined), mData(nullptr, &deleter)
 		{
 		}
 
@@ -297,10 +297,10 @@ namespace gvk
 
 			int w = 0, h = 0;
 
-			mHDR = mHDR && stbi_is_hdr(path().c_str());
+			mLoadHdrIfPossible = mLoadHdrIfPossible && stbi_is_hdr(path().c_str());
 
 			// TODO: load 16 bit per channel files?
-			if (mHDR)
+			if (mLoadHdrIfPossible)
 			{
 				void* data = stbi_loadf(path().c_str(), &w, &h, &mChannelsInFile, map_to_stbi_channels(mPreferredNumberOfTextureComponents));
 				mData = std::unique_ptr<void, decltype(&deleter)>(data, &deleter);
@@ -316,13 +316,13 @@ namespace gvk
 			if (!mData) {
 				LOG_INFO_EM(fmt::format("Result: {}", std::string(stbi_failure_reason())));
 			
-				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load{}", path(), mHDR ? "f" : ""));
+				throw gvk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load{}", path(), mLoadHdrIfPossible ? "f" : ""));
 			}
 			assert(mData != nullptr);
 
 			mExtent = vk::Extent3D(w, h, 1);
 
-			mFormat = select_format(mPreferredNumberOfTextureComponents, mHDR, msRGB);
+			mFormat = select_format(mPreferredNumberOfTextureComponents, mLoadHdrIfPossible, mLoadSrgbIfApplicable);
 		};
 
 		vk::Format get_format() const
