@@ -50,7 +50,7 @@
             ]
         },
         {
-            "file": "1st_party/models/sponza_debris.obj",
+            "file": "3rd_party/models/terrain_and_debris/sponza_debris_textured.dae",
             "name": "sponza_debris",
             "instances": [
                 {
@@ -74,7 +74,7 @@
             ]
         },
 		{
-            "file": "1st_party/models/surrounding_terrain/surrounding_terrain.obj",
+            "file": "3rd_party/models/terrain_and_debris/surrounding_terrain_textured.dae",
             "name": "surrounding_terrain",
             "instances": [
                 {

@@ -490,57 +490,6 @@ namespace gvk
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/**	Takes a vector of gvk::material_config elements and converts it into a format that is usable
-	 *	in shaders. Concretely, this means that each input gvk::material_config is transformed into
-	 *	a gvk::material_gpu_data struct. The latter no longer contains the paths to images, but
-	 *	instead, indices to image samplers.
-	 *	The image samplers referenced by those indices are returned as the second tuple element.
-	 *
-	 *	Whenever textures are not set in the input gvk::material_config elements, they will be
-	 *	replaced by "dummy textures" which are sized 1x1 and contain a single value. There are two
-	 *	types of such replacement textures:
-	 *	- 1x1 pure white (i.e. unorm values of (1,1,1,1))
-	 *	- 1x1 "straight up normal" texture containing byte values (127, 127, 255, 0)
-	 *
-	 *	Either 0, 1, or 2 such automatically created textures can be created and returned.
-	 *	To find out how many such 1x1 textures actually were created, you can use the following code:
-	 *	(Although it is not 100% reliable (if the first regular texture is sized 1x1) but for most
-	 *	 real-world cases, it should give the right result.)
-	 *
-	 *		int numAutoGen = 0;
-	 *		for (int i = 0; i < std::min(2, static_cast<int>(imageSamplers.size())); ++i) {
-	 *			auto e = imageSamplers[i]->get_image_view()->get_image().config().extent;
-	 *			if (e.width == 1u && e.height == 1u) {
-	 *				++numAutoGen;
-	 *			}
-	 *		}
-	 *
-	 *	@param	aMaterialConfigs		A vector of multiple gvk::material_config entries that are to
-	 *									be converted into vectors of gvk::material_gpu_data and avk::image_sampler
-	 *	@param	aLoadTexturesInSrgb		If true, "diffuse textures", "ambient textures", and "extra textures"
-	 *									are assumed to be in sRGB format and will be loaded as such.
-	 *									All other textures will always be loaded in non-sRGB format.
-	 *	@param	aFlipTextures			Flip the images loaded from file vertically.
-	 *	@param	aImageUsage				Image usage for all the textures that are loaded.
-	 *	@param	aTextureFilterMode		Texture filter mode for all the textures that are loaded.
-	 *	@param	aBorderHandlingMode		Border handling mode for all the textures that are loaded.
-	 *	@param	aSyncHandler			How to synchronize the GPU-upload of texture memory.
-	 *	@return	A tuple of two elements: The first element contains a vector of gvk::material_gpu_data
-	 *			entries, which are gvk::material_config entries converted into a format suitable to be
-	 *			used in UBOs or SSBOs, and the second element contains a vector of avk::image_samplers,
-	 *			containing all the "combined image samplers" for all the textures which are referenced
-	 *			from the gvk::material_gpu_data entries from the first tuple element. Also the second
-	 *			tuple element is suitable to be bound and used in GPU shaders as is.
-	 */
-	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
-		const std::vector<gvk::material_config>& aMaterialConfigs,
-		bool aLoadTexturesInSrgb = false,
-		bool aFlipTextures = false,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture,
-		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::border_handling_mode aBorderHandlingMode = avk::border_handling_mode::repeat,
-		avk::sync aSyncHandler = avk::sync::wait_idle());
-
 	template <typename... Rest>
 	void add_tuple_or_indices(std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aResult)
 	{ }
@@ -1474,6 +1423,370 @@ namespace gvk
 		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
 
+	template <typename T>
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+		const std::vector<gvk::material_config>& aMaterialConfigs,
+		bool aLoadTexturesInSrgb,
+		bool aFlipTextures,
+		avk::image_usage aImageUsage,
+		avk::filter_mode aTextureFilterMode,
+		avk::sync aSyncHandler,
+		std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
+	{
+		// These are the texture names loaded from file -> mapped to vector of usage-pointers
+		std::unordered_map<std::string, std::vector<std::tuple<std::array<avk::border_handling_mode, 2>, std::vector<int*>>>> texNamesToBorderHandlingToUsages;
+
+		auto addTexUsage = [&texNamesToBorderHandlingToUsages](const std::string& bPath, const std::array<avk::border_handling_mode, 2>& bBhMode, int* bUsage) {
+			auto& vct = texNamesToBorderHandlingToUsages[bPath];
+			for (auto& [existingBhModes, usages] : vct) {
+				if (existingBhModes[0] == bBhMode[0] && existingBhModes[1] == bBhMode[1]) {
+					usages.push_back(bUsage);
+					return; // Found => done
+				}
+			}
+			// Not found => add new
+			vct.emplace_back(bBhMode, std::vector<int*>{ bUsage });
+		};
+
+		// Textures contained in this array shall be loaded into an sRGB format
+		std::set<std::string> srgbTextures;
+
+		// However, if some textures are missing, provide 1x1 px textures in those spots
+		std::vector<int*> whiteTexUsages;				// Provide a 1x1 px almost everywhere in those cases,
+		std::vector<int*> straightUpNormalTexUsages;	// except for normal maps, provide a normal pointing straight up there.
+
+		std::vector<T> result;
+		if (!aSerializer ||
+			(aSerializer && (aSerializer->get().mode() == serializer::mode::serialize))) {
+			size_t materialConfigSize = aMaterialConfigs.size();
+			result.reserve(materialConfigSize); // important because of the pointers
+
+			for (auto& mc : aMaterialConfigs) {
+				auto& newEntry = result.emplace_back();
+				if constexpr (std::is_convertible<T&, material_gpu_data&>::value) {
+					material_gpu_data& mgd = static_cast<material_gpu_data&>(newEntry);
+					mgd.mDiffuseReflectivity = mc.mDiffuseReflectivity;
+					mgd.mAmbientReflectivity = mc.mAmbientReflectivity;
+					mgd.mSpecularReflectivity = mc.mSpecularReflectivity;
+					mgd.mEmissiveColor = mc.mEmissiveColor;
+					mgd.mTransparentColor = mc.mTransparentColor;
+					mgd.mReflectiveColor = mc.mReflectiveColor;
+					mgd.mAlbedo = mc.mAlbedo;
+
+					mgd.mOpacity = mc.mOpacity;
+					mgd.mBumpScaling = mc.mBumpScaling;
+					mgd.mShininess = mc.mShininess;
+					mgd.mShininessStrength = mc.mShininessStrength;
+
+					mgd.mRefractionIndex = mc.mRefractionIndex;
+					mgd.mReflectivity = mc.mReflectivity;
+					mgd.mMetallic = mc.mMetallic;
+					mgd.mSmoothness = mc.mSmoothness;
+
+					mgd.mSheen = mc.mSheen;
+					mgd.mThickness = mc.mThickness;
+					mgd.mRoughness = mc.mRoughness;
+					mgd.mAnisotropy = mc.mAnisotropy;
+
+					mgd.mAnisotropyRotation = mc.mAnisotropyRotation;
+					mgd.mCustomData = mc.mCustomData;
+
+					mgd.mDiffuseTexIndex = -1;
+					if (mc.mDiffuseTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mDiffuseTexIndex);
+					}
+					else {
+						auto path = avk::clean_up_path(mc.mDiffuseTex);
+						addTexUsage(path, mc.mDiffuseTexBorderHandlingMode, &mgd.mDiffuseTexIndex);
+						if (aLoadTexturesInSrgb) {
+							srgbTextures.insert(path);
+						}
+					}
+
+					mgd.mSpecularTexIndex = -1;
+					if (mc.mSpecularTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mSpecularTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mSpecularTex), mc.mSpecularTexBorderHandlingMode, &mgd.mSpecularTexIndex);
+					}
+
+					mgd.mAmbientTexIndex = -1;
+					if (mc.mAmbientTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mAmbientTexIndex);
+					}
+					else {
+						auto path = avk::clean_up_path(mc.mAmbientTex);
+						addTexUsage(path, mc.mAmbientTexBorderHandlingMode, &mgd.mAmbientTexIndex);
+						if (aLoadTexturesInSrgb) {
+							srgbTextures.insert(path);
+						}
+					}
+
+					mgd.mEmissiveTexIndex = -1;
+					if (mc.mEmissiveTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mEmissiveTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mEmissiveTex), mc.mEmissiveTexBorderHandlingMode, &mgd.mEmissiveTexIndex);
+					}
+
+					mgd.mHeightTexIndex = -1;
+					if (mc.mHeightTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mHeightTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mHeightTex), mc.mHeightTexBorderHandlingMode, &mgd.mHeightTexIndex);
+					}
+
+					mgd.mNormalsTexIndex = -1;
+					if (mc.mNormalsTex.empty()) {
+						straightUpNormalTexUsages.push_back(&mgd.mNormalsTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mNormalsTex), mc.mNormalsTexBorderHandlingMode, &mgd.mNormalsTexIndex);
+					}
+
+					mgd.mShininessTexIndex = -1;
+					if (mc.mShininessTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mShininessTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mShininessTex), mc.mShininessTexBorderHandlingMode, &mgd.mShininessTexIndex);
+					}
+
+					mgd.mOpacityTexIndex = -1;
+					if (mc.mOpacityTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mOpacityTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mOpacityTex), mc.mOpacityTexBorderHandlingMode, &mgd.mOpacityTexIndex);
+					}
+
+					mgd.mDisplacementTexIndex = -1;
+					if (mc.mDisplacementTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mDisplacementTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mDisplacementTex), mc.mDisplacementTexBorderHandlingMode, &mgd.mDisplacementTexIndex);
+					}
+
+					mgd.mReflectionTexIndex = -1;
+					if (mc.mReflectionTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mReflectionTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mReflectionTex), mc.mReflectionTexBorderHandlingMode, &mgd.mReflectionTexIndex);
+					}
+
+					mgd.mLightmapTexIndex = -1;
+					if (mc.mLightmapTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mLightmapTexIndex);
+					}
+					else {
+						addTexUsage(avk::clean_up_path(mc.mLightmapTex), mc.mLightmapTexBorderHandlingMode, &mgd.mLightmapTexIndex);
+					}
+
+					mgd.mExtraTexIndex = -1;
+					if (mc.mExtraTex.empty()) {
+						whiteTexUsages.push_back(&mgd.mExtraTexIndex);
+					}
+					else {
+						auto path = avk::clean_up_path(mc.mExtraTex);
+						addTexUsage(path, mc.mExtraTexBorderHandlingMode, &mgd.mExtraTexIndex);
+						if (aLoadTexturesInSrgb) {
+							srgbTextures.insert(path);
+						}
+					}
+
+					mgd.mDiffuseTexOffsetTiling			= mc.mDiffuseTexOffsetTiling;
+					mgd.mSpecularTexOffsetTiling		= mc.mSpecularTexOffsetTiling;
+					mgd.mAmbientTexOffsetTiling			= mc.mAmbientTexOffsetTiling;
+					mgd.mEmissiveTexOffsetTiling		= mc.mEmissiveTexOffsetTiling;
+					mgd.mHeightTexOffsetTiling			= mc.mHeightTexOffsetTiling;
+					mgd.mNormalsTexOffsetTiling			= mc.mNormalsTexOffsetTiling;
+					mgd.mShininessTexOffsetTiling		= mc.mShininessTexOffsetTiling;
+					mgd.mOpacityTexOffsetTiling			= mc.mOpacityTexOffsetTiling;
+					mgd.mDisplacementTexOffsetTiling	= mc.mDisplacementTexOffsetTiling;
+					mgd.mReflectionTexOffsetTiling		= mc.mReflectionTexOffsetTiling;
+					mgd.mLightmapTexOffsetTiling		= mc.mLightmapTexOffsetTiling;
+					mgd.mExtraTexOffsetTiling			= mc.mExtraTexOffsetTiling;
+				}
+				if constexpr (std::is_convertible<T&, material_gpu_data_ext&>::value) {
+					material_gpu_data_ext& ext = static_cast<material_gpu_data_ext&>(newEntry);
+
+					ext.mDiffuseTexUvSet				= mc.mDiffuseTexUvSet;
+					ext.mSpecularTexUvSet				= mc.mSpecularTexUvSet;
+					ext.mAmbientTexUvSet				= mc.mAmbientTexUvSet;
+					ext.mEmissiveTexUvSet				= mc.mEmissiveTexUvSet;
+					ext.mHeightTexUvSet					= mc.mHeightTexUvSet;
+					ext.mNormalsTexUvSet				= mc.mNormalsTexUvSet;
+					ext.mShininessTexUvSet				= mc.mShininessTexUvSet;
+					ext.mOpacityTexUvSet				= mc.mOpacityTexUvSet;
+					ext.mDisplacementTexUvSet			= mc.mDisplacementTexUvSet;
+					ext.mReflectionTexUvSet				= mc.mReflectionTexUvSet;
+					ext.mLightmapTexUvSet				= mc.mLightmapTexUvSet;
+					ext.mExtraTexUvSet					= mc.mExtraTexUvSet;
+
+					ext.mDiffuseTexRotation				= mc.mDiffuseTexRotation;
+					ext.mSpecularTexRotation			= mc.mSpecularTexRotation;
+					ext.mAmbientTexRotation				= mc.mAmbientTexRotation;
+					ext.mEmissiveTexRotation			= mc.mEmissiveTexRotation;
+					ext.mHeightTexRotation				= mc.mHeightTexRotation;
+					ext.mNormalsTexRotation				= mc.mNormalsTexRotation;
+					ext.mShininessTexRotation			= mc.mShininessTexRotation;
+					ext.mOpacityTexRotation				= mc.mOpacityTexRotation;
+					ext.mDisplacementTexRotation		= mc.mDisplacementTexRotation;
+					ext.mReflectionTexRotation			= mc.mReflectionTexRotation;
+					ext.mLightmapTexRotation			= mc.mLightmapTexRotation;
+					ext.mExtraTexRotation				= mc.mExtraTexRotation;
+				}
+			}
+		}
+
+		std::vector<avk::image_sampler> imageSamplers;
+
+		size_t numTexUsages = 0;
+		for (const auto& entry : texNamesToBorderHandlingToUsages) {
+			numTexUsages += entry.second.size();
+		}
+		size_t numWhiteTexUsages = whiteTexUsages.empty() ? 0 : 1;
+		size_t numStraightUpNormalTexUsages = (straightUpNormalTexUsages.empty() ? 0 : 1);
+
+		const auto numSamplers = numTexUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
+		imageSamplers.reserve(numSamplers);
+		auto numImageViews = texNamesToBorderHandlingToUsages.size() + numWhiteTexUsages + numStraightUpNormalTexUsages;
+
+		// TODO Issue #102: The serialized numbers have changed a bit compared to the previous version:
+		if (aSerializer) {
+			aSerializer->get().archive(numWhiteTexUsages);
+			aSerializer->get().archive(numStraightUpNormalTexUsages);
+			aSerializer->get().archive(numImageViews);
+		}
+
+		auto getSync = [numImageViews, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::sync {
+			++lSyncCount;
+			if (lSyncCount < numImageViews) {
+				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
+			}
+			assert(lSyncCount == numImageViews);
+			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
+		};
+
+		// Create the white texture and assign its index to all usages
+		if (numWhiteTexUsages > 0) {
+			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+			// TODO Issue #102: Use create_sampler_cached here:
+			auto smplr = gvk::context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			imageSamplers.push_back(gvk::context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
+
+			// Assign this image_sampler's index wherever it is referenced:
+			if (!aSerializer ||
+				(aSerializer && (aSerializer->get().mode() == serializer::mode::serialize))) {
+				int index = static_cast<int>(imageSamplers.size() - 1);
+				for (auto* img : whiteTexUsages) {
+					*img = index;
+				}
+			}
+		}
+
+		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
+		if (numStraightUpNormalTexUsages > 0) {
+			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+			// TODO Issue #102: Use create_sampler_cached here:
+			auto smplr = gvk::context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			imageSamplers.push_back(gvk::context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
+
+			// Assign this image_sampler's index wherever it is referenced:
+			if (!aSerializer ||
+				(aSerializer && (aSerializer->get().mode() == serializer::mode::serialize))) {
+				int index = static_cast<int>(imageSamplers.size() - 1);
+				for (auto* img : straightUpNormalTexUsages) {
+					*img = index;
+				}
+			}
+		}
+
+		// Load all the images from file, and assign them to all usages
+		if (!aSerializer ||
+			(aSerializer && (aSerializer->get().mode() == serializer::mode::serialize))) {
+			// create_image_from_file_cached takes the serializer as an optional,
+			// therefore the call is safe with and without one
+			for (auto& pair : texNamesToBorderHandlingToUsages) {
+				assert(!pair.first.empty());
+
+				bool potentiallySrgb = srgbTextures.contains(pair.first);
+
+				auto imgView = context().create_image_view(create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+				assert(!pair.second.empty());
+
+				// TODO Issue #102: It is now possible that an image can be referenced from different samplers, which adds support for different
+				//                  usages of an image, e.g. once it is used as a tiled texture, at a different place it is clamped to edge, etc.
+				//                  We need to store how many different samplers are referencing the image:
+				auto numDifferentSamplers = static_cast<int>(pair.second.size());
+				if (aSerializer && (aSerializer->get().mode() == serializer::mode::serialize)) {
+					aSerializer->get().archive(numDifferentSamplers);
+				}
+
+				// There can be different border handling types specified for the textures
+				for (auto& [bhModes, usages] : pair.second) {
+					assert(!usages.empty());
+					
+					// TODO Issue #102: Use create_sampler_cached here:
+					auto smplr = context().create_sampler(aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+
+					if (numDifferentSamplers > 1) {
+						// If we indeed have different border handling modes, create multiple samplers and share the image view resource among them:
+						imageSamplers.push_back(context().create_image_sampler(avk::shared(imgView), avk::owned(smplr)));
+					}
+					else {
+						// There is only one border handling mode:
+						imageSamplers.push_back(context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
+					}
+
+					// Assign the texture usages:
+					auto index = static_cast<int>(imageSamplers.size() - 1);
+					for (auto* img : usages) {
+						*img = index;
+					}
+				}
+			}
+		}
+		else {
+
+			// We sure have the serializer here
+			for (int i = 0; i < numTexUsages; ++i) {
+				// create_image_from_file_cached does not need these values, as the
+				// image data is loaded from a cache file, so we can just pass some
+				// defaults to avoid having to save them to the cache file
+				const bool potentiallySrgbDontCare = false;
+				const std::string pathDontCare = "";
+
+				// TODO Issue #102: Properly implement deserialization of sampler parameters and adapt to the new structure with
+				//                  the 1:n relationship between image and samplers:
+				//                  1) Read an image from cache
+				//                  2) read the number of samplers from cache
+				//                  3) read sampler from cache
+				imageSamplers.push_back(
+					context().create_image_sampler(
+						owned(context().create_image_view(
+							create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer)
+						)),
+						avk::owned(context().create_sampler(aTextureFilterMode, avk::border_handling_mode::repeat)) // TODO Issue #102: Problem! Sampler's config is not _cached
+					)
+				);
+			}
+		}
+
+		if (aSerializer) {
+			aSerializer->get().archive(result);
+		}
+
+		// Hand over ownership to the caller
+		return std::make_tuple(std::move(result), std::move(imageSamplers));
+	}
+
+	
 	/**	Convert the given material config into a format that is usable with a GPU buffer for the materials (i.e. properly vec4-aligned),
 	 *	and a set of images and samplers, which are already created on and uploaded to the GPU.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1482,20 +1795,88 @@ namespace gvk
 	 *	@param	aFlipTextures				Set to true to y-flip images			
 	 *	@param	aImageUsage					How this image is going to be used. Can be a combination of different avk::image_usage values
 	 *	@param	aTextureFilterMode			Texture filtering mode for all the textures. Trilinear or anisotropic filtering modes will trigger MIP-maps to be generated.
-	 *	@param	aBorderHandlingMode			Border handling mode for all the textures			
 	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@reutrn	A tuple with two elements:
 	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
 	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
 	 */
-	extern std::tuple<std::vector<material_gpu_data>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+	template <typename T>
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
 		gvk::serializer& aSerializer,
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb = false,
 		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
 		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::border_handling_mode aBorderHandlingMode = avk::border_handling_mode::repeat,
-		avk::sync aSyncHandler = avk::sync::wait_idle());
+		avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return convert_for_gpu_usage_cached<T>(
+			aMaterialConfigs,
+			aLoadTexturesInSrgb,
+			aFlipTextures,
+			aImageUsage,
+			aTextureFilterMode,
+			std::move(aSyncHandler),
+			aSerializer);
+	}
 
+	/**	Takes a vector of gvk::material_config elements and converts it into a format that is usable
+	 *	in shaders. Concretely, this means that each input gvk::material_config is transformed into
+	 *	a gvk::material_gpu_data struct. The latter no longer contains the paths to images, but
+	 *	instead, indices to image samplers.
+	 *	The image samplers referenced by those indices are returned as the second tuple element.
+	 *
+	 *	Whenever textures are not set in the input gvk::material_config elements, they will be
+	 *	replaced by "dummy textures" which are sized 1x1 and contain a single value. There are two
+	 *	types of such replacement textures:
+	 *	- 1x1 pure white (i.e. unorm values of (1,1,1,1))
+	 *	- 1x1 "straight up normal" texture containing byte values (127, 127, 255, 0)
+	 *
+	 *	Either 0, 1, or 2 such automatically created textures can be created and returned.
+	 *	To find out how many such 1x1 textures actually were created, you can use the following code:
+	 *	(Although it is not 100% reliable (if the first regular texture is sized 1x1) but for most
+	 *	 real-world cases, it should give the right result.)
+	 *
+	 *		int numAutoGen = 0;
+	 *		for (int i = 0; i < std::min(2, static_cast<int>(imageSamplers.size())); ++i) {
+	 *			auto e = imageSamplers[i]->get_image_view()->get_image().config().extent;
+	 *			if (e.width == 1u && e.height == 1u) {
+	 *				++numAutoGen;
+	 *			}
+	 *		}
+	 *
+	 *	@param	aMaterialConfigs		A vector of multiple gvk::material_config entries that are to
+	 *									be converted into vectors of gvk::material_gpu_data and avk::image_sampler
+	 *	@param	aLoadTexturesInSrgb		If true, "diffuse textures", "ambient textures", and "extra textures"
+	 *									are assumed to be in sRGB format and will be loaded as such.
+	 *									All other textures will always be loaded in non-sRGB format.
+	 *	@param	aFlipTextures			Flip the images loaded from file vertically.
+	 *	@param	aImageUsage				Image usage for all the textures that are loaded.
+	 *	@param	aTextureFilterMode		Texture filter mode for all the textures that are loaded.
+	 *	@param	aBorderHandlingMode		Border handling mode for all the textures that are loaded.
+	 *	@param	aSyncHandler			How to synchronize the GPU-upload of texture memory.
+	 *	@return	A tuple of two elements: The first element contains a vector of gvk::material_gpu_data
+	 *			entries, which are gvk::material_config entries converted into a format suitable to be
+	 *			used in UBOs or SSBOs, and the second element contains a vector of avk::image_samplers,
+	 *			containing all the "combined image samplers" for all the textures which are referenced
+	 *			from the gvk::material_gpu_data entries from the first tuple element. Also the second
+	 *			tuple element is suitable to be bound and used in GPU shaders as is.
+	 */
+	template <typename T>
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
+		const std::vector<gvk::material_config>& aMaterialConfigs,
+		bool aLoadTexturesInSrgb = false,
+		bool aFlipTextures = false,
+		avk::image_usage aImageUsage = avk::image_usage::general_texture,
+		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
+		avk::sync aSyncHandler = avk::sync::wait_idle())
+	{
+		return convert_for_gpu_usage_cached<T>(
+			aMaterialConfigs,
+			aLoadTexturesInSrgb,
+			aFlipTextures,
+			aImageUsage,
+			aTextureFilterMode,
+			std::move(aSyncHandler));
+	}
 }

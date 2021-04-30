@@ -504,6 +504,9 @@
     <ClInclude Include="..\..\framework\include\swapchain_additional_attachments_changed_event.hpp">
       <Filter>gears-vk_include\updater</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\framework\include\material_gpu_data_ext.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

@@ -115,13 +115,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = gvk::context().get_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
-			allMatConfigs, false, false,
-			avk::image_usage::general_texture,
-			avk::filter_mode::anisotropic_16x,
-			avk::border_handling_mode::repeat,
-			avk::sync::wait_idle()
-		);
+auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
+	allMatConfigs, false, false,
+	avk::image_usage::general_texture,
+	avk::filter_mode::anisotropic_16x,
+	avk::sync::wait_idle()
+);
 
 		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
@@ -306,12 +305,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// during the conversion in convert_for_gpu_usage_cached. If the serializer was initialized in
 		// mode deserialize, allMatConfigs may be empty since the serializer retreives everything needed
 		// from the cache file
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
+		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached<gvk::material_gpu_data>(
 			serializer,
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
-			avk::border_handling_mode::repeat,
 			avk::sync::wait_idle()
 		);
 
