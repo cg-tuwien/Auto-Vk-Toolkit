@@ -4,7 +4,7 @@
 #include "imfilebrowser.h"
 #include <glm/gtx/euler_angles.hpp>
 
-#define USE_SERIALIZER
+#define USE_SERIALIZER 1
 
 class orca_loader_app : public gvk::invokee
 {
@@ -87,15 +87,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer(
+				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer<avk::vertex_buffer_meta>(
 					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
 				);
 				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer(
+				auto normalsBuffer = gvk::create_normals_buffer<avk::vertex_buffer_meta>(
 					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
-				);
+				);	
 				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
@@ -115,13 +115,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = gvk::context().get_time();
 
 		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
-			allMatConfigs, false, false,
-			avk::image_usage::general_texture,
-			avk::filter_mode::anisotropic_16x,
-			avk::border_handling_mode::repeat,
-			avk::sync::wait_idle()
-		);
+auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
+	allMatConfigs, false, false,
+	avk::image_usage::general_texture,
+	avk::filter_mode::anisotropic_16x,
+	avk::sync::wait_idle()
+);
 
 		endPart = gvk::context().get_time();
 		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
@@ -306,12 +305,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// during the conversion in convert_for_gpu_usage_cached. If the serializer was initialized in
 		// mode deserialize, allMatConfigs may be empty since the serializer retreives everything needed
 		// from the cache file
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached(
+		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached<gvk::material_gpu_data>(
 			serializer,
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
-			avk::border_handling_mode::repeat,
 			avk::sync::wait_idle()
 		);
 
@@ -376,10 +374,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::uniform_buffer_meta::create_from_data(glm::mat4())
 		);
 		
-#ifdef USE_SERIALIZER
-		load_orca_scene_cached("assets/sponza_duo.fscene");
+#if USE_SERIALIZER
+		load_orca_scene_cached("assets/sponza_and_terrain.fscene");
 #else
-		load_orca_scene("assets/sponza_duo.fscene");
+		load_orca_scene("assets/sponza_and_terrain.fscene");
 #endif
 
 		// Add the camera to the composition (and let it handle the updates)
@@ -412,7 +410,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		        
 		        if(mFileBrowser.HasSelected())
 		        {
-#ifdef USE_SERIALIZER
+#if USE_SERIALIZER
 		            load_orca_scene_cached(mFileBrowser.GetSelected().string());
 #else
 		            load_orca_scene(mFileBrowser.GetSelected().string());

@@ -23,10 +23,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\sponza_duo.fscene" />
+    <None Include="..\..\..\assets\sponza_and_terrain.fscene" />
     <None Include="..\..\..\examples\orca_loader\shaders\diffuse_shading_fixed_lightsource.frag" />
     <None Include="..\..\..\examples\orca_loader\shaders\transform_and_pass_pos_nrm_uv.vert" />
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\examples\orca_loader\source\imfilebrowser.h" />

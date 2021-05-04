@@ -5,6 +5,71 @@ namespace gvk
 {
 	/** Material data in the right format to be uploaded to the GPU
 	 *	and to be used in a GPU buffer like a UBO or an SSBO.
+	 *
+	 *	Possible corresponding GLSL data structures:
+	 *	
+	 *	layout(set = 0, binding = 0) uniform sampler2D textures[];
+	 *
+	 *	struct MaterialGpuData
+	 *	{
+	 *		vec4 mDiffuseReflectivity;
+	 *		vec4 mAmbientReflectivity;
+	 *		vec4 mSpecularReflectivity;
+	 *		vec4 mEmissiveColor;
+	 *		vec4 mTransparentColor;
+	 *		vec4 mReflectiveColor;
+	 *		vec4 mAlbedo;
+	 *
+	 *		float mOpacity;
+	 *		float mBumpScaling;
+	 *		float mShininess;
+	 *		float mShininessStrength;
+	 *		
+	 *		float mRefractionIndex;
+	 *		float mReflectivity;
+	 *		float mMetallic;
+	 *		float mSmoothness;
+	 *		
+	 *		float mSheen;
+	 *		float mThickness;
+	 *		float mRoughness;
+	 *		float mAnisotropy;
+	 *		
+	 *		vec4 mAnisotropyRotation;
+	 *		vec4 mCustomData;
+	 *		
+	 *		int mDiffuseTexIndex;
+	 *		int mSpecularTexIndex;
+	 *		int mAmbientTexIndex;
+	 *		int mEmissiveTexIndex;
+	 *		int mHeightTexIndex;
+	 *		int mNormalsTexIndex;
+	 *		int mShininessTexIndex;
+	 *		int mOpacityTexIndex;
+	 *		int mDisplacementTexIndex;
+	 *		int mReflectionTexIndex;
+	 *		int mLightmapTexIndex;
+	 *		int mExtraTexIndex;
+	 *		
+	 *		vec4 mDiffuseTexOffsetTiling;
+	 *		vec4 mSpecularTexOffsetTiling;
+	 *		vec4 mAmbientTexOffsetTiling;
+	 *		vec4 mEmissiveTexOffsetTiling;
+	 *		vec4 mHeightTexOffsetTiling;
+	 *		vec4 mNormalsTexOffsetTiling;
+	 *		vec4 mShininessTexOffsetTiling;
+	 *		vec4 mOpacityTexOffsetTiling;
+	 *		vec4 mDisplacementTexOffsetTiling;
+	 *		vec4 mReflectionTexOffsetTiling;
+	 *		vec4 mLightmapTexOffsetTiling;
+	 *		vec4 mExtraTexOffsetTiling;
+	 *	};
+	 *
+	 *	layout(set = 0, binding = 1) buffer Material 
+	 *	{
+	 *		MaterialGpuData materials[];
+	 *	} materialsBuffer;
+	 *	
 	 */
 	struct material_gpu_data
 	{
@@ -34,18 +99,18 @@ namespace gvk
 		alignas(16) glm::vec4 mAnisotropyRotation;
 		alignas(16) glm::vec4 mCustomData;
 
-		alignas(4) int mDiffuseTexIndex;
-		alignas(4) int mSpecularTexIndex;
-		alignas(4) int mAmbientTexIndex;
-		alignas(4) int mEmissiveTexIndex;
-		alignas(4) int mHeightTexIndex;
-		alignas(4) int mNormalsTexIndex;
-		alignas(4) int mShininessTexIndex;
-		alignas(4) int mOpacityTexIndex;
-		alignas(4) int mDisplacementTexIndex;
-		alignas(4) int mReflectionTexIndex;
-		alignas(4) int mLightmapTexIndex;
-		alignas(4) int mExtraTexIndex;
+		alignas(4) int32_t mDiffuseTexIndex;
+		alignas(4) int32_t mSpecularTexIndex;
+		alignas(4) int32_t mAmbientTexIndex;
+		alignas(4) int32_t mEmissiveTexIndex;
+		alignas(4) int32_t mHeightTexIndex;
+		alignas(4) int32_t mNormalsTexIndex;
+		alignas(4) int32_t mShininessTexIndex;
+		alignas(4) int32_t mOpacityTexIndex;
+		alignas(4) int32_t mDisplacementTexIndex;
+		alignas(4) int32_t mReflectionTexIndex;
+		alignas(4) int32_t mLightmapTexIndex;
+		alignas(4) int32_t mExtraTexIndex;
 
 		alignas(16) glm::vec4 mDiffuseTexOffsetTiling;
 		alignas(16) glm::vec4 mSpecularTexOffsetTiling;

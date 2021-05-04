@@ -48,18 +48,54 @@ namespace gvk
 			, mReflectionTex{}
 			, mLightmapTex{}
 			, mExtraTex{}
-			, mDiffuseTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mSpecularTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mAmbientTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mEmissiveTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mHeightTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mNormalsTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mShininessTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mOpacityTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mDisplacementTexOffsetTiling	{ 0.f, 0.f, 1.f, 1.f }
-			, mReflectionTexOffsetTiling	{ 0.f, 0.f, 1.f, 1.f }
-			, mLightmapTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
-			, mExtraTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mDiffuseTexUvSet					{ 0 }
+			, mSpecularTexUvSet					{ 0 }
+			, mAmbientTexUvSet					{ 0 }
+			, mEmissiveTexUvSet					{ 0 }
+			, mHeightTexUvSet					{ 0 }
+			, mNormalsTexUvSet					{ 0 }
+			, mShininessTexUvSet				{ 0 }
+			, mOpacityTexUvSet					{ 0 }
+			, mDisplacementTexUvSet				{ 0 }
+			, mReflectionTexUvSet				{ 0 }
+			, mLightmapTexUvSet					{ 0 }
+			, mExtraTexUvSet					{ 0 }
+			, mDiffuseTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mSpecularTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mAmbientTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mEmissiveTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mHeightTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mNormalsTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mShininessTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mOpacityTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mDisplacementTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
+			, mReflectionTexOffsetTiling		{ 0.f, 0.f, 1.f, 1.f }
+			, mLightmapTexOffsetTiling			{ 0.f, 0.f, 1.f, 1.f }
+			, mExtraTexOffsetTiling				{ 0.f, 0.f, 1.f, 1.f }
+			, mDiffuseTexRotation				{ 0.0f }
+			, mSpecularTexRotation				{ 0.0f }
+			, mAmbientTexRotation				{ 0.0f }
+			, mEmissiveTexRotation				{ 0.0f }
+			, mHeightTexRotation				{ 0.0f }
+			, mNormalsTexRotation				{ 0.0f }
+			, mShininessTexRotation				{ 0.0f }
+			, mOpacityTexRotation				{ 0.0f }
+			, mDisplacementTexRotation			{ 0.0f }
+			, mReflectionTexRotation			{ 0.0f }
+			, mLightmapTexRotation				{ 0.0f }
+			, mExtraTexRotation					{ 0.0f }
+			, mDiffuseTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mSpecularTexBorderHandlingMode	{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mAmbientTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mEmissiveTexBorderHandlingMode	{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mHeightTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mNormalsTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mShininessTexBorderHandlingMode	{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mOpacityTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mDisplacementTexBorderHandlingMode{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mReflectionTexBorderHandlingMode	{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mLightmapTexBorderHandlingMode	{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
+			, mExtraTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
 		{}
 
 		material_config(material_config&&) = default;
@@ -117,18 +153,59 @@ namespace gvk
 		std::string mLightmapTex;
 		std::string mExtraTex;
 
-		glm::vec4 mDiffuseTexOffsetTiling;
-		glm::vec4 mSpecularTexOffsetTiling;
-		glm::vec4 mAmbientTexOffsetTiling;
-		glm::vec4 mEmissiveTexOffsetTiling;
-		glm::vec4 mHeightTexOffsetTiling;
-		glm::vec4 mNormalsTexOffsetTiling;
-		glm::vec4 mShininessTexOffsetTiling;
-		glm::vec4 mOpacityTexOffsetTiling;
-		glm::vec4 mDisplacementTexOffsetTiling;
-		glm::vec4 mReflectionTexOffsetTiling;
-		glm::vec4 mLightmapTexOffsetTiling;
-		glm::vec4 mExtraTexOffsetTiling;
+		uint32_t    mDiffuseTexUvSet;
+		uint32_t    mSpecularTexUvSet;
+		uint32_t    mAmbientTexUvSet;
+		uint32_t    mEmissiveTexUvSet;
+		uint32_t    mHeightTexUvSet;
+		uint32_t    mNormalsTexUvSet;
+		uint32_t    mShininessTexUvSet;
+		uint32_t    mOpacityTexUvSet;
+		uint32_t    mDisplacementTexUvSet;
+		uint32_t    mReflectionTexUvSet;
+		uint32_t    mLightmapTexUvSet;
+		uint32_t    mExtraTexUvSet;
+
+		glm::vec4   mDiffuseTexOffsetTiling;
+		glm::vec4   mSpecularTexOffsetTiling;
+		glm::vec4   mAmbientTexOffsetTiling;
+		glm::vec4   mEmissiveTexOffsetTiling;
+		glm::vec4   mHeightTexOffsetTiling;
+		glm::vec4   mNormalsTexOffsetTiling;
+		glm::vec4   mShininessTexOffsetTiling;
+		glm::vec4   mOpacityTexOffsetTiling;
+		glm::vec4   mDisplacementTexOffsetTiling;
+		glm::vec4   mReflectionTexOffsetTiling;
+		glm::vec4   mLightmapTexOffsetTiling;
+		glm::vec4   mExtraTexOffsetTiling;
+		
+		float       mDiffuseTexRotation;
+		float       mSpecularTexRotation;
+		float       mAmbientTexRotation;
+		float       mEmissiveTexRotation;
+		float       mHeightTexRotation;
+		float       mNormalsTexRotation;
+		float       mShininessTexRotation;
+		float       mOpacityTexRotation;
+		float       mDisplacementTexRotation;
+		float       mReflectionTexRotation;
+		float       mLightmapTexRotation;
+		float       mExtraTexRotation;
+
+		// CPU-only parameters again:
+		// Border handling modes: U, V, in that order.
+		std::array<avk::border_handling_mode, 2> mDiffuseTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mSpecularTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mAmbientTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mEmissiveTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mHeightTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mNormalsTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mShininessTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mOpacityTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mDisplacementTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mReflectionTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mLightmapTexBorderHandlingMode;
+		std::array<avk::border_handling_mode, 2> mExtraTexBorderHandlingMode;
 	};
 
 	/** Compares the two `material_config`s for equality.
@@ -184,6 +261,19 @@ namespace gvk
 		if (left.mLightmapTex					!= right.mLightmapTex					) return false;
 		if (left.mExtraTex						!= right.mExtraTex						) return false;
 
+		if (left.mDiffuseTexUvSet				!= right.mDiffuseTexUvSet				) return false;
+		if (left.mSpecularTexUvSet				!= right.mSpecularTexUvSet				) return false;
+		if (left.mAmbientTexUvSet				!= right.mAmbientTexUvSet				) return false;
+		if (left.mEmissiveTexUvSet				!= right.mEmissiveTexUvSet				) return false;
+		if (left.mHeightTexUvSet				!= right.mHeightTexUvSet				) return false;
+		if (left.mNormalsTexUvSet				!= right.mNormalsTexUvSet				) return false;
+		if (left.mShininessTexUvSet				!= right.mShininessTexUvSet				) return false;
+		if (left.mOpacityTexUvSet				!= right.mOpacityTexUvSet				) return false;
+		if (left.mDisplacementTexUvSet			!= right.mDisplacementTexUvSet			) return false;
+		if (left.mReflectionTexUvSet			!= right.mReflectionTexUvSet			) return false;
+		if (left.mLightmapTexUvSet				!= right.mLightmapTexUvSet				) return false;
+		if (left.mExtraTexUvSet					!= right.mExtraTexUvSet					) return false;
+
 		if (left.mDiffuseTexOffsetTiling		!= right.mDiffuseTexOffsetTiling		) return false;
 		if (left.mSpecularTexOffsetTiling		!= right.mSpecularTexOffsetTiling		) return false;
 		if (left.mAmbientTexOffsetTiling		!= right.mAmbientTexOffsetTiling		) return false;
@@ -197,6 +287,36 @@ namespace gvk
 		if (left.mLightmapTexOffsetTiling		!= right.mLightmapTexOffsetTiling		) return false;
 		if (left.mExtraTexOffsetTiling			!= right.mExtraTexOffsetTiling			) return false;
 
+		if (left.mDiffuseTexRotation			!= right.mDiffuseTexRotation			) return false;
+		if (left.mSpecularTexRotation			!= right.mSpecularTexRotation			) return false;
+		if (left.mAmbientTexRotation			!= right.mAmbientTexRotation			) return false;
+		if (left.mEmissiveTexRotation			!= right.mEmissiveTexRotation			) return false;
+		if (left.mHeightTexRotation				!= right.mHeightTexRotation				) return false;
+		if (left.mNormalsTexRotation			!= right.mNormalsTexRotation			) return false;
+		if (left.mShininessTexRotation			!= right.mShininessTexRotation			) return false;
+		if (left.mOpacityTexRotation			!= right.mOpacityTexRotation			) return false;
+		if (left.mDisplacementTexRotation		!= right.mDisplacementTexRotation		) return false;
+		if (left.mReflectionTexRotation			!= right.mReflectionTexRotation			) return false;
+		if (left.mLightmapTexRotation			!= right.mLightmapTexRotation			) return false;
+		if (left.mExtraTexRotation				!= right.mExtraTexRotation				) return false;
+
+		if (!left.mIgnoreCpuOnlyDataForEquality || !right.mIgnoreCpuOnlyDataForEquality) {
+			for (int i=0; i < 2; ++i) {
+				if (left.mDiffuseTexBorderHandlingMode[i]		!= right.mDiffuseTexBorderHandlingMode[i]		) return false;
+				if (left.mSpecularTexBorderHandlingMode[i]		!= right.mSpecularTexBorderHandlingMode[i]		) return false;
+				if (left.mAmbientTexBorderHandlingMode[i]		!= right.mAmbientTexBorderHandlingMode[i]		) return false;
+				if (left.mEmissiveTexBorderHandlingMode[i]		!= right.mEmissiveTexBorderHandlingMode[i]		) return false;
+				if (left.mHeightTexBorderHandlingMode[i]		!= right.mHeightTexBorderHandlingMode[i]		) return false;
+				if (left.mNormalsTexBorderHandlingMode[i]		!= right.mNormalsTexBorderHandlingMode[i]		) return false;
+				if (left.mShininessTexBorderHandlingMode[i]		!= right.mShininessTexBorderHandlingMode[i]		) return false;
+				if (left.mOpacityTexBorderHandlingMode[i]		!= right.mOpacityTexBorderHandlingMode[i]		) return false;
+				if (left.mDisplacementTexBorderHandlingMode[i]	!= right.mDisplacementTexBorderHandlingMode[i]	) return false;
+				if (left.mReflectionTexBorderHandlingMode[i]	!= right.mReflectionTexBorderHandlingMode[i]	) return false;
+				if (left.mLightmapTexBorderHandlingMode[i]		!= right.mLightmapTexBorderHandlingMode[i]		) return false;
+				if (left.mExtraTexBorderHandlingMode[i]			!= right.mExtraTexBorderHandlingMode[i]			) return false;
+			}
+		}
+		
 		return true;
 	}
 
@@ -248,6 +368,18 @@ namespace std // Inject hash for `cgb::material_config` into std::
 				o.mReflectionTex,
 				o.mLightmapTex,
 				o.mExtraTex,
+				o.mDiffuseTexUvSet,
+				o.mSpecularTexUvSet,
+				o.mAmbientTexUvSet,
+				o.mEmissiveTexUvSet,
+				o.mHeightTexUvSet,
+				o.mNormalsTexUvSet,
+				o.mShininessTexUvSet,
+				o.mOpacityTexUvSet,
+				o.mDisplacementTexUvSet,
+				o.mReflectionTexUvSet,
+				o.mLightmapTexUvSet,
+				o.mExtraTexUvSet,
 				o.mDiffuseTexOffsetTiling,
 				o.mSpecularTexOffsetTiling,
 				o.mAmbientTexOffsetTiling,
@@ -259,7 +391,19 @@ namespace std // Inject hash for `cgb::material_config` into std::
 				o.mDisplacementTexOffsetTiling,
 				o.mReflectionTexOffsetTiling,
 				o.mLightmapTexOffsetTiling,
-				o.mExtraTexOffsetTiling
+				o.mExtraTexOffsetTiling,
+				o.mDiffuseTexRotation,
+				o.mSpecularTexRotation,
+				o.mAmbientTexRotation,
+				o.mEmissiveTexRotation,
+				o.mHeightTexRotation,
+				o.mNormalsTexRotation,
+				o.mShininessTexRotation,
+				o.mOpacityTexRotation,
+				o.mDisplacementTexRotation,
+				o.mReflectionTexRotation,
+				o.mLightmapTexRotation,
+				o.mExtraTexRotation
 			);
 			if (!o.mIgnoreCpuOnlyDataForEquality) {
 				avk::hash_combine(h,
@@ -268,6 +412,22 @@ namespace std // Inject hash for `cgb::material_config` into std::
 					o.mTwosided,
 					o.mBlendMode
 				);
+				for (int i = 0; i < 2; ++i) {
+					avk::hash_combine(h,
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mDiffuseTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mSpecularTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mAmbientTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mEmissiveTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mHeightTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mNormalsTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mShininessTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mOpacityTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mDisplacementTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mReflectionTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mLightmapTexBorderHandlingMode[i]),
+						static_cast<std::underlying_type<avk::border_handling_mode>::type>(o.mExtraTexBorderHandlingMode[i])
+					);
+				}
 			}
 			return h;
 		}
