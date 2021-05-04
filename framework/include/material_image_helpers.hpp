@@ -1422,6 +1422,33 @@ namespace gvk
 		}
 		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
+	
+	/**	Create a new sampler with the given configuration parameters
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aFilterMode					Filtering strategy for the sampler to be created
+	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, v, and w coordinates (in that order)
+	 *	@param	aMipMapMaxLod				Default value = house number
+	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
+	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+
+	/**	Create a new sampler with the given configuration parameters
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aFilterMode					Filtering strategy for the sampler to be created
+	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, and v coordinates (in that order). (The w direction will get the same strategy assigned as v)
+	 *	@param	aMipMapMaxLod				Default value = house number
+	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
+	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+
+	/**	Create a new sampler with the given configuration parameters
+	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
+	 *	@param	aFilterMode					Filtering strategy for the sampler to be created
+	 *	@param	aBorderHandlingMode			Border handling strategy for all coordinates u, v, and w.
+	 *	@param	aMipMapMaxLod				Default value = house number
+	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
+	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	template <typename T>
 	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
@@ -1439,7 +1466,7 @@ namespace gvk
 		auto addTexUsage = [&texNamesToBorderHandlingToUsages](const std::string& bPath, const std::array<avk::border_handling_mode, 2>& bBhMode, int* bUsage) {
 			auto& vct = texNamesToBorderHandlingToUsages[bPath];
 			for (auto& [existingBhModes, usages] : vct) {
-				if (existingBhModes[0] == bBhMode[0] && existingBhModes[1] == bBhMode[1]) {
+				if (existingBhModes[0] == bBhMode[0] && existingBhModes[1] == bBhMode[1]) {;
 					usages.push_back(bUsage);
 					return; // Found => done
 				}
@@ -1644,25 +1671,26 @@ namespace gvk
 			}
 		}
 
-		std::vector<avk::image_sampler> imageSamplers;
-
 		size_t numTexUsages = 0;
 		for (const auto& entry : texNamesToBorderHandlingToUsages) {
 			numTexUsages += entry.second.size();
 		}
+
 		size_t numWhiteTexUsages = whiteTexUsages.empty() ? 0 : 1;
 		size_t numStraightUpNormalTexUsages = (straightUpNormalTexUsages.empty() ? 0 : 1);
+		size_t numTexNamesToBorderHandlingToUsages = texNamesToBorderHandlingToUsages.size();
+		auto numImageViews = numTexNamesToBorderHandlingToUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
 
-		const auto numSamplers = numTexUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
-		imageSamplers.reserve(numSamplers);
-		auto numImageViews = texNamesToBorderHandlingToUsages.size() + numWhiteTexUsages + numStraightUpNormalTexUsages;
-
-		// TODO Issue #102: The serialized numbers have changed a bit compared to the previous version:
 		if (aSerializer) {
 			aSerializer->get().archive(numWhiteTexUsages);
 			aSerializer->get().archive(numStraightUpNormalTexUsages);
 			aSerializer->get().archive(numImageViews);
+			aSerializer->get().archive(numTexNamesToBorderHandlingToUsages);
 		}
+
+		const auto numSamplers = numTexUsages + numWhiteTexUsages + numStraightUpNormalTexUsages;
+		std::vector<avk::image_sampler> imageSamplers;
+		imageSamplers.reserve(numSamplers);
 
 		auto getSync = [numImageViews, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::sync {
 			++lSyncCount;
@@ -1676,8 +1704,15 @@ namespace gvk
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
 			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
-			// TODO Issue #102: Use create_sampler_cached here:
-			auto smplr = gvk::context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			avk::sampler smplr;
+			if (aSerializer)
+			{
+				smplr = create_sampler_cached(aSerializer->get(), avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			}
+			else
+			{
+				smplr = context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			}
 			imageSamplers.push_back(gvk::context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
 
 			// Assign this image_sampler's index wherever it is referenced:
@@ -1693,8 +1728,15 @@ namespace gvk
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
 		if (numStraightUpNormalTexUsages > 0) {
 			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
-			// TODO Issue #102: Use create_sampler_cached here:
-			auto smplr = gvk::context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			avk::sampler smplr;
+			if (aSerializer)
+			{
+				smplr = create_sampler_cached(aSerializer->get(), avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			}
+			else
+			{
+				smplr = context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
+			}
 			imageSamplers.push_back(gvk::context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
 
 			// Assign this image_sampler's index wherever it is referenced:
@@ -1710,21 +1752,21 @@ namespace gvk
 		// Load all the images from file, and assign them to all usages
 		if (!aSerializer ||
 			(aSerializer && (aSerializer->get().mode() == serializer::mode::serialize))) {
-			// create_image_from_file_cached takes the serializer as an optional,
-			// therefore the call is safe with and without one
 			for (auto& pair : texNamesToBorderHandlingToUsages) {
 				assert(!pair.first.empty());
 
 				bool potentiallySrgb = srgbTextures.contains(pair.first);
 
+				// create_image_from_file_cached takes the serializer as an optional,
+				// therefore the call is safe with and without one
 				auto imgView = context().create_image_view(create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
 				assert(!pair.second.empty());
 
-				// TODO Issue #102: It is now possible that an image can be referenced from different samplers, which adds support for different
-				//                  usages of an image, e.g. once it is used as a tiled texture, at a different place it is clamped to edge, etc.
-				//                  We need to store how many different samplers are referencing the image:
+				// It is now possible that an image can be referenced from different samplers, which adds support for different
+				// usages of an image, e.g. once it is used as a tiled texture, at a different place it is clamped to edge, etc.
+				// If we are serializing, we need to store how many different samplers are referencing the image:
 				auto numDifferentSamplers = static_cast<int>(pair.second.size());
-				if (aSerializer && (aSerializer->get().mode() == serializer::mode::serialize)) {
+				if (aSerializer) {
 					aSerializer->get().archive(numDifferentSamplers);
 				}
 
@@ -1732,8 +1774,14 @@ namespace gvk
 				for (auto& [bhModes, usages] : pair.second) {
 					assert(!usages.empty());
 					
-					// TODO Issue #102: Use create_sampler_cached here:
-					auto smplr = context().create_sampler(aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+					avk::sampler smplr;
+					if (aSerializer) {
+						smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+					}
+					else
+					{
+						smplr = context().create_sampler(aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+					}
 
 					if (numDifferentSamplers > 1) {
 						// If we indeed have different border handling modes, create multiple samplers and share the image view resource among them:
@@ -1753,28 +1801,40 @@ namespace gvk
 			}
 		}
 		else {
-
 			// We sure have the serializer here
-			for (int i = 0; i < numTexUsages; ++i) {
+			for (int i = 0; i < numTexNamesToBorderHandlingToUsages; ++i) {
 				// create_image_from_file_cached does not need these values, as the
 				// image data is loaded from a cache file, so we can just pass some
 				// defaults to avoid having to save them to the cache file
 				const bool potentiallySrgbDontCare = false;
 				const std::string pathDontCare = "";
 
-				// TODO Issue #102: Properly implement deserialization of sampler parameters and adapt to the new structure with
-				//                  the 1:n relationship between image and samplers:
-				//                  1) Read an image from cache
-				//                  2) read the number of samplers from cache
-				//                  3) read sampler from cache
-				imageSamplers.push_back(
-					context().create_image_sampler(
-						owned(context().create_image_view(
-							create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer)
-						)),
-						avk::owned(context().create_sampler(aTextureFilterMode, avk::border_handling_mode::repeat)) // TODO Issue #102: Problem! Sampler's config is not _cached
-					)
-				);
+				// Read an image from cache
+				auto imgView = context().create_image_view(create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+
+				// Read the number of samplers from cache
+				int numDifferentSamplers;
+				aSerializer->get().archive(numDifferentSamplers);
+
+				// Initialize modes with some default values to make the compiler happy. We do not care which defaults are used,
+				// since the actual modes are read from the cache file in create_sampler_cached.
+				std::array<avk::border_handling_mode, 3> bhModes = { avk::border_handling_mode::repeat, avk::border_handling_mode::repeat, avk::border_handling_mode::repeat };
+
+				// There can be different border handling types specified for the textures
+				for (int i = 0; i < numDifferentSamplers; ++i) {
+					
+					// Read sampler from cache
+					auto smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+
+					if (numDifferentSamplers > 1) {
+						// If we indeed have different border handling modes, create multiple samplers and share the image view resource among them:
+						imageSamplers.push_back(context().create_image_sampler(avk::shared(imgView), avk::owned(smplr)));
+					}
+					else {
+						// There is only one border handling mode:
+						imageSamplers.push_back(context().create_image_sampler(avk::owned(imgView), avk::owned(smplr)));
+					}
+				}
 			}
 		}
 

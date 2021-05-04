@@ -314,4 +314,22 @@ namespace gvk
 
 		return texCoordsData;
 	}
+
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation)
+	{
+		aSerializer.archive(aFilterMode);
+		aSerializer.archive(aBorderHandlingModes);
+		aSerializer.archive(aMipMapMaxLod);
+		return context().create_sampler(aFilterMode, aBorderHandlingModes, aMipMapMaxLod, std::move(aAlterConfigBeforeCreation));
+	}
+
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation)
+	{
+		return create_sampler_cached(aSerializer, aFilterMode, { aBorderHandlingModes[0], aBorderHandlingModes[1], aBorderHandlingModes[1] }, aMipMapMaxLod, std::move(aAlterConfigBeforeCreation));
+	}
+
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation)
+	{
+		return create_sampler_cached(aSerializer, aFilterMode, { aBorderHandlingMode, aBorderHandlingMode, aBorderHandlingMode }, aMipMapMaxLod, std::move(aAlterConfigBeforeCreation));
+	}
 }
