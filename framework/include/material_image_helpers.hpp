@@ -1466,7 +1466,7 @@ namespace gvk
 		auto addTexUsage = [&texNamesToBorderHandlingToUsages](const std::string& bPath, const std::array<avk::border_handling_mode, 2>& bBhMode, int* bUsage) {
 			auto& vct = texNamesToBorderHandlingToUsages[bPath];
 			for (auto& [existingBhModes, usages] : vct) {
-				if (existingBhModes[0] == bBhMode[0] && existingBhModes[1] == bBhMode[1]) {;
+				if (existingBhModes[0] == bBhMode[0] && existingBhModes[1] == bBhMode[1]) {
 					usages.push_back(bUsage);
 					return; // Found => done
 				}
