@@ -1,0 +1,62 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+layout(push_constant) uniform PushConstants {
+    vec4  mAmbientLight;
+    vec4  mLightDir;
+    mat4  mCameraTransform;
+    float mCameraHalfFovAngle;
+	float _padding;
+    bool  mEnableShadows;
+	float mShadowsFactor;
+	vec4  mShadowsColor;
+    bool  mEnableAmbientOcclusion;
+	float mAmbientOcclusionMinDist;
+	float mAmbientOcclusionMaxDist;
+	float mAmbientOcclusionFactor;
+	vec4  mAmbientOcclusionColor;
+} pushConstants;
+
+layout(set = 2, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 1, binding = 0, rgba8) uniform image2D image;
+
+layout(location = 0) rayPayloadEXT vec3 hitValue; // payload to traceRayEXT
+
+void main() 
+{
+    // We are constructing the view rays in WORLD SPACE. 
+    // This means: 
+    //  ->  Forward is the camera's -Z direction
+    //  ->  +Y axis is pointing up 
+    //  ->  +X is pointing to the right
+
+    // Refer to a pixel's center by shifting both, x and y, by half a pixel:
+    const vec2 pixelCenter =      vec2(gl_LaunchIDEXT.xy  ) + vec2(0.5);
+    // Convert pixel coordinates into UV-coordinates:
+    const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);
+    // Shift them into a -1..1 range:
+    vec2 xyDir = inUV * 2.0 - 1.0;
+
+    float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
+	
+    //                                                          Up == +Y in World, but UV-coordinates have +Y pointing down
+    //                                                            |       Forward == -Z n World Space
+    //                                                            |         |      Scale the z-coordinate according to the FOV,
+    //                                                            v         v      where 45° would mean a length of 1
+    vec3 rayDirection = normalize(vec3(xyDir.x * aspectRatio, -xyDir.y, -1/tan(pushConstants.mCameraHalfFovAngle)));
+
+    // Transform ray origin and direction with the current camera transform:
+    vec3 rayOrigin = vec3(pushConstants.mCameraTransform[3]);
+    rayDirection = normalize(mat3(pushConstants.mCameraTransform) * rayDirection);
+	
+    hitValue = vec3(0.0, 0.0, 0.0);
+
+    uint rayFlags = gl_RayFlagsOpaqueEXT;
+    uint cullMask = 0xff;
+    float tmin = 0.001;
+    float tmax = 1000.0;
+    traceRayEXT(topLevelAS, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 0 /*sbtRecordStride*/, 0 /*missIndex*/, rayOrigin, tmin, rayDirection, tmax, 0 /*payload*/);
+
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 0.0));
+
+}

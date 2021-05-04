@@ -28,7 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "real_time_ray_tracing", "re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_custom_intersection", "examples\ray_tracing_custom_intersection\ray_tracing_custom_intersection.vcxproj", "{1DE6486D-2373-455B-8F2A-798439EB4600}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_tracing_basic_usage", "examples\ray_tracing_basic_usage\ray_tracing_basic_usage.vcxproj", "{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ray_query_in_ray_tracing_shaders", "examples\ray_query_in_ray_tracing_shaders\ray_query_in_ray_tracing_shaders.vcxproj", "{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "framebuffer", "examples\framebuffer\framebuffer.vcxproj", "{BFFBAB2F-A0C4-451F-BBCB-279F218FAB1F}"
 EndProject
