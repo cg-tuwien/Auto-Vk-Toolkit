@@ -1818,7 +1818,7 @@ namespace gvk
 
 				// Initialize modes with some default values to make the compiler happy. We do not care which defaults are used,
 				// since the actual modes are read from the cache file in create_sampler_cached.
-				std::array<avk::border_handling_mode, 3> bhModes = { avk::border_handling_mode::repeat, avk::border_handling_mode::repeat, avk::border_handling_mode::repeat };
+				std::array<avk::border_handling_mode, 3> bhModes = { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge };
 
 				// There can be different border handling types specified for the textures
 				for (int i = 0; i < numDifferentSamplers; ++i) {
