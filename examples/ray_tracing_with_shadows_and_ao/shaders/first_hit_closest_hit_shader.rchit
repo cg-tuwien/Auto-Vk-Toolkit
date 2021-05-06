@@ -1,7 +1,6 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : require
-#extension GL_EXT_ray_query : require
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
 
@@ -71,12 +70,17 @@ layout(set = 0, binding = 4) uniform samplerBuffer normalsBuffers[];
 
 layout(set = 2, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
+// Ray payload to be sent back to the ray generation shader (Hence rayPayloadInEXT, not rayPayloadEXT):
 layout(location = 0) rayPayloadInEXT vec3 hitValue;
+
+// Outgoing payload which is to be set by other shaders and evaluated here (hence rayPayloadEXT, not rayPayloadInEXT):
+layout(location = 1) rayPayloadEXT vec3 shadowPayload;
+
+// Outgoing payload which is to be set by other shaders and evaluated here (hence rayPayloadEXT, not rayPayloadInEXT):
+layout(location = 2) rayPayloadEXT float aoPayload;
 
 // Receive barycentric coordinates from the geometry hit:
 hitAttributeEXT vec3 hitAttribs;
-
-layout(location = 2) rayPayloadEXT float secondaryRayHitValue;
 
 layout(push_constant) uniform PushConstants {
     vec4  mAmbientLight;
@@ -146,22 +150,28 @@ void main()
 	const vec3 hitPos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT ;
 
 	if (pushConstants.mEnableShadows) {
-		// Produce very simple shadows using a ray query:
-		rayQueryEXT rayQuery;
+		// Produce very simple shadows using recursive ray tracing:
 		vec3 rayOrigin = hitPos;
 		vec3 rayDirection = pushConstants.mLightDir.xyz;
 		float tMin = 0.01;
 		float tMax = 1000.0;
-		rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsNoneEXT, 0xFF, rayOrigin, tMin, rayDirection, tMax);
-		if (rayQueryProceedEXT(rayQuery)) { 
-			// If any geometry has been hit
-			hitValue = mix(hitValue, pushConstants.mShadowsColor.rgb, pushConstants.mShadowsFactor);
-		}
+
+		// Initialize with the value we already have, s.t. nothing bad happens at mix() if we didn't hit anything (because the secondary miss shader doesn't modify the value):
+		shadowPayload = hitValue; 
+		// Our shader binding table (SBT) is structured like follows:
+		//  - one ray generation shader
+		//  - three closest hit shaders
+		//  - two miss shaders
+		// We need to get the indices right into these SBT entries by specifying the correct offsets.
+		// Not only these offsets take part in the final SBT-index computation, but also the offsets that
+		// were specified in the trace_rays(...) call on the CPU-side (but set them to 0 each in this case).
+		traceRayEXT(topLevelAS, gl_RayFlagsNoneEXT, 0xFF, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, rayOrigin, tMin, rayDirection, tMax, 1 /*payload location*/);
+
+		hitValue = mix(hitValue, shadowPayload, pushConstants.mShadowsFactor);
 	}
 
 	if (pushConstants.mEnableAmbientOcclusion) {
-		// Produce very simple (and expensive) ambient occlusion using multiple ray queries:
-		// Create a Ray Query and search for all the neighbors
+		// Produce very simple (and expensive) ambient occlusion using multiple recursive rays:
 
 		vec3 sampleDirections[8] = {
 			vec3( 1,  1,  1),
@@ -177,17 +187,25 @@ void main()
 		float ao = 0.0;
 
 		for (int i = 0; i < sampleDirections.length(); ++i) {
-			rayQueryEXT rayQuery;
 			vec3 rayOrigin = hitPos;
 			vec3 rayDirection = sampleDirections[i];
 			float tMin = pushConstants.mAmbientOcclusionMinDist;
 			float tMax = pushConstants.mAmbientOcclusionMaxDist;
-			rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsNoneEXT, 0xFF, rayOrigin, tMin, rayDirection, tMax);
-			if (rayQueryProceedEXT(rayQuery)) { 
-				// If any geometry has been hit
-				ao += 1.0 / float(sampleDirections.length());
-			}
+			
+			// Initialize with the value we already have, s.t. nothing bad happens at mix() if we didn't hit anything (because the secondary miss shader doesn't modify the value):
+			aoPayload = 0.0; 
+			// Our shader binding table (SBT) is structured like follows:
+			//  - one ray generation shader
+			//  - three closest hit shaders
+			//  - two miss shaders
+			// We need to get the indices right into these SBT entries by specifying the correct offsets.
+			// Not only these offsets take part in the final SBT-index computation, but also the offsets that
+			// were specified in the trace_rays(...) call on the CPU-side (but set them to 0 each in this case).
+			traceRayEXT(topLevelAS, gl_RayFlagsNoneEXT, 0xFF, 2 /* sbtRecordOffset */, 0 /* sbtRecordStride */, 1 /* missIndex */, rayOrigin, tMin, rayDirection, tMax, 2 /*payload location*/);
+			ao += aoPayload;
 		}
+
+		ao /= float(sampleDirections.length());
 
 		hitValue = mix(hitValue, pushConstants.mAmbientOcclusionColor.rgb, ao * pushConstants.mAmbientOcclusionFactor);
 	}

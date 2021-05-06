@@ -28,10 +28,10 @@ struct push_const_data {
 #define ENABLE_RESIZABLE_WINDOW 1
 
 // Main invokee of this application:
-class ray_query_in_ray_tracing_shaders_invokee : public gvk::invokee
+class ray_tracing_with_shadows_and_ao_invokee : public gvk::invokee
 {
 public: // v== xk::invokee overrides which will be invoked by the framework ==v
-	ray_query_in_ray_tracing_shaders_invokee(avk::queue& aQueue)
+	ray_tracing_with_shadows_and_ao_invokee(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}
 
@@ -162,15 +162,16 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		// Create our ray tracing pipeline with the required configuration:
 		mPipeline = gvk::context().create_ray_tracing_pipeline_for(
 			// Specify all the shaders which participate in rendering in a shader binding table (the order matters):
+			// In contrast to the ray_query_in_ray_tracing_shaders example, we have multiple closest hit and also
+			// multiple miss shaders. When we send out the secondary rays (in first_hit_closest_hit_shader.rchit),
+			// we will need to specify the offsets into this table accordingly in order to use the right shaders.
 			avk::define_shader_table(
-				// Our shader binding table only consists of three shaders.
-				// We do not need other shaders since we are handling all the things that
-				// require recursive rays via ray queries in this example. For an alternative
-				// approach which uses more shaders in the shader binding table and does not
-				// use ray queries, have a look at the ray_tracing_with_shadows_and_ao example.
 				avk::ray_generation_shader("shaders/ray_gen_shader.rgen"),
-				avk::triangles_hit_group::create_with_rchit_only("shaders/closest_hit_shader.rchit"),
-				avk::miss_shader("shaders/miss_shader.rmiss")
+				avk::triangles_hit_group::create_with_rchit_only("shaders/first_hit_closest_hit_shader.rchit"),
+				avk::triangles_hit_group::create_with_rchit_only("shaders/shadow_closest_hit_shader.rchit"),
+				avk::triangles_hit_group::create_with_rchit_only("shaders/ao_closest_hit_shader.rchit"),
+				avk::miss_shader("shaders/first_hit_miss_shader.rmiss"),
+				avk::miss_shader("shaders/shadow_ao_miss_shader.rmiss")
 			),
 			// We won't need the maximum recursion depth, but why not:
 			gvk::context().get_max_ray_tracing_recursion_depth(),
@@ -222,16 +223,8 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-				static std::vector<float> values;
-				values.push_back(1000.0f / ImGui::GetIO().Framerate);
-				if (values.size() > 900) {
-					values.erase(values.begin());
-				}
-				ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-
-				ImGui::Separator();
 
 				// Let the user change the ambient color:
 				ImGui::DragFloat3("Ambient Light", glm::value_ptr(mAmbientLight), 0.001f, 0.0f, 1.0f);
@@ -527,13 +520,13 @@ private: // v== Member variables ==v
 
 	bool mTlasUpdateRequired = false;
 
-}; // End of ray_query_in_ray_tracing_shaders_invokee
+}; // End of ray_tracing_with_shadows_and_ao_invokee
 
 int main() // <== Starting point ==
 {
 	try {
 		// Create a window and open it:
-		auto mainWnd = gvk::context().create_window("Ray Query in Ray Tracing Shaders - Main Window");
+		auto mainWnd = gvk::context().create_window("Real-Time Ray Tracing with Shadows and AO - Main Window");
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
@@ -547,17 +540,16 @@ int main() // <== Starting point ==
 		// ... pass the queue to the constructors of the invokees:
 
 		// Create an instance of our main avk::invokee which will perform the initial setup and spawn further invokees:
-		auto app = ray_query_in_ray_tracing_shaders_invokee(singleQueue);
+		auto app = ray_tracing_with_shadows_and_ao_invokee(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
 		// Launch the render loop in 5.. 4.. 3.. 2.. 1.. 
 		gvk::start(
-			gvk::application_name("Ray Query in Ray Tracing Shaders"),
+			gvk::application_name("Real-Time Ray Tracing with Shadows and AO"),
 			gvk::required_device_extensions()
 			// We need several extensions for ray tracing:
 			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
-			.add_extension(VK_KHR_RAY_QUERY_EXTENSION_NAME)
 			.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 			.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
 			.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
@@ -574,9 +566,6 @@ int main() // <== Starting point ==
 				[](vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccelerationStructureFeatures) {
 				// ...and here:
 				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
-			},
-				[](vk::PhysicalDeviceRayQueryFeaturesKHR& aRayQueryFeatures) {
-				aRayQueryFeatures.setRayQuery(VK_TRUE);
 			},
 				// Pass our main window to render into its frame buffers:
 				mainWnd,

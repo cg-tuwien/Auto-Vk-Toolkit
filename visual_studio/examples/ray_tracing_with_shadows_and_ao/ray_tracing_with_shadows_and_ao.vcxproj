@@ -15,15 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\sponza_duo.fscene" />
-    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rchit" />
-    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rgen" />
-    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_first.rmiss" />
-    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_secondary.rchit" />
-    <None Include="..\..\..\examples\ray_tracing_triangle_meshes\shaders\rt_09_secondary.rmiss" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\examples\ray_tracing_triangle_meshes\source\ray_tracing_triangle_meshes.cpp" />
+    <ClCompile Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\source\ray_tracing_with_shadows_and_ao.cpp" />
     <ClCompile Include="cg_stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">Create</PrecompiledHeader>
@@ -39,13 +31,23 @@
       <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\assets\sponza_and_terrain.fscene" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\ao_closest_hit_shader.rchit" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\ao_miss_shader.rmiss" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\first_hit_closest_hit_shader.rchit" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\first_hit_miss_shader.rmiss" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\ray_gen_shader.rgen" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\shadow_ao_miss_shader.rmiss" />
+    <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\shadow_closest_hit_shader.rchit" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{425d661f-8100-4142-a03c-4e6c842f5e50}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>raytracingtrianglemeshes</RootNamespace>
+    <RootNamespace>ray_tracing_with_shadows_and_ao</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>ray_tracing_triangle_meshes</ProjectName>
+    <ProjectName>ray_tracing_with_shadows_and_ao</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">
