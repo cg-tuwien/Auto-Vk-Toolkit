@@ -32,6 +32,15 @@
 #include "cereal/types/variant.hpp"
 #include "cereal/types/vector.hpp"
 
+/** @brief Compatible cache file version of the serializer
+ *
+ *  The version is the first parameter written to the cache file if the serializer is initialized in serialization mode and read
+ *  for compatibility verification if the serializer is initialized in deserialization mode. If a serializer using framework
+ *  function is modified and calls to the serializer are added, removed or reordered, previously created cache files are no longer
+ *  compatible. To inform users about such compatibility issues, this number must be incremented.
+ */
+#define SERIALIZER_CACHE_FILE_VERSION 0x00000001
+
 namespace gvk {
 
 	/** @brief Checks if a cache file exists
@@ -71,7 +80,21 @@ namespace gvk {
 			mArchive(aMode == serializer::mode::serialize ?
 				std::variant<deserialize, serialize>{ serializer::serialize(aCacheFilePath) } :
 				std::variant<deserialize, serialize>{ serializer::deserialize(aCacheFilePath) })
-		{}
+		{
+			std::uint32_t version = SERIALIZER_CACHE_FILE_VERSION;
+			if (mode() == serializer::mode::serialize)
+			{
+				std::get<serialize>(mArchive)(std::forward<std::uint32_t>(version));
+			}
+			else
+			{
+				std::get<deserialize>(mArchive)(std::forward<std::uint32_t>(version));
+				if (version != SERIALIZER_CACHE_FILE_VERSION)
+				{
+					throw std::runtime_error("Versions of serializer and cache file do not match. Please delete the existing cache file and let it be recreated!");
+				}
+			}
+		}
 
 		/** @brief Construct a serializer with serializing or deserializing capabilities
 		 *  If the cache file from aCacheFilePath does not exists, the serializer is initialized
@@ -81,10 +104,10 @@ namespace gvk {
 		 *  @param[in] aCacheFilePath The path to the cache file
 		 */
 		serializer(std::string_view aCacheFilePath) :
-			mArchive(does_cache_file_exist(aCacheFilePath) ?
-				std::variant<deserialize, serialize>{ serializer::deserialize(aCacheFilePath) } :
-				std::variant<deserialize, serialize>{ serializer::serialize(aCacheFilePath) })
-		{}
+			serializer(aCacheFilePath, does_cache_file_exist(aCacheFilePath) ?
+				serializer::mode::deserialize :
+				serializer::mode::serialize)
+		{ }
 
 		serializer() = delete;
 		serializer(serializer&&) noexcept = default;
