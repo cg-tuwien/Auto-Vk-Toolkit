@@ -1,4 +1,4 @@
-// copied and adapted from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/texturecubemap/skybox.vert
+// adapted from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/texturecubemap/skybox.vert
 #version 450
 
 layout (location = 0) in vec3 inPos;
