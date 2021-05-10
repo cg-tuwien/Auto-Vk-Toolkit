@@ -25,16 +25,16 @@ namespace gvk
 		return glm::vec3(m[3][0], m[3][1], m[3][2]);
 	}
 
-	glm::mat4 cancel_translation_from_matrix(const glm::mat4& m)
+	glm::mat4 cancel_translation_from_matrix(const glm::mat4& aMatrix)
 	{
-		return glm::mat4(m[0], m[1], m[2], glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		return glm::mat4(aMatrix[0], aMatrix[1], aMatrix[2], glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
-	glm::mat4 mirror_matrix(const glm::mat4& m, const glm::length_t axis)
+	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, const glm::length_t aAxis)
 	{
-		assert(0 <= axis && axis <= 2);
+		auto axis = static_cast<std::underlying_type<principal_axis>::type>(aAxis);
 
-		auto result(m);
+		auto result(aMatrix);
 		result[axis] *= -1.0f;
 		return result;
 	}
