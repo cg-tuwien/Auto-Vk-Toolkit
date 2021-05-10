@@ -1,4 +1,4 @@
-// copied and adapted from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/texturecubemap/reflect.frag
+// adapted from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/texturecubemap/reflect.frag
 #version 450
 
 layout (binding = 1) uniform samplerCube samplerColor;
