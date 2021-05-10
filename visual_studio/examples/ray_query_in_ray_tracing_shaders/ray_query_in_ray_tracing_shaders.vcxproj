@@ -29,6 +29,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\examples\ray_query_in_ray_tracing_shaders\source\triangle_mesh_geometry_manager.hpp" />
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>

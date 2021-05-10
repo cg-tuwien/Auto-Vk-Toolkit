@@ -25,6 +25,7 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\source\triangle_mesh_geometry_manager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\examples\ray_tracing_with_shadows_and_ao\shaders\ao_closest_hit_shader.rchit">
