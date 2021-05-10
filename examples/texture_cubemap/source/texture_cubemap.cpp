@@ -59,11 +59,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cubemapImage = gvk::create_cubemap_from_file_cached(serializer, cubemapFiles, true, true, false);
 		}
 
-		// the image format is used after cubemapImage is moved, hence a copy is needed
-		auto cubemapImageFormat = cubemapImage->format();
-
 		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemapImage->config().mipLevels));
-		auto cubemapImageView = gvk::context().create_image_view(avk::owned(cubemapImage), cubemapImageFormat, avk::image_usage::general_cube_map_texture);
+		auto cubemapImageView = gvk::context().create_image_view(avk::owned(cubemapImage), {}, avk::image_usage::general_cube_map_texture);
 		mImageSamplerCubemap = gvk::context().create_image_sampler(avk::owned(cubemapImageView), avk::owned(cubemapSampler));
 	
 		// Load a cube as the skybox from file
