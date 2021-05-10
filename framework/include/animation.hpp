@@ -256,7 +256,7 @@ namespace gvk
 		 *								- const glm::mat4& aGlobalTransformMatrix: (mandatory) Represents the "node transformation matrix" that represents a bone-transformation, considering the whole parent hierarchy. That means, it contains the global transform, transforming from BONE SPACE into MODEL SPACE.
 		 *								- const glm::mat4& aInverseBindPoseMatrix: (mandatory) Represents the "inverse bind pose matrix" or "offset matrix" that transforms coordinates from MESH SPACE (i.e. that from the mesh with index aInfo.mMeshIndex) into BONE SPACE.
 		 *								- const glm::mat4& aLocalTransformMatrix:  (optional)  Contains the local bone transformation, i.e. the same data as aGlobalTransformationMatrix, but WITHOUT having the whole parent hierarchy applied to the transformation. I.e. this does NOT properly transform into MODEL SPACE.
-		 *								- const gvk::animated_node& aAnimatedNode: (optional)  Contains all the animation data from the the current (internal) animation-node-structure.
+		 *								- size_t aAnimatedNodeIndex:               (optional)  Contains all the index to the animation data from the the current (internal) animation-node-structure. Use get_animated_node_at to get to the actual animated_node!
 		 *								- size_t aBoneMeshTargetIndex:             (optional)  Contains the index into animated_node::mBoneMeshTargets that is the current one at the point in time when this callback is invoked.
 		 *								- double aAnimationTimeInTicks:            (optional)  Contains the animation time in ticks, at the point in time when this callback is invoked.
 		 *								
@@ -279,36 +279,12 @@ namespace gvk
 
 			double timeInTicks = aTime * aClip.mTicksPerSecond;
 
-			for (auto& anode : mAnimationData) {
-				// First, calculate the local transform
-				glm::mat4 localTransform = anode.mLocalTransform;
+			const auto an = mAnimationData.size();
+			for (size_t ai = 0; ai < an; ++ai) {
+				auto& anode = mAnimationData[ai];
 
-				// The localTransform can only be different than the identity if there are animation keys.
-				if (anode.mPositionKeys.size() + anode.mRotationKeys.size() + anode.mScalingKeys.size() > 0) {
-					// Translation/position:
-					auto [tpos1, tpos2] = find_positions_in_keys(anode.mPositionKeys, timeInTicks);
-					auto tf = get_interpolation_factor(anode.mPositionKeys[tpos1], anode.mPositionKeys[tpos2], timeInTicks);
-					auto translation = glm::lerp(anode.mPositionKeys[tpos1].mValue, anode.mPositionKeys[tpos2].mValue, tf);
-
-					// Rotation:
-					size_t rpos1 = tpos1, rpos2 = tpos2;
-					if (!anode.mSameRotationAndPositionKeyTimes) {
-						std::tie(rpos1, rpos2) = find_positions_in_keys(anode.mRotationKeys, timeInTicks);
-					}
-					auto rf = get_interpolation_factor(anode.mRotationKeys[rpos1], anode.mRotationKeys[rpos2], timeInTicks);
-					auto rotation = glm::slerp(anode.mRotationKeys[rpos1].mValue, anode.mRotationKeys[rpos2].mValue, rf);	// use slerp, not lerp or mix (those lead to jerks)
-					rotation = glm::normalize(rotation); // normalize the resulting quaternion, just to be on the safe side
-
-					// Scaling:
-					size_t spos1 = tpos1, spos2 = tpos2;
-					if (!anode.mSameScalingAndPositionKeyTimes) {
-						std::tie(spos1, spos2) = find_positions_in_keys(anode.mScalingKeys, timeInTicks);
-					}
-					auto sf = get_interpolation_factor(anode.mScalingKeys[spos1], anode.mScalingKeys[spos2], timeInTicks);
-					auto scaling = glm::lerp(anode.mScalingKeys[spos1].mValue, anode.mScalingKeys[spos2].mValue, sf);
-
-					localTransform = matrix_from_transforms(translation, rotation, scaling);
-				}
+				// Get the node-local TRS transformation matrix:
+				auto localTransform = compute_node_local_transform(anode, timeInTicks);
 
 				// Calculate the node's global transform, using its local transform and the transforms of its parents:
 				if (anode.mAnimatedParentIndex.has_value()) {
@@ -331,20 +307,20 @@ namespace gvk
 				    	//           (The first four parameters are the same as with Option 1. Parameter five is passed in addition.)
 						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform);
 				    }
-				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&)>, decltype(aBoneMatrixCalc)>::value) {
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, size_t)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 3: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node
 				    	//           (The first five parameters are the same as with Option 2. Parameter six is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, ai);
 				    }
-				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t)>, decltype(aBoneMatrixCalc)>::value) {
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, size_t, size_t)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index
 				    	//           (The first six parameters are the same as with Option 3. Parameter seven is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, ai, i);
 				    }
-				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, const animated_node&, size_t, double)>, decltype(aBoneMatrixCalc)>::value) {
+				    else if constexpr (std::is_assignable<std::function<void(mesh_bone_info, const glm::mat4&, const glm::mat4&, const glm::mat4&, const glm::mat4&, size_t, size_t, double)>, decltype(aBoneMatrixCalc)>::value) {
 						// Option 4: lambda that takes: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix, local node/bone transformation, animated_node, bone mesh targets index, animation time in ticks
 				    	//           (The first seven parameters are the same as with Option 4. Parameter eight is passed in addition.)
-						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, anode, i, timeInTicks);
+						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, ai, i, timeInTicks);
 				    }
 					else {
 #if defined(_MSC_VER) && defined(__cplusplus)
@@ -358,6 +334,74 @@ namespace gvk
 				}
 			}
 		}
+
+		/**	Computes the node-local translation at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local translation for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Translation according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the translation part of aNode.mLocalTransform.
+		 */
+		glm::vec3 compute_node_local_translation(const animated_node& aNode, double aTimeInTicks) const;
+		
+		/**	Computes the node-local rotation at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local rotation for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Rotation according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the rotation part of aNode.mLocalTransform.
+		 */
+		glm::quat compute_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const;
+
+		/**	Computes the node-local scale at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local scale for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Scale according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the scale part of aNode.mLocalTransform.
+		 */
+		glm::vec3 compute_node_local_scale (const animated_node& aNode, double aTimeInTicks) const;
+		
+		/**	Computes the node-local transformation matrix at the given animation time (in ticks).
+		 *	I.e. disregards any other node (e.g. parents) and only computes the transformation of the
+		 *	node passed.
+		 *	@param	aNode				Node to compute the local transformation matrix for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Transformation matrix according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned matrix will just be the same as aNode.mLocalTransform.
+		 */
+		glm::mat4 compute_node_local_transform(const animated_node& aNode, double aTimeInTicks) const;
+
+		/**	Computes the node-local translation at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local translation for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Translation according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the translation part of aNode.mLocalTransform.
+		 */
+		glm::vec3 compute_inverse_node_local_translation(const animated_node& aNode, double aTimeInTicks) const;
+
+		/**	Computes the node-local rotation at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local rotation for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Rotation according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the rotation part of aNode.mLocalTransform.
+		 */
+		glm::quat compute_inverse_node_local_rotation(const animated_node& aNode, double aTimeInTicks) const;
+
+		/**	Computes the node-local scale at the given animation time (in ticks).
+		 *	@param	aNode				Node to compute the local scale for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local animation matrix
+		 *	@return	Scale according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned value will just be the scale part of aNode.mLocalTransform.
+		 */
+		glm::vec3 compute_inverse_node_local_scale(const animated_node& aNode, double aTimeInTicks) const;
+
+		/**	Computes the inverse of the node-local transformation matrix at the given animation time (in ticks).
+		 *	I.e. disregards any other node (e.g. parents) and only computes the transformation of the
+		 *	node passed.
+		 *	@param	aNode				Node to compute the inverse local transformation matrix for
+		 *	@param	aTimeInTicks		Animation time that determines the state of the node-local inverse animation matrix
+		 *	@return	Inverse transformation matrix according to the parameters. In case there are no animation keys specified
+		 *			for the node, the returned matrix will just be the same as the inverse of aNode.mLocalTransform.
+		 */
+		glm::mat4 compute_inverse_node_local_transform(const animated_node& aNode, double aTimeInTicks) const;
 
 		/** Convenience-overload to animation::animate which calculates the bone animation s.t. a vertex transformed
 		 *	with one of the resulting bone matrices is given in mesh space (same as the original input data) again.
@@ -417,8 +461,9 @@ namespace gvk
 
 		/**	Returns all the unique keyframe time-values of the given animation.
 		 *	@param	aClip				Animation clip which to extract the unique keyframe time-values from
+		 *	@return	A collection of unique keyframe times in ticks
 		 */
-		std::vector<double> animation_key_times_within_clip(const animation_clip_data& aClip) const;
+		std::vector<double> animation_key_times_for_clip_in_ticks(const animation_clip_data& aClip) const;
 
 		/** Returns the total number of animated nodes stored in an animation */
 		size_t number_of_animated_nodes() const;
@@ -427,27 +472,60 @@ namespace gvk
 		 *	@param	aNodeIndex			Index referring to the node that shall be returned
 		 */
 		std::reference_wrapper<animated_node> get_animated_node_at(size_t aNodeIndex);
+
+		/** Returns the animated_node data structure at the given index
+		 *	@param	aNodeIndex			Index referring to the node that shall be returned
+		 */
+		std::reference_wrapper<const animated_node> get_animated_node_at(size_t aNodeIndex) const;
+
+		/**	Iterates over all the animated node entries and invokes aCallback on each one of them.
+		 *	@tparam		F		A callback function with signature bool(const animated_node&).
+		 *						It shall return true when it determines a node to match the search criterium.
+		 */
+		template <typename F>
+		std::optional<size_t> find_animated_node_index(F aCallback);
 		
 		/**	Returns the index of the parent node which is also animated by this animation for the given node index.
-		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
 		 */
 		std::optional<size_t> get_animated_parent_index_of(size_t aNodeIndex) const;
 
 		/**	Returns a reference to the parent node which is also animated by this animation for the given node index.
-		 *	@param	aNodeIndex			Index referring to the node of which the animated parent shall be returned for.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
 		 */
 		std::optional<std::reference_wrapper<animated_node>> get_animated_parent_node_of(size_t aNodeIndex);
+
+		/**	Returns a reference to the parent node which is also animated by this animation for the given node index.
+		 *	@param	aNodeIndex			Index referring to the node whose animated parent shall be returned.
+		 */
+		std::optional<std::reference_wrapper<const animated_node>> get_animated_parent_node_of(size_t aNodeIndex) const;
 
 		/**	Returns the indices of all nodes that the given node index is an animated parent for within the context of this animation.
 		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
 		 */
-		std::vector<size_t> get_child_indices_of(size_t aNodeIndex) const;
+		std::vector<size_t> get_child_indices_of(std::optional<size_t> aNodeIndex) const;
+
+		/**	Returns the first index of a parent node's child index
+		 *	@param	aNodeIndex			Index referring to the node of which the next animated child shall be returned for.
+		 *	@param	aStartSearchOffset	The absolute/global offset where to start searching for the next child
+		 *	@return	The index of the next child or {} if there is no further child
+		 */
+		std::optional<size_t> get_next_child_index_of(std::optional<size_t> aNodeIndex, size_t aStartSearchOffset = 0) const;
 
 		/**	Returns references to all nodes that the given node index is an animated parent for within the context of this animation.
 		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
 		 */
-		std::vector<std::reference_wrapper<animated_node>> get_child_nodes_of(size_t aNodeIndex);
-		
+		std::vector<std::reference_wrapper<animated_node>> get_child_nodes_of(std::optional<size_t> aNodeIndex);
+
+		/**	Returns references to all nodes that the given node index is an animated parent for within the context of this animation.
+		 *	@param	aNodeIndex			Index referring to the node of which the animated childs shall be returned for.
+		 */
+		std::vector<std::reference_wrapper<const animated_node>> get_child_nodes_of(std::optional<size_t> aNodeIndex) const;
+
+		/**	Returns a copy of the internal vector of animated nodes
+		 */
+		auto get_animated_nodes() const { return mAnimationData; }
+
 	private:
 		/** Helper function used during animate() to find two positions of key-elements
 		 *	between which the given aTime lies.
@@ -471,7 +549,7 @@ namespace gvk
 			return std::make_tuple(pos1, pos2);
 		}
 
-		/**	For two kiven keys (each of which must contain a .mTime member of type
+		/**	For two given keys (each of which must contain a .mTime member of type
 		 *	double), and a given aTime value, return the corresponding interpolation
 		 *	factor in the range [0..1].
 		 */
@@ -479,7 +557,7 @@ namespace gvk
 		float get_interpolation_factor(const K& key1, const K& key2, double aTime) const
 		{
 			double timeDifferenceTicks = key2.mTime - key1.mTime;
-			if (std::abs(timeDifferenceTicks) < std::numeric_limits<double>::epsilon()) {
+			if (std::abs(timeDifferenceTicks) < 2.3e-16 /* ~machine epsilon */) {
 				return 1.0f; // Same time, doesn't really matter which one to use => take key2
 			}
 			assert (key2.mTime > key1.mTime);

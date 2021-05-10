@@ -1,0 +1,16 @@
+License:
+Attribution-NonCommercial 2.0 France (CC BY-NC 2.0 FR)
+https://creativecommons.org/licenses/by-nc/2.0/fr/deed.en
+
+Geometry (c) Copyright 2021 by JOHANNES UNTERGUGGENBERGER
+
+Referenced Textures (c) Copyright 2017 by OLIVIER FFRENCH
+Published via http://www.virtual-lands-3d.com
+
+
+
+---------------------------------------------------------
+Note:
+The geometry is also available under MIT license, but
+without textures. Their MIT-versions can be found under 
+assets/1st_party/models and is provided as .obj files.

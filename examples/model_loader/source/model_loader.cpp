@@ -114,11 +114,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage(
+		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
 			allMatConfigs, false, true,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear,
-			avk::border_handling_mode::repeat,
 			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 		);
 

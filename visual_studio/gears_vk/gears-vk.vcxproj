@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\framework\include\material.hpp" />
     <ClInclude Include="..\..\framework\include\material_config.hpp" />
     <ClInclude Include="..\..\framework\include\material_gpu_data.hpp" />
+    <ClInclude Include="..\..\framework\include\material_gpu_data_ext.hpp" />
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />

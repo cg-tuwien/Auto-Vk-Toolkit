@@ -106,8 +106,8 @@ See https://creativecommons.org/licenses/by/3.0/ for full license details.
 
 **3D Models and Textures under CC BY-NC 2.0 FR**
 
-The following files are licensed under the Attribution 3.0 Unported (CC BY 3.0) License:      
- * all files under [`assets/3rd_party/textures/large_metal_debris`](assets/3rd_party/textures/large_metal_debris)
+The following files are licensed under the Attribution-NonCommercial 2.0 France (CC BY-NC 2.0 FR) License:      
+ * all files under [`assets/3rd_party/models/terrain_and_debris`](assets/3rd_party/models/terrain_and_debris)
  * all files under [`assets/3rd_party/textures/rough_cobblestones`](assets/3rd_party/textures/rough_cobblestones)
 
 See https://creativecommons.org/licenses/by-nc/2.0/fr/deed.en for full license details.

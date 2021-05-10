@@ -188,7 +188,20 @@ namespace gvk
 		aiBlendMode blendMode;
 		float floatVal;
 		aiTextureMapping texMapping;
+		unsigned uvSetIndex;
+		std::array<aiTextureMapMode, 2> texMappingModes {};
+		aiUVTransform uvTransformVal;
 
+		auto toAvkBorderHandling = [](aiTextureMapMode in) {
+			switch (in) {
+			case aiTextureMapMode_Wrap:		return avk::border_handling_mode::repeat;
+			case aiTextureMapMode_Clamp:	return avk::border_handling_mode::clamp_to_edge;
+			case aiTextureMapMode_Decal:	return avk::border_handling_mode::clamp_to_edge;
+			case aiTextureMapMode_Mirror:	return avk::border_handling_mode::mirrored_repeat;
+			default:						return avk::border_handling_mode::clamp_to_edge;
+			}
+		};
+		
 		auto materialIndex = material_index_for_mesh(aMeshIndex);
 		assert(materialIndex <= mScene->mNumMaterials);
 		aiMaterial* aimat = mScene->mMaterials[materialIndex];
@@ -284,73 +297,238 @@ namespace gvk
 		if (AI_SUCCESS == aimat->Get(AI_MATKEY_REFLECTIVITY, floatVal)) {
 			result.mReflectivity = floatVal;
 		}
-
+		
 		// TODO: reading aiTextureMapMode (last parameter) corrupts stack for some .dae files (like "level01c.dae")
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DIFFUSE, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DIFFUSE, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mDiffuseTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mDiffuseTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mDiffuseTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mDiffuseTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+			
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_DIFFUSE(0), uvTransformVal)) {
+				result.mDiffuseTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mDiffuseTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mDiffuseTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mDiffuseTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mDiffuseTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mDiffuseTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mDiffuseTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SPECULAR, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SPECULAR, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mSpecularTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mSpecularTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mSpecularTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mSpecularTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_SPECULAR(0), uvTransformVal)) {
+				result.mSpecularTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mSpecularTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mSpecularTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mSpecularTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mSpecularTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mSpecularTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mSpecularTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_AMBIENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_AMBIENT, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mAmbientTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mAmbientTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mAmbientTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mAmbientTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_AMBIENT(0), uvTransformVal)) {
+				result.mAmbientTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mAmbientTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mAmbientTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mAmbientTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mAmbientTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mAmbientTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mAmbientTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_EMISSIVE, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_EMISSIVE, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mEmissiveTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mEmissiveTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mEmissiveTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mEmissiveTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_EMISSIVE(0), uvTransformVal)) {
+				result.mEmissiveTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mEmissiveTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mEmissiveTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mEmissiveTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mEmissiveTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mEmissiveTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mEmissiveTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_HEIGHT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_HEIGHT, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mHeightTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mHeightTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mHeightTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mHeightTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_HEIGHT(0), uvTransformVal)) {
+				result.mHeightTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mHeightTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mHeightTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mHeightTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mHeightTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mHeightTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mHeightTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_NORMALS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_NORMALS, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mNormalsTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mNormalsTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mNormalsTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mNormalsTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_NORMALS(0), uvTransformVal)) {
+				result.mNormalsTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mNormalsTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mNormalsTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mNormalsTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mNormalsTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mNormalsTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mNormalsTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SHININESS, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_SHININESS, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mShininessTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mShininessTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mShininessTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mShininessTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_SHININESS(0), uvTransformVal)) {
+				result.mShininessTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mShininessTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mShininessTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mShininessTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mShininessTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mShininessTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mShininessTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_OPACITY, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_OPACITY, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mOpacityTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mOpacityTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mOpacityTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mOpacityTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_OPACITY(0), uvTransformVal)) {
+				result.mOpacityTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mOpacityTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mOpacityTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mOpacityTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mOpacityTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mOpacityTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mOpacityTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DISPLACEMENT, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_DISPLACEMENT, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mDisplacementTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mDisplacementTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mDisplacementTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mDisplacementTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_DISPLACEMENT(0), uvTransformVal)) {
+				result.mDisplacementTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mDisplacementTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mDisplacementTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mDisplacementTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mDisplacementTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mDisplacementTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mDisplacementTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_REFLECTION, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_REFLECTION, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mReflectionTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mReflectionTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mReflectionTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mReflectionTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_REFLECTION(0), uvTransformVal)) {
+				result.mReflectionTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mReflectionTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mReflectionTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mReflectionTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mReflectionTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mReflectionTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mReflectionTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
-		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_LIGHTMAP, 0, &strVal, &texMapping, nullptr, nullptr, nullptr, nullptr)) {
+		if (AI_SUCCESS == aimat->GetTexture(aiTextureType_LIGHTMAP, 0, &strVal, &texMapping, &uvSetIndex, nullptr, nullptr, texMappingModes.data())) {
 			if (texMapping != aiTextureMapping_UV) {
 				assert(false);
 			}
 			result.mLightmapTex = avk::combine_paths(avk::extract_base_path(mModelPath), strVal.data);
+			result.mLightmapTexUvSet = static_cast<uint32_t>(uvSetIndex);
+			result.mLightmapTexBorderHandlingMode[0] = toAvkBorderHandling(texMappingModes[0]);
+			result.mLightmapTexBorderHandlingMode[1] = toAvkBorderHandling(texMappingModes[1]);
+
+			if (AI_SUCCESS == aimat->Get(AI_MATKEY_UVTRANSFORM_LIGHTMAP(0), uvTransformVal)) {
+				result.mLightmapTexOffsetTiling[0] = uvTransformVal.mTranslation.x;
+				result.mLightmapTexOffsetTiling[1] = uvTransformVal.mTranslation.y;
+				if (avk::equals_one_of(result.mLightmapTexBorderHandlingMode[0], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mLightmapTexOffsetTiling[2] = uvTransformVal.mScaling.x;
+				}
+				if (avk::equals_one_of(result.mLightmapTexBorderHandlingMode[1], avk::border_handling_mode::repeat, avk::border_handling_mode::mirrored_repeat)) {
+					result.mLightmapTexOffsetTiling[3] = uvTransformVal.mScaling.y;
+				}
+				result.mLightmapTexRotation = static_cast<float>(uvTransformVal.mRotation);
+			}
 		}
 
 		mMaterialConfigPerMesh[aMeshIndex] = result; // save
@@ -1139,7 +1317,9 @@ namespace gvk
 				addAnimatedNode(mapNodeToBoneAnimation[parentToBeAdded], parentToBeAdded, getAnimatedParentIndex(parentToBeAdded), getUnanimatedParentTransform(parentToBeAdded));
 				boneAnimatedParents.pop();
 			}
-			addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+			if (!isNodeAlreadyAdded(node)) { // <-- Mostly relevant for the cases where parent nodes have already been added (see while-loop right above) and should not be added again.
+				addAnimatedNode(mapNodeToBoneAnimation[node], node, getAnimatedParentIndex(node), getUnanimatedParentTransform(node));
+			}
 		}
 
 		// It could be that there are still bones for which we have not set up an animated_node entry and hence,

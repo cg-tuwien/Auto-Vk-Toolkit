@@ -30,10 +30,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Load cube map from file or from cache file:
 		const std::string cacheFilePath("assets/cubemap.cache");
-		auto cacheFileExists = gvk::does_cache_file_exist(cacheFilePath);
-		auto serializer = cacheFileExists ?
-			gvk::serializer(gvk::serializer::deserialize(cacheFilePath)) :
-			gvk::serializer(gvk::serializer::serialize(cacheFilePath));
+		auto serializer = gvk::serializer(cacheFilePath);
 
 		// Load a cubemap image file
 		// The cubemap texture coordinates start in the upper right corner of the skybox faces,
@@ -106,7 +103,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			newElement.mPositionsBuffer = std::move(mPositionsBuffer);
 			newElement.mIndexBuffer = std::move(mIndexBuffer);
 
-			newElement.mNormalsBuffer = gvk::create_normals_buffer({ modelMeshSelection });
+			newElement.mNormalsBuffer = gvk::create_normals_buffer<avk::vertex_buffer_meta>({ modelMeshSelection });
 		}
 
 		mViewProjBufferSkybox = gvk::context().create_buffer(

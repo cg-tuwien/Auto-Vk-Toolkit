@@ -113,22 +113,29 @@ namespace gvk
 		mChilds.clear();
 	}
 
-	void transform::set_translation(const vec3& pValue)
+	void transform::set_translation(const vec3& aValue)
 	{
-		mTranslation = pValue;
+		mTranslation = aValue;
 		update_matrix_from_transforms();
 	}
 
-	void transform::set_rotation(const quat& pValue)
+	void transform::set_rotation(const quat& aValue)
 	{
-		mRotation = pValue;
+		mRotation = aValue;
 		update_matrix_from_transforms();
 	}
 
-	void transform::set_scale(const vec3& pValue)
+	void transform::set_scale(const vec3& aValue)
 	{
-		mScale = pValue;
+		mScale = aValue;
 		update_matrix_from_transforms();
+	}
+
+	void transform::set_matrix(const glm::mat4& aValue)
+	{
+		mMatrix = aValue;
+		mInverseMatrix = glm::inverse(mMatrix);
+		update_transforms_from_matrix();
 	}
 
 	glm::mat4 transform::local_transformation_matrix() const
@@ -160,7 +167,7 @@ namespace gvk
 	{
 		auto dir = aPosition - translation();
 		auto len = dot(dir, dir);
-		if (len <= std::numeric_limits<float>::epsilon()) {
+		if (len <= 1.2e-7 /* ~machine epsilon */) {
 			return;
 		}
 		look_along(dir); // will be normalized within look_along
@@ -168,7 +175,7 @@ namespace gvk
 
 	void transform::look_along(const glm::vec3& aDirection)
 	{
-		if (glm::dot(aDirection, aDirection) < std::numeric_limits<float>::epsilon()) {
+		if (glm::dot(aDirection, aDirection) < 1.2e-7 /* ~machine epsilon */) {
 			LOG_DEBUG("Direction vector passed to transform::look_along has (almost) zero length.");
 			return;
 		}

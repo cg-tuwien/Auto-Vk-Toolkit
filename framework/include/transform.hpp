@@ -26,11 +26,14 @@ namespace gvk
 		virtual ~transform();
 
 		/** sets a new position, current position is overwritten */
-		void set_translation(const glm::vec3& pValue);
+		void set_translation(const glm::vec3& aValue);
 		/** sets a new rotation, current rotation is overwritten */
-		void set_rotation(const glm::quat& pValue);
+		void set_rotation(const glm::quat& aValue);
 		/** sets a new scale, current scale is overwritten */
-		void set_scale(const glm::vec3& pValue);
+		void set_scale(const glm::vec3& aValue);
+
+		/** sets an entirely new matrix */
+		void set_matrix(const glm::mat4& aValue);
 
 		/** returns the local transformation matrix, disregarding parent transforms */
 		glm::mat4 local_transformation_matrix() const;
