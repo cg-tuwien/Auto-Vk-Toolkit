@@ -34,10 +34,12 @@
 
 /** @brief Compatible cache file version of the serializer
  *
- *  The version is the first parameter written to the cache file if the serializer is initialized in serialization mode and read
- *  for compatibility verification if the serializer is initialized in deserialization mode. If a serializer using framework
- *  function is modified and calls to the serializer are added, removed or reordered, previously created cache files are no longer
- *  compatible. To inform users about such compatibility issues, this number must be incremented.
+ *  The version is the first value written to any cache file if the serializer is initialized in `serialize`-mode and
+ *  the first value read from any cache file if the serializer is initialized in `deserialize`-mode. It is used to
+ *  verfiy that the cache file's format is compatible with the serialization formats of the framework's state. If a
+ *  framework function changes the format of the serialized/deserialized data, this version must be incremented to
+ *  invalidate old cache files. An exception will be thrown if the cache file's version and the framework's serializer
+ *  versions do not match.
  */
 #define SERIALIZER_CACHE_FILE_VERSION 0x00000001
 
@@ -82,17 +84,11 @@ namespace gvk {
 				std::variant<deserialize, serialize>{ serializer::deserialize(aCacheFilePath) })
 		{
 			std::uint32_t version = SERIALIZER_CACHE_FILE_VERSION;
-			if (mode() == serializer::mode::serialize)
+			archive(version);
+			// If the mode is `deserialize`, version was overwritten by `archive` from the cache file and may be different
+			if (version != SERIALIZER_CACHE_FILE_VERSION)
 			{
-				std::get<serialize>(mArchive)(std::forward<std::uint32_t>(version));
-			}
-			else
-			{
-				std::get<deserialize>(mArchive)(std::forward<std::uint32_t>(version));
-				if (version != SERIALIZER_CACHE_FILE_VERSION)
-				{
-					throw std::runtime_error("Versions of serializer and cache file do not match. Please delete the existing cache file and let it be recreated!");
-				}
+				throw std::runtime_error("Versions of serializer and cache file do not match. Please delete the existing cache file and let it be recreated!");
 			}
 		}
 
