@@ -14,9 +14,9 @@ namespace gvk
 
 	glm::mat4 cancel_translation_from_matrix(const glm::mat4& aMatrix);
 
-	enum principal_axis : uint32_t { x = 0u, y, z };
+	enum struct principal_axis : uint32_t { x = 0u, y, z };
 
-	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, const glm::length_t aAxis = principal_axis::x);
+	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, const principal_axis aAxis = principal_axis::x);
 
 	/// <summary>
 	/// Solve a system of equations with 3 unknowns.
