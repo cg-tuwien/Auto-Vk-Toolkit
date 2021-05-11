@@ -1,9 +1,8 @@
-//#include "imgui_impl_vulkan_gears_vk.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_user.h"
 #include "imgui_internal.h"
 
-void ImGui::Image(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col, const ImVec4& bg_col)
+void ImGui::ImageWithBg(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col, const ImVec4& bg_col)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -34,7 +33,7 @@ void ImGui::Image(ImTextureID user_texture_id, const ImVec2& size, const ImVec2&
     }
 }
 
-void ImGui::StackedImage(std::initializer_list<ImTextureID> user_texture_ids, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col, const ImVec4& bg_col)
+void ImGui::ImageStack(std::initializer_list<ImTextureID> user_texture_ids, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col, const ImVec4& bg_col)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
