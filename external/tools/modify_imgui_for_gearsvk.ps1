@@ -1,6 +1,6 @@
-$imgui_h = ".\include\imgui.h"
-$imgui_impl_vulkan_h = ".\include\imgui_impl_vulkan.h"
-$imgui_impl_vulkan_cpp = ".\src\imgui_impl_vulkan.cpp"
+$imgui_h = "..\universal\include\imgui.h"
+$imgui_impl_vulkan_h = "..\universal\include\imgui_impl_vulkan.h"
+$imgui_impl_vulkan_cpp = "..\universal\src\imgui_impl_vulkan.cpp"
 $imgui_impl_vulkan_gears_vk_ext = ".\imgui_impl_vulkan_gears_vk_ext.cpp"
 
 ##
