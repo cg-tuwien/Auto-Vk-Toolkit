@@ -1,27 +1,41 @@
-#
-# Modify imgui vulkan impl header file
-#
+$imgui_h = ".\include\imgui.h"
+$imgui_impl_vulkan_h = ".\include\imgui_impl_vulkan.h"
+$imgui_impl_vulkan_cpp = ".\src\imgui_impl_vulkan.cpp"
+$imgui_impl_vulkan_gears_vk_ext = ".\imgui_impl_vulkan_gears_vk_ext.cpp"
 
-$imguiHeaderfile = ".\include\imgui_impl_vulkan.h"
+##
+# Modify imgui vulkan impl header file (imgui_impl_vulkan.h)
+#
+# This adds:
+# - User texture comment to the implemented features list at the top:
+#	//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset.
+#
+# - API call to get or create a texture
+#	IMGUI_IMPL_API ImTextureID  ImGui_ImplVulkan_Create_Or_GetTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
+#
+# This removes:
+# - User texture binding as missing feature comment at the top:
+#	//  [ ] Renderer: User texture binding
+##
 
-"- Modifying " + $imguiHeaderfile + ":"
+Write-Host "- Modifying " + $imgui_impl_vulkan_h + ":"
 
 # Read imgui vulkan impl header
-$imguiHeader = Get-Content $imguiHeaderfile
+$fileContent = Get-Content $imgui_impl_vulkan_h
 
 # Create an empty array and use it as the modified file
-$imguiHeaderModified = @()
+$fileContentModified = @()
 
 # Header in file to communicate modification and prevent
 # multiple executions of this script
 $gearsVkHeader = "// Modified version for Gears-Vk"
-$imguiHeaderModified += $gearsVkHeader
-$imguiHeaderModified += '// Additions:'
-$imguiHeaderModified += '// - User texture creation function'
-$imguiHeaderModified += ''
+$fileContentModified += $gearsVkHeader
+$fileContentModified += '// Additions:'
+$fileContentModified += '// - User texture creation function'
+$fileContentModified += ''
 
 $fileAlreadyModified = 0
-Foreach ($line in $imguiHeader)
+Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
 	if ($line -match $gearsVkHeader) {
@@ -31,7 +45,7 @@ Foreach ($line in $imguiHeader)
 	}
 	# Add user texture binding to implemented features list
 	if ($line -match "// Missing features:") {
-		$imguiHeaderModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
+		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
 	}
 	# Remove user texture binding comment from missing feature
 	if ($line -match "//  \[ \] Renderer: User texture binding") {
@@ -40,33 +54,57 @@ Foreach ($line in $imguiHeader)
 
 	# Add ImGui_ImplVulkan_CreateTexture and ImGui_ImplVulkan_Create_Or_GetTexture API functions
 	if ($line -match "^// Called by user code") {
-		"  - Adding new imgui API functions"
-		$imguiHeaderModified += $line
-		$imguiHeaderModified += 'IMGUI_IMPL_API ImTextureID  ImGui_ImplVulkan_Create_Or_GetTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout); '
+		Write-Host "  - Adding new imgui API functions"
+		$fileContentModified += $line
+		$fileContentModified += 'IMGUI_IMPL_API ImTextureID  ImGui_ImplVulkan_Create_Or_GetTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);'
 		Write-Host "   -> added" -ForegroundColor Green
 		continue
 	}
 
-	$imguiHeaderModified += $line
+	$fileContentModified += $line
 }
 
 if (-Not $fileAlreadyModified) {
-	Set-Content $imguiHeaderfile $imguiHeaderModified
+	Set-Content $imgui_impl_vulkan_h $fileContentModified
 }
 
 
+##
+# Modify imgui vulkan impl source file (imgui_impl_vulkan.cpp)
 #
-# Modify imgui vulkan impl source file
+# This adds:
+# - User texture comment to the implemented features list at the top:
+#	//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset.
 #
+# - API call to get or create a texture
+#	IMGUI_IMPL_API ImTextureID  ImGui_ImplVulkan_Create_Or_GetTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
+#
+# - Add code for texture descriptor set binding after "vkCmdSetScissor\(command_buffer, 0, 1, &scissor\);" in ImGui_ImplVulkan_RenderDrawData:
+# 	// Bind texture descriptor set stored as ImTextureID'
+# 	VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };'
+# 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
+#
+# This changes:
+# - The comment "// Bind pipeline and descriptor sets:" in ImGui_ImplVulkan_SetupRenderState to:
+#	// Bind pipeline
+#
+# - The line "io.Fonts->SetTexID((ImTextureID)(intptr_t)g_FontImage);" in ImGui_ImplVulkan_CreateFontsTexture for setting the font texture id to:
+#	ImTextureID texID = (ImTextureID)g_DescriptorSet;
+#	io.Fonts->SetTexID(texID);
+#
+# This removes:
+# - User texture binding as missing feature comment at the top:
+#	//  [ ] Renderer: User texture binding
+#
+# - The unecessary font texture descriptor binding:
+#	VkDescriptorSet desc_set[1] = { g_DescriptorSet };
+#	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);
+##
 
-$imguiSrcfile = ".\src\imgui_impl_vulkan.cpp"
-
-"- Modifying " + $imguiSrcfile + ":"
-
-$gearsVkSrcExt = ".\src\imgui_impl_vulkan_gears_vk_ext.cpp"
+Write-Host "- Modifying " + $imgui_impl_vulkan_cpp + ":"
 
 # Read imgui vulkan impl source
-$imguiSrc = Get-Content $imguiSrcfile
+$fileContent = Get-Content $imgui_impl_vulkan_cpp
 
 # Helpers for function detection
 $inSetupRenderState = 0
@@ -74,18 +112,18 @@ $inRenderDrawData = 0
 $inCreateFontsTexture = 0
 
 # Create an empty array and use it as the modified file
-$imguiSrcModified = @()
+$fileContentModified = @()
 
 # Header in file to communicate modification and prevent
 # multiple executions of this script
 $gearsVkHeader = "// Modified version for Gears-Vk"
-$imguiSrcModified += $gearsVkHeader
-$imguiSrcModified += '// Additions:'
-$imguiSrcModified += '// - User texture binding and descriptor set caching'
-$imguiSrcModified += ''
+$fileContentModified += $gearsVkHeader
+$fileContentModified += '// Additions:'
+$fileContentModified += '// - User texture binding and descriptor set caching'
+$fileContentModified += ''
 
 $fileAlreadyModified = 0
-Foreach ($line in $imguiSrc)
+Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
 	if ($line -match $gearsVkHeader) {
@@ -96,7 +134,7 @@ Foreach ($line in $imguiSrc)
 
 	# Add user texture binding to implemented features list
 	if ($line -match "// Missing features:") {
-		$imguiSrcModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
+		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
 	}
 	# Remove user texture binding comment from missing feature
 	if ($line -match "//  \[ \] Renderer: User texture binding") {
@@ -106,19 +144,19 @@ Foreach ($line in $imguiSrc)
 	# Detect if in ImGui_ImplVulkan_SetupRenderState
 	if ($line -match "^static void ImGui_ImplVulkan_SetupRenderState\(") {
 		$inSetupRenderState = 1
-		"  - Modifying ImGui_ImplVulkan_SetupRenderState"
+		Write-Host "  - Modifying ImGui_ImplVulkan_SetupRenderState"
 	}
 
 	# Detect if in ImGui_ImplVulkan_RenderDrawData
 	if ($line -match "^void ImGui_ImplVulkan_RenderDrawData\(") {
 		$inRenderDrawData = 1
-		"  - Modifying ImGui_ImplVulkan_RenderDrawData"
+		Write-Host "  - Modifying ImGui_ImplVulkan_RenderDrawData"
 	}
 
 	# Detect if in ImGui_ImplVulkan_CreateFontsTexture
 	if ($line -match "^bool ImGui_ImplVulkan_CreateFontsTexture\(") {
 		$inCreateFontsTexture = 1
-		"  - Modifying ImGui_ImplVulkan_CreateFontsTexture"
+		Write-Host "  - Modifying ImGui_ImplVulkan_CreateFontsTexture"
 	}
 
 	# Detect if the function we have modified is left by relying on consistent code
@@ -150,7 +188,7 @@ Foreach ($line in $imguiSrc)
 			# Get tabs/spaces up to the first '/' to nicely align the new comment
 			$matched = $line -match "^[^/]*"
 			$tabs = $Matches[0]
-			$imguiSrcModified += $tabs + "// Bind pipeline"
+			$fileContentModified += $tabs + "// Bind pipeline"
 			continue
 		}
 	}
@@ -159,15 +197,15 @@ Foreach ($line in $imguiSrc)
 	if ($inRenderDrawData) {
 		if ($line -match "vkCmdSetScissor\(command_buffer, 0, 1, &scissor\);") {
 			# Add the scissor cmd line
-			$imguiSrcModified += $line
+			$fileContentModified += $line
 			# Get tabs/spaces up to the 'v' of vkCmdSetScissor to nicely align the code
 			$matched = $line -match "^[^v]*"
 			$tabs = $Matches[0]
 			# Add descriptor binding code after the vkCmdSetScissor cmd
-			$imguiSrcModified += ''
-			$imguiSrcModified += $tabs + '// Bind texture descriptor set stored as ImTextureID'
-			$imguiSrcModified += $tabs + 'VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };'
-			$imguiSrcModified += $tabs + 'vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
+			$fileContentModified += ''
+			$fileContentModified += $tabs + '// Bind texture descriptor set stored as ImTextureID'
+			$fileContentModified += $tabs + 'VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };'
+			$fileContentModified += $tabs + 'vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
 			continue
 		}
 	}
@@ -179,51 +217,57 @@ Foreach ($line in $imguiSrc)
 			$matched = $line -match "^[^i]*"
 			$tabs = $Matches[0]
 			# Asign descriptor set as ImTextureID
-			$imguiSrcModified += $tabs + 'ImTextureID texID = (ImTextureID)g_DescriptorSet;'
-			$imguiSrcModified += $tabs + 'io.Fonts->SetTexID(texID);'
+			$fileContentModified += $tabs + 'ImTextureID texID = (ImTextureID)g_DescriptorSet;'
+			$fileContentModified += $tabs + 'io.Fonts->SetTexID(texID);'
 			continue
 		}
 	}
 
-	$imguiSrcModified += $line
+	$fileContentModified += $line
 }
 
 if (-Not $fileAlreadyModified) {
 	# function definitions and internal descriptor set caching for # ImGui_ImplVulkan_Create_Or_GetTexture
-	$fileGearsVkExt = Get-Content $gearsVkSrcExt
+	$fileContentGearsVkExtension = Get-Content $imgui_impl_vulkan_gears_vk_ext
 
-	$imguiSrcModified += ''
+	$fileContentModified += ''
 	# Add to imgui vulkan backend src file
-	$imguiSrcModified += $fileGearsVkExt
+	$fileContentModified += $fileContentGearsVkExtension
 
-	Set-Content $imguiSrcfile $imguiSrcModified
+	Set-Content $imgui_impl_vulkan_cpp $fileContentModified
 }
 
 
+##
+# Modify imgui header file (imgui.h)
 #
-# Modify imgui header file
-#
+# This adds:
+# - Define and comment for imgui user header inclusion at the end of the file above the line "#ifdef IMGUI_INCLUDE_IMGUI_USER_H":
+#	// Include imgui_user.h
+# 	// Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h
+# 	// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in
+# 	// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.
+# 	#define IMGUI_INCLUDE_IMGUI_USER_H'
+##
 
-$imguiHeaderfile = ".\include\imgui.h"
-
-"- Modifying " + $imguiHeaderfile + ":"
+Write-Host "- Modifying " + $imgui_h + ":"
 
 # Read imgui vulkan impl header
-$imguiHeader = Get-Content $imguiHeaderfile
+$fileContent = Get-Content $imgui_h
 
 # Create an empty array and use it as the modified file
-$imguiHeaderModified = @()
+$fileContentModified = @()
 
 # Header in file to communicate modification and prevent
 # multiple executions of this script
 $gearsVkHeader = '// Modified version for Gears-Vk'
-$imguiHeaderModified += $gearsVkHeader
-$imguiHeaderModified += '// Additions:'
-$imguiHeaderModified += '// - Definition of IMGUI_INCLUDE_IMGUI_USER_H'
-$imguiHeaderModified += ''
+$fileContentModified += $gearsVkHeader
+$fileContentModified += '// Additions:'
+$fileContentModified += '// - Definition of IMGUI_INCLUDE_IMGUI_USER_H'
+$fileContentModified += ''
 
 $fileAlreadyModified = 0
-Foreach ($line in $imguiHeader)
+Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
 	if ($line -match $gearsVkHeader) {
@@ -233,15 +277,15 @@ Foreach ($line in $imguiHeader)
 	}
 	# Add include imgui_user.h definition and comment why we need this
 	if ($line -match "// Include imgui_user\.h") {
-		$imguiHeaderModified += '// Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h'
-		$imguiHeaderModified += '// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in'
-		$imguiHeaderModified += '// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.'
-		$imguiHeaderModified += '#define IMGUI_INCLUDE_IMGUI_USER_H'
+		$fileContentModified += '// Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h'
+		$fileContentModified += '// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in'
+		$fileContentModified += '// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.'
+		$fileContentModified += '#define IMGUI_INCLUDE_IMGUI_USER_H'
 	}
 
-	$imguiHeaderModified += $line
+	$fileContentModified += $line
 }
 
 if (-Not $fileAlreadyModified) {
-	Set-Content $imguiHeaderfile $imguiHeaderModified
+	Set-Content $imgui_h $fileContentModified
 }
