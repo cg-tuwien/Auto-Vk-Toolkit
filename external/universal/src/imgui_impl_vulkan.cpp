@@ -1424,7 +1424,7 @@ void ImGui_ImplVulkanH_DestroyWindowRenderBuffers(VkDevice device, ImGui_ImplVul
 
 
 //
-// Creation and caching of DescriptorSets in ImTextureID for GUI image support
+// Gears-Vk Addition: Creation and caching of DescriptorSets in ImTextureID for GUI image support
 //
 
 #include <unordered_map>
@@ -1475,8 +1475,8 @@ static std::unordered_map<DescriptorKey, ImTextureID> g_TextureDescriptorSets;
 
 ImTextureID ImGui_ImplVulkan_Create_Or_GetTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout)
 {
-    DescriptorKey key = { sampler, image_view, image_layout };
-    if (!g_TextureDescriptorSets.contains(key))
+	DescriptorKey key = { sampler, image_view, image_layout };
+	if (!g_TextureDescriptorSets.contains(key))
 	{
 		// Create DescriptorSet
 		ImGui_ImplVulkan_InitInfo* v = &g_VulkanInitInfo;

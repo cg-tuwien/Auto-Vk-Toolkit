@@ -18,7 +18,7 @@ $imgui_impl_vulkan_gears_vk_ext = ".\imgui_impl_vulkan_gears_vk_ext.cpp"
 #	//  [ ] Renderer: User texture binding
 ##
 
-Write-Host "- Modifying " + $imgui_impl_vulkan_h + ":"
+"- Modifying " + $imgui_impl_vulkan_h + ":"
 
 # Read imgui vulkan impl header
 $fileContent = Get-Content $imgui_impl_vulkan_h
@@ -101,7 +101,7 @@ if (-Not $fileAlreadyModified) {
 #	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);
 ##
 
-Write-Host "- Modifying " + $imgui_impl_vulkan_cpp + ":"
+"- Modifying " + $imgui_impl_vulkan_cpp + ":"
 
 # Read imgui vulkan impl source
 $fileContent = Get-Content $imgui_impl_vulkan_cpp
@@ -250,7 +250,7 @@ if (-Not $fileAlreadyModified) {
 # 	#define IMGUI_INCLUDE_IMGUI_USER_H'
 ##
 
-Write-Host "- Modifying " + $imgui_h + ":"
+"- Modifying " + $imgui_h + ":"
 
 # Read imgui vulkan impl header
 $fileContent = Get-Content $imgui_h
@@ -281,6 +281,7 @@ Foreach ($line in $fileContent)
 		$fileContentModified += '// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in'
 		$fileContentModified += '// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.'
 		$fileContentModified += '#define IMGUI_INCLUDE_IMGUI_USER_H'
+		Write-Host "   -> modified" -ForegroundColor Green
 	}
 
 	$fileContentModified += $line
