@@ -12,11 +12,22 @@ namespace gvk
 	/// extract the translation part out of a matrix
 	extern glm::vec3 get_translation_from_matrix(const glm::mat4& m);
 
+	/** Returns a new matrix which is the same as the input matrix, but 
+	 *  the translation part of the matrix is canceled-out, i.e. set to
+	 *  zero for each direction, x, y, and z.
+	 */
 	glm::mat4 cancel_translation_from_matrix(const glm::mat4& aMatrix);
 
+	/** An enum struct to state the principal axis or direction, which can be x, y, or z. */
 	enum struct principal_axis : uint32_t { x = 0u, y, z };
 
-	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, const principal_axis aAxis = principal_axis::x);
+	/** Returns a new matrix based on the given input matrix, mirrored
+	 *  along the given axis direction.
+	 *	@param	aMatrix		The input matrix, a modified version of which is to be returned
+	 *  @param	aAxis		The axis which to mirror
+	 *  @return	A new matrix which has the given axis mirrored compared to the input matrix
+	 */
+	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, principal_axis aAxis);
 
 	/// <summary>
 	/// Solve a system of equations with 3 unknowns.

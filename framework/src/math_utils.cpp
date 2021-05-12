@@ -30,12 +30,12 @@ namespace gvk
 		return glm::mat4(aMatrix[0], aMatrix[1], aMatrix[2], glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
-	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, const principal_axis aAxis)
+	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, principal_axis aAxis)
 	{
-		auto axis = static_cast<std::underlying_type<principal_axis>::type>(aAxis);
+		auto axisIndex = static_cast<std::underlying_type<principal_axis>::type>(aAxis);
 
 		auto result(aMatrix);
-		result[axis] *= -1.0f;
+		result[axisIndex] *= -1.0f;
 		return result;
 	}
 
