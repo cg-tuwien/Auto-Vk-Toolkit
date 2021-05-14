@@ -262,8 +262,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				mGeometryInstances[i].mTransform.matrix[1][3] = mTranslations[i][1];
 				mGeometryInstances[i].mTransform.matrix[2][3] = mTranslations[i][2];
 			}
-			mTLAS[inFlightIndex]->build(mGeometryInstances, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
-			//                      ^  switch to update() once the (annoying) validation layer error message is fixed
+			mTLAS[inFlightIndex]->update(mGeometryInstances, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 		}
 
 		if (gvk::input().key_pressed(gvk::key_code::space)) {

@@ -192,7 +192,6 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 				// ...then we can safely update the TLAS with new data:
 				mTlas->build(                // We're not updating existing geometry, but we are changing the geometry => therefore, we need to perform a full rebuild.
 					activeGeometryInstances, // Build only with the active geometry instances
-					{},                      // Let top_level_acceleration_structure_t::build handle the staging buffer internally 
 					avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 				);
 
