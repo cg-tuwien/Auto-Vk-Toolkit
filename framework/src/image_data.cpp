@@ -120,7 +120,7 @@ namespace gvk
 		{
 			gliTex = gli::load(path());
 
-			if (mFlip)
+			if (!gliTex.empty() && mFlip)
 			{
 				flip();
 			}
