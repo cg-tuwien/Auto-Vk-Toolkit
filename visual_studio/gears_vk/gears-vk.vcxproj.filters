@@ -121,6 +121,9 @@
     <ClCompile Include="..\..\framework\src\quadratic_uniform_b_spline.cpp">
       <Filter>gears-vk_src\utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\image_data.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -505,6 +508,9 @@
       <Filter>gears-vk_include\updater</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\material_gpu_data_ext.hpp">
+      <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\image_data.hpp">
       <Filter>gears-vk_include\data</Filter>
     </ClInclude>
   </ItemGroup>

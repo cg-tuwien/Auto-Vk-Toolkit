@@ -34,6 +34,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "framebuffer", "examples\fra
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multi_invokee_rendering", "examples\multi_invokee_rendering\multi_invokee_rendering.vcxproj", "{67E56BCA-00F5-4AEE-AEB7-E0E064428AA8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "textures", "textures", "{8C843027-6CE3-4F0D-A640-16C5C188BCD6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texture_cubemap", "examples\texture_cubemap\texture_cubemap.vcxproj", "{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Vulkan|x64 = Debug_Vulkan|x64
@@ -107,6 +111,12 @@ Global
 		{67E56BCA-00F5-4AEE-AEB7-E0E064428AA8}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
 		{67E56BCA-00F5-4AEE-AEB7-E0E064428AA8}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{67E56BCA-00F5-4AEE-AEB7-E0E064428AA8}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -126,6 +136,8 @@ Global
 		{D8329EE0-A6B8-40FD-A427-5D4AC5C56CAD} = {683E25DF-C29D-4BC6-980E-88F7C09D024F}
 		{BFFBAB2F-A0C4-451F-BBCB-279F218FAB1F} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
 		{67E56BCA-00F5-4AEE-AEB7-E0E064428AA8} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
+		{8C843027-6CE3-4F0D-A640-16C5C188BCD6} = {42ECE233-FCB5-4525-BBC9-024CE075FC38}
+		{BCFFFE1C-FC08-432A-9A07-4C049AE398BD} = {8C843027-6CE3-4F0D-A640-16C5C188BCD6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

@@ -100,6 +100,7 @@ The following files are licensed under the Attribution 3.0 Unported (CC BY 3.0) 
  * all files under [`assets/3rd_party/models/cornell_box`](assets/3rd_party/models/cornell_box)
  * all files under [`assets/3rd_party/models/fireplace_room`](assets/3rd_party/models/fireplace_room)
  * all files under [`assets/3rd_party/models/sponza`](assets/3rd_party/models/sponza)
+ * all files under [`assets/3rd_party/textures/yokohama_at_night`](assets/3rd_party/textures/yokohama_at_night)
  
 See https://creativecommons.org/licenses/by/3.0/ for full license details.
 

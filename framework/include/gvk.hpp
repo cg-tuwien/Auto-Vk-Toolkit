@@ -200,6 +200,7 @@ namespace gvk {
 #include "model.hpp"
 #include "orca_scene.hpp"
 #include "serializer.hpp"
+#include "image_data.hpp"
 #include "material_image_helpers.hpp"
 
 #include "composition.hpp"

@@ -34,6 +34,7 @@
     <ClCompile Include="..\..\framework\src\cp_interpolation.cpp" />
     <ClCompile Include="..\..\framework\src\cubic_uniform_b_spline.cpp" />
     <ClCompile Include="..\..\framework\src\files_changed_event.cpp" />
+    <ClCompile Include="..\..\framework\src\image_data.cpp" />
     <ClCompile Include="..\..\framework\src\imgui_manager.cpp" />
     <ClCompile Include="..\..\framework\src\camera.cpp" />
     <ClCompile Include="..\..\framework\src\composition_interface.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="..\..\framework\include\event_data.hpp" />
     <ClInclude Include="..\..\framework\include\files_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\gvk.hpp" />
+    <ClInclude Include="..\..\framework\include\image_data.hpp" />
     <ClInclude Include="..\..\framework\include\invokee.hpp" />
     <ClInclude Include="..\..\framework\include\composition.hpp" />
     <ClInclude Include="..\..\framework\include\composition_interface.hpp" />

@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="assets">
+      <UniqueIdentifier>{24240a51-8fdb-478f-8c1c-27cbca7adc3f}</UniqueIdentifier>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{1d345cf5-0451-42e0-83a8-6a3f5a7203ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="precompiled_headers">
+      <UniqueIdentifier>{a498e4bc-580a-49d7-9a8e-ec57803fdcd4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="cg_stdafx.cpp">
+      <Filter>precompiled_headers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\examples\texture_cubemap\source\texture_cubemap.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\texture_cubemap\shaders\reflect.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\texture_cubemap\shaders\skybox.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\texture_cubemap\shaders\skybox.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\assets\1st_party\models\cube.obj">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx">
+      <Filter>assets</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cg_stdafx.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_targetver.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negx.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negy.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\negz.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posx.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posy.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\posz.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\textures\yokohama_at_night\yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds">
+      <Filter>assets</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
