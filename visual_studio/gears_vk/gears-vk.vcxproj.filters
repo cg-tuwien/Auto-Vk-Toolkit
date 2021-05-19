@@ -10,9 +10,6 @@
     <ClCompile Include="..\..\external\universal\src\imgui.cpp">
       <Filter>gears-vk_src\external</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
-      <Filter>gears-vk_src\external</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
       <Filter>gears-vk_src\external</Filter>
     </ClCompile>
@@ -123,6 +120,12 @@
     </ClCompile>
     <ClCompile Include="..\..\framework\src\image_data.cpp">
       <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_user.cpp">
+      <Filter>gears-vk_src\external</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
