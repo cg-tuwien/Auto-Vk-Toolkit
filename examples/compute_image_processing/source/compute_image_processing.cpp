@@ -161,13 +161,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				
 				ImGui::Separator();
 
-				ImTextureID inputTexId = ImGui_ImplVulkan_Create_Or_GetTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+				auto* imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+
+				ImTextureID inputTexId = imguiManager->get_or_create_texture(mInputImageAndSampler);
 		        auto inputTexWidth  = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.width);
 		        auto inputTexHeight = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
 				ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
-				ImTextureID targetTexId = ImGui_ImplVulkan_Create_Or_GetTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+				ImTextureID targetTexId = imguiManager->get_or_create_texture(mTargetImageAndSampler);
 		        auto targetTexWidth  = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.width);
 		        auto targetTexHeight = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);

@@ -2845,11 +2845,11 @@ enum ImDrawCornerFlags_
 #pragma warning (pop)
 #endif
 
+// Include imgui_user.h at the end of imgui.h (convenient for user to only explicitly include vanilla imgui.h)
 // Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h
 // which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in
 // imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.
 #define IMGUI_INCLUDE_IMGUI_USER_H
-// Include imgui_user.h at the end of imgui.h (convenient for user to only explicitly include vanilla imgui.h)
 #ifdef IMGUI_INCLUDE_IMGUI_USER_H
 #include "imgui_user.h"
 #endif
