@@ -127,6 +127,9 @@
     <ClCompile Include="..\..\external\universal\src\imgui_user.cpp">
       <Filter>gears-vk_src\external</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">

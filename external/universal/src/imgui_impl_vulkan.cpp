@@ -509,7 +509,7 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
                     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
                     // Bind texture descriptor set stored as ImTextureID
-                    VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };
+                    VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };
                     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);
 
                     // Draw

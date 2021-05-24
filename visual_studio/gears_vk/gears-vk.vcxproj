@@ -21,6 +21,7 @@
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
