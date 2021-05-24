@@ -82,7 +82,7 @@ if (-Not $fileAlreadyModified) {
 #
 # - Add code for texture descriptor set binding after "vkCmdSetScissor\(command_buffer, 0, 1, &scissor\);" in ImGui_ImplVulkan_RenderDrawData:
 # 	// Bind texture descriptor set stored as ImTextureID'
-# 	VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };'
+# 	VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };'
 # 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
 #
 # This changes:
@@ -224,7 +224,7 @@ Foreach ($line in $fileContent)
 			# Add descriptor binding code after the vkCmdSetScissor cmd
 			$fileContentModified += ''
 			$fileContentModified += $tabs + '// Bind texture descriptor set stored as ImTextureID'
-			$fileContentModified += $tabs + 'VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->TextureId };'
+			$fileContentModified += $tabs + 'VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };'
 			$fileContentModified += $tabs + 'vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
 			$appliedChanges[[FunctionName]::RenderDrawData] = 1
 			continue
