@@ -170,8 +170,8 @@ namespace gvk
 
 		if (maxLevels == 1 && img->config().mipLevels > 1)
 		{
-			// can't create MIP-maps for compressed formats
-			assert(!avk::is_block_compressed_format(aImageData.get_format()));
+			//// can't create MIP-maps for compressed formats
+			//assert(!avk::is_block_compressed_format(aImageData.get_format()));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
