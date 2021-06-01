@@ -268,7 +268,7 @@ namespace gvk
 
 	std::vector<double> animation::animation_key_times_for_clip_in_ticks(const animation_clip_data& aClip) const
 	{
-		const double cMachineEpsilon = 2.3e-16;
+		const double cMachineEpsilon = 1e-6;
 		
 		std::set<double> mUniqueKeys;
 		for (auto& anode : mAnimationData) {
