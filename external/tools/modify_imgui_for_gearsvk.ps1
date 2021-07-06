@@ -90,15 +90,15 @@ if (-Not $fileAlreadyModified) {
 #	// Bind pipeline
 #
 # - The line "io.Fonts->SetTexID((ImTextureID)(intptr_t)g_FontImage);" in ImGui_ImplVulkan_CreateFontsTexture for setting the font texture id to:
-#	io.Fonts->SetTexID((ImTextureID)g_DescriptorSet);
+#	io.Fonts->SetTexID((ImTextureID)bd->DescriptorSet);
 #
 # This removes:
 # - User texture binding as missing feature comment at the top:
 #	//  [ ] Renderer: User texture binding
 #
 # - The unecessary font texture descriptor binding:
-#	VkDescriptorSet desc_set[1] = { g_DescriptorSet };
-#	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);
+#	VkDescriptorSet desc_set[1] = { bd->DescriptorSet };
+#	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);
 ##
 
 "-> Modifying " + $imgui_impl_vulkan_cpp + ":"
@@ -200,7 +200,7 @@ Foreach ($line in $fileContent)
 			continue
 		}
 		# Remove unecessary descriptor binding
-		if ($line -imatch "VkDescriptorSet\s*desc_set\[1\]\s*=\s*\{\s*g_DescriptorSet\s*\};") {
+		if ($line -imatch "VkDescriptorSet\s*desc_set\[1\]\s*=\s*\{\s*bd->DescriptorSet\s*\};") {
 			continue
 		}
 		if ($line -imatch "vkCmdBindDescriptorSets\(.+,\s*VK_PIPELINE_BIND_POINT_GRAPHICS\s*,.+,\s*0\s*,\s*1\s*,\s*desc_set\s*,\s*0\s*,.+\);") {
@@ -225,7 +225,7 @@ Foreach ($line in $fileContent)
 			$fileContentModified += ''
 			$fileContentModified += $tabs + '// Bind texture descriptor set stored as ImTextureID'
 			$fileContentModified += $tabs + 'VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };'
-			$fileContentModified += $tabs + 'vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
+			$fileContentModified += $tabs + 'vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);'
 			$appliedChanges[[FunctionName]::RenderDrawData] = 1
 			continue
 		}
@@ -238,7 +238,7 @@ Foreach ($line in $fileContent)
 			$matched = $line -imatch "^[^i]*"
 			$tabs = $Matches[0]
 			# Asign descriptor set as ImTextureID
-			$fileContentModified += $tabs + 'io.Fonts->SetTexID((ImTextureID)g_DescriptorSet);'
+			$fileContentModified += $tabs + 'io.Fonts->SetTexID((ImTextureID)bd->DescriptorSet);'
 			$appliedChanges[[FunctionName]::CreateFontsTexture] = 1
 			continue
 		}

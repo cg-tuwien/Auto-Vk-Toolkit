@@ -45,6 +45,7 @@
 //#define IMGUI_DISABLE_FILE_FUNCTIONS                      // Don't implement ImFileOpen/ImFileClose/ImFileRead/ImFileWrite and ImFileHandle at all (replace them with dummies)
 //#define IMGUI_DISABLE_DEFAULT_FILE_FUNCTIONS              // Don't implement ImFileOpen/ImFileClose/ImFileRead/ImFileWrite and ImFileHandle so you can implement them yourself if you don't want to link with fopen/fclose/fread/fwrite. This will also disable the LogToTTY() function.
 //#define IMGUI_DISABLE_DEFAULT_ALLOCATORS                  // Don't implement default allocators calling malloc()/free() to avoid linking with them. You will need to call ImGui::SetAllocatorFunctions().
+//#define IMGUI_DISABLE_SSE                                 // Disable use of SSE intrinsics even if available
 
 //---- Include imgui_user.h at the end of imgui.h as a convenience
 //#define IMGUI_INCLUDE_IMGUI_USER_H
@@ -68,7 +69,7 @@
 
 //---- Use FreeType to build and rasterize the font atlas (instead of stb_truetype which is embedded by default in Dear ImGui)
 // Requires FreeType headers to be available in the include path. Requires program to be compiled with 'misc/freetype/imgui_freetype.cpp' (in this repository) + the FreeType library (not provided).
-// On Windows you may use vcpkg with 'vcpkg install freetype' + 'vcpkg integrate install'.
+// On Windows you may use vcpkg with 'vcpkg install freetype --triplet=x64-windows' + 'vcpkg integrate install'.
 //#define IMGUI_ENABLE_FREETYPE
 
 //---- Use stb_truetype to build and rasterize the font atlas (default)

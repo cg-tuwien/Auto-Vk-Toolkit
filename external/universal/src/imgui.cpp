@@ -1,4 +1,4 @@
-// dear imgui, v1.83
+// dear imgui, v1.84 WIP
 // (main code and documentation)
 
 // Help:
@@ -1701,7 +1701,7 @@ int ImTextCountCharsFromUtf8(const char* in_text, const char* in_text_end)
 }
 
 // Based on stb_to_utf8() from github.com/nothings/stb/
-static inline int ImTextCharToUtf8(char* buf, int buf_size, unsigned int c)
+static inline int ImTextCharToUtf8_inline(char* buf, int buf_size, unsigned int c)
 {
     if (c < 0x80)
     {
@@ -1736,6 +1736,13 @@ static inline int ImTextCharToUtf8(char* buf, int buf_size, unsigned int c)
     return 0;
 }
 
+const char* ImTextCharToUtf8(char out_buf[5], unsigned int c)
+{
+    int count = ImTextCharToUtf8_inline(out_buf, 5, c);
+    out_buf[count] = 0;
+    return out_buf;
+}
+
 // Not optimal but we very rarely use this function.
 int ImTextCountUtf8BytesFromChar(const char* in_text, const char* in_text_end)
 {
@@ -1752,20 +1759,20 @@ static inline int ImTextCountUtf8BytesFromChar(unsigned int c)
     return 3;
 }
 
-int ImTextStrToUtf8(char* buf, int buf_size, const ImWchar* in_text, const ImWchar* in_text_end)
+int ImTextStrToUtf8(char* out_buf, int out_buf_size, const ImWchar* in_text, const ImWchar* in_text_end)
 {
-    char* buf_out = buf;
-    const char* buf_end = buf + buf_size;
-    while (buf_out < buf_end - 1 && (!in_text_end || in_text < in_text_end) && *in_text)
+    char* buf_p = out_buf;
+    const char* buf_end = out_buf + out_buf_size;
+    while (buf_p < buf_end - 1 && (!in_text_end || in_text < in_text_end) && *in_text)
     {
         unsigned int c = (unsigned int)(*in_text++);
         if (c < 0x80)
-            *buf_out++ = (char)c;
+            *buf_p++ = (char)c;
         else
-            buf_out += ImTextCharToUtf8(buf_out, (int)(buf_end - buf_out - 1), c);
+            buf_p += ImTextCharToUtf8_inline(buf_p, (int)(buf_end - buf_p - 1), c);
     }
-    *buf_out = 0;
-    return (int)(buf_out - buf);
+    *buf_p = 0;
+    return (int)(buf_p - out_buf);
 }
 
 int ImTextCountUtf8BytesFromStr(const ImWchar* in_text, const ImWchar* in_text_end)
@@ -2779,7 +2786,7 @@ void ImGui::RenderTextEllipsis(ImDrawList* draw_list, const ImVec2& pos_min, con
         int ellipsis_char_count = 1;
         if (ellipsis_char == (ImWchar)-1)
         {
-            ellipsis_char = (ImWchar)'.';
+            ellipsis_char = font->DotChar;
             ellipsis_char_count = 3;
         }
         const ImFontGlyph* glyph = font->FindGlyph(ellipsis_char);
@@ -2920,8 +2927,7 @@ ImGuiWindow::~ImGuiWindow()
 {
     IM_ASSERT(DrawList == &DrawListInst);
     IM_DELETE(Name);
-    for (int i = 0; i != ColumnsStorage.Size; i++)
-        ColumnsStorage[i].~ImGuiOldColumns();
+    ColumnsStorage.clear_destruct();
 }
 
 ImGuiID ImGuiWindow::GetID(const char* str, const char* str_end)
@@ -3520,8 +3526,9 @@ void ImGui::StartMouseMovingWindow(ImGuiWindow* window)
     FocusWindow(window);
     SetActiveID(window->MoveId, window);
     g.NavDisableHighlight = true;
+    g.ActiveIdClickOffset = g.IO.MouseClickedPos[0] - window->RootWindow->Pos;
     g.ActiveIdNoClearOnFocusLoss = true;
-    g.ActiveIdClickOffset = g.IO.MousePos - window->RootWindow->Pos;
+    SetActiveIdUsingNavAndKeys();
 
     bool can_move_window = true;
     if ((window->Flags & ImGuiWindowFlags_NoMove) || (window->RootWindow->Flags & ImGuiWindowFlags_NoMove))
@@ -3557,8 +3564,8 @@ void ImGui::UpdateMouseMovingWindowNewFrame()
         }
         else
         {
-            ClearActiveID();
             g.MovingWindow = NULL;
+            ClearActiveID();
         }
     }
     else
@@ -4149,7 +4156,7 @@ void ImGui::Initialize(ImGuiContext* context)
     g.Viewports.push_back(viewport);
 
 #ifdef IMGUI_HAS_DOCK
-#endif // #ifdef IMGUI_HAS_DOCK
+#endif
 
     g.Initialized = true;
 }
@@ -4182,9 +4189,7 @@ void ImGui::Shutdown(ImGuiContext* context)
     CallContextHooks(&g, ImGuiContextHookType_Shutdown);
 
     // Clear everything else
-    for (int i = 0; i < g.Windows.Size; i++)
-        IM_DELETE(g.Windows[i]);
-    g.Windows.clear();
+    g.Windows.clear_delete();
     g.WindowsFocusOrder.clear();
     g.WindowsTempSortBuffer.clear();
     g.CurrentWindow = NULL;
@@ -4200,18 +4205,14 @@ void ImGui::Shutdown(ImGuiContext* context)
     g.OpenPopupStack.clear();
     g.BeginPopupStack.clear();
 
-    for (int i = 0; i < g.Viewports.Size; i++)
-        IM_DELETE(g.Viewports[i]);
-    g.Viewports.clear();
+    g.Viewports.clear_delete();
 
     g.TabBars.Clear();
     g.CurrentTabBarStack.clear();
     g.ShrinkWidthBuffer.clear();
 
     g.Tables.Clear();
-    for (int i = 0; i < g.TablesTempDataStack.Size; i++)
-        g.TablesTempDataStack[i].~ImGuiTableTempData();
-    g.TablesTempDataStack.clear();
+    g.TablesTempDataStack.clear_destruct();
     g.DrawChannelsTempMergeBuffer.clear();
 
     g.ClipboardHandlerData.clear();
@@ -4459,6 +4460,9 @@ void ImGui::EndFrame()
     CallContextHooks(&g, ImGuiContextHookType_EndFramePost);
 }
 
+// Prepare the data for rendering so you can call GetDrawData()
+// (As with anything within the ImGui:: namspace this doesn't touch your GPU or graphics API at all:
+// it is the role of the ImGui_ImplXXXX_RenderDrawData() function provided by the renderer backend)
 void ImGui::Render()
 {
     ImGuiContext& g = *GImGui;
@@ -4946,6 +4950,16 @@ void ImGui::SetItemUsingMouseWheel()
         g.HoveredIdUsingMouseWheel = true;
     if (g.ActiveId == id)
         g.ActiveIdUsingMouseWheel = true;
+}
+
+void ImGui::SetActiveIdUsingNavAndKeys()
+{
+    ImGuiContext& g = *GImGui;
+    IM_ASSERT(g.ActiveId != 0);
+    g.ActiveIdUsingNavDirMask = ~(ImU32)0;
+    g.ActiveIdUsingNavInputMask = ~(ImU32)0;
+    g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
+    NavMoveRequestCancel();
 }
 
 ImVec2 ImGui::GetItemRectMin()
@@ -5666,8 +5680,7 @@ void ImGui::RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& titl
 
     // Title bar text (with: horizontal alignment, avoiding collapse/close button, optional "unsaved document" marker)
     // FIXME: Refactor text alignment facilities along with RenderText helpers, this is WAY too much messy code..
-    const char* UNSAVED_DOCUMENT_MARKER = "*";
-    const float marker_size_x = (flags & ImGuiWindowFlags_UnsavedDocument) ? CalcTextSize(UNSAVED_DOCUMENT_MARKER, NULL, false).x : 0.0f;
+    const float marker_size_x = (flags & ImGuiWindowFlags_UnsavedDocument) ? button_sz * 0.80f : 0.0f;
     const ImVec2 text_size = CalcTextSize(name, NULL, true) + ImVec2(marker_size_x, 0.0f);
 
     // As a nice touch we try to ensure that centered title text doesn't get affected by visibility of Close/Collapse button,
@@ -5686,15 +5699,20 @@ void ImGui::RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& titl
 
     ImRect layout_r(title_bar_rect.Min.x + pad_l, title_bar_rect.Min.y, title_bar_rect.Max.x - pad_r, title_bar_rect.Max.y);
     ImRect clip_r(layout_r.Min.x, layout_r.Min.y, ImMin(layout_r.Max.x + g.Style.ItemInnerSpacing.x, title_bar_rect.Max.x), layout_r.Max.y);
+    if (flags & ImGuiWindowFlags_UnsavedDocument)
+    {
+        ImVec2 marker_pos;
+        marker_pos.x = ImClamp(layout_r.Min.x + (layout_r.GetWidth() - text_size.x) * style.WindowTitleAlign.x + text_size.x, layout_r.Min.x, layout_r.Max.x);
+        marker_pos.y = (layout_r.Min.y + layout_r.Max.y) * 0.5f;
+        if (marker_pos.x > layout_r.Min.x)
+        {
+            RenderBullet(window->DrawList, marker_pos, GetColorU32(ImGuiCol_Text));
+            clip_r.Max.x = ImMin(clip_r.Max.x, marker_pos.x - (int)(marker_size_x * 0.5f));
+        }
+    }
     //if (g.IO.KeyShift) window->DrawList->AddRect(layout_r.Min, layout_r.Max, IM_COL32(255, 128, 0, 255)); // [DEBUG]
     //if (g.IO.KeyCtrl) window->DrawList->AddRect(clip_r.Min, clip_r.Max, IM_COL32(255, 128, 0, 255)); // [DEBUG]
     RenderTextClipped(layout_r.Min, layout_r.Max, name, NULL, &text_size, style.WindowTitleAlign, &clip_r);
-    if (flags & ImGuiWindowFlags_UnsavedDocument)
-    {
-        ImVec2 marker_pos = ImVec2(ImMax(layout_r.Min.x, layout_r.Min.x + (layout_r.GetWidth() - text_size.x) * style.WindowTitleAlign.x) + text_size.x, layout_r.Min.y) + ImVec2(2 - marker_size_x, 0.0f);
-        ImVec2 off = ImVec2(0.0f, IM_FLOOR(-g.FontSize * 0.25f));
-        RenderTextClipped(marker_pos + off, layout_r.Max + off, UNSAVED_DOCUMENT_MARKER, NULL, NULL, ImVec2(0, style.WindowTitleAlign.y), &clip_r);
-    }
 }
 
 void ImGui::UpdateWindowParentAndRootLinks(ImGuiWindow* window, ImGuiWindowFlags flags, ImGuiWindow* parent_window)
@@ -6309,7 +6327,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
     // Pull/inherit current state
     g.CurrentItemFlags = g.ItemFlagsStack.back(); // Inherit from shared stack
-    window->DC.NavFocusScopeIdCurrent = (flags & ImGuiWindowFlags_ChildWindow) ? parent_window->DC.NavFocusScopeIdCurrent : 0; // Inherit from parent only // -V595
+    window->DC.NavFocusScopeIdCurrent = (flags & ImGuiWindowFlags_ChildWindow) ? parent_window->DC.NavFocusScopeIdCurrent : window->GetID("#FOCUSSCOPE"); // Inherit from parent only // -V595
 
     PushClipRect(window->InnerClipRect.Min, window->InnerClipRect.Max, true);
 
@@ -6566,6 +6584,28 @@ void ImGui::PopItemFlag()
     IM_ASSERT(g.ItemFlagsStack.Size > 1); // Too many calls to PopItemFlag() - we always leave a 0 at the bottom of the stack.
     g.ItemFlagsStack.pop_back();
     g.CurrentItemFlags = g.ItemFlagsStack.back();
+}
+
+// PushDisabled()/PopDisabled()
+// - Those are not yet exposed in imgui.h because we are unsure of how to alter the style in a way that works for everyone.
+//   We may rework this. Hypothetically, a future styling system may set a flag which make widgets use different colors.
+// - Feedback welcome at https://github.com/ocornut/imgui/issues/211
+// - You may trivially implement your own variation of this if needed.
+//   Here we test (CurrentItemFlags & ImGuiItemFlags_Disabled) to allow nested PushDisabled() calls.
+void ImGui::PushDisabled()
+{
+    ImGuiContext& g = *GImGui;
+    if ((g.CurrentItemFlags & ImGuiItemFlags_Disabled) == 0)
+        PushStyleVar(ImGuiStyleVar_Alpha, g.Style.Alpha * 0.6f);
+    PushItemFlag(ImGuiItemFlags_Disabled, true);
+}
+
+void ImGui::PopDisabled()
+{
+    ImGuiContext& g = *GImGui;
+    PopItemFlag();
+    if ((g.CurrentItemFlags & ImGuiItemFlags_Disabled) == 0)
+        PopStyleVar();
 }
 
 // FIXME: Look into renaming this once we have settled the new Focus/Activation/TabStop system.
@@ -7147,8 +7187,7 @@ static void ImGui::ErrorCheckNewFrameSanityChecks()
     IM_ASSERT((g.IO.DeltaTime > 0.0f || g.FrameCount == 0)              && "Need a positive DeltaTime!");
     IM_ASSERT((g.FrameCount == 0 || g.FrameCountEnded == g.FrameCount)  && "Forgot to call Render() or EndFrame() at the end of the previous frame?");
     IM_ASSERT(g.IO.DisplaySize.x >= 0.0f && g.IO.DisplaySize.y >= 0.0f  && "Invalid DisplaySize value!");
-    IM_ASSERT(g.IO.Fonts->Fonts.Size > 0                                && "Font Atlas not built. Did you call io.Fonts->GetTexDataAsRGBA32() / GetTexDataAsAlpha8()?");
-    IM_ASSERT(g.IO.Fonts->Fonts[0]->IsLoaded()                          && "Font Atlas not built. Did you call io.Fonts->GetTexDataAsRGBA32() / GetTexDataAsAlpha8()?");
+    IM_ASSERT(g.IO.Fonts->IsBuilt()                                     && "Font Atlas not built! Make sure you called ImGui_ImplXXXX_NewFrame() function for renderer backend, which should call io.Fonts->GetTexDataAsRGBA32() / GetTexDataAsAlpha8()");
     IM_ASSERT(g.Style.CurveTessellationTol > 0.0f                       && "Invalid style setting!");
     IM_ASSERT(g.Style.CircleTessellationMaxError  > 0.0f                && "Invalid style setting!");
     IM_ASSERT(g.Style.Alpha >= 0.0f && g.Style.Alpha <= 1.0f            && "Invalid style setting!"); // Allows us to avoid a few clamps in color computations
@@ -8522,7 +8561,7 @@ ImVec2 ImGui::FindBestWindowPosForPopupEx(const ImVec2& ref_pos, const ImVec2& s
 }
 
 // Note that this is used for popups, which can overlap the non work-area of individual viewports.
-ImRect ImGui::GetWindowAllowedExtentRect(ImGuiWindow* window)
+ImRect ImGui::GetPopupAllowedExtentRect(ImGuiWindow* window)
 {
     ImGuiContext& g = *GImGui;
     IM_UNUSED(window);
@@ -8536,7 +8575,7 @@ ImVec2 ImGui::FindBestWindowPosForPopup(ImGuiWindow* window)
 {
     ImGuiContext& g = *GImGui;
 
-    ImRect r_outer = GetWindowAllowedExtentRect(window);
+    ImRect r_outer = GetPopupAllowedExtentRect(window);
     if (window->Flags & ImGuiWindowFlags_ChildMenu)
     {
         // Child menus typically request _any_ position within the parent menu item, and then we move the new menu outside the parent bounds.
@@ -9580,7 +9619,7 @@ static void ImGui::NavUpdateWindowing()
     if (start_windowing_with_gamepad || start_windowing_with_keyboard)
         if (ImGuiWindow* window = g.NavWindow ? g.NavWindow : FindWindowNavFocusable(g.WindowsFocusOrder.Size - 1, -INT_MAX, -1))
         {
-            g.NavWindowingTarget = g.NavWindowingTargetAnim = window->RootWindow; // FIXME-DOCK: Will need to use RootWindowDockStop
+            g.NavWindowingTarget = g.NavWindowingTargetAnim = window->RootWindow;
             g.NavWindowingTimer = g.NavWindowingHighlightAlpha = 0.0f;
             g.NavWindowingToggleLayer = start_windowing_with_keyboard ? false : true;
             g.NavInputSource = start_windowing_with_keyboard ? ImGuiInputSource_Keyboard : ImGuiInputSource_Gamepad;
@@ -9835,10 +9874,8 @@ bool ImGui::BeginDragDropSource(ImGuiDragDropFlags flags)
         source_parent_id = window->IDStack.back();
         source_drag_active = IsMouseDragging(mouse_button);
 
-        // Disable navigation and key inputs while dragging
-        g.ActiveIdUsingNavDirMask = ~(ImU32)0;
-        g.ActiveIdUsingNavInputMask = ~(ImU32)0;
-        g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
+        // Disable navigation and key inputs while dragging + cancel existing request if any
+        SetActiveIdUsingNavAndKeys();
     }
     else
     {
@@ -10028,17 +10065,11 @@ const ImGuiPayload* ImGui::AcceptDragDropPayload(const char* type, ImGuiDragDrop
     }
 
     // Render default drop visuals
+    // FIXME-DRAGDROP: Settle on a proper default visuals for drop target.
     payload.Preview = was_accepted_previously;
     flags |= (g.DragDropSourceFlags & ImGuiDragDropFlags_AcceptNoDrawDefaultRect); // Source can also inhibit the preview (useful for external sources that lives for 1 frame)
     if (!(flags & ImGuiDragDropFlags_AcceptNoDrawDefaultRect) && payload.Preview)
-    {
-        // FIXME-DRAGDROP: Settle on a proper default visuals for drop target.
-        r.Expand(3.5f);
-        bool push_clip_rect = !window->ClipRect.Contains(r);
-        if (push_clip_rect) window->DrawList->PushClipRect(r.Min - ImVec2(1, 1), r.Max + ImVec2(1, 1));
-        window->DrawList->AddRect(r.Min, r.Max, GetColorU32(ImGuiCol_DragDropTarget), 0.0f, 0, 2.0f);
-        if (push_clip_rect) window->DrawList->PopClipRect();
-    }
+        window->DrawList->AddRect(r.Min - ImVec2(3.5f,3.5f), r.Max + ImVec2(3.5f, 3.5f), GetColorU32(ImGuiCol_DragDropTarget), 0.0f, 0, 2.0f);
 
     g.DragDropAcceptFrameCount = g.FrameCount;
     payload.Delivery = was_accepted_previously && !IsMouseDown(g.DragDropMouseButton); // For extern drag sources affecting os window focus, it's easier to just test !IsMouseDown() instead of IsMouseReleased()
@@ -10600,8 +10631,9 @@ static void WindowSettingsHandler_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandl
             window->SettingsOffset = g.SettingsWindows.offset_from_ptr(settings);
         }
         IM_ASSERT(settings->ID == window->ID);
-        settings->Pos = ImVec2ih((short)window->Pos.x, (short)window->Pos.y);
-        settings->Size = ImVec2ih((short)window->SizeFull.x, (short)window->SizeFull.y);
+        settings->Pos = ImVec2ih(window->Pos);
+        settings->Size = ImVec2ih(window->SizeFull);
+
         settings->Collapsed = window->Collapsed;
     }
 
@@ -11016,10 +11048,10 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         cfg->ShowTablesRects |= Combo("##show_table_rects_type", &cfg->ShowTablesRectsType, trt_rects_names, TRT_Count, TRT_Count);
         if (cfg->ShowTablesRects && g.NavWindow != NULL)
         {
-            for (int table_n = 0; table_n < g.Tables.GetSize(); table_n++)
+            for (int table_n = 0; table_n < g.Tables.GetMapSize(); table_n++)
             {
-                ImGuiTable* table = g.Tables.GetByIndex(table_n);
-                if (table->LastFrameActive < g.FrameCount - 1 || (table->OuterWindow != g.NavWindow && table->InnerWindow != g.NavWindow))
+                ImGuiTable* table = g.Tables.TryGetMapData(table_n);
+                if (table == NULL || table->LastFrameActive < g.FrameCount - 1 || (table->OuterWindow != g.NavWindow && table->InnerWindow != g.NavWindow))
                     continue;
 
                 BulletText("Table 0x%08X (%d columns, in '%s')", table->ID, table->ColumnsCount, table->OuterWindow->Name);
@@ -11101,18 +11133,24 @@ void ImGui::ShowMetricsWindow(bool* p_open)
     }
 
     // Details for TabBars
-    if (TreeNode("TabBars", "Tab Bars (%d)", g.TabBars.GetSize()))
+    if (TreeNode("TabBars", "Tab Bars (%d)", g.TabBars.GetAliveCount()))
     {
-        for (int n = 0; n < g.TabBars.GetSize(); n++)
-            DebugNodeTabBar(g.TabBars.GetByIndex(n), "TabBar");
+        for (int n = 0; n < g.TabBars.GetMapSize(); n++)
+            if (ImGuiTabBar* tab_bar = g.TabBars.TryGetMapData(n))
+            {
+                PushID(tab_bar);
+                DebugNodeTabBar(tab_bar, "TabBar");
+                PopID();
+            }
         TreePop();
     }
 
     // Details for Tables
-    if (TreeNode("Tables", "Tables (%d)", g.Tables.GetSize()))
+    if (TreeNode("Tables", "Tables (%d)", g.Tables.GetAliveCount()))
     {
-        for (int n = 0; n < g.Tables.GetSize(); n++)
-            DebugNodeTable(g.Tables.GetByIndex(n));
+        for (int n = 0; n < g.Tables.GetMapSize(); n++)
+            if (ImGuiTable* table = g.Tables.TryGetMapData(n))
+                DebugNodeTable(table);
         TreePop();
     }
 
@@ -11199,6 +11237,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         Indent();
         Text("ActiveId: 0x%08X/0x%08X (%.2f sec), AllowOverlap: %d, Source: %s", g.ActiveId, g.ActiveIdPreviousFrame, g.ActiveIdTimer, g.ActiveIdAllowOverlap, input_source_names[g.ActiveIdSource]);
         Text("ActiveIdWindow: '%s'", g.ActiveIdWindow ? g.ActiveIdWindow->Name : "NULL");
+        Text("ActiveIdUsing: Wheel: %d, NavDirMask: %X, NavInputMask: %X, KeyInputMask: %llX", g.ActiveIdUsingMouseWheel, g.ActiveIdUsingNavDirMask, g.ActiveIdUsingNavInputMask, g.ActiveIdUsingKeyInputMask);
         Text("HoveredId: 0x%08X/0x%08X (%.2f sec), AllowOverlap: %d", g.HoveredId, g.HoveredIdPreviousFrame, g.HoveredIdTimer, g.HoveredIdAllowOverlap); // Data is "in-flight" so depending on when the Metrics window is called we may see current frame information or not
         Text("DragDrop: %d, SourceId = 0x%08X, Payload \"%s\" (%d bytes)", g.DragDropActive, g.DragDropPayload.SourceId, g.DragDropPayload.DataType, g.DragDropPayload.DataSize);
         Unindent();
@@ -11246,10 +11285,10 @@ void ImGui::ShowMetricsWindow(bool* p_open)
     // Overlay: Display Tables Rectangles
     if (cfg->ShowTablesRects)
     {
-        for (int table_n = 0; table_n < g.Tables.GetSize(); table_n++)
+        for (int table_n = 0; table_n < g.Tables.GetMapSize(); table_n++)
         {
-            ImGuiTable* table = g.Tables.GetByIndex(table_n);
-            if (table->LastFrameActive < g.FrameCount - 1)
+            ImGuiTable* table = g.Tables.TryGetMapData(table_n);
+            if (table == NULL || table->LastFrameActive < g.FrameCount - 1)
                 continue;
             ImDrawList* draw_list = GetForegroundDrawList(table->OuterWindow);
             if (cfg->ShowTablesRectsType >= TRT_ColumnsRect)
@@ -11278,6 +11317,25 @@ void ImGui::ShowMetricsWindow(bool* p_open)
 #endif // #ifdef IMGUI_HAS_DOCK
 
     End();
+}
+
+// [DEBUG] List fonts in a font atlas and display its texture
+void ImGui::ShowFontAtlas(ImFontAtlas* atlas)
+{
+    for (int i = 0; i < atlas->Fonts.Size; i++)
+    {
+        ImFont* font = atlas->Fonts[i];
+        PushID(font);
+        DebugNodeFont(font);
+        PopID();
+    }
+    if (TreeNode("Atlas texture", "Atlas texture (%dx%d pixels)", atlas->TexWidth, atlas->TexHeight))
+    {
+        ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+        ImVec4 border_col = ImVec4(1.0f, 1.0f, 1.0f, 0.5f);
+        Image(atlas->TexID, ImVec2((float)atlas->TexWidth, (float)atlas->TexHeight), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), tint_col, border_col);
+        TreePop();
+    }
 }
 
 // [DEBUG] Display contents of Columns
@@ -11414,6 +11472,102 @@ void ImGui::DebugNodeDrawCmdShowMeshAndBoundingBox(ImDrawList* out_draw_list, co
     out_draw_list->Flags = backup_flags;
 }
 
+// [DEBUG] Display details for a single font, called by ShowStyleEditor().
+void ImGui::DebugNodeFont(ImFont* font)
+{
+    bool opened = TreeNode(font, "Font: \"%s\"\n%.2f px, %d glyphs, %d file(s)",
+        font->ConfigData ? font->ConfigData[0].Name : "", font->FontSize, font->Glyphs.Size, font->ConfigDataCount);
+    SameLine();
+    if (SmallButton("Set as default"))
+        GetIO().FontDefault = font;
+    if (!opened)
+        return;
+
+    // Display preview text
+    PushFont(font);
+    Text("The quick brown fox jumps over the lazy dog");
+    PopFont();
+
+    // Display details
+    SetNextItemWidth(GetFontSize() * 8);
+    DragFloat("Font scale", &font->Scale, 0.005f, 0.3f, 2.0f, "%.1f");
+    SameLine(); MetricsHelpMarker(
+        "Note than the default embedded font is NOT meant to be scaled.\n\n"
+        "Font are currently rendered into bitmaps at a given size at the time of building the atlas. "
+        "You may oversample them to get some flexibility with scaling. "
+        "You can also render at multiple sizes and select which one to use at runtime.\n\n"
+        "(Glimmer of hope: the atlas system will be rewritten in the future to make scaling more flexible.)");
+    Text("Ascent: %f, Descent: %f, Height: %f", font->Ascent, font->Descent, font->Ascent - font->Descent);
+    char c_str[5];
+    Text("Fallback character: '%s' (U+%04X)", ImTextCharToUtf8(c_str, font->FallbackChar), font->FallbackChar);
+    Text("Ellipsis character: '%s' (U+%04X)", ImTextCharToUtf8(c_str, font->EllipsisChar), font->EllipsisChar);
+    const int surface_sqrt = (int)ImSqrt((float)font->MetricsTotalSurface);
+    Text("Texture Area: about %d px ~%dx%d px", font->MetricsTotalSurface, surface_sqrt, surface_sqrt);
+    for (int config_i = 0; config_i < font->ConfigDataCount; config_i++)
+        if (font->ConfigData)
+            if (const ImFontConfig* cfg = &font->ConfigData[config_i])
+                BulletText("Input %d: \'%s\', Oversample: (%d,%d), PixelSnapH: %d, Offset: (%.1f,%.1f)",
+                    config_i, cfg->Name, cfg->OversampleH, cfg->OversampleV, cfg->PixelSnapH, cfg->GlyphOffset.x, cfg->GlyphOffset.y);
+
+    // Display all glyphs of the fonts in separate pages of 256 characters
+    if (TreeNode("Glyphs", "Glyphs (%d)", font->Glyphs.Size))
+    {
+        ImDrawList* draw_list = GetWindowDrawList();
+        const ImU32 glyph_col = GetColorU32(ImGuiCol_Text);
+        const float cell_size = font->FontSize * 1;
+        const float cell_spacing = GetStyle().ItemSpacing.y;
+        for (unsigned int base = 0; base <= IM_UNICODE_CODEPOINT_MAX; base += 256)
+        {
+            // Skip ahead if a large bunch of glyphs are not present in the font (test in chunks of 4k)
+            // This is only a small optimization to reduce the number of iterations when IM_UNICODE_MAX_CODEPOINT
+            // is large // (if ImWchar==ImWchar32 we will do at least about 272 queries here)
+            if (!(base & 4095) && font->IsGlyphRangeUnused(base, base + 4095))
+            {
+                base += 4096 - 256;
+                continue;
+            }
+
+            int count = 0;
+            for (unsigned int n = 0; n < 256; n++)
+                if (font->FindGlyphNoFallback((ImWchar)(base + n)))
+                    count++;
+            if (count <= 0)
+                continue;
+            if (!TreeNode((void*)(intptr_t)base, "U+%04X..U+%04X (%d %s)", base, base + 255, count, count > 1 ? "glyphs" : "glyph"))
+                continue;
+
+            // Draw a 16x16 grid of glyphs
+            ImVec2 base_pos = GetCursorScreenPos();
+            for (unsigned int n = 0; n < 256; n++)
+            {
+                // We use ImFont::RenderChar as a shortcut because we don't have UTF-8 conversion functions
+                // available here and thus cannot easily generate a zero-terminated UTF-8 encoded string.
+                ImVec2 cell_p1(base_pos.x + (n % 16) * (cell_size + cell_spacing), base_pos.y + (n / 16) * (cell_size + cell_spacing));
+                ImVec2 cell_p2(cell_p1.x + cell_size, cell_p1.y + cell_size);
+                const ImFontGlyph* glyph = font->FindGlyphNoFallback((ImWchar)(base + n));
+                draw_list->AddRect(cell_p1, cell_p2, glyph ? IM_COL32(255, 255, 255, 100) : IM_COL32(255, 255, 255, 50));
+                if (glyph)
+                    font->RenderChar(draw_list, cell_size, cell_p1, glyph_col, (ImWchar)(base + n));
+                if (glyph && IsMouseHoveringRect(cell_p1, cell_p2))
+                {
+                    BeginTooltip();
+                    Text("Codepoint: U+%04X", base + n);
+                    Separator();
+                    Text("Visible: %d", glyph->Visible);
+                    Text("AdvanceX: %.1f", glyph->AdvanceX);
+                    Text("Pos: (%.2f,%.2f)->(%.2f,%.2f)", glyph->X0, glyph->Y0, glyph->X1, glyph->Y1);
+                    Text("UV: (%.3f,%.3f)->(%.3f,%.3f)", glyph->U0, glyph->V0, glyph->U1, glyph->V1);
+                    EndTooltip();
+                }
+            }
+            Dummy(ImVec2((cell_size + cell_spacing) * 16, (cell_size + cell_spacing) * 16));
+            TreePop();
+        }
+        TreePop();
+    }
+    TreePop();
+}
+
 // [DEBUG] Display contents of ImGuiStorage
 void ImGui::DebugNodeStorage(ImGuiStorage* storage, const char* label)
 {
@@ -11436,9 +11590,16 @@ void ImGui::DebugNodeTabBar(ImGuiTabBar* tab_bar, const char* label)
     const char* buf_end = buf + IM_ARRAYSIZE(buf);
     const bool is_active = (tab_bar->PrevFrameVisible >= GetFrameCount() - 2);
     p += ImFormatString(p, buf_end - p, "%s 0x%08X (%d tabs)%s", label, tab_bar->ID, tab_bar->Tabs.Size, is_active ? "" : " *Inactive*");
-    IM_UNUSED(p);
+    p += ImFormatString(p, buf_end - p, "  { ");
+    for (int tab_n = 0; tab_n < ImMin(tab_bar->Tabs.Size, 3); tab_n++)
+    {
+        ImGuiTabItem* tab = &tab_bar->Tabs[tab_n];
+        p += ImFormatString(p, buf_end - p, "%s'%s'",
+            tab_n > 0 ? ", " : "", (tab->NameOffset != -1) ? tab_bar->GetTabName(tab) : "???");
+    }
+    p += ImFormatString(p, buf_end - p, (tab_bar->Tabs.Size > 3) ? " ... }" : " } ");
     if (!is_active) { PushStyleColor(ImGuiCol_Text, GetStyleColorVec4(ImGuiCol_TextDisabled)); }
-    bool open = TreeNode(tab_bar, "%s", buf);
+    bool open = TreeNode(label, "%s", buf);
     if (!is_active) { PopStyleColor(); }
     if (is_active && IsItemHovered())
     {
@@ -11456,7 +11617,7 @@ void ImGui::DebugNodeTabBar(ImGuiTabBar* tab_bar, const char* label)
             if (SmallButton("<")) { TabBarQueueReorder(tab_bar, tab, -1); } SameLine(0, 2);
             if (SmallButton(">")) { TabBarQueueReorder(tab_bar, tab, +1); } SameLine();
             Text("%02d%c Tab 0x%08X '%s' Offset: %.1f, Width: %.1f/%.1f",
-                tab_n, (tab->ID == tab_bar->SelectedTabId) ? '*' : ' ', tab->ID, (tab->NameOffset != -1) ? tab_bar->GetTabName(tab) : "", tab->Offset, tab->Width, tab->ContentWidth);
+                tab_n, (tab->ID == tab_bar->SelectedTabId) ? '*' : ' ', tab->ID, (tab->NameOffset != -1) ? tab_bar->GetTabName(tab) : "???", tab->Offset, tab->Width, tab->ContentWidth);
             PopID();
         }
         TreePop();
@@ -11564,9 +11725,11 @@ void ImGui::DebugNodeWindowsList(ImVector<ImGuiWindow*>* windows, const char* la
 #else
 
 void ImGui::ShowMetricsWindow(bool*) {}
+void ImGui::ShowFontAtlas(ImFontAtlas*) {}
 void ImGui::DebugNodeColumns(ImGuiOldColumns*) {}
 void ImGui::DebugNodeDrawList(ImGuiWindow*, const ImDrawList*, const char*) {}
 void ImGui::DebugNodeDrawCmdShowMeshAndBoundingBox(ImDrawList*, const ImDrawList*, const ImDrawCmd*, bool, bool) {}
+void ImGui::DebugNodeFont(ImFont*) {}
 void ImGui::DebugNodeStorage(ImGuiStorage*, const char*) {}
 void ImGui::DebugNodeTabBar(ImGuiTabBar*, const char*) {}
 void ImGui::DebugNodeWindow(ImGuiWindow*, const char*) {}
