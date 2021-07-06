@@ -43,14 +43,14 @@ namespace gvk
 		void enable_user_interaction(bool aEnableOrNot);
 		bool is_user_interaction_enabled() const { return mUserInteractionEnabled; }
 
-		/**	Get or create a ImTextureID for ImGui
+		/**	Get or create a texture Descriptor for use in ImGui
 		 *	
-		 *  This function creates and caches a ImTextureID or returns an already cached ImTextureID for the provided `avk::image_sampler`
+		 *  This function creates and caches or returns an already cached DescriptorSet for the provided `avk::image_sampler`
 		 *
-		 *	@param[in] aImageSampler		An image sampler, that should be rendered with ImGui
-		 *  @param[out] ImTextureID			ImGui identifier for textures
+		 *	@param[in] aImageSampler		An image sampler, that shall be rendered with ImGui
+		 *  @param[out] ImTextureID			A DescriptorSet as ImGui identifier for textures
 		 */
-		ImTextureID get_or_create_texture(avk::image_sampler& aImageSampler);
+		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler);
 
 	private:
 		void upload_fonts();

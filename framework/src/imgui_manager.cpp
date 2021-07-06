@@ -6,23 +6,6 @@
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
 #include <imgui_internal.h>
 
-//// Custom specialization of std::hash for DescriptorKey can be injected in namespace std
-//// adopted from https://en.cppreference.com/w/cpp/utility/hash to use hash_combine.
-//namespace std {
-//	template <>
-//	struct hash<DescriptorKey>
-//	{
-//		inline std::size_t operator()(const DescriptorKey& k) const
-//		{
-//			size_t seed = 0;
-//			hash_combine(seed, k.sampler);
-//			hash_combine(seed, k.image_view);
-//			hash_combine(seed, k.image_layout);
-//			return seed;
-//		}
-//	};
-//}
-
 namespace gvk
 {
 	void imgui_manager::initialize()
@@ -54,7 +37,8 @@ namespace gvk
 	    init_info.Queue = mQueue->handle();
 	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
-		//const uint32_t magicImguiFactor = 1000;
+		// This factor is set to 1000 in the imgui example code but after looking through the vulkan backend code, we never
+		// allocate more than one descriptor set, therefore setting this to 1 should be sufficient.
 		const uint32_t magicImguiFactor = 1;
 		auto allocRequest = avk::descriptor_alloc_request{};
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
@@ -414,10 +398,10 @@ namespace gvk
 		avk::assign_and_lifetime_handle_previous(mClearRenderpass, std::move(newClearRenderpass), lifetimeHandlerLambda);
 	}
 
-	ImTextureID imgui_manager::get_or_create_texture(avk::image_sampler& aImageSampler)
+	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler)
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache.get_or_create_descriptor_sets({
-			avk::descriptor_binding(0, 0, aImageSampler, avk::shader_type::fragment)
+			avk::descriptor_binding(0, 0, aImageSampler.get(), avk::shader_type::fragment)
 			});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler

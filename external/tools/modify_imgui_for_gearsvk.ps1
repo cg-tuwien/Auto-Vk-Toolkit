@@ -38,18 +38,18 @@ $appliedChanges = @{
 Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
-	if ($line -match $gearsVkHeader) {
+	if ($line -eq $gearsVkHeader) {
 		$fileAlreadyModified = 1
 		Write-Host "   -> Already modified" -ForegroundColor Green
 		break
 	}
 	# Add user texture binding to implemented features list
-	if ($line -match "//\s*Missing\s*features:") {
+	if ($line -imatch "\/\/\s*Missing\s*features:") {
 		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
 		$appliedChanges["AddedFeature"] = 1
 	}
 	# Remove user texture binding comment from missing feature
-	if ($line -match "//\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
+	if ($line -imatch "\/\/\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
 		$appliedChanges["RemovedFeature"] = 1
 		continue
 	}
@@ -137,33 +137,33 @@ $parentheseCounter = 0
 Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
-	if ($line -match $gearsVkHeader) {
+	if ($line -eq $gearsVkHeader) {
 		Write-Host "   -> Already modified" -ForegroundColor Green
 		$fileAlreadyModified = 1
 		break
 	}
 
 	# Add user texture binding to implemented features list
-	if ($line -match "//\s*Missing\s*features:") {
+	if ($line -imatch "\/\/\s*Missing\s*features:") {
 		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
 	}
 	# Remove user texture binding comment from missing feature
-	if ($line -match "//\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
+	if ($line -imatch "\/\/\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
 		continue
 	}
 
 	# Detect if about to enter ImGui_ImplVulkan_SetupRenderState
-	if ($line -match "void\s+ImGui_ImplVulkan_SetupRenderState\(.+\)") {
+	if ($line -imatch "void\s+ImGui_ImplVulkan_SetupRenderState\(.+\)") {
 		$aboutToEnterFunction = [FunctionName]::SetupRenderState
 	}
 
 	# Detect if about to enter ImGui_ImplVulkan_RenderDrawData
-	if ($line -match "void\s+ImGui_ImplVulkan_RenderDrawData\(.+\)") {
+	if ($line -imatch "void\s+ImGui_ImplVulkan_RenderDrawData\(.+\)") {
 		$aboutToEnterFunction = [FunctionName]::RenderDrawData
 	}
 
 	# Detect if about to enter ImGui_ImplVulkan_CreateFontsTexture
-	if ($line -match "bool\s+ImGui_ImplVulkan_CreateFontsTexture\(.+\)") {
+	if ($line -imatch "bool\s+ImGui_ImplVulkan_CreateFontsTexture\(.+\)") {
 		$aboutToEnterFunction = [FunctionName]::CreateFontsTexture
 	}
 
@@ -192,18 +192,18 @@ Foreach ($line in $fileContent)
 	# Remove font descriptor set binding in ImGui_ImplVulkan_SetupRenderState
 	if ($currentFunction -eq [FunctionName]::SetupRenderState) {
 		# Change comment, stating that descriptor sets are bound
-		if ($line -match "//\s*Bind\s*pipeline\s*and\s*descriptor\s*sets") {
+		if ($line -imatch "\/\/\s*Bind\s*pipeline\s*and\s*descriptor\s*sets") {
 			# Get tabs/spaces up to the first '/' to nicely align the new comment
-			$matched = $line -match "^[^/]*"
+			$matched = $line -imatch "^[^/]*"
 			$tabs = $Matches[0]
 			$fileContentModified += $tabs + "// Bind pipeline"
 			continue
 		}
 		# Remove unecessary descriptor binding
-		if ($line -match "VkDescriptorSet\s*desc_set\[1\]\s*=\s*\{\s*g_DescriptorSet\s*\};") {
+		if ($line -imatch "VkDescriptorSet\s*desc_set\[1\]\s*=\s*\{\s*g_DescriptorSet\s*\};") {
 			continue
 		}
-		if ($line -match "vkCmdBindDescriptorSets\(.+,\s*VK_PIPELINE_BIND_POINT_GRAPHICS\s*,.+,\s*0\s*,\s*1\s*,\s*desc_set\s*,\s*0\s*,.+\);") {
+		if ($line -imatch "vkCmdBindDescriptorSets\(.+,\s*VK_PIPELINE_BIND_POINT_GRAPHICS\s*,.+,\s*0\s*,\s*1\s*,\s*desc_set\s*,\s*0\s*,.+\);") {
 			# Accept the change here since this is where the actual unecessary bind happens. It is
 			# not 'that' important to change the comment above or the VkDescriptorSet declaration
 			# since the optimizing compiler will probably get rid of it anyways if we remove
@@ -215,11 +215,11 @@ Foreach ($line in $fileContent)
 
 	# Add descriptor set binding in ImGui_ImplVulkan_RenderDrawData
 	if ($currentFunction -eq [FunctionName]::RenderDrawData) {
-		if ($line -match "vkCmdSetScissor\(.+,\s*0\s*,\s*1\s*,.+\);") {
+		if ($line -imatch "vkCmdSetScissor\(.+,\s*0\s*,\s*1\s*,.+\);") {
 			# Add the scissor cmd line
 			$fileContentModified += $line
 			# Get tabs/spaces up to the 'v' of vkCmdSetScissor to nicely align the code
-			$matched = $line -match "^[^v]*"
+			$matched = $line -imatch "^[^v]*"
 			$tabs = $Matches[0]
 			# Add descriptor binding code after the vkCmdSetScissor cmd
 			$fileContentModified += ''
@@ -233,9 +233,9 @@ Foreach ($line in $fileContent)
 
 	# Change fonts texture id assignment to descriptor in ImGui_ImplVulkan_CreateFontsTexture
 	if ($currentFunction -eq [FunctionName]::CreateFontsTexture) {
-		if ($line -match "io.Fonts->SetTexID\(.+\);") {
+		if ($line -imatch "io.Fonts->SetTexID\(.+\);") {
 			# Get tabs/spaces up to the 'i' of io.Fonts to nicely align the code
-			$matched = $line -match "^[^i]*"
+			$matched = $line -imatch "^[^i]*"
 			$tabs = $Matches[0]
 			# Asign descriptor set as ImTextureID
 			$fileContentModified += $tabs + 'io.Fonts->SetTexID((ImTextureID)g_DescriptorSet);'
@@ -261,71 +261,5 @@ if (-Not $fileAlreadyModified) {
 			$msg = "   [ ] " + $func
 			Write-Host $msg -ForegroundColor Red
 		}
-	}
-}
-
-
-##
-# Modify imgui header file (imgui.h)
-#
-# This adds:
-# - Define and comment for imgui user header inclusion at the end of the file above the line "#ifdef IMGUI_INCLUDE_IMGUI_USER_H":
-#	// Include imgui_user.h
-# 	// Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h
-# 	// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in
-# 	// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.
-# 	#define IMGUI_INCLUDE_IMGUI_USER_H'
-##
-
-"-> Modifying " + $imgui_h + ":"
-
-# Read imgui vulkan impl header
-$fileContent = Get-Content $imgui_h
-
-# Create an empty array and use it as the modified file
-$fileContentModified = @()
-
-# Header in file to communicate modification and prevent
-# multiple executions of this script
-$gearsVkHeader = '// Modified version for Gears-Vk'
-$fileContentModified += $gearsVkHeader
-$fileContentModified += '// Additions:'
-$fileContentModified += '// - Definition of IMGUI_INCLUDE_IMGUI_USER_H'
-$fileContentModified += ''
-
-$fileAlreadyModified = 0
-$appliedChange = 0
-Foreach ($line in $fileContent)
-{
-	# Skip file if it already contains our header
-	if ($line -match $gearsVkHeader) {
-		$fileAlreadyModified = 1
-		Write-Host "   -> Already modified" -ForegroundColor Green
-		break
-	}
-	# Add include imgui_user.h definition and comment why we need this
-	if ($line -match "#ifdef\s*IMGUI_INCLUDE_IMGUI_USER_H") {
-		$fileContentModified += '// Define this here instead of in imconfig.h because IntelliSense of VisualStudio (at least version 16.9.4) is not able to determine that imconfig.h'
-		$fileContentModified += '// which is included at the top contains this definition, hence a list of errors is generated, because it does not see the function declarations in'
-		$fileContentModified += '// imgui_user.h. This is only a IntelliSense problem as compilation works flawless but the wrongly created error list is a inconvenient for users.'
-		$fileContentModified += '#define IMGUI_INCLUDE_IMGUI_USER_H'
-		$appliedChange = 1;
-	}
-
-	$fileContentModified += $line
-}
-
-if (-Not $fileAlreadyModified) {
-	# Write modified file content to original file
-	Set-Content $imgui_h $fileContentModified
-	# Output success of performed actions
-	$msg = "Defined IMGUI_INCLUDE_IMGUI_USER_H"
-	if ($appliedChange -eq 1) {
-		$msg = "   [X] " + $msg
-		Write-Host $msg -ForegroundColor Green
-	}
-	else {
-		$msg = "   [ ] " + $msg
-		Write-Host $msg -ForegroundColor Red
 	}
 }
