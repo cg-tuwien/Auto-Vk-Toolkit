@@ -1035,14 +1035,19 @@ struct IMGUI_API ImGuiGroupData
 // Simple column measurement, currently used for MenuItem() only.. This is very short-sighted/throw-away code and NOT a generic helper.
 struct IMGUI_API ImGuiMenuColumns
 {
-    float       Spacing;
-    float       Width, NextWidth;
-    float       Pos[3], NextWidths[3];
+    ImU32       TotalWidth;
+    ImU32       NextTotalWidth;
+    ImU16       Spacing;
+    ImU16       OffsetIcon;         // Always zero for now
+    ImU16       OffsetLabel;        // Offsets are locked in Update()
+    ImU16       OffsetShortcut;
+    ImU16       OffsetMark;
+    ImU16       Widths[4];          // Width of:   Icon, Label, Shortcut, Mark  (accumulators for current frame)
 
     ImGuiMenuColumns() { memset(this, 0, sizeof(*this)); }
-    void        Update(int count, float spacing, bool clear);
-    float       DeclColumns(float w0, float w1, float w2);
-    float       CalcExtraSpace(float avail_w) const;
+    void        Update(float spacing, bool window_reappearing);
+    float       DeclColumns(float w_icon, float w_label, float w_shortcut, float w_mark);
+    void        CalcNextTotalWidth(bool update_offsets);
 };
 
 // Internal state of the currently focused/edited text input box
@@ -2436,6 +2441,9 @@ namespace ImGui
     IMGUI_API ImVec2        FindBestWindowPosForPopup(ImGuiWindow* window);
     IMGUI_API ImVec2        FindBestWindowPosForPopupEx(const ImVec2& ref_pos, const ImVec2& size, ImGuiDir* last_dir, const ImRect& r_outer, const ImRect& r_avoid, ImGuiPopupPositionPolicy policy);
     IMGUI_API bool          BeginViewportSideBar(const char* name, ImGuiViewport* viewport, ImGuiDir dir, float size, ImGuiWindowFlags window_flags);
+
+    // Menus
+    IMGUI_API bool          MenuItemEx(const char* label, const char* icon, const char* shortcut = NULL, bool selected = false, bool enabled = true);
 
     // Combos
     IMGUI_API bool          BeginComboPopup(ImGuiID popup_id, const ImRect& bb, ImGuiComboFlags flags);

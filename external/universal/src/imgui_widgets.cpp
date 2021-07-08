@@ -6591,38 +6591,46 @@ void ImGui::Value(const char* prefix, float v, const char* float_format)
 //-------------------------------------------------------------------------
 
 // Helpers for internal use
-void ImGuiMenuColumns::Update(int count, float spacing, bool clear)
+void ImGuiMenuColumns::Update(float spacing, bool window_reappearing)
 {
-    IM_ASSERT(count == IM_ARRAYSIZE(Pos));
-    IM_UNUSED(count);
-    Width = NextWidth = 0.0f;
-    Spacing = spacing;
-    if (clear)
-        memset(NextWidths, 0, sizeof(NextWidths));
-    for (int i = 0; i < IM_ARRAYSIZE(Pos); i++)
+    if (window_reappearing)
+        memset(Widths, 0, sizeof(Widths));
+    Spacing = (ImU16)spacing;
+    CalcNextTotalWidth(true);
+    memset(Widths, 0, sizeof(Widths));
+    TotalWidth = NextTotalWidth;
+    NextTotalWidth = 0;
+}
+
+void ImGuiMenuColumns::CalcNextTotalWidth(bool update_offsets)
+{
+    ImU16 offset = 0;
+    bool want_spacing = false;
+    for (int i = 0; i < IM_ARRAYSIZE(Widths); i++)
     {
-        if (i > 0 && NextWidths[i] > 0.0f)
-            Width += Spacing;
-        Pos[i] = IM_FLOOR(Width);
-        Width += NextWidths[i];
-        NextWidths[i] = 0.0f;
+        ImU16 width = Widths[i];
+        if (want_spacing && width > 0)
+            offset += Spacing;
+        want_spacing |= (width > 0);
+        if (update_offsets)
+        {
+            if (i == 1) { OffsetLabel = offset; }
+            if (i == 2) { OffsetShortcut = offset; }
+            if (i == 3) { OffsetMark = offset; }
+        }
+        offset += width;
     }
+    NextTotalWidth = offset;
 }
 
-float ImGuiMenuColumns::DeclColumns(float w0, float w1, float w2) // not using va_arg because they promote float to double
+float ImGuiMenuColumns::DeclColumns(float w_icon, float w_label, float w_shortcut, float w_mark)
 {
-    NextWidth = 0.0f;
-    NextWidths[0] = ImMax(NextWidths[0], w0);
-    NextWidths[1] = ImMax(NextWidths[1], w1);
-    NextWidths[2] = ImMax(NextWidths[2], w2);
-    for (int i = 0; i < IM_ARRAYSIZE(Pos); i++)
-        NextWidth += NextWidths[i] + ((i > 0 && NextWidths[i] > 0.0f) ? Spacing : 0.0f);
-    return ImMax(Width, NextWidth);
-}
-
-float ImGuiMenuColumns::CalcExtraSpace(float avail_w) const
-{
-    return ImMax(0.0f, avail_w - Width);
+    Widths[0] = ImMax(Widths[0], (ImU16)w_icon);
+    Widths[1] = ImMax(Widths[1], (ImU16)w_label);
+    Widths[2] = ImMax(Widths[2], (ImU16)w_shortcut);
+    Widths[3] = ImMax(Widths[3], (ImU16)w_mark);
+    CalcNextTotalWidth(false);
+    return (float)ImMax(TotalWidth, NextTotalWidth);
 }
 
 // FIXME: Provided a rectangle perhaps e.g. a BeginMenuBarEx() could be used anywhere..
@@ -6812,6 +6820,10 @@ bool ImGui::BeginMenu(const char* label, bool enabled)
     // However the final position is going to be different! It is chosen by FindBestWindowPosForPopup().
     // e.g. Menus tend to overlap each other horizontally to amplify relative Z-ordering.
     ImVec2 popup_pos, pos = window->DC.CursorPos;
+    PushID(label);
+    if (!enabled)
+        PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+    const ImGuiMenuColumns* offsets = &window->DC.MenuColumns;
     if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
     {
         // Menu inside an horizontal menu bar
@@ -6821,7 +6833,9 @@ bool ImGui::BeginMenu(const char* label, bool enabled)
         window->DC.CursorPos.x += IM_FLOOR(style.ItemSpacing.x * 0.5f);
         PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x * 2.0f, style.ItemSpacing.y));
         float w = label_size.x;
-        pressed = Selectable(label, menu_is_open, ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_DontClosePopups | (!enabled ? ImGuiSelectableFlags_Disabled : 0), ImVec2(w, 0.0f));
+        ImVec2 text_pos(window->DC.CursorPos.x + offsets->OffsetLabel, window->DC.CursorPos.y + window->DC.CurrLineTextBaseOffset);
+        pressed = Selectable("", menu_is_open, ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_DontClosePopups | (!enabled ? ImGuiSelectableFlags_Disabled : 0), ImVec2(w, 0.0f));
+        RenderText(text_pos, label);
         PopStyleVar();
         window->DC.CursorPos.x += IM_FLOOR(style.ItemSpacing.x * (-1.0f + 0.5f)); // -1 spacing to compensate the spacing added when Selectable() did a SameLine(). It would also work to call SameLine() ourselves after the PopStyleVar().
     }
@@ -6831,12 +6845,18 @@ bool ImGui::BeginMenu(const char* label, bool enabled)
         // (In a typical menu window where all items are BeginMenu() or MenuItem() calls, extra_w will always be 0.0f.
         //  Only when they are other items sticking out we're going to add spacing, yet only register minimum width into the layout system.
         popup_pos = ImVec2(pos.x, pos.y - style.WindowPadding.y);
-        float min_w = window->DC.MenuColumns.DeclColumns(label_size.x, 0.0f, IM_FLOOR(g.FontSize * 1.20f)); // Feedback to next frame
+        float icon_w = 0.0f; // FIXME: This not currently exposed for BeginMenu() however you can call window->DC.MenuColumns.DeclColumns(w, 0, 0, 0) yourself
+        float checkmark_w = IM_FLOOR(g.FontSize * 1.20f);
+        float min_w = window->DC.MenuColumns.DeclColumns(icon_w, label_size.x, 0.0f, checkmark_w); // Feedback to next frame
         float extra_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
-        pressed = Selectable(label, menu_is_open, ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_DontClosePopups | ImGuiSelectableFlags_SpanAvailWidth | (!enabled ? ImGuiSelectableFlags_Disabled : 0), ImVec2(min_w, 0.0f));
-        ImU32 text_col = GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-        RenderArrow(window->DrawList, pos + ImVec2(window->DC.MenuColumns.Pos[2] + extra_w + g.FontSize * 0.30f, 0.0f), text_col, ImGuiDir_Right);
+        ImVec2 text_pos(window->DC.CursorPos.x + offsets->OffsetLabel, window->DC.CursorPos.y + window->DC.CurrLineTextBaseOffset);
+        pressed = Selectable("", menu_is_open, ImGuiSelectableFlags_NoHoldingActiveID | ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_DontClosePopups | ImGuiSelectableFlags_SpanAvailWidth | (!enabled ? ImGuiSelectableFlags_Disabled : 0), ImVec2(min_w, 0.0f));
+        RenderText(text_pos, label);
+        RenderArrow(window->DrawList, pos + ImVec2(offsets->OffsetMark + extra_w + g.FontSize * 0.30f, 0.0f), GetColorU32(ImGuiCol_Text), ImGuiDir_Right);
     }
+    if (!enabled)
+        PopStyleColor();
+    PopID();
 
     const bool hovered = enabled && ItemHoverable(window->DC.LastItemRect, id);
     if (menuset_is_open)
@@ -6865,6 +6885,8 @@ bool ImGui::BeginMenu(const char* label, bool enabled)
             moving_toward_other_child_menu = ImTriangleContainsPoint(ta, tb, tc, g.IO.MousePos);
             //GetForegroundDrawList()->AddTriangleFilled(ta, tb, tc, moving_within_opened_triangle ? IM_COL32(0,128,0,128) : IM_COL32(128,0,0,128)); // [DEBUG]
         }
+
+        // FIXME: Hovering a disabled BeginMenu or MenuItem won't close us
         if (menu_is_open && !hovered && g.HoveredWindow == window && g.HoveredIdPreviousFrame != 0 && g.HoveredIdPreviousFrame != id && !moving_toward_other_child_menu)
             want_close = true;
 
@@ -6950,7 +6972,7 @@ void ImGui::EndMenu()
     EndPopup();
 }
 
-bool ImGui::MenuItem(const char* label, const char* shortcut, bool selected, bool enabled)
+bool ImGui::MenuItemEx(const char* label, const char* icon, const char* shortcut, bool selected, bool enabled)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -6965,6 +6987,10 @@ bool ImGui::MenuItem(const char* label, const char* shortcut, bool selected, boo
     // but I am unsure whether this should be kept at all. For now moved it to be an opt-in feature used by menus only.
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_SelectOnRelease | ImGuiSelectableFlags_SetNavIdOnHover | (enabled ? 0 : ImGuiSelectableFlags_Disabled);
     bool pressed;
+    PushID(label);
+    if (!enabled)
+        PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+    const ImGuiMenuColumns* offsets = &window->DC.MenuColumns;
     if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
     {
         // Mimic the exact layout spacing of BeginMenu() to allow MenuItem() inside a menu bar, which is a little misleading but may be useful
@@ -6972,8 +6998,9 @@ bool ImGui::MenuItem(const char* label, const char* shortcut, bool selected, boo
         float w = label_size.x;
         window->DC.CursorPos.x += IM_FLOOR(style.ItemSpacing.x * 0.5f);
         PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x * 2.0f, style.ItemSpacing.y));
-        pressed = Selectable(label, selected, flags, ImVec2(w, 0.0f));
+        pressed = Selectable("", selected, flags, ImVec2(w, 0.0f));
         PopStyleVar();
+        RenderText(pos + ImVec2(offsets->OffsetLabel, 0.0f), label);
         window->DC.CursorPos.x += IM_FLOOR(style.ItemSpacing.x * (-1.0f + 0.5f)); // -1 spacing to compensate the spacing added when Selectable() did a SameLine(). It would also work to call SameLine() ourselves after the PopStyleVar().
     }
     else
@@ -6981,27 +7008,40 @@ bool ImGui::MenuItem(const char* label, const char* shortcut, bool selected, boo
         // Menu item inside a vertical menu
         // (In a typical menu window where all items are BeginMenu() or MenuItem() calls, extra_w will always be 0.0f.
         //  Only when they are other items sticking out we're going to add spacing, yet only register minimum width into the layout system.
-        float shortcut_w = shortcut ? CalcTextSize(shortcut, NULL).x : 0.0f;
-        float min_w = window->DC.MenuColumns.DeclColumns(label_size.x, shortcut_w, IM_FLOOR(g.FontSize * 1.20f)); // Feedback for next frame
-        float extra_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
-        pressed = Selectable(label, false, flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, 0.0f));
+        float icon_w = (icon && icon[0]) ? CalcTextSize(icon, NULL).x : 0.0f;
+        float shortcut_w = (shortcut && shortcut[0]) ? CalcTextSize(shortcut, NULL).x : 0.0f;
+        float checkmark_w = IM_FLOOR(g.FontSize * 1.20f);
+        float min_w = window->DC.MenuColumns.DeclColumns(icon_w, label_size.x, shortcut_w, checkmark_w); // Feedback for next frame
+        float stretch_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
+        pressed = Selectable("", false, flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, 0.0f));
+        RenderText(pos + ImVec2(offsets->OffsetLabel, 0.0f), label);
+        if (icon_w > 0.0f)
+            RenderText(pos + ImVec2(offsets->OffsetIcon, 0.0f), icon);
         if (shortcut_w > 0.0f)
         {
-            PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
-            RenderText(pos + ImVec2(window->DC.MenuColumns.Pos[1] + extra_w, 0.0f), shortcut, NULL, false);
+            PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+            RenderText(pos + ImVec2(offsets->OffsetShortcut + stretch_w, 0.0f), shortcut, NULL, false);
             PopStyleColor();
         }
         if (selected)
-            RenderCheckMark(window->DrawList, pos + ImVec2(window->DC.MenuColumns.Pos[2] + extra_w + g.FontSize * 0.40f, g.FontSize * 0.134f * 0.5f), GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled), g.FontSize  * 0.866f);
+            RenderCheckMark(window->DrawList, pos + ImVec2(offsets->OffsetMark + stretch_w + g.FontSize * 0.40f, g.FontSize * 0.134f * 0.5f), GetColorU32(ImGuiCol_Text), g.FontSize  * 0.866f);
     }
+    if (!enabled)
+        PopStyleColor();
+    PopID();
 
     IMGUI_TEST_ENGINE_ITEM_INFO(window->DC.LastItemId, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Checkable | (selected ? ImGuiItemStatusFlags_Checked : 0));
     return pressed;
 }
 
+bool ImGui::MenuItem(const char* label, const char* shortcut, bool selected, bool enabled)
+{
+    return MenuItemEx(label, NULL, shortcut, selected, enabled);
+}
+
 bool ImGui::MenuItem(const char* label, const char* shortcut, bool* p_selected, bool enabled)
 {
-    if (MenuItem(label, shortcut, p_selected ? *p_selected : false, enabled))
+    if (MenuItemEx(label, NULL, shortcut, p_selected ? *p_selected : false, enabled))
     {
         if (p_selected)
             *p_selected = !*p_selected;

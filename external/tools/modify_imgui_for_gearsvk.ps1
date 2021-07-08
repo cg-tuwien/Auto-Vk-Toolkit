@@ -1,110 +1,62 @@
 $imgui_impl_vulkan_h = "..\universal\include\imgui_impl_vulkan.h"
 $imgui_impl_vulkan_cpp = "..\universal\src\imgui_impl_vulkan.cpp"
 
+# Header for the beginning of files to communicate the modifications and prevent multiple executions of this script
+$gearsVkHeader = @()
+$gearsVkHeader += "/** Modified version for Gears-Vk"
+$gearsVkHeader += " *  This backend was modified for Gears-Vk to support user texture binding via ImTextureID."
+$gearsVkHeader += " *"
+$gearsVkHeader += " *  Changes in imgui_impl_vulkan.cpp:"
+$gearsVkHeader += " *  - ImGui_ImplVulkan_SetupRenderState:"
+$gearsVkHeader += " *    - Remove unecessary descriptor set binding:"
+$gearsVkHeader += " *        VkDescriptorSet desc_set[1] = { bd->DescriptorSet };"
+$gearsVkHeader += " *        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);"
+$gearsVkHeader += " *  - ImGui_ImplVulkan_RenderDrawData:"
+$gearsVkHeader += " *    - Add descriptor set binding before vkCmdDrawIndexed:"
+$gearsVkHeader += " *	    VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };"
+$gearsVkHeader += " *	    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);"
+$gearsVkHeader += " *  - ImGui_ImplVulkan_CreateFontsTexture:"
+$gearsVkHeader += " *    - Change 'io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->FontImage)' to 'io.Fonts->SetTexID((ImTextureID)bd->DescriptorSet)'"
+$gearsVkHeader += " */"
+$gearsVkHeader += ""
+
 ##
 # Modify imgui vulkan impl header file (imgui_impl_vulkan.h)
-#
-# This adds:
-# - User texture comment to the implemented features list at the top:
-#	//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset.
-#
-# This removes:
-# - User texture binding as missing feature comment at the top:
-#	//  [ ] Renderer: User texture binding
 ##
-
 "-> Modifying " + $imgui_impl_vulkan_h + ":"
 
-# Read imgui vulkan impl header
-$fileContent = Get-Content $imgui_impl_vulkan_h
+# Read first line of imgui_impl_vulkan.h
+$fileContent = Get-Content $imgui_impl_vulkan_h -First 1
 
-# Create an empty array and use it as the modified file
-$fileContentModified = @()
+# Skip file if it already contains our header, else add our header at the beginning of the file
+if ($fileContent -eq $gearsVkHeader[0]) {
+	Write-Host "   [X] Already modified" -ForegroundColor Green
+} else {
+	# Read the whole content of imgui_impl_vulkan.h
+	$fileContent = Get-Content $imgui_impl_vulkan_h
 
-# Header in file to communicate modification and prevent
-# multiple executions of this script
-$gearsVkHeader = "// Modified version for Gears-Vk"
-$fileContentModified += $gearsVkHeader
-$fileContentModified += '// Changes:'
-$fileContentModified += '// - User texture binding comment via ImTextureID'
-$fileContentModified += ''
+	# Create an empty array and use it as the modified file
+	$fileContentModified = @()
+	# Add Gears-Vk header
+	$fileContentModified += $gearsVkHeader
+	# Add original filecontent
+	$fileContentModified += $fileContent
 
-$fileAlreadyModified = 0
-$appliedChanges = @{
-	AddedFeature = 0
-	RemovedFeature = 0
-}
-Foreach ($line in $fileContent)
-{
-	# Skip file if it already contains our header
-	if ($line -eq $gearsVkHeader) {
-		$fileAlreadyModified = 1
-		Write-Host "   -> Already modified" -ForegroundColor Green
-		break
-	}
-	# Add user texture binding to implemented features list
-	if ($line -imatch "\/\/\s*Missing\s*features:") {
-		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
-		$appliedChanges["AddedFeature"] = 1
-	}
-	# Remove user texture binding comment from missing feature
-	if ($line -imatch "\/\/\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
-		$appliedChanges["RemovedFeature"] = 1
-		continue
-	}
-
-	$fileContentModified += $line
-}
-
-if (-Not $fileAlreadyModified) {
-	# Write modified file content to original file
+	# Overwrite original imgui_impl_vulkan.h file with modified content
 	Set-Content $imgui_impl_vulkan_h $fileContentModified
-	# Output success of performed actions
-	$msg = "Comments about user texture support"
-	if ($appliedChanges["AddedFeature"] -eq 1 -And $appliedChanges["RemovedFeature"] -eq 1) {
-		$msg = "   [X] " + $msg
-		Write-Host $msg -ForegroundColor Green
-	}
-	else {
-		$msg = "   [ ] " + $msg
-		Write-Host $msg -ForegroundColor Red
-	}
+	Write-Host "   [X] Added Gears-Vk header" -ForegroundColor Green
 }
 
 
 ##
 # Modify imgui vulkan impl source file (imgui_impl_vulkan.cpp)
 #
-# This adds:
-# - User texture comment to the implemented features list at the top:
-#	//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset.
-#
-# - Add code for texture descriptor set binding after "vkCmdSetScissor\(command_buffer, 0, 1, &scissor\);" in ImGui_ImplVulkan_RenderDrawData:
-# 	// Bind texture descriptor set stored as ImTextureID'
-# 	VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };'
-# 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_PipelineLayout, 0, 1, desc_set, 0, NULL);'
-#
-# This changes:
-# - The comment "// Bind pipeline and descriptor sets:" in ImGui_ImplVulkan_SetupRenderState to:
-#	// Bind pipeline
-#
-# - The line "io.Fonts->SetTexID((ImTextureID)(intptr_t)g_FontImage);" in ImGui_ImplVulkan_CreateFontsTexture for setting the font texture id to:
-#	io.Fonts->SetTexID((ImTextureID)bd->DescriptorSet);
-#
-# This removes:
-# - User texture binding as missing feature comment at the top:
-#	//  [ ] Renderer: User texture binding
-#
-# - The unecessary font texture descriptor binding:
-#	VkDescriptorSet desc_set[1] = { bd->DescriptorSet };
-#	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);
-##
-
 "-> Modifying " + $imgui_impl_vulkan_cpp + ":"
 
 # Read imgui vulkan impl source
 $fileContent = Get-Content $imgui_impl_vulkan_cpp
 
+# Functions that will be modified
 enum FunctionName {
 	SetupRenderState;
 	RenderDrawData;
@@ -114,6 +66,7 @@ enum FunctionName {
 $currentFunction = [FunctionName]::Undefined
 $aboutToEnterFunction = [FunctionName]::Undefined
 
+# For tracking changes that were performed
 $appliedChanges = @{
 	[FunctionName]::SetupRenderState = 0
 	[FunctionName]::RenderDrawData = 0
@@ -123,32 +76,18 @@ $appliedChanges = @{
 # Create an empty array and use it as the modified file
 $fileContentModified = @()
 
-# Header in file to communicate modification and prevent
-# multiple executions of this script
-$gearsVkHeader = "// Modified version for Gears-Vk"
+# Header for the beginning of files to communicate the modifications and prevent multiple executions of this script
 $fileContentModified += $gearsVkHeader
-$fileContentModified += '// Additions:'
-$fileContentModified += '// - User texture binding via ImTextureID'
-$fileContentModified += ''
 
 $fileAlreadyModified = 0
 $parentheseCounter = 0
 Foreach ($line in $fileContent)
 {
 	# Skip file if it already contains our header
-	if ($line -eq $gearsVkHeader) {
-		Write-Host "   -> Already modified" -ForegroundColor Green
+	if ($line -eq $gearsVkHeader[0]) {
+		Write-Host "   [X] Already modified" -ForegroundColor Green
 		$fileAlreadyModified = 1
 		break
-	}
-
-	# Add user texture binding to implemented features list
-	if ($line -imatch "\/\/\s*Missing\s*features:") {
-		$fileContentModified += "//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset."
-	}
-	# Remove user texture binding comment from missing feature
-	if ($line -imatch "\/\/\s*\[ \]\s*Renderer:\s*User\s*texture\s*binding") {
-		continue
 	}
 
 	# Detect if about to enter ImGui_ImplVulkan_SetupRenderState

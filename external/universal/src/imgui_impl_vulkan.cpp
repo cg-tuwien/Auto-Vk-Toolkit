@@ -1,14 +1,26 @@
-// Modified version for Gears-Vk
-// Additions:
-// - User texture binding via ImTextureID
+/** Modified version for Gears-Vk
+ *  This backend was modified for Gears-Vk to support user texture binding via ImTextureID.
+ *
+ *  Changes in imgui_impl_vulkan.cpp:
+ *  - ImGui_ImplVulkan_SetupRenderState:
+ *    - Remove unecessary descriptor set binding:
+ *        VkDescriptorSet desc_set[1] = { bd->DescriptorSet };
+ *        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);
+ *  - ImGui_ImplVulkan_RenderDrawData:
+ *    - Add descriptor set binding before vkCmdDrawIndexed:
+ *	    VkDescriptorSet desc_set[1] = { (VkDescriptorSet) pcmd->GetTexID() };
+ *	    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, NULL);
+ *  - ImGui_ImplVulkan_CreateFontsTexture:
+ *    - Change 'io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->FontImage)' to 'io.Fonts->SetTexID((ImTextureID)bd->DescriptorSet)'
+ */
 
 // dear imgui: Renderer Backend for Vulkan
 // This needs to be used along with a Platform Backend (e.g. GLFW, SDL, Win32, custom..)
 
 // Implemented features:
 //  [X] Renderer: Support for large meshes (64k+ vertices) with 16-bit indices.
-//  [x] Renderer: User texture binding. ImTextureID is used to store a handle to a Descriptorset.
 // Missing features:
+//  [ ] Renderer: User texture binding. Changes of ImTextureID aren't supported by this backend! See https://github.com/ocornut/imgui/pull/914
 
 // You can use unmodified imgui_impl_* files in your project. See examples/ folder for examples of using this.
 // Prefer including the entire imgui/ repository into your project (either as a copy or as a submodule), and only build the backends you need.
