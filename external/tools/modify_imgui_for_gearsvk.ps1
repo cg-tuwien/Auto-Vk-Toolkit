@@ -1,4 +1,3 @@
-$imgui_h = "..\universal\include\imgui.h"
 $imgui_impl_vulkan_h = "..\universal\include\imgui_impl_vulkan.h"
 $imgui_impl_vulkan_cpp = "..\universal\src\imgui_impl_vulkan.cpp"
 
