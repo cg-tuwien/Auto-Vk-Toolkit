@@ -103,7 +103,7 @@ namespace gvk
 		virtual bool is_hdr() const = 0;
 
 		/** Get file path to image data source
-		* @return the path to the file from which the image data is loaded
+		* @return the path to the file which the image data is loaded from
 		*/
 		std::string path() const
 		{
