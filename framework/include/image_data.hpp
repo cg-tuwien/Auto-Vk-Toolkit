@@ -44,7 +44,7 @@ namespace gvk
 		*/
 		virtual vk::ImageType target() const = 0;
 
-		/** Get extent of image data in pixels
+		/** Get extent of image data in pixels for the given mipmap level
 		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
 		* @return the 1D, 2D, or 3D size of the image data, depending on its type
 		*/
@@ -56,7 +56,7 @@ namespace gvk
 		* @param layer	the layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers
 		* @param face	the face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data
 		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
-		* @return a void pointer to raw image data; the raw data must not be written to
+		* @return a pointer to raw image data; the raw data must not be written to
 		*/
 		virtual void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level) = 0;
 
@@ -75,7 +75,6 @@ namespace gvk
 		*/
 		virtual bool empty() const = 0;
 
-		// Vulkan uses uint32_t type for levels and layers (faces)
 		/** Get number of mipmap levels in image data
 		* @return the number of mipmap levels in the image data; equals 1 if there are no mipmap levels
 		*/
@@ -102,7 +101,7 @@ namespace gvk
 		virtual bool is_hdr() const = 0;
 
 		/** Get file path to image data source
-		* @return the path to the file from which the image data is loaded
+		* @return the path to the file which the image data is loaded from
 		*/
 		std::string path() const
 		{
@@ -110,7 +109,7 @@ namespace gvk
 		}
 
 		/** Get file paths to image data sources of cubemaps
-		* @return the paths to the files from which the image data of cubemaps is loaded
+		* @return the paths to the files which the image data of cube maps are loaded from
 		*/
 		std::vector<std::string> paths() const
 		{
@@ -119,7 +118,7 @@ namespace gvk
 
 	protected:
 		
-		/** Protected constructor, used by abstraction and implementor of the image data interface
+		/** Protected constructor, used by abstraction and implementor of the image_data_interface
 		* @param aPath					file name of a texture file to load the image data from
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
