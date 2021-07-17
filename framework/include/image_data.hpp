@@ -111,7 +111,7 @@ namespace gvk
 		}
 
 		/** Get file paths to image data sources of cubemaps
-		* @return the paths to the files from which the image data of cubemaps is loaded
+		* @return the paths to the files which the image data of cube maps are loaded from
 		*/
 		std::vector<std::string> paths() const
 		{
