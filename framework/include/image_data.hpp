@@ -77,7 +77,6 @@ namespace gvk
 		*/
 		virtual bool empty() const = 0;
 
-		// Vulkan uses uint32_t type for levels and layers (faces)
 		/** Get number of Mipmap levels in image data
 		* @return the number of Mipmap levels in the image data; equals 1 if there are no Mipmap levels
 		*/
