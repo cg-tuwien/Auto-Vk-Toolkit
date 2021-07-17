@@ -120,7 +120,7 @@ namespace gvk
 
 	protected:
 		
-		/** Protected constructor, used by abstraction and implementor of the image data interface
+		/** Protected constructor, used by abstraction and implementor of the image_data_interface
 		* @param aPath					file name of a texture file to load the image data from
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
