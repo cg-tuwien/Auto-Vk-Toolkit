@@ -17,8 +17,6 @@ namespace gvk
 		*/
 		using extent_type = vk::Extent3D;
 
-		/** Default constructor
-		*/
 		virtual ~image_data_interface() = default;
 		/** Move constructor
 		* @param image_data_interface	an instance of the image_data interface used to construct this instance
@@ -47,7 +45,7 @@ namespace gvk
 		virtual vk::ImageType target() const = 0;
 
 		/** Get extent of image data in pixels
-		* @param level	the Mipmap level of the image data, for image data with Mipmap levels; must be 0 for image data without Mipmap levels
+		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
 		* @return the 1D, 2D, or 3D size of the image data, depending on its type
 		*/
 		virtual extent_type extent(const uint32_t level = 0) const = 0;
@@ -56,8 +54,8 @@ namespace gvk
 		// The function cannot be const either or gli would call a function overload that returns a const void*
 		/** Get pointer to raw image data
 		* @param layer	the layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers
-		* @param face	the face of the image data, for image data representing cubemaps and cubemap arrays; must be 0 for non-cubemap image data
-		* @param level	the Mipmap level of the image data, for image data with Mipmap levels; must be 0 for image data without Mipmap levels
+		* @param face	the face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data
+		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
 		* @return a void pointer to raw image data; the raw data must not be written to
 		*/
 		virtual void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level) = 0;
@@ -78,8 +76,8 @@ namespace gvk
 		virtual bool empty() const = 0;
 
 		// Vulkan uses uint32_t type for levels and layers (faces)
-		/** Get number of Mipmap levels in image data
-		* @return the number of Mipmap levels in the image data; equals 1 if there are no Mipmap levels
+		/** Get number of mipmap levels in image data
+		* @return the number of mipmap levels in the image data; equals 1 if there are no mipmap levels
 		*/
 		virtual uint32_t levels() const = 0;
 
@@ -88,8 +86,8 @@ namespace gvk
 		*/
 		virtual uint32_t layers() const = 0;
 
-		/** Get number of cubemap faces in image data
-		* @return the number of cubemap faces in the image data; equals 1 if the image data is not a cubemap
+		/** Get number of cube map faces in image data
+		* @return the number of cube map faces in the image data; equals 1 if the image data is not a cube map
 		*/
 		virtual uint32_t faces() const = 0;
 
@@ -133,8 +131,8 @@ namespace gvk
 		{
 		}
 		
-		/** Protected constructor for cubemap image data referencing six individual image files, used by abstraction and implementor of the image data interface
-		* @param aPath					file name of a texture file to load the image data from
+		/** Protected constructor for cube map image data referencing six individual image files, used by abstraction and implementor of the image data interface
+		* @param aPaths					a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 		* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
@@ -145,7 +143,7 @@ namespace gvk
 		{
 		}
 
-		/** Load cubemap image data from six individual image files using one of the available image loading libraries
+		/** Load cube map image data from six individual image files using one of the available image loading libraries
 		* @param aPath					file name of a texture file to load the image data from
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
@@ -155,8 +153,8 @@ namespace gvk
 		*/
 		static std::unique_ptr<image_data_implementor> load_image_data_from_file(const std::string& aPath, const bool aLoadHdrIfPossible = true, const bool aLoadSrgbIfApplicable = true, const bool aFlip = true, const int aPreferredNumberOfTextureComponents = 4);
 		
-		/** Load cubemap image data from six individual image files using one of the available image loading libraries
-		* @param aPaths					a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cubemap texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+		/** Load cube map image data from six individual image files using one of the available image loading libraries
+		* @param aPaths					a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 		* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
@@ -175,7 +173,7 @@ namespace gvk
 	};
 
 	/** Abstract base class of implementors of image data bridge pattern
-	* This class should only be derived by classes implementing support for additional image loading libraries or specialized functionality
+	* This class should only be derived by classes implementing support for additional image loading libraries or specialized functionality.
 	*/
 	class image_data_implementor : public image_data_interface
 	{
@@ -220,8 +218,8 @@ namespace gvk
 		{
 		}
 
-		/** Protected constructor for cubemap image data referencing six individual image files, used by derived classes
-		* @param aPath					file name of a texture file to load the image data from
+		/** Protected constructor for cube map image data referencing six individual image files, used by derived classes
+		* @param aPaths					a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 		* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
@@ -234,8 +232,8 @@ namespace gvk
 	};
 
 	/** Class representing image data loaded from files
-	* This is the image data class intended for direct use in the framework
-	* It can also be used as the base class for specialized abstractions in the image data bridge pattern
+	* This is the image data class intended for direct use in the framework.
+	* It can also be used as the base class for specialized abstractions in the image data bridge pattern.
 	*/
 	class image_data : public image_data_interface
 	{
@@ -252,8 +250,8 @@ namespace gvk
 		{
 		}
 
-		/** Public constructor for cubemap image data referencing six individual image files
-		* @param aPath					file name of a texture file to load the image data from
+		/** Public constructor for cube map image data referencing six individual image files
+		* @param aPaths					a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 		* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.

@@ -71,7 +71,7 @@ namespace gvk
 		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/** Load image data from texture file
+	/** Create image_data from texture file
 	* @param aPath					file name of a texture file to load the image data from
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
@@ -87,8 +87,8 @@ namespace gvk
 		return result;
 	}
 
-	/** Load cubemap image data from individual texture files for each face
-	* @param  aPaths	a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cubemap texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+	/** Create cube map image_data from individual texture files for each face
+	* @param  aPaths	a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
@@ -103,8 +103,9 @@ namespace gvk
 		return result;
 	}
 
-	/** Create cubemap from image data, with optional caching
-	* @param aImageData		an valid instance of image_data containing cubemap image data.
+	/** Create cube map from image_data, with optional caching
+	* Loads image data from an image_data object or the serializer cache.
+	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -113,9 +114,10 @@ namespace gvk
 	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/** Create cubemap from image data, with caching
+	/** Create cube map from image_data, with caching
+	* Loads image data from an image_data object or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
-	* @param aImageData		an valid instance of image_data containing cubemap image data.
+	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -126,8 +128,9 @@ namespace gvk
 		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/** Create cubemap from image data
-	* @param aImageData		an valid instance of image_data containing cubemap image data.
+	/** Create cube map from image_data
+	* Loads image data from an image_data object.
+	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -138,8 +141,13 @@ namespace gvk
 		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create cubemap from a single file, with optional caching
+	/* create cube map from a single file, with optional caching
+	* Loads image data from a file or the serializer cache.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -149,9 +157,14 @@ namespace gvk
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create cubemap from a single file, with caching
+	/* create cube map from a single file, with caching
+	* Loads image data from a file or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -163,8 +176,13 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create cubemap from a single file
+	/* create cube map from a single file
+	* Loads image data from a file.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -176,8 +194,13 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create cubemap from six individual files, with optional caching
-	* @param aPath			file name of a texture file to load the image data from.
+	/* create cube map from six individual files, with optional caching
+	* Loads image data from files or the serializer cache.
+	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -187,9 +210,14 @@ namespace gvk
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create cubemap from six individual files, with caching
+	/* create cube map from six individual files, with caching
+	* Loads image data from files or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
-	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cubemap texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -199,8 +227,13 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create cubemap from six individual files
-	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cubemap texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+	/* create cube map from six individual files
+	* Loads image data from files or the serializer cache.
+	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -210,7 +243,8 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create image from image data, with optional caching
+	/* create image from image_data, with optional caching
+	* Loads image data from an image_data object or the serializer cache.
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
@@ -220,7 +254,8 @@ namespace gvk
 	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create image from image data, with caching
+	/* create image from image_data, with caching
+	* Loads image data from an image_data object or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
@@ -233,7 +268,8 @@ namespace gvk
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create image from image data
+	/* create image from image_data
+	* Loads image data from an image_data object.
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
@@ -246,7 +282,12 @@ namespace gvk
 	}
 
 	/* create image from a single file, with optional caching
+	* Loads image data from a file or the serializer cache.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -255,8 +296,13 @@ namespace gvk
 	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/* create image from a single file, with caching
+	* Loads image data from a file or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
@@ -267,7 +313,12 @@ namespace gvk
 	}
 
 	/* create image from a single file
+	* Loads image data from a file.
 	* @param aPath			file name of a texture file to load the image data from.
+	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
+	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.

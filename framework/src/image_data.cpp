@@ -2,7 +2,7 @@
 
 namespace gvk
 {	
-	/** Concrete class that represents cubemap image data composed from individual image files
+	/** Implementation of image_data_implementor interface that represents cube map image data composed from individual image files
 	*/
 	class image_data_composite_cubemap : public image_data_implementor
 	{
@@ -32,7 +32,7 @@ namespace gvk
 				assert(r->layers() == 1);
 				// target must be 2D
 				assert(r->target() == vk::ImageType::e2D);
-				// must not be a cubemap
+				// must not be a cube map
 				assert(r->faces() == 1);
 
 				if (!image_data_implementors.empty())
@@ -42,7 +42,7 @@ namespace gvk
 					assert(r->get_format() == r0->get_format());
 					assert(r->target() == r0->target());
 					assert(r->extent() == r0->extent());
-					// Mipmap levels must agree
+					// mipmap levels must agree
 					assert(r->levels() == r0->levels());
 				}
 			}
@@ -109,7 +109,7 @@ namespace gvk
 		std::vector<std::unique_ptr<image_data_implementor>> image_data_implementors;
 	};
 
-	/** Concrete class for loading image files with the GLI image library
+	/** Implementation of image_data_implementor interface for loading image files with the GLI image library
 	*/
 	class image_data_gli : public image_data_implementor
 	{
@@ -283,7 +283,7 @@ namespace gvk
 		gli::texture gliTex;
 	};
 
-	/** Concrete class for loading image files with the stbi image library
+	/** Implementation of image_data_implementor interface for loading image files with the stbi image library
 	*/
 	class image_data_stb : public image_data_implementor
 	{
