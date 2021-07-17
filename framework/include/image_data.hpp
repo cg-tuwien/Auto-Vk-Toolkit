@@ -58,7 +58,7 @@ namespace gvk
 		* @param layer	the layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers
 		* @param face	the face of the image data, for image data representing cubemaps and cubemap arrays; must be 0 for non-cubemap image data
 		* @param level	the Mipmap level of the image data, for image data with Mipmap levels; must be 0 for image data without Mipmap levels
-		* @return a void pointer to raw image data; the raw data must not be written to
+		* @return a pointer to raw image data; the raw data must not be written to
 		*/
 		virtual void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level) = 0;
 
