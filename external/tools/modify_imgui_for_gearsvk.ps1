@@ -44,7 +44,7 @@ if ($fileContent -eq $gearsVkHeader[0]) {
 
 	# Overwrite original imgui_impl_vulkan.h file with modified content
 	Set-Content $imgui_impl_vulkan_h $fileContentModified
-	Write-Host "   [X] Added Gears-Vk header" -ForegroundColor Green
+	Write-Host "   [X] Added Gears-Vk header-comment" -ForegroundColor Green
 }
 
 
