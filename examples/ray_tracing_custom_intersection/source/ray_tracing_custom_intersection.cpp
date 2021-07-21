@@ -60,14 +60,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void build_pyramid_buffers()
 	{
-		auto& vtxBfr = mPyramidVertexBuffers.emplace_back( gvk::context().create_buffer(
+		auto& vtxBfr = mPyramidVertexBuffers.emplace_back(gvk::context().create_buffer(
 			avk::memory_usage::host_visible,
 #if VK_HEADER_VERSION >= 162
 #else
 			vk::BufferUsageFlagBits::eRayTracingKHR |
 #endif
 			vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
-			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, avk::content_description::position)
+			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, avk::content_description::position),
+			avk::read_only_input_to_acceleration_structure_builds_buffer_meta::create_from_data(mPyramidVertices)
 		));
 		vtxBfr->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
 		
@@ -78,7 +79,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			vk::BufferUsageFlagBits::eRayTracingKHR |
 #endif
 			vk::BufferUsageFlagBits::eShaderDeviceAddressKHR,
-			avk::index_buffer_meta::create_from_data(mPyramidIndices)
+			avk::index_buffer_meta::create_from_data(mPyramidIndices),
+			avk::read_only_input_to_acceleration_structure_builds_buffer_meta::create_from_data(mPyramidIndices)
 		));
 		idxBfr->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
 	}

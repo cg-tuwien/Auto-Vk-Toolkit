@@ -35,10 +35,9 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 
 				auto selection = gvk::make_models_and_meshes_selection(model.mLoadedModel, meshIndices);
 				// Store all of this data in buffers and buffer views, s.t. we can access it later in ray tracing shaders
-				auto [posBfr, idxBfr] = gvk::create_vertex_and_index_buffers<avk::uniform_texel_buffer_meta>(
-					selection,                                          // Select several indices (those with the same material) from a model
-					vk::BufferUsageFlagBits::eShaderDeviceAddressKHR    // Buffers need this additional flag to be made usable with ray tracing
-					);
+				auto [posBfr, idxBfr] = gvk::create_vertex_and_index_buffers<avk::uniform_texel_buffer_meta, avk::read_only_input_to_acceleration_structure_builds_buffer_meta>(
+					selection                                          // Select several indices (those with the same material) from a model
+				);
 				auto nrmBfr = gvk::create_normals_buffer               <avk::uniform_texel_buffer_meta>(selection);
 				auto texBfr = gvk::create_2d_texture_coordinates_buffer<avk::uniform_texel_buffer_meta>(selection);
 

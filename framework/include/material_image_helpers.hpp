@@ -271,13 +271,20 @@ namespace gvk
 	 */
 	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
 
+	// A concept which requires a type to have a .describe_member(size_t aOffset, content_description aContent)
+	template <typename T>
+	concept has_describe_only_member = requires (T x)
+	{
+		x.describe_only_member(size_t{ 0 }, avk::content_description::position);
+	};
+
 	// A concept which requires a type to have a .set_format<glm::uvec3>(avk::content_description)
 	template <typename T>
 	concept has_set_format_for_index_buffer = requires (T x)
 	{
 		x.template set_format<glm::uvec3>(avk::content_description::index);
 	};
-	
+
 	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
 	template <typename Meta>
 	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
@@ -287,9 +294,23 @@ namespace gvk
 
 	// ...and another helper which creates metas for other Meta types:
 	template <typename Meta>
-	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData)
+	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires (!has_set_format_for_index_buffer<Meta>)
 	{
-		return Meta::create_from_data(aIndicesData).describe_only_member(aIndicesData[0], avk::content_description::index);
+		return Meta::create_from_data(aIndicesData);
+	}
+
+	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
+	template <typename Meta>
+	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires has_describe_only_member<Meta>
+	{
+		return Meta::create_from_data(aVerticesData).describe_only_member(aVerticesData[0], avk::content_description::position);
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta>
+	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires (!has_describe_only_member<Meta>)
+	{
+		return Meta::create_from_data(aVerticesData);
 	}
 
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
@@ -317,7 +338,7 @@ namespace gvk
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::vertex_buffer_meta::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position),
-			Metas::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position)...
+			set_up_meta_for_vertex_buffer<Metas>(positionsData)...
 		);
 		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
