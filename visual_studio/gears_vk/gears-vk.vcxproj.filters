@@ -10,9 +10,6 @@
     <ClCompile Include="..\..\external\universal\src\imgui.cpp">
       <Filter>gears-vk_src\external</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
-      <Filter>gears-vk_src\external</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
       <Filter>gears-vk_src\external</Filter>
     </ClCompile>
@@ -123,6 +120,15 @@
     </ClCompile>
     <ClCompile Include="..\..\framework\src\image_data.cpp">
       <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
+      <Filter>gears-vk_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\framework\src\imgui_utils.cpp">
+      <Filter>gears-vk_src\user_interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -512,6 +518,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\image_data.hpp">
       <Filter>gears-vk_include\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\imgui_utils.h">
+      <Filter>gears-vk_include\user_interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

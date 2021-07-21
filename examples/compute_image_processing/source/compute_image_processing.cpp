@@ -143,7 +143,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[1])).update(mComputePipelines[1]);
 		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[2])).update(mComputePipelines[2]);
 
-		
 		// Create a fence to ensure that the resources (via the mComputeDescriptorSet) are not used concurrently by concurrent compute shader executions
 		mComputeFence = gvk::context().create_fence(true); // Create in signaled state, because the first operation we'll call 
 
@@ -152,7 +151,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		auto* imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([this](){
+			imguiManager->add_callback([this, imguiManager](){
 		        ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
@@ -161,14 +160,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				
 				ImGui::Separator();
 
-				static ImTextureID inputTexId = ImGui_ImplVulkan_AddTexture(mInputImageAndSampler->sampler_handle(), mInputImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
-				// This ImTextureID-stuff is tough stuff -> see https://github.com/ocornut/imgui/pull/914
+				ImTextureID inputTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mInputImageAndSampler));
 		        auto inputTexWidth  = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.width);
 		        auto inputTexHeight = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
 				ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
-				static ImTextureID targetTexId = ImGui_ImplVulkan_AddTexture(mTargetImageAndSampler->sampler_handle(), mTargetImageAndSampler->view_handle(), VK_IMAGE_LAYOUT_GENERAL);
+				ImTextureID targetTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mTargetImageAndSampler));
 		        auto targetTexWidth  = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.width);
 		        auto targetTexHeight = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.height);
 				ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);

@@ -25,6 +25,7 @@
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp" />
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
     <ClCompile Include="..\..\framework\src\animation.cpp" />
     <ClCompile Include="..\..\framework\src\bezier_curve.cpp" />
@@ -45,6 +46,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\framework\src\fixed_update_timer.cpp" />
+    <ClCompile Include="..\..\framework\src\imgui_utils.cpp" />
     <ClCompile Include="..\..\framework\src\input_buffer.cpp" />
     <ClCompile Include="..\..\framework\src\log.cpp" />
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp" />
@@ -154,6 +156,7 @@
     <ClInclude Include="..\..\framework\include\files_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\gvk.hpp" />
     <ClInclude Include="..\..\framework\include\image_data.hpp" />
+    <ClInclude Include="..\..\framework\include\imgui_utils.h" />
     <ClInclude Include="..\..\framework\include\invokee.hpp" />
     <ClInclude Include="..\..\framework\include\composition.hpp" />
     <ClInclude Include="..\..\framework\include\composition_interface.hpp" />

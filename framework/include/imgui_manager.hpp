@@ -1,5 +1,6 @@
 #pragma once
 #include <gvk.hpp>
+#include <imgui.h>
 
 namespace gvk
 {
@@ -42,6 +43,15 @@ namespace gvk
 		void enable_user_interaction(bool aEnableOrNot);
 		bool is_user_interaction_enabled() const { return mUserInteractionEnabled; }
 
+		/**	Get or create a texture Descriptor for use in ImGui
+		 *	
+		 *  This function creates and caches or returns an already cached DescriptorSet for the provided `avk::image_sampler`
+		 *
+		 *	@param[in] aImageSampler		An image sampler, that shall be rendered with ImGui
+		 *  @param[out] ImTextureID			A DescriptorSet as ImGui identifier for textures
+		 */
+		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler);
+
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -51,6 +61,9 @@ namespace gvk
 		avk::command_pool mCommandPool;
 		std::optional<avk::renderpass> mRenderpass;
 
+		// Descriptor cache for imgui texture
+		avk::descriptor_cache mImTextureDescriptorCache;
+
 		// this render pass is used to reset the attachment if no invokee has previously written on it
 		// TODO is there a better solution(?)
 		std::optional<avk::renderpass> mClearRenderpass;
@@ -59,4 +72,5 @@ namespace gvk
 		int mMouseCursorPreviousValue;
 		bool mUserInteractionEnabled;
 	};
+
 }

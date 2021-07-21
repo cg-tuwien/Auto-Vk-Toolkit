@@ -37,7 +37,9 @@ namespace gvk
 	    init_info.Queue = mQueue->handle();
 	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
-		const uint32_t magicImguiFactor = 1000;
+		// This factor is set to 1000 in the imgui example code but after looking through the vulkan backend code, we never
+		// allocate more than one descriptor set, therefore setting this to 1 should be sufficient.
+		const uint32_t magicImguiFactor = 1;
 		auto allocRequest = avk::descriptor_alloc_request{};
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, magicImguiFactor});
@@ -52,6 +54,9 @@ namespace gvk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
 		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
 		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
+
+		// DescriptorSet chache for user textures
+		mImTextureDescriptorCache = gvk::context().create_descriptor_cache();
 
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
@@ -391,5 +396,18 @@ namespace gvk
 		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };
 		avk::assign_and_lifetime_handle_previous(mRenderpass, std::move(newRenderpass), lifetimeHandlerLambda);
 		avk::assign_and_lifetime_handle_previous(mClearRenderpass, std::move(newClearRenderpass), lifetimeHandlerLambda);
+	}
+
+	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler)
+	{
+		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache.get_or_create_descriptor_sets({
+			avk::descriptor_binding(0, 0, aImageSampler.get(), avk::shader_type::fragment)
+			});
+
+		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler
+		assert(sets.size() == 1);
+
+		// Return the first DescriptorSet as ImTextureID
+		return (ImTextureID)sets[0].handle();
 	}
 }
