@@ -1,5 +1,5 @@
 #include <gvk.hpp>
-#include <imgui.h>
+#include <imgui/imgui.h>
 
 class draw_a_triangle_app : public gvk::invokee
 {

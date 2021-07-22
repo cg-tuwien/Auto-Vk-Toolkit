@@ -59,7 +59,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC avk)
 
 # stb
 include(cmake/stb.cmake)
-target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${stb_SOURCE_DIR})
 
 # Assimp
 include(cmake/assimp.cmake)
