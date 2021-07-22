@@ -26,14 +26,14 @@ Index of this file:
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "imgui.h"
+#include "imgui/imgui.h"
 #ifndef IMGUI_DISABLE
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
-#include "imgui_internal.h"
+#include "imgui/imgui_internal.h"
 #ifdef IMGUI_ENABLE_FREETYPE
 #include "misc/freetype/imgui_freetype.h"
 #endif
@@ -137,7 +137,7 @@ namespace IMGUI_STB_NAMESPACE
 #ifdef IMGUI_STB_RECT_PACK_FILENAME
 #include IMGUI_STB_RECT_PACK_FILENAME
 #else
-#include "imstb_rectpack.h"
+#include "imgui/imstb_rectpack.h"
 #endif
 #endif
 
@@ -161,7 +161,7 @@ namespace IMGUI_STB_NAMESPACE
 #ifdef IMGUI_STB_TRUETYPE_FILENAME
 #include IMGUI_STB_TRUETYPE_FILENAME
 #else
-#include "imstb_truetype.h"
+#include "imgui/imstb_truetype.h"
 #endif
 #endif
 #endif // IMGUI_ENABLE_STB_TRUETYPE

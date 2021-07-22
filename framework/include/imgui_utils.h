@@ -1,7 +1,9 @@
 #pragma once
 
+#include <initializer_list>
 #include <limits>
-#include <imgui.h>
+
+#include <imgui/imgui.h>
 
 namespace ImGui
 {

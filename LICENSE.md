@@ -58,7 +58,7 @@ See [`external/universal/include/glm/glm.hpp`](external/universal/include/glm/gl
 **ImGui**
 
 Copyright (c) 2014-2020 Omar Cornut, licensed under the MIT License:     
-See [`external/universal/include/imgui.h`](external/universal/include/imgui.h) or https://github.com/ocornut/imgui/blob/master/LICENSE.txt 
+See [`external/universal/include/imgui.h`](external/universal/include/imgui/imgui.h) or https://github.com/ocornut/imgui/blob/master/LICENSE.txt 
 
 **imgui-filebrowser**
 

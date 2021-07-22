@@ -21,7 +21,7 @@ namespace gvk
 		virtual ~camera();
 
 		// Returns the type of projection matrix used
-		projection_type projection_type() const { return mProjectionType; }
+		enum projection_type projection_type() const { return mProjectionType; }
 
 		// returns the projection matrix
 		const glm::mat4& projection_matrix() const { return mProjectionMatrix; }

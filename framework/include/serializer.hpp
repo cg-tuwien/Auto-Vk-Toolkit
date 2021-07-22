@@ -234,7 +234,7 @@ namespace gvk {
 			 *  @param[in] aCacheFilePath The filename including the full path where to save the cached file
 			 */
 			serialize(const std::string_view aCacheFilePath) :
-				mOfstream(aCacheFilePath, std::ios::binary),
+				mOfstream(aCacheFilePath.data(), std::ios::binary),
 				mArchive(mOfstream)
 			{}
 
@@ -289,7 +289,7 @@ namespace gvk {
 			 *  @param[in] aCacheFilePath The filename including the full path to the binary cached file
 			 */
 			deserialize(const std::string_view aCacheFilePath) :
-				mIfstream(aCacheFilePath, std::ios::binary),
+				mIfstream(aCacheFilePath.data(), std::ios::binary),
 				mArchive(mIfstream)
 			{}
 

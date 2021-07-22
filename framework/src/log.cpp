@@ -286,7 +286,12 @@ namespace gvk
 	std::string to_string(const glm::mat4& pMatrix)
 	{
 		char buf[256];
-		sprintf_s(buf, 256,
+#ifdef _WIN32
+		sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 256,
 			"\t%.3f\t%.3f\t%.3f\t%.3f\n\t%.3f\t%.3f\t%.3f\t%.3f\n\t%.3f\t%.3f\t%.3f\t%.3f\n\t%.3f\t%.3f\t%.3f\t%.3f\n",
 			pMatrix[0][0], pMatrix[0][1], pMatrix[0][2], pMatrix[0][3],
 			pMatrix[1][0], pMatrix[1][1], pMatrix[1][2], pMatrix[1][3],
@@ -298,7 +303,12 @@ namespace gvk
 	std::string to_string(const glm::mat3& pMatrix)
 	{
 		char buf[256];
-		sprintf_s(buf, 256,
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 256,
 			"\t%.3f\t%.3f\t%.3f\n\t%.3f\t%.3f\t%.3f\n\t%.3f\t%.3f\t%.3f\n",
 			pMatrix[0][0], pMatrix[0][1], pMatrix[0][2],
 			pMatrix[1][0], pMatrix[1][1], pMatrix[1][2],
@@ -309,7 +319,12 @@ namespace gvk
 	std::string to_string_compact(const glm::mat4& pMatrix)
 	{
 		char buf[256];
-		sprintf_s(buf, 256,
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 256,
 			"{{%.2f, %.2f, %.2f, %.2f}, {%.2f, %.2f, %.2f, %.2f}, {%.2f, %.2f, %.2f, %.2f}, {%.2f, %.2f, %.2f, %.2f}}\n",
 			pMatrix[0][0], pMatrix[0][1], pMatrix[0][2], pMatrix[0][3],
 			pMatrix[1][0], pMatrix[1][1], pMatrix[1][2], pMatrix[1][3],
@@ -321,7 +336,12 @@ namespace gvk
 	std::string to_string_compact(const glm::mat3& pMatrix)
 	{
 		char buf[256];
-		sprintf_s(buf, 256,
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 256,
 			"{{%.2f, %.2f, %.2f}, {%.2f, %.2f, %.2f}, {%.2f, %.2f, %.2f}}\n",
 			pMatrix[0][0], pMatrix[0][1], pMatrix[0][2],
 			pMatrix[1][0], pMatrix[1][1], pMatrix[1][2],
@@ -333,21 +353,36 @@ namespace gvk
 	std::string to_string(const glm::vec2& pVector)
 	{
 		char buf[64];
-		sprintf_s(buf, 64, "(%.2f, %.2f)", pVector.x, pVector.y);
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 64, "(%.2f, %.2f)", pVector.x, pVector.y);
 		return buf;
 	}
 
 	std::string to_string(const glm::vec3& pVector)
 	{
 		char buf[64];
-		sprintf_s(buf, 64, "(%.2f, %.2f, %.2f)", pVector.x, pVector.y, pVector.z);
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 64, "(%.2f, %.2f, %.2f)", pVector.x, pVector.y, pVector.z);
 		return buf;
 	}
 
 	std::string to_string(const glm::vec4& pVector)
 	{
 		char buf[64];
-		sprintf_s(buf, 64, "(%.2f, %.2f, %.2f, %.2f)", pVector.x, pVector.y, pVector.z, pVector.w);
+#ifdef _WIN32
+    sprintf_s(
+#else
+    std::snprintf(
+#endif
+      buf, 64, "(%.2f, %.2f, %.2f, %.2f)", pVector.x, pVector.y, pVector.z, pVector.w);
 		return buf;
 	}
 
