@@ -58,7 +58,7 @@ namespace gvk
 		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
 		* @return a pointer to raw image data; the raw data must not be written to
 		*/
-		virtual void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level) = 0;
+		virtual void* get_data(const uint32_t aLayer, const uint32_t aFace, const uint32_t aLevel) = 0;
 
 		/** Get size of whole image data, in bytes
 		* @return the size of the raw image data array, in bytes
