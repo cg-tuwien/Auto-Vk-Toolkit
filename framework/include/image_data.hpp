@@ -45,20 +45,20 @@ namespace gvk
 		virtual vk::ImageType target() const = 0;
 
 		/** Get extent of image data in pixels for the given mipmap level
-		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
+		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return the 1D, 2D, or 3D size of the image data, depending on its type
 		*/
-		virtual extent_type extent(const uint32_t level = 0) const = 0;
+		virtual extent_type extent(const uint32_t aLevel = 0) const = 0;
 
 		// Note: the return type cannot be const void* because this would result in a compile-time error with the deserializer;
 		// The function cannot be const either or gli would call a function overload that returns a const void*
 		/** Get pointer to raw image data
-		* @param layer	the layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers
-		* @param face	the face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data
-		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
+		* @param aLayer	The layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers.
+		* @param aFace	The face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data.
+		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return a pointer to raw image data; the raw data must not be written to
 		*/
-		virtual void* get_data(const uint32_t layer, const uint32_t face, const uint32_t level) = 0;
+		virtual void* get_data(const uint32_t aLayer, const uint32_t aFace, const uint32_t aLevel) = 0;
 
 		/** Get size of whole image data, in bytes
 		* @return the size of the raw image data array, in bytes
@@ -68,7 +68,7 @@ namespace gvk
 		/** Get size of one mipmap level of image resource, in bytes
 		* @return the size of one mipmap level of the raw image data array, in bytes
 		*/
-		virtual size_t size(const uint32_t level) const = 0;
+		virtual size_t size(const uint32_t aLevel) const = 0;
 
 		/** Check if image data is empty
 		* @return true if the image data is empty, i.e. no data has been loaded
