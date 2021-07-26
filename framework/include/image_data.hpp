@@ -53,9 +53,9 @@ namespace gvk
 		// Note: the return type cannot be const void* because this would result in a compile-time error with the deserializer;
 		// The function cannot be const either or gli would call a function overload that returns a const void*
 		/** Get pointer to raw image data
-		* @param layer	the layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers
-		* @param face	the face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data
-		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
+		* @param aLayer	The layer of the image data, for layered image data corresponding to texture arrays; must be 0 for image data without layers.
+		* @param aFace	The face of the image data, for image data representing cubemaps and cube map arrays; must be 0 for non-cube map image data.
+		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return a pointer to raw image data; the raw data must not be written to
 		*/
 		virtual void* get_data(const uint32_t aLayer, const uint32_t aFace, const uint32_t aLevel) = 0;
