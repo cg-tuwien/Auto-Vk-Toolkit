@@ -141,7 +141,7 @@ namespace gvk
 		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create cube map from a single file, with optional caching
+	/** Create cube map from a single file, with optional caching
 	* Loads image data from a file or the serializer cache.
 	* @param aPath			file name of a texture file to load the image data from.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
@@ -157,7 +157,7 @@ namespace gvk
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create cube map from a single file, with caching
+	/** Create cube map from a single file, with caching
 	* Loads image data from a file or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aPath			file name of a texture file to load the image data from.
@@ -176,7 +176,7 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create cube map from a single file
+	/** Create cube map from a single file
 	* Loads image data from a file.
 	* @param aPath			file name of a texture file to load the image data from.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
@@ -194,7 +194,7 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create cube map from six individual files, with optional caching
+	/** Create cube map from six individual files, with optional caching
 	* Loads image data from files or the serializer cache.
 	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
@@ -210,7 +210,7 @@ namespace gvk
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create cube map from six individual files, with caching
+	/** Create cube map from six individual files, with caching
 	* Loads image data from files or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
@@ -227,7 +227,7 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create cube map from six individual files
+	/** Create cube map from six individual files
 	* Loads image data from files or the serializer cache.
 	* @param aPaths			a vector of file names of texture files to load the image data from. The vector must contain six file names, each specifying one side of a cube map texture, in the order +X, -X, +Y, -Y, +Z, -Z. The image data from all files must have the same dimensions and texture formats, after possible HDR and sRGB conversions.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
@@ -243,7 +243,7 @@ namespace gvk
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create image from image_data, with optional caching
+	/** Create image from image_data, with optional caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
@@ -254,7 +254,7 @@ namespace gvk
 	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create image from image_data, with caching
+	/** Create image from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aImageData		the image data to create the image from.
@@ -268,7 +268,7 @@ namespace gvk
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create image from image_data
+	/** Create image from image_data
 	* Loads image data from an image_data object.
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
@@ -281,7 +281,7 @@ namespace gvk
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
 
-	/* create image from a single file, with optional caching
+	/** Create image from a single file, with optional caching
 	* Loads image data from a file or the serializer cache.
 	* @param aPath			file name of a texture file to load the image data from.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
@@ -295,7 +295,7 @@ namespace gvk
 	*/
 	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
-	/* create image from a single file, with caching
+	/** Create image from a single file, with caching
 	* Loads image data from a file or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aPath			file name of a texture file to load the image data from.
@@ -312,7 +312,7 @@ namespace gvk
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
 
-	/* create image from a single file
+	/** Create image from a single file
 	* Loads image data from a file.
 	* @param aPath			file name of a texture file to load the image data from.
 	* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
