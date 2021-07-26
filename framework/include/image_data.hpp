@@ -66,6 +66,7 @@ namespace gvk
 		virtual size_t size() const = 0;
 
 		/** Get size of one mipmap level of image resource, in bytes
+		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return the size of one mipmap level of the raw image data array, in bytes
 		*/
 		virtual size_t size(const uint32_t aLevel) const = 0;
