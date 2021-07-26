@@ -223,7 +223,7 @@ namespace gvk
 		* @param gliFmt	a valid GLI format value
 		* @return the Vulkan image format enum value that corresponds to the input parameter
 		*/
-		static vk::Format map_format_gli_to_vk(const gli::format gliFmt)
+		static vk::Format map_format_gli_to_vk(const gli::format aGliFmt)
 		{
 			vk::Format imFmt;
 
