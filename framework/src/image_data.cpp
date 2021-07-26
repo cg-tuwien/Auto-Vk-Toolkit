@@ -227,7 +227,7 @@ namespace gvk
 		{
 			vk::Format imFmt;
 
-			switch (gliFmt) {
+			switch (aGliFmt) {
 				// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
 				// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
 			case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
