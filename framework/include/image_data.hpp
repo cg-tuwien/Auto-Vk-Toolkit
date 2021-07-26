@@ -45,7 +45,7 @@ namespace gvk
 		virtual vk::ImageType target() const = 0;
 
 		/** Get extent of image data in pixels for the given mipmap level
-		* @param level	the mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels
+		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return the 1D, 2D, or 3D size of the image data, depending on its type
 		*/
 		virtual extent_type extent(const uint32_t level = 0) const = 0;
