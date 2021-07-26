@@ -48,7 +48,7 @@ namespace gvk
 		* @param aLevel	The mipmap level of the image data, for image data with mipmap levels; must be 0 for image data without mipmap levels.
 		* @return the 1D, 2D, or 3D size of the image data, depending on its type
 		*/
-		virtual extent_type extent(const uint32_t level = 0) const = 0;
+		virtual extent_type extent(const uint32_t aLevel = 0) const = 0;
 
 		// Note: the return type cannot be const void* because this would result in a compile-time error with the deserializer;
 		// The function cannot be const either or gli would call a function overload that returns a const void*
