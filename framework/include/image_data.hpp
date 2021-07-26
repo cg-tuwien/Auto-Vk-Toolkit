@@ -68,7 +68,7 @@ namespace gvk
 		/** Get size of one mipmap level of image resource, in bytes
 		* @return the size of one mipmap level of the raw image data array, in bytes
 		*/
-		virtual size_t size(const uint32_t level) const = 0;
+		virtual size_t size(const uint32_t aLevel) const = 0;
 
 		/** Check if image data is empty
 		* @return true if the image data is empty, i.e. no data has been loaded
