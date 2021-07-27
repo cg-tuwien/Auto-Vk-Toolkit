@@ -14,6 +14,7 @@ if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
     message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
 endif()
 
+# TODO: set scope for includes & sources based on library type
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
 # we first collect all include directories and source files and add it to our target in the end
@@ -57,6 +58,7 @@ set(gvk_Sources
 # TODO: this unholy mix of CMake and VS build system should come to an end
 # TODO: how should dependencies be handled? conan?
 
+# TODO: on windows this should just use external/universal/include
 # add external include directories
 target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
         external/linux/include)
@@ -67,18 +69,8 @@ set(avk_UseVMA ON)
 add_compile_definitions(AVK_USE_VMA)
 set(avk_LibraryType INTERFACE)
 add_subdirectory(auto_vk)
-#include(auto_vk/CMakeLists.txt)
-#include(cmake/avk.cmake)
-# NOTE: we don't want to propagate avk source files to gvk projects, so we can't just link it as an interface library
-#get_target_property(avk_Sources avk INTERFACE_SOURCES)
-#get_target_property(avk_IncludeDirs avk INTERFACE_INCLUDE_DIRECTORIES)
-#list(APPEND gvk_IncludeDirs ${avk_IncludeDirs})
-#list(APPEND gvk_Sources ${avk_Sources})
 target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
         avk)
-#message("${avk_Sources}")
-
-message("${gvk_Sources}")
 
 # stb
 include(cmake/stb.cmake)
