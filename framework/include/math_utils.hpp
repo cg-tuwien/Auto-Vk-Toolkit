@@ -12,21 +12,20 @@ namespace gvk
 	/// extract the translation part out of a matrix
 	extern glm::vec3 get_translation_from_matrix(const glm::mat4& m);
 
-	/** Returns a new matrix which is the same as the input matrix, but 
-	 *  the translation part of the matrix is canceled-out, i.e. set to
-	 *  zero for each direction, x, y, and z.
-	 */
+	/** Set the translation part of a matrix to zero
+	*   @param  aMatrix   a generic 4x4 input matrix
+	*   @return a new matrix based on aMatrix, with the translation part set to zero
+	*/
 	glm::mat4 cancel_translation_from_matrix(const glm::mat4& aMatrix);
 
-	/** An enum struct to state the principal axis or direction, which can be x, y, or z. */
+	/** A type defining a principal axis or direction, which can be x, y, or z */
 	enum struct principal_axis : uint32_t { x = 0u, y, z };
 
-	/** Returns a new matrix based on the given input matrix, mirrored
-	 *  along the given axis direction.
-	 *	@param	aMatrix		The input matrix, a modified version of which is to be returned
-	 *  @param	aAxis		The axis which to mirror
-	 *  @return	A new matrix which has the given axis mirrored compared to the input matrix
-	 */
+	/** Mirror a matrix transformation along one axis
+	*   @param  aMatrix		a generic 4x4 input matrix
+	*   @param  aAxis		the mirrored axis
+	*   @return a new matrix based on aMatrix, with the column defined by aAxis mirrored
+	*/
 	glm::mat4 mirror_matrix(const glm::mat4& aMatrix, principal_axis aAxis);
 
 	/// <summary>
