@@ -5,12 +5,21 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 
-# TODO: add option gvk_LibraryType (STATIC, SHARED) and decide on default
+set(gvk_AllowedLibraryTypes INTERFACE SHARED STATIC)
+set(gvk_LibraryType INTERFACE CACHE STRING
+        "The type of library gvk should be built as. Must be one of ${gvk_AllowedLibraryTypes}. Default: INTERFACE")
+set_property(CACHE gvk_LibraryType PROPERTY STRINGS ${gvk_AllowedLibraryTypes})
 
-add_library(${PROJECT_NAME} SHARED)
-target_include_directories(${PROJECT_NAME} PUBLIC
+if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
+    message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
+endif()
+
+add_library(${PROJECT_NAME} ${gvk_LibraryType})
+
+# we first collect all include directories and source files and add it to our target in the end
+set(gvk_IncludeDirs
         framework/include)
-target_sources(${PROJECT_NAME} PRIVATE
+set(gvk_Sources
         framework/src/animation.cpp
         framework/src/bezier_curve.cpp
         framework/src/camera.cpp
@@ -49,27 +58,46 @@ target_sources(${PROJECT_NAME} PRIVATE
 # TODO: how should dependencies be handled? conan?
 
 # add external include directories
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
         external/linux/include)
 
 # Auto-Vk
 set(avk_UseVMA ON)
-include(cmake/avk.cmake)
-target_link_libraries(${PROJECT_NAME} PUBLIC avk)
+# there is something wrong with the order of includes(?), so to be sure we define AVK_USE_VMA here
+add_compile_definitions(AVK_USE_VMA)
+set(avk_LibraryType INTERFACE)
+add_subdirectory(auto_vk)
+#include(auto_vk/CMakeLists.txt)
+#include(cmake/avk.cmake)
+# NOTE: we don't want to propagate avk source files to gvk projects, so we can't just link it as an interface library
+#get_target_property(avk_Sources avk INTERFACE_SOURCES)
+#get_target_property(avk_IncludeDirs avk INTERFACE_INCLUDE_DIRECTORIES)
+#list(APPEND gvk_IncludeDirs ${avk_IncludeDirs})
+#list(APPEND gvk_Sources ${avk_Sources})
+target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
+        avk)
+#message("${avk_Sources}")
+
+message("${gvk_Sources}")
 
 # stb
 include(cmake/stb.cmake)
-target_include_directories(${PROJECT_NAME} PUBLIC ${stb_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
+        ${stb_SOURCE_DIR})
 
 # Assimp
 include(cmake/assimp.cmake)
-target_include_directories(${PROJECT_NAME} PUBLIC ${assimp_SOURCE_DIR}/include/assimp)
-target_link_libraries(${PROJECT_NAME} PUBLIC assimp::assimp)
+target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
+        ${assimp_SOURCE_DIR}/include/assimp)
+target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
+        assimp::assimp)
 
 # GLFW
 include(cmake/glfw.cmake)
-target_include_directories(${PROJECT_NAME} PUBLIC ${glfw_SOURCE_DIR}/include/GLFW)
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
+        ${glfw_SOURCE_DIR}/include/GLFW)
+target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
+        glfw)
 
 # IMGUI
 # TODO: use official version as soon as this is fixed (hopefully v1.82): https://github.com/ocornut/imgui/pull/914
@@ -78,16 +106,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
 #target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 # NOTE: a fixed version of imgui is now part of this repo
 # TODO: are all of those source needed?
-target_sources(${PROJECT_NAME} PRIVATE
-        external/universal/include/imgui/imconfig.h
-        external/universal/include/imgui/imgui.h
-        external/universal/include/imgui/imgui_impl_glfw.h
-        external/universal/include/imgui/imgui_impl_vulkan.h
-        external/universal/include/imgui/imgui_internal.h
-        external/universal/include/imgui/imstb_rectpack.h
-        external/universal/include/imgui/imstb_textedit.h
-        external/universal/include/imgui/imstb_truetype.h
-
+target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
         external/universal/src/imgui.cpp
         external/universal/src/imgui_demo.cpp
         external/universal/src/imgui_draw.cpp
@@ -102,7 +121,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 #include(cmake/simplefilewatcher.cmake)
 #target_include_directories(${PROJECT_NAME} PUBLIC ${simplefilewatcher_SOURCE_DIR}/include)
 #target_link_libraries(${PROJECT_NAME} PUBLIC simplefilewatcher)
-target_sources(${PROJECT_NAME} PRIVATE
+target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
         external/universal/src/FileWatcher/FileWatcher.cpp
         external/universal/src/FileWatcher/FileWatcherLinux.cpp
         external/universal/src/FileWatcher/FileWatcherOSX.cpp
@@ -110,15 +129,21 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 # Vulkan
 find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
+        Vulkan::Vulkan)
 
 if (UNIX)
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
+    target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
+            Threads::Threads)
 endif (UNIX)
 
+target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
+        ${gvk_IncludeDirs})
+target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
+        ${gvk_Sources})
 
 # TODO: build all examples
 # TODO: only build examples (if option is set)
