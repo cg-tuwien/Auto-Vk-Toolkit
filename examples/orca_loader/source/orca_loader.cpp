@@ -1,5 +1,5 @@
 #include <gvk.hpp>
-#include <imgui/imgui.h>
+#include <imgui.h>
 // Use ImGui::FileBrowser from here: https://github.com/AirGuanZ/imgui-filebrowser
 #include "imfilebrowser.h"
 #include <glm/gtx/euler_angles.hpp>

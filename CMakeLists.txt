@@ -92,10 +92,6 @@ target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
         glfw)
 
 # IMGUI
-# TODO: use official version as soon as this is fixed (hopefully v1.82): https://github.com/ocornut/imgui/pull/914
-#include(cmake/imgui.cmake)
-#target_include_directories(${PROJECT_NAME} PUBLIC ${imgui_SOURCE_DIR})
-#target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 # NOTE: a fixed version of imgui is now part of this repo
 # TODO: are all of those source needed?
 target_sources(${PROJECT_NAME} INTERFACE #PRIVATE

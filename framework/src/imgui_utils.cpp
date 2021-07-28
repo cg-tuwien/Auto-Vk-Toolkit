@@ -1,6 +1,6 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_utils.h"
-#include "imgui/imgui_internal.h"
+#include "imgui_internal.h"
 
 void ImGui::ImageWithBg(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col, const ImVec4& bg_col)
 {

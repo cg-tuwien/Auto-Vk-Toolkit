@@ -1,6 +1,6 @@
 #pragma once
 #include <gvk.hpp>
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 namespace gvk
 {

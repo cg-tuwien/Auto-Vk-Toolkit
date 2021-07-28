@@ -3,7 +3,7 @@
 #include <initializer_list>
 #include <limits>
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 namespace ImGui
 {

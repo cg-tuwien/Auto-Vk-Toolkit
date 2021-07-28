@@ -1,12 +1,12 @@
 #include <gvk.hpp>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_vulkan.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #ifdef _WIN32
   #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
-#include <imgui/imgui_internal.h>
+#include <imgui_internal.h>
 
 namespace gvk
 {
