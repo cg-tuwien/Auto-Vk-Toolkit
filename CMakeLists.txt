@@ -19,6 +19,7 @@ endif()
 # TODO: add option - shared or static Assimp & GLFW
 #  set BUILD_SHARED_LIBS based on a gvk specific option
 
+# TODO: add option - build all examples
 # TODO: add option - build compute_image_processing
 # TODO: add option - build framebuffer
 # TODO: add option - build hello_world
