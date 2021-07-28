@@ -73,7 +73,7 @@ add_library(${PROJECT_NAME} ${gvk_LibraryType})
 #   want to copy this over and over.
 set(gvk_IncludeDirs
         # external
-        external/$<IF:${UNIX},linux,universal>/include
+        external/$<IF:$<BOOL:${UNIX}>,linux,universal>/include
 
         # framework
         framework/include)
