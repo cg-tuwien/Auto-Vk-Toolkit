@@ -4,7 +4,8 @@
 
 namespace gvk
 {	
-	// implementation in bridge pattern
+	/** Implementation of image_data_implementor interface that represents cube map image data composed from individual image files
+	*/
 	class image_data_composite_cubemap : public image_data_implementor
 	{
 	public:
@@ -33,7 +34,7 @@ namespace gvk
 				assert(r->layers() == 1);
 				// target must be 2D
 				assert(r->target() == vk::ImageType::e2D);
-				// must not be a cubemap
+				// must not be a cube map
 				assert(r->faces() == 1);
 
 				if (!image_data_implementors.empty())
@@ -43,7 +44,7 @@ namespace gvk
 					assert(r->get_format() == r0->get_format());
 					assert(r->target() == r0->target());
 					assert(r->extent() == r0->extent());
-					// Mipmap levels must agree
+					// mipmap levels must agree
 					assert(r->levels() == r0->levels());
 				}
 			}
@@ -110,6 +111,8 @@ namespace gvk
 		std::vector<std::unique_ptr<image_data_implementor>> image_data_implementors;
 	};
 
+	/** Implementation of image_data_implementor interface for loading image files with the GLI image library
+	*/
 	class image_data_gli : public image_data_implementor
 	{
 	public:
@@ -175,20 +178,16 @@ namespace gvk
 			return gliTex.size(level);
 		}
 
-		// Mipmap levels; 1 if no Mipmapping, 0 if Mipmaps should be created after loading
 		uint32_t levels() const
 		{
-			// Vulkan uses uint32_t to store level and layer sizes
 			return static_cast<uint32_t>(gliTex.levels());
 		};
 
-		// array layers, for texture arrays
 		uint32_t layers() const
 		{
 			return static_cast<uint32_t>(gliTex.layers());
 		};
 
-		// faces in cubemap
 		uint32_t faces() const
 		{
 			return static_cast<uint32_t>(gliTex.faces());
@@ -222,11 +221,15 @@ namespace gvk
 		};
 
 	private:
-		static vk::Format map_format_gli_to_vk(const gli::format gliFmt)
+		/** Map GLI image format enum to Vulkan image format enum
+		* @param aGliFmt	a valid GLI format value
+		* @return the Vulkan image format enum value that corresponds to the input parameter
+		*/
+		static vk::Format map_format_gli_to_vk(const gli::format aGliFmt)
 		{
 			vk::Format imFmt;
 
-			switch (gliFmt) {
+			switch (aGliFmt) {
 				// See "Khronos Data Format Specification": https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#S3TC
 				// And Vulkan specification: https://www.khronos.org/registry/vulkan/specs/1.2-khr-extensions/html/chap42.html#appendix-compressedtex-bc
 			case gli::format::FORMAT_RGB_DXT1_UNORM_BLOCK8:
@@ -282,6 +285,8 @@ namespace gvk
 		gli::texture gliTex;
 	};
 
+	/** Implementation of image_data_implementor interface for loading image files with the stbi image library
+	*/
 	class image_data_stb : public image_data_implementor
 	{
 	private:
@@ -372,6 +377,10 @@ namespace gvk
 		};
 
 	private:
+		/** Map preferred number of texture components to stbi channels
+		* @param aPreferredNumberOfTextureComponents the preferred number of texture components, must be 1, 2, 3, or 4. 
+		* @return the stbi internal constant that represents the given number of texture components
+		*/
 		static int map_to_stbi_channels(const int aPreferredNumberOfTextureComponents)
 		{
 			// TODO: autodetect number of channels in file (= 0)?
@@ -392,11 +401,17 @@ namespace gvk
 			}
 		}
 
-		static vk::Format select_format(const int aPreferredNumberOfTextureComponents, const bool aLoadHdr, const bool aLoadSrgb)
+		/** Select Vulkan image format based on preferred number of texture components, HDR, and sRGB requirements
+		* @param aPreferredNumberOfTextureComponents the preferred number of texture components, must be 1, 2, 3, or 4. 
+		* @param aLoadHdrIfPossible		load the texture as HDR (high dynamic range) data, if supported by the image loading library. If set to true, the image data may be returned in a HDR format even if the texture file does not contain HDR data. If set to false, the image data may be returned in an LDR format even if the texture contains HDR data. It is therefore advised to set this parameter according to the data format of the texture file.
+		* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
+		* @return the stbi internal constant that represents the given number of texture components
+		*/
+		static vk::Format select_format(const int aPreferredNumberOfTextureComponents, const bool aLoadHdrIfPossible, const bool aLoadSrgbIfApplicable)
 		{
 			vk::Format imFmt = vk::Format::eUndefined;
 
-			if (aLoadHdr) {
+			if (aLoadHdrIfPossible) {
 				switch (aPreferredNumberOfTextureComponents) {
 				case 4:
 				default:
@@ -415,7 +430,7 @@ namespace gvk
 				}
 				//}
 			}
-			else if (aLoadSrgb) {
+			else if (aLoadSrgbIfApplicable) {
 				switch (aPreferredNumberOfTextureComponents) {
 				case 4:
 				default:

@@ -4,7 +4,7 @@ namespace gvk
 {
 	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
-		// image must have flag set to be used for cubemap
+		// image must have flag set to be used for cube map
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
 
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
@@ -47,7 +47,7 @@ namespace gvk
 
 			bool is_cube_compatible = (static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0;
 			if (is_cube_compatible && aImageData.faces() != 6) {
-				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cubemap image.", aImageData.path()));
+				throw gvk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cube map image.", aImageData.path()));
 			}
 
 			width = aImageData.extent().width;
@@ -56,8 +56,8 @@ namespace gvk
 			format = aImageData.get_format();
 
 			// number of layers in Vulkan image: equals (number of layers) x (number of faces) in image_data
-			// a cubemap image in Vulkan must have six layers, one for each side of the cube
-			// TODO: support texture/cubemap arrays
+			// a cube map image in Vulkan must have six layers, one for each side of the cube
+			// TODO: support texture/cube map arrays
 			numLayers = aImageData.faces();
 		}
 
@@ -171,7 +171,7 @@ namespace gvk
 		if (maxLevels == 1 && img->config().mipLevels > 1)
 		{
 			// can't create MIP-maps for compressed formats
-			assert(!avk::is_block_compressed_format(aImageData.get_format()));
+			assert(!avk::is_block_compressed_format(format));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
