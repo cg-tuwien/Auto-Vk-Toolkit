@@ -56,7 +56,8 @@ jobs:
           sudo apt-get update -qq
           # Install dependencies
           sudo apt-get install -y \
-            vulkan-sdk
+            vulkan-sdk \
+            xorg-dev
 
           cmake -E make_directory ${{ runner.workspace }}/build
 
