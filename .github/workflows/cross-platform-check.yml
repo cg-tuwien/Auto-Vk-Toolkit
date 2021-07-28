@@ -1,0 +1,133 @@
+name: "Build (GCC/MSVC)"
+
+on:
+  push:
+    paths:
+      - 'cmake/**'
+      - 'examples/**'
+      - 'external/**'
+      - 'framework/**'
+      - 'CMakeLists.txt'
+  pull_request:
+  schedule:
+    - cron: '0 0 1 * *'
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  linux:
+    name: ${{ matrix.config.name }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "linux: gcc",
+            cc: "gcc-10",
+            cxx: "g++-10"
+          }
+        # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
+        # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
+        vulkan-sdk: ["latest"]
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Create Build Environment
+        shell: bash
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: |
+          # Add lunarg apt sources
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          if [ "${{ matrix.vulkan-sdk }}" = "latest" ]; then
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+          else
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
+          fi
+
+          # Update package lists
+          sudo apt-get update -qq
+          # Install dependencies
+          sudo apt-get install -y \
+            vulkan-sdk
+
+          cmake -E make_directory ${{ runner.workspace }}/build
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{ runner.workspace }}/build
+        run: |
+          export CC=${{ matrix.config.cc }}
+          export CXX=${{ matrix.config.cxx }}
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -Dgvk_BuildHelloWorld=ON $GITHUB_WORKSPACE
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ runner.workspace }}/build
+        run: cmake --build . --config $BUILD_TYPE
+
+  windows:
+    name: ${{ matrix.config.name }}
+    runs-on: windows-latest
+    env:
+      vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "windows: msvc",
+            cc: "cl",
+            cxx: "cl"
+          }
+        # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
+        vulkan-sdk: ["latest"]
+
+    steps:
+      # IMPORTANT: apparently checkout@v2 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Create Build Environment
+        working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}
+        shell: pwsh
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: |
+          If ('${{ matrix.vulkan-sdk }}' -eq 'latest') {
+            # the download URL for the latest SDK version changes sometimes (every four months or so?)...
+            curl -LS -o vulkan-sdk.exe https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe
+          } Else {
+            curl -LS -o vulkan-sdk.exe https://sdk.lunarg.com/sdk/download/${{ matrix.vulkan-sdk }}/windows/VulkanSDK-${{ matrix.vulkan-sdk }}-Installer.exe
+          }
+          7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
+
+          cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: pwsh
+        working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+        run: |
+          $env:CC="${{ matrix.config.cc }}"
+          $env:CXX="${{ matrix.config.cxx }}"
+          $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
+
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -Dgvk_BuildHelloWorld=ON ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+        run: cmake --build . --config $BUILD_TYPE
