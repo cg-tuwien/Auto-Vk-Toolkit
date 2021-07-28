@@ -2,6 +2,8 @@ name: "Build (GCC/MSVC)"
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - 'cmake/**'
       - 'examples/**'
@@ -9,8 +11,6 @@ on:
       - 'framework/**'
       - 'CMakeLists.txt'
   pull_request:
-  schedule:
-    - cron: '0 0 1 * *'
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
