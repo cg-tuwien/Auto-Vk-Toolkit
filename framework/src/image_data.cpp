@@ -152,7 +152,7 @@ namespace gvk
 			case gli::TARGET_3D:
 				return vk::ImageType::e3D;
 			default:
-				throw std::runtime_error("Unknown target");
+				throw gvk::runtime_error("Unknown target");
 			}
 		}
 
