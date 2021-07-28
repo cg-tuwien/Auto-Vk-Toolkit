@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 
+# ----------------------- Options -------------------------
+
 set(gvk_AllowedLibraryTypes INTERFACE SHARED STATIC)
 set(gvk_LibraryType INTERFACE CACHE STRING
         "The type of library gvk should be built as. Must be one of ${gvk_AllowedLibraryTypes}. Default: INTERFACE")
@@ -14,13 +16,50 @@ if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
     message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
 endif()
 
-# TODO: set scope for includes & sources based on library type
+# TODO: add option - shared or static Assimp & GLFW
+#  set BUILD_SHARED_LIBS based on a gvk specific option
+
+# TODO: add option - build compute_image_processing
+# TODO: add option - build framebuffer
+# TODO: add option - build hello_world
+# TODO: add option - build multi_invokee_rendering
+# TODO: add option - build orca_loader
+# TODO: add option - build ray_query_in_ray_tracing_shaders
+# TODO: add option - build ray_tracing_with_shadows_and_ao
+# TODO: add option - build texture_cubemap
+# TODO: add option - build vertex_buffers
+
+# ---------------------- Framework ------------------------
+
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
-# we first collect all include directories and source files and add it to our target in the end
+## Direct Sources & Includes
+# NOTE: We first collect all include directories and source files and add it to our target in the end.
+#   We do it like this, because depending on gvk_LibraryType the scope (INTERFACE, PUBLIC, PRIVATE) changes and we don't
+#   want to copy this over and over.
 set(gvk_IncludeDirs
+        # external
+        external/$<IF:${UNIX},linux,universal>/include
+
+        # framework
         framework/include)
 set(gvk_Sources
+        # FileWatcher
+        external/universal/src/FileWatcher/FileWatcher.cpp
+        external/universal/src/FileWatcher/FileWatcherLinux.cpp
+        external/universal/src/FileWatcher/FileWatcherOSX.cpp
+        external/universal/src/FileWatcher/FileWatcherWin32.cpp
+
+        # ImGui
+        external/universal/src/imgui.cpp
+        external/universal/src/imgui_demo.cpp
+        external/universal/src/imgui_draw.cpp
+        external/universal/src/imgui_impl_glfw.cpp
+        external/universal/src/imgui_impl_vulkan.cpp
+        external/universal/src/imgui_tables.cpp
+        external/universal/src/imgui_widgets.cpp
+
+        # framework
         framework/src/animation.cpp
         framework/src/bezier_curve.cpp
         framework/src/camera.cpp
@@ -55,86 +94,104 @@ set(gvk_Sources
         #framework/src/window_vulkan.cpp # is this a cg_base-only thing - remove?
         )
 
-# TODO: this unholy mix of CMake and VS build system should come to an end
-# TODO: how should dependencies be handled? conan?
-
-# TODO: on windows this should just use external/universal/include
-# add external include directories
-target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
-        external/linux/include)
+## Load Dependencies
+# NOTE: All dependencies are linked further down.
 
 # Auto-Vk
-set(avk_UseVMA ON)
-# there is something wrong with the order of includes(?), so to be sure we define AVK_USE_VMA here
-add_compile_definitions(AVK_USE_VMA)
-set(avk_LibraryType INTERFACE)
-add_subdirectory(auto_vk)
-target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
-        avk)
-
-# stb
-include(cmake/stb.cmake)
-target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
-        ${stb_SOURCE_DIR})
+set(avk_UseVMA ON)                   # make sure to add VMA stuff to Auto-Vk's sources
+add_compile_definitions(AVK_USE_VMA) # there is something wrong with the order of includes(?), so to be sure we define AVK_USE_VMA here
+set(avk_LibraryType INTERFACE)       # this is the default, but just in case
+add_subdirectory(auto_vk)            # we use the git submodule here as long as we have two separate build systems
 
 # Assimp
 include(cmake/assimp.cmake)
-target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
-        ${assimp_SOURCE_DIR}/include/assimp)
-target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
-        assimp::assimp)
 
 # GLFW
 include(cmake/glfw.cmake)
-target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
-        ${glfw_SOURCE_DIR}/include/GLFW)
-target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
-        glfw)
-
-# IMGUI
-# NOTE: a fixed version of imgui is now part of this repo
-# TODO: are all of those source needed?
-target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
-        external/universal/src/imgui.cpp
-        external/universal/src/imgui_demo.cpp
-        external/universal/src/imgui_draw.cpp
-        external/universal/src/imgui_impl_glfw.cpp
-        external/universal/src/imgui_impl_vulkan.cpp
-        external/universal/src/imgui_tables.cpp
-        external/universal/src/imgui_widgets.cpp)
-
-# FileWatcher
-# TODO: would be cleaner to just create a separate repository / fork, since this repo seems to be unmaintained
-# there were some changes in the source files in this repo only...
-#include(cmake/simplefilewatcher.cmake)
-#target_include_directories(${PROJECT_NAME} PUBLIC ${simplefilewatcher_SOURCE_DIR}/include)
-#target_link_libraries(${PROJECT_NAME} PUBLIC simplefilewatcher)
-target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
-        external/universal/src/FileWatcher/FileWatcher.cpp
-        external/universal/src/FileWatcher/FileWatcherLinux.cpp
-        external/universal/src/FileWatcher/FileWatcherOSX.cpp
-        external/universal/src/FileWatcher/FileWatcherWin32.cpp)
 
 # Vulkan
 find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
-        Vulkan::Vulkan)
 
 if (UNIX)
+    # stb
+    # NOTE: the stb in external/universal/include has some fixes for Windows which break compatibility with gcc, so we
+    #   need to fetch it from the stb github repo.
+    include(cmake/stb.cmake)
+    list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
+
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
-    target_link_libraries(${PROJECT_NAME} INTERFACE #PUBLIC
-            Threads::Threads)
 endif (UNIX)
 
-target_include_directories(${PROJECT_NAME} INTERFACE #PUBLIC
-        ${gvk_IncludeDirs})
-target_sources(${PROJECT_NAME} INTERFACE #PRIVATE
-        ${gvk_Sources})
+if(NOT gvk_LibraryType STREQUAL "INTERFACE")
+    target_include_directories(${PROJECT_NAME} PUBLIC
+            ${gvk_IncludeDirs})
+    target_sources(${PROJECT_NAME} PRIVATE
+            ${gvk_Sources})
 
-# TODO: build all examples
-# TODO: only build examples (if option is set)
+    # Auto-Vk
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            avk)
+
+    # Assimp
+    target_include_directories(${PROJECT_NAME} PUBLIC
+            ${assimp_SOURCE_DIR}/include/assimp)
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            assimp::assimp)
+
+    # GLFW
+    target_include_directories(${PROJECT_NAME} PUBLIC
+            ${glfw_SOURCE_DIR}/include/GLFW)
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            glfw)
+
+    # Vulkan
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            Vulkan::Vulkan)
+
+    if (UNIX)
+        # pthreads
+        target_link_libraries(${PROJECT_NAME} PUBLIC
+                Threads::Threads)
+    endif (UNIX)
+else()
+    target_include_directories(${PROJECT_NAME} INTERFACE
+            ${gvk_IncludeDirs})
+    target_sources(${PROJECT_NAME} INTERFACE
+            ${gvk_Sources})
+
+    # Auto-Vk
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            avk)
+
+    # Assimp
+    target_include_directories(${PROJECT_NAME} INTERFACE
+            ${assimp_SOURCE_DIR}/include/assimp)
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            assimp::assimp)
+
+    # GLFW
+    target_include_directories(${PROJECT_NAME} INTERFACE
+            ${glfw_SOURCE_DIR}/include/GLFW)
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            glfw)
+
+    # Vulkan
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            Vulkan::Vulkan)
+
+    if (UNIX)
+        # pthreads
+        target_link_libraries(${PROJECT_NAME} INTERFACE
+                Threads::Threads)
+    endif (UNIX)
+endif()
+
+
+# ---------------------- Examples -------------------------
+
+# TODO: only build examples if option is set
 
 # hello_world
 add_executable(hello_world
