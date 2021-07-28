@@ -16,8 +16,10 @@ if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
     message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
 endif()
 
-# TODO: add option - shared or static Assimp & GLFW
-#  set BUILD_SHARED_LIBS based on a gvk specific option
+option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW)." OFF)
+if (gvk_StaticDependencies)
+    set(BUILD_SHARED_LIBS OFF)
+endif()
 
 option(gvk_BuildExamples "Build all examples for Gears-Vk." OFF)
 option(gvk_BuildHelloWorld "Build example: hello_world." OFF)
