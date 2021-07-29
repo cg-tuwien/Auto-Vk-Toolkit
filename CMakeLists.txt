@@ -65,6 +65,11 @@ endif()
 
 # ---------------------- Framework ------------------------
 
+# NOTE: The Visual Studio build process uses a modified version of stb (including a small custom DLL).
+#   Since this doesn't work on Linux, the CMake build process uses the default approach of defining
+#   STB_IMAGE_IMPLEMENTATION.
+add_compile_definitions(GVK_CMAKE_BUILD)
+
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
 ## Direct Sources & Includes
