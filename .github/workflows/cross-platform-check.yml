@@ -69,12 +69,22 @@ jobs:
         run: |
           export CC=${{ matrix.config.cc }}
           export CXX=${{ matrix.config.cxx }}
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -Dgvk_BuildHelloWorld=ON $GITHUB_WORKSPACE
+          cmake \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -Dgvk_BuildHelloWorld=ON \
+            -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+            -DASSIMP_BUILD_TESTS=OFF \
+            -DINJECT_DEBUG_POSTFIX=OFF \
+            -DGLFW_BUILD_EXAMPLES=OFF \
+            -DGLFW_BUILD_TESTS=OFF \
+            -DGLFW_BUILD_DOCS=OFF \
+            -DGLFW_INSTALL=OFF \
+            $GITHUB_WORKSPACE
 
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/build
-        run: cmake --build . --config $BUILD_TYPE
+        run: cmake --build
 
   windows:
     name: ${{ matrix.config.name }}
@@ -126,9 +136,19 @@ jobs:
           $env:CXX="${{ matrix.config.cxx }}"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
 
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -Dgvk_BuildHelloWorld=ON ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
+          cmake `
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
+            -Dgvk_BuildHelloWorld=ON `
+            -DASSIMP_BUILD_ASSIMP_TOOLS=OFF `
+            -DASSIMP_BUILD_TESTS=OFF `
+            -DINJECT_DEBUG_POSTFIX=OFF `
+            -DGLFW_BUILD_EXAMPLES=OFF `
+            -DGLFW_BUILD_TESTS=OFF `
+            -DGLFW_BUILD_DOCS=OFF `
+            -DGLFW_INSTALL=OFF `
+            ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
 
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: cmake --build . --config $BUILD_TYPE
+        run: cmake --build .
