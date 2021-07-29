@@ -73,7 +73,7 @@ add_library(${PROJECT_NAME} ${gvk_LibraryType})
 #   want to copy this over and over.
 set(gvk_IncludeDirs
         # external
-        external/$<IF:$<BOOL:${UNIX}>,linux,universal>/include
+        external/$<IF:$<BOOL:${UNIX}>,linux,windows-cmake>/include
 
         # framework
         framework/include)
@@ -146,13 +146,11 @@ include(cmake/glfw.cmake)
 # Vulkan
 find_package(Vulkan REQUIRED)
 
-if (UNIX)
-    # stb
-    # NOTE: the stb in external/universal/include has some fixes for Windows which break compatibility with gcc, so we
-    #   need to fetch it from the stb github repo.
-    include(cmake/stb.cmake)
-    list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
+# stb
+include(cmake/stb.cmake)
+list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
 
+if (UNIX)
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
@@ -222,6 +220,8 @@ else()
     endif (UNIX)
 endif()
 
+# TODO (Windows only): Windows is shitty at resolving DLL paths - copy required DLLs to same location as .exe
+#  see: https://cmake.org/cmake/help/latest/command/file.html#get-runtime-dependencies
 
 # ---------------------- Examples -------------------------
 
