@@ -48,21 +48,6 @@ if (gvk_BuildExamples)
     set(gvk_BuildVertexBuffers ON)
 endif()
 
-set(gvk_BuildAnyExample OFF)
-if (gvk_BuildHelloWorld OR
-        gvk_BuildFramebuffer OR
-        gvk_BuildComputeImageProcessing OR
-        gvk_BuildMultiInvokeeRendering OR
-        gvk_BuildModelLoader OR
-        gvk_BuildOrcaLoader OR
-        gvk_BuildRayQueryInRayTracingShaders OR
-        gvk_BuildRayTracingWithShadowsAndAO OR
-        gvk_BuildRayTracingCustomIntersection OR
-        gvk_BuildTextureCubemap OR
-        gvk_BuildVertexBuffers)
-    set(gvk_BuildAnyExample ON)
-endif()
-
 # ---------------------- Framework ------------------------
 
 # NOTE: The Visual Studio build process uses a modified version of stb (including a small custom DLL).
@@ -227,13 +212,9 @@ endif()
 
 # TODO (Windows only): Windows is shitty at resolving DLL paths - copy required DLLs to same location as .exe
 #  see: https://cmake.org/cmake/help/latest/command/file.html#get-runtime-dependencies
+#  use POST_BUILD command (also for release DLLs)
 
 # ---------------------- Examples -------------------------
-
-# If we build any example we just copy the assets over to the binary dir.
-if (gvk_BuildAnyExample)
-    file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
-endif()
 
 ## hello_world
 if (gvk_BuildHelloWorld)
@@ -242,7 +223,9 @@ if (gvk_BuildHelloWorld)
     target_include_directories(hello_world PRIVATE ${PROJECT_NAME})
     target_link_libraries(hello_world PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/hello_world/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET hello_world POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/examples/hello_world/shaders/ $<TARGET_FILE_DIR:hello_world>/shaders)
 endif()
 
 ## framebuffer
@@ -252,7 +235,9 @@ if (gvk_BuildFramebuffer)
     target_include_directories(framebuffer PRIVATE ${PROJECT_NAME})
     target_link_libraries(framebuffer PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/framebuffer/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET framebuffer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/framebuffer/shaders/ $<TARGET_FILE_DIR:framebuffer>/shaders)
 endif()
 
 ## compute_image_processing
@@ -262,7 +247,14 @@ if (gvk_BuildComputeImageProcessing)
     target_include_directories(compute_image_processing PRIVATE ${PROJECT_NAME})
     target_link_libraries(compute_image_processing PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/compute_image_processing/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET compute_image_processing POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/compute_image_processing/shaders/
+            $<TARGET_FILE_DIR:compute_image_processing>/shaders)
+    add_custom_command(TARGET compute_image_processing POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/sponza/textures
+            $<TARGET_FILE_DIR:compute_image_processing>/assets)
 endif()
 
 ## multi_invokee_rendering
@@ -272,7 +264,10 @@ if (gvk_BuildMultiInvokeeRendering)
     target_include_directories(multi_invokee_rendering PRIVATE ${PROJECT_NAME})
     target_link_libraries(multi_invokee_rendering PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/multi_invokee_rendering/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET multi_invokee_rendering POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/multi_invokee_rendering/shaders/
+            $<TARGET_FILE_DIR:multi_invokee_rendering>/shaders)
 endif()
 
 ## model_loader
@@ -284,7 +279,12 @@ if (gvk_BuildModelLoader)
     target_include_directories(model_loader PRIVATE ${PROJECT_NAME})
     target_link_libraries(model_loader PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/model_loader/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET model_loader POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/model_loader/shaders/ $<TARGET_FILE_DIR:model_loader>/shaders)
+    add_custom_command(TARGET model_loader POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/sponza $<TARGET_FILE_DIR:model_loader>/assets)
 endif()
 
 ## orca_loader
@@ -296,7 +296,12 @@ if (gvk_BuildOrcaLoader)
     target_include_directories(orca_loader PRIVATE ${PROJECT_NAME})
     target_link_libraries(orca_loader PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/orca_loader/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET orca_loader POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/orca_loader/shaders/ $<TARGET_FILE_DIR:orca_loader>/shaders)
+    add_custom_command(TARGET orca_loader POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:orca_loader>/assets)
 endif()
 
 ## ray_query_in_ray_tracing_shaders
@@ -308,7 +313,13 @@ if (gvk_BuildRayQueryInRayTracingShaders)
     target_include_directories(ray_query_in_ray_tracing_shaders PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_query_in_ray_tracing_shaders PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/ray_query_in_ray_tracing_shaders/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET ray_query_in_ray_tracing_shaders POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/ray_query_in_ray_tracing_shaders/shaders/
+            $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/shaders)
+    add_custom_command(TARGET ray_query_in_ray_tracing_shaders POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets)
 endif()
 
 ## ray_tracing_with_shadows_and_ao
@@ -318,7 +329,13 @@ if (gvk_BuildRayTracingWithShadowsAndAO)
     target_include_directories(ray_tracing_with_shadows_and_ao PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_tracing_with_shadows_and_ao PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/ray_tracing_with_shadows_and_ao/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET ray_tracing_with_shadows_and_ao POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_with_shadows_and_ao/shaders/
+            $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/shaders)
+    add_custom_command(TARGET ray_tracing_with_shadows_and_ao POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets)
 endif()
 
 ## ray_tracing_custom_intersection
@@ -330,7 +347,10 @@ if (gvk_BuildRayTracingCustomIntersection)
     target_include_directories(ray_tracing_custom_intersection PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_tracing_custom_intersection PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/ray_tracing_custom_intersection/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET ray_tracing_custom_intersection POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_custom_intersection/shaders/
+            $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/shaders)
 endif()
 
 ## texture_cubemap
@@ -340,7 +360,15 @@ if (gvk_BuildTextureCubemap)
     target_include_directories(texture_cubemap PRIVATE ${PROJECT_NAME})
     target_link_libraries(texture_cubemap PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/texture_cubemap/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET texture_cubemap POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/texture_cubemap/shaders/ $<TARGET_FILE_DIR:texture_cubemap>/shaders)
+    add_custom_command(TARGET texture_cubemap POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/3rd_party/yokohama_at_night
+            ${CMAKE_SOURCE_DIR}/assets/1st_party/models
+            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/standford_bunny
+            $<TARGET_FILE_DIR:texture_cubemap>/assets)
 endif()
 
 ## vertex_buffers
@@ -350,5 +378,7 @@ if (gvk_BuildVertexBuffers)
     target_include_directories(vertex_buffers PRIVATE ${PROJECT_NAME})
     target_link_libraries(vertex_buffers PRIVATE ${PROJECT_NAME})
 
-    file(COPY examples/vertex_buffers/shaders DESTINATION ${CMAKE_BINARY_DIR})
+    add_custom_command(TARGET vertex_buffers POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/examples/vertex_buffers/shaders/ $<TARGET_FILE_DIR:vertex_buffers>/shaders)
 endif()
