@@ -4,6 +4,7 @@ include(FetchContent)
 
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 set(ASSIMP_BUILD_TESTS OFF)
+set(INJECT_DEBUG_POSTFIX OFF)
 
 FetchContent_Declare(
         assimp
