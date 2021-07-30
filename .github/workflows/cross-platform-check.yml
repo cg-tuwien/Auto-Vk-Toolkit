@@ -2,8 +2,9 @@ name: "Build (GCC/MSVC)"
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
-      - '.github/**'
       - 'cmake/**'
       - 'examples/**'
       - 'external/**'
