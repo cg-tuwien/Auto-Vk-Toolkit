@@ -16,10 +16,12 @@ if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
     message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
 endif()
 
-option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW)." OFF)
+option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW). (Linux only)" OFF)
 if (gvk_StaticDependencies)
     set(BUILD_SHARED_LIBS OFF)
 endif()
+
+option(gvk_ReleaseDLLsOnly "Use release DLLs for all dependencies. (Windows only)" ON)
 
 option(gvk_BuildExamples "Build all examples for Gears-Vk." OFF)
 option(gvk_BuildHelloWorld "Build example: hello_world." OFF)
@@ -68,7 +70,9 @@ endif()
 # NOTE: The Visual Studio build process uses a modified version of stb (including a small custom DLL).
 #   Since this doesn't work on Linux, the CMake build process uses the default approach of defining
 #   STB_IMAGE_IMPLEMENTATION.
-add_compile_definitions(GVK_CMAKE_BUILD)
+if(UNIX)
+    add_compile_definitions(GVK_CMAKE_BUILD)
+endif(UNIX)
 
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
@@ -78,7 +82,7 @@ add_library(${PROJECT_NAME} ${gvk_LibraryType})
 #   want to copy this over and over.
 set(gvk_IncludeDirs
         # external
-        external/$<IF:$<BOOL:${UNIX}>,linux,windows-cmake>/include
+        external/$<IF:$<BOOL:${UNIX}>,linux,universal>/include
 
         # framework
         framework/include)
@@ -153,7 +157,9 @@ find_package(Vulkan REQUIRED)
 
 # stb
 include(cmake/stb.cmake)
-list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
+if (UNIX)
+    list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
+endif(UNIX)
 
 if (UNIX)
     # pthreads
@@ -172,14 +178,18 @@ if(NOT gvk_LibraryType STREQUAL "INTERFACE")
             avk)
 
     # Assimp
-    target_include_directories(${PROJECT_NAME} PUBLIC
-            ${assimp_SOURCE_DIR}/include/assimp)
+    if (UNIX)
+        target_include_directories(${PROJECT_NAME} PUBLIC
+                ${assimp_SOURCE_DIR}/include/assimp)
+    endif()
     target_link_libraries(${PROJECT_NAME} PUBLIC
-            assimp::assimp)
+               assimp::assimp)
 
     # GLFW
-    target_include_directories(${PROJECT_NAME} PUBLIC
-            ${glfw_SOURCE_DIR}/include/GLFW)
+    if(UNIX)
+        target_include_directories(${PROJECT_NAME} PUBLIC
+                ${glfw_SOURCE_DIR}/include/GLFW)
+    endif(UNIX)
     target_link_libraries(${PROJECT_NAME} PUBLIC
             glfw)
 
@@ -191,6 +201,10 @@ if(NOT gvk_LibraryType STREQUAL "INTERFACE")
         # pthreads
         target_link_libraries(${PROJECT_NAME} PUBLIC
                 Threads::Threads)
+    else()
+        # stb
+        target_link_libraries(${PROJECT_NAME} PUBLIC
+            stb)
     endif (UNIX)
 else()
     target_include_directories(${PROJECT_NAME} INTERFACE
@@ -203,14 +217,18 @@ else()
             avk)
 
     # Assimp
-    target_include_directories(${PROJECT_NAME} INTERFACE
-            ${assimp_SOURCE_DIR}/include/assimp)
+    if (UNIX)
+        target_include_directories(${PROJECT_NAME} INTERFACE
+                ${assimp_SOURCE_DIR}/include/assimp)
+    endif()
     target_link_libraries(${PROJECT_NAME} INTERFACE
-            assimp::assimp)
+               assimp::assimp)
 
     # GLFW
-    target_include_directories(${PROJECT_NAME} INTERFACE
-            ${glfw_SOURCE_DIR}/include/GLFW)
+    if(UNIX)
+        target_include_directories(${PROJECT_NAME} INTERFACE
+                ${glfw_SOURCE_DIR}/include/GLFW)
+    endif(UNIX)
     target_link_libraries(${PROJECT_NAME} INTERFACE
             glfw)
 
@@ -222,6 +240,10 @@ else()
         # pthreads
         target_link_libraries(${PROJECT_NAME} INTERFACE
                 Threads::Threads)
+    else()
+        # stb
+        target_link_libraries(${PROJECT_NAME} INTERFACE
+            stb)
     endif (UNIX)
 endif()
 

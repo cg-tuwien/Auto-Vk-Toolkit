@@ -2,18 +2,37 @@ cmake_minimum_required(VERSION 3.14)
 
 include(FetchContent)
 
-# TODO: add option to use local build of assimp
-#  this would need to set assimp_SOURCE_DIR (e.g. to external/universal)
-#  and to set assimp::assimp to the .so/.dll
+if(UNIX)
+    # TODO: try to find locally installed assimp
+    #  maybe set assimp_SOURCE_DIR (e.g. to external/universal)
+    #  and assimp::assimp to the .so
 
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-set(ASSIMP_BUILD_TESTS OFF)
-set(INJECT_DEBUG_POSTFIX OFF)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+    set(ASSIMP_BUILD_TESTS OFF)
+    set(INJECT_DEBUG_POSTFIX OFF)
 
-FetchContent_Declare(
-        assimp
-        GIT_REPOSITORY      https://github.com/assimp/assimp.git
-        GIT_TAG             v5.0.1
-)
+    FetchContent_Declare(
+            assimp
+            GIT_REPOSITORY      https://github.com/assimp/assimp.git
+            GIT_TAG             v5.0.1
+    )
 
-FetchContent_MakeAvailable(assimp)
+    FetchContent_MakeAvailable(assimp)
+else()
+    set(gvk_AssimpReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/assimp-vc140-mt.dll")
+    set(gvk_AssimpDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/assimp-vc140-mt.dll")
+    set(gvk_AssimpReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/assimp-vc140-mt.lib")
+    set(gvk_AssimpDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/assimp-vc140-mt.lib")
+    if (gvk_ReleaseDLLsOnly)
+        set(gvk_AssimpDebugDLLPath "${gvk_AssimpReleaseDLLPath}")
+        set(gvk_AssimpDebugLIBPath "${gvk_AssimpReleaseLIBPath}")
+    endif()
+
+    add_library(assimp::assimp SHARED IMPORTED GLOBAL)
+    set_target_properties(assimp::assimp PROPERTIES
+        IMPORTED_IMPLIB         "${gvk_AssimpReleaseLIBPath}"
+        IMPORTED_IMPLIB_DEBUG   "${gvk_AssimpDebugLIBPath}"
+        IMPORTED_LOCATION       "${gvk_AssimpReleaseDLLPath}"
+        IMPORTED_LOCATION_DEBUG "${gvk_AssimpDebugDLLPath}"
+        IMPORTED_CONFIGURATIONS "RELEASE;DEBUG")
+endif(UNIX)
