@@ -10,7 +10,8 @@ To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwi
 
 # Installation
 
-Currently, only Windows is supported as a development platform. The project setup is provided for Visual Studio 2019.
+## Visual Studio 2019
+The project setup is provided for Visual Studio 2019.
 
 Requirements:
 * Windows 10 
@@ -28,6 +29,34 @@ Set up your own project:
 * To add _Gears-Vk_ to one of your custom repositories, you might want to add it as a GIT submodule. You could execute `git submodule add https://github.com/cg-tuwien/Gears-Vk.git gears_vk` to add _Gears-Vk_ as submodule in directory `gears_vk`.
 * Execute `git submodule update --init --recursive` in order to pull both, _Gears-Vk_ and the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework.
 * The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links agains _Gears-Vk_.
+
+## CMake
+_Gears-Vk_ also supports building with CMake on Linux (*gcc*) and Windows (*MSVC*).
+The preferred way of building *Gears-Vk* on Windows is still to use Visual Studio, since currently only release builds are supported with MSVC.
+
+There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
+Currently, the same also goes for Windows.
+
+You can configure the build process by setting the following options:
+
+| Name | Description | Default |
+| ---- | ----------- | ------- |
+| `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
+| `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. | `OFF` |
+| `gvk_BuildExamples` | Build all examples for *Gears-Vk*. | `OFF` |
+| `gvk_BuildHelloWorld` | Build example: hello_world. | `OFF` |
+| `gvk_BuildFramebuffer` | Build example: framebuffer. | `OFF` |
+| `gvk_BuildComputeImageProcessing` | Build example: compute_image_processing. | `OFF` |
+| `gvk_BuildMultiInvokeeRendering` | Build example: multi_invokee_rendering. | `OFF` |
+| `gvk_BuildModelLoader` | Build example: model_loader. | `OFF` |
+| `gvk_BuildOrcaLoader` | Build example: orca_loader. | `OFF` |
+| `gvk_BuildRayQueryInRayTracingShaders` | Build example: ray_query_in_ray_tracing_shaders. | `OFF` |
+| `gvk_BuildRayTracingWithShadowsAndAO` | Build example: ray_tracing_with_shadows_and_ao. | `OFF` |
+| `gvk_BuildRayTracingCustomIntersection` | Build example: ray_tracing_custom_intersection. | `OFF` |
+| `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
+| `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
+
+To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
 # Creating a New Project
 
