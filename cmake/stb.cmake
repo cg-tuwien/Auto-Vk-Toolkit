@@ -18,12 +18,8 @@ else()
     set(gvk_STBDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/stb.dll")
     set(gvk_STBReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/stb.lib")
     set(gvk_STBDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/stb.lib")
-    if (gvk_ReleaseDLLsOnly)
-        set(gvk_STBDebugDLLPath "${gvk_STBReleaseDLLPath}")
-        set(gvk_STBDebugLIBPath "${gvk_STBReleaseLIBPath}")
-    endif()
 
-    add_library(stb SHARED IMPORTED GLOBAL)
+    add_library(stb SHARED IMPORTED)
     set_target_properties(stb PROPERTIES
         IMPORTED_IMPLIB         "${gvk_STBReleaseLIBPath}"
         IMPORTED_IMPLIB_DEBUG   "${gvk_STBDebugLIBPath}"

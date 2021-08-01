@@ -23,12 +23,8 @@ else()
     set(gvk_AssimpDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/assimp-vc140-mt.dll")
     set(gvk_AssimpReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/assimp-vc140-mt.lib")
     set(gvk_AssimpDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/assimp-vc140-mt.lib")
-    if (gvk_ReleaseDLLsOnly)
-        set(gvk_AssimpDebugDLLPath "${gvk_AssimpReleaseDLLPath}")
-        set(gvk_AssimpDebugLIBPath "${gvk_AssimpReleaseLIBPath}")
-    endif()
 
-    add_library(assimp::assimp SHARED IMPORTED GLOBAL)
+    add_library(assimp::assimp SHARED IMPORTED)
     set_target_properties(assimp::assimp PROPERTIES
         IMPORTED_IMPLIB         "${gvk_AssimpReleaseLIBPath}"
         IMPORTED_IMPLIB_DEBUG   "${gvk_AssimpDebugLIBPath}"

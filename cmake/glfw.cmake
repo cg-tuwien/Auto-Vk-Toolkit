@@ -18,11 +18,8 @@ if(UNIX)
 else()
     set(gvk_GLFWReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/glfw3.lib")
     set(gvk_GLFWDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/glfw3.lib")
-    if (gvk_ReleaseDLLsOnly)
-        set(gvk_GLFWDebugLIBPath "${gvk_GLFWReleaseLIBPath}")
-    endif()
 
-    add_library(glfw STATIC IMPORTED GLOBAL)
+    add_library(glfw STATIC IMPORTED)
     set_target_properties(glfw PROPERTIES
         IMPORTED_LOCATION       "${gvk_GLFWReleaseLIBPath}"
         IMPORTED_LOCATION_DEBUG "${gvk_GLFWDebugLIBPath}"

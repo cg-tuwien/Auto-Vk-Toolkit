@@ -183,12 +183,23 @@ if (UNIX)
     find_package(Threads REQUIRED)
     target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
         Threads::Threads)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # explicitly link dbghelp to debug builds on Windows
+    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+        dbghelp)
 endif (UNIX)
 
 
 # TODO (Windows only): Windows is shitty at resolving DLL paths - copy required DLLs to same location as .exe
 #  see: https://cmake.org/cmake/help/latest/command/file.html#get-runtime-dependencies
 #  use POST_BUILD command (also for release DLLs)
+if (WIN32)
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
+        # TODO: copy release DLLs
+    else()
+        # TODO: copy debug DLLs
+    endif (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
+endif (WIN32)
 
 # ---------------------- Examples -------------------------
 

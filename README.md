@@ -32,10 +32,10 @@ Set up your own project:
 
 ## CMake
 _Gears-Vk_ also supports building with CMake on Linux (*gcc*) and Windows (*MSVC*).
-The preferred way of building *Gears-Vk* on Windows is still to use Visual Studio, since currently only release builds are supported with MSVC.
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
-On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*. By default, only release builds of dependencies are used.
+On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
+The preferred way of building *Gears-Vk* on Windows is still to use Visual Studio, since currently DLLs are not copied to the same location as the executable.
 
 You can configure the build process by setting the following options:
 
@@ -43,7 +43,7 @@ You can configure the build process by setting the following options:
 | ---- | ----------- | ------- |
 | `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
 | `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. (Linux only) | `OFF` |
-| `gvk_ReleaseDLLsOnly` | Sets if release builds of dependencies (*Assimp* & *GLFW* & *STB*) should be used, even in debug builds. (Windows only) | `ON` |
+| `gvk_ReleaseDLLsOnly` | **UNUSED** Sets if release DLLS (*Assimp* & *STB*) should be used, even for debug builds. (Windows only) | `ON` |
 | `gvk_BuildExamples` | Build all examples for *Gears-Vk*. | `OFF` |
 | `gvk_BuildHelloWorld` | Build example: hello_world. | `OFF` |
 | `gvk_BuildFramebuffer` | Build example: framebuffer. | `OFF` |
@@ -56,6 +56,8 @@ You can configure the build process by setting the following options:
 | `gvk_BuildRayTracingCustomIntersection` | Build example: ray_tracing_custom_intersection. | `OFF` |
 | `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
+
+**Note that assets and shaders for all examples are copied to the location of the executables, but shaders currently aren't compiled to SPIR-V.**
 
 To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
