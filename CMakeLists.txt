@@ -16,6 +16,13 @@ if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
     message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
 endif()
 
+set(gvk_IncludeScope INTERFACE)
+set(gvk_SourceScope INTERFACE)
+if (NOT gvk_LibraryType STREQUAL "INTERFACE")
+    set(gvk_IncludeScope PUBLIC)
+    set(gvk_SourceScope PRIVATE)
+endif (NOT gvk_LibraryType STREQUAL "INTERFACE")
+
 option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW). (Linux only)" OFF)
 if (gvk_StaticDependencies)
     set(BUILD_SHARED_LIBS OFF)
@@ -52,8 +59,8 @@ endif()
 
 # ---------------------- Framework ------------------------
 
-# NOTE: The Visual Studio build process uses a modified version of stb (including a small custom DLL).
-#   Since this doesn't work on Linux, the CMake build process uses the default approach of defining
+# NOTE: Windows builds use a modified version of stb (including a small custom DLL).
+#   Since this version doesn't work on Linux, the Linux build process uses the default approach of defining
 #   STB_IMAGE_IMPLEMENTATION.
 if(UNIX)
     add_compile_definitions(GVK_CMAKE_BUILD)
@@ -123,114 +130,61 @@ set(gvk_Sources
         )
 
 ## Load Dependencies
-# NOTE: All dependencies are linked further down.
+target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+    ${gvk_IncludeDirs})
+target_sources(${PROJECT_NAME} ${gvk_SourceScope}
+    ${gvk_Sources})
 
 # Auto-Vk
+# TODO: should CMake ever replace the Visual Studio build process this should use cmake/avk.cmake to fetch Auto-Vk
 set(avk_UseVMA ON)                   # make sure to add VMA stuff to Auto-Vk's sources
 add_compile_definitions(AVK_USE_VMA) # there is something wrong with the order of includes(?), so to be sure we define AVK_USE_VMA here
 set(avk_LibraryType INTERFACE)       # this is the default, but just in case
 add_subdirectory(auto_vk)            # we use the git submodule here as long as we have two separate build systems
+target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    avk)
 
 # Assimp
 include(cmake/assimp.cmake)
+if (UNIX)
+    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+        ${assimp_SOURCE_DIR}/include/assimp)
+endif()
+target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    assimp::assimp)
 
 # GLFW
 include(cmake/glfw.cmake)
+if(UNIX)
+    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+        ${glfw_SOURCE_DIR}/include/GLFW)
+endif(UNIX)
+target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    glfw)
 
 # Vulkan
 find_package(Vulkan REQUIRED)
+target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    Vulkan::Vulkan)
 
 # stb
 include(cmake/stb.cmake)
 if (UNIX)
-    list(APPEND gvk_IncludeDirs ${stb_SOURCE_DIR})
+    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+        ${stb_SOURCE_DIR})
+else()
+    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+        stb)
 endif(UNIX)
 
 if (UNIX)
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
+    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+        Threads::Threads)
 endif (UNIX)
 
-if(NOT gvk_LibraryType STREQUAL "INTERFACE")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-            ${gvk_IncludeDirs})
-    target_sources(${PROJECT_NAME} PRIVATE
-            ${gvk_Sources})
-
-    # Auto-Vk
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-            avk)
-
-    # Assimp
-    if (UNIX)
-        target_include_directories(${PROJECT_NAME} PUBLIC
-                ${assimp_SOURCE_DIR}/include/assimp)
-    endif()
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-               assimp::assimp)
-
-    # GLFW
-    if(UNIX)
-        target_include_directories(${PROJECT_NAME} PUBLIC
-                ${glfw_SOURCE_DIR}/include/GLFW)
-    endif(UNIX)
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-            glfw)
-
-    # Vulkan
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-            Vulkan::Vulkan)
-
-    if (UNIX)
-        # pthreads
-        target_link_libraries(${PROJECT_NAME} PUBLIC
-                Threads::Threads)
-    else()
-        # stb
-        target_link_libraries(${PROJECT_NAME} PUBLIC
-            stb)
-    endif (UNIX)
-else()
-    target_include_directories(${PROJECT_NAME} INTERFACE
-            ${gvk_IncludeDirs})
-    target_sources(${PROJECT_NAME} INTERFACE
-            ${gvk_Sources})
-
-    # Auto-Vk
-    target_link_libraries(${PROJECT_NAME} INTERFACE
-            avk)
-
-    # Assimp
-    if (UNIX)
-        target_include_directories(${PROJECT_NAME} INTERFACE
-                ${assimp_SOURCE_DIR}/include/assimp)
-    endif()
-    target_link_libraries(${PROJECT_NAME} INTERFACE
-               assimp::assimp)
-
-    # GLFW
-    if(UNIX)
-        target_include_directories(${PROJECT_NAME} INTERFACE
-                ${glfw_SOURCE_DIR}/include/GLFW)
-    endif(UNIX)
-    target_link_libraries(${PROJECT_NAME} INTERFACE
-            glfw)
-
-    # Vulkan
-    target_link_libraries(${PROJECT_NAME} INTERFACE
-            Vulkan::Vulkan)
-
-    if (UNIX)
-        # pthreads
-        target_link_libraries(${PROJECT_NAME} INTERFACE
-                Threads::Threads)
-    else()
-        # stb
-        target_link_libraries(${PROJECT_NAME} INTERFACE
-            stb)
-    endif (UNIX)
-endif()
 
 # TODO (Windows only): Windows is shitty at resolving DLL paths - copy required DLLs to same location as .exe
 #  see: https://cmake.org/cmake/help/latest/command/file.html#get-runtime-dependencies
