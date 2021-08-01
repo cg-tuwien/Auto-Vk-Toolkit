@@ -35,14 +35,15 @@ _Gears-Vk_ also supports building with CMake on Linux (*gcc*) and Windows (*MSVC
 The preferred way of building *Gears-Vk* on Windows is still to use Visual Studio, since currently only release builds are supported with MSVC.
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
-Currently, the same also goes for Windows.
+On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*. By default, only release builds of dependencies are used.
 
 You can configure the build process by setting the following options:
 
 | Name | Description | Default |
 | ---- | ----------- | ------- |
 | `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
-| `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. | `OFF` |
+| `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. (Linux only) | `OFF` |
+| `gvk_ReleaseDLLsOnly` | Sets if release builds of dependencies (*Assimp* & *GLFW* & *STB*) should be used, even in debug builds. (Windows only) | `ON` |
 | `gvk_BuildExamples` | Build all examples for *Gears-Vk*. | `OFF` |
 | `gvk_BuildHelloWorld` | Build example: hello_world. | `OFF` |
 | `gvk_BuildFramebuffer` | Build example: framebuffer. | `OFF` |
