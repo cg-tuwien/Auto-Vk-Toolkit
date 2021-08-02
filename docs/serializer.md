@@ -1,7 +1,7 @@
 # Serializer
 _Gears-Vk_ features an object serializer to improve load times of resources like huge 3D models or ORCA scenes by serializing all the processed and ready to use data into a cache file during the first run. In further runs, the data can be directly deserialized into types and structures used by _Gears-Vk_ and expensive parsing and processing of huge models or scenes can be avoided.
 
-# How to use
+## How to use
 Serialization functionality is available via `gvk::serializer` class. The serializer is initialized
 by providing a path to the cache file and the desired mode. If the mode is set to `gvk::serializer::mode::serialize`, the file at the given path is created or overwritten if it already exists. If the mode is set to `gvk::serializer::mode::deserialize`, the serializer reads from the cache file at the given path. A helper function `gvk::does_cache_file_exist(const std::string_view)` can be used to determine which initialization mode shall be used. The serializer initialization for storing or loading a cached ORCA scene could look like follows:
 ```
