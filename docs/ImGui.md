@@ -22,11 +22,11 @@ It can be set-up during the `initialize` stage of a `gvk::invokee` as follows:
 auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 if(nullptr != imguiManager) {
 	imguiManager->add_callback([this](){	
-    ImGui::Begin("Hello, world!");
+		ImGui::Begin("Hello, world!");
 		ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_FirstUseEver);
 		ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-    ImGui::End();
-  });
+    		ImGui::End();
+  	});
 }
 ```
 
@@ -42,10 +42,11 @@ _Gears-Vk_ offers to get a suitable `ImTextureId` via `gvk::imgui_manager::get_o
 auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 if(nullptr != imguiManager) {
 	imguiManager->add_callback([this, imguiManager](){	
-    ImGui::Begin("ImTextureID usage example");
-    ImTextureID imTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mMyImageSampler)); // mMyImageSampler is of type avk::image_sampler 
-    ImGui::Image(imTexId, ImVec2(512.f, 512.f));
-    ImGui::End();
-  });
+		ImGui::Begin("ImTextureID usage example");
+		ImTextureID imTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mMyImageSampler)); // mMyImageSampler is of type avk::image_sampler 
+		ImGui::Image(imTexId, ImVec2(512.f, 512.f));
+		ImGui::End();
+	});
+}
 ```
 
