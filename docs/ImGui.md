@@ -50,7 +50,7 @@ if(nullptr != imguiManager) {
 }
 ```
 
-### ImGui Image Utils
+## Additional Image Utils
 
 _Gears-Vk_ extends [Dear ImGui](https://github.com/ocornut/imgui) with support for a background color on images with alpha channes via `ImGui::ImageWithBg` and rendering multiple images on top of each other via `ImGui::ImageStack`. The background color is specified as the last argument to `ImGui::ImageWithBg` and defaults to fully transparent. `ImGui::ImageStack` takes a `std::initializer_list<ImTextureID>` as the first argument and renders the images in the the specified order from back to front. `ImGui::ImageStack` also supports setting a background color as the last argument which defaults to fully transparent.
 
