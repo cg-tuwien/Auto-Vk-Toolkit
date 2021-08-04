@@ -79,6 +79,6 @@ if(nullptr != imguiManager) {
 	});
 }
 ```
-Example output of an image with alpha channel without background (left), and the same image rendered with background and on top of another image:
+Example output of an image with alpha channel without background (left), the same image rendered with background (middle), and the same image rendered on top of another image (right):
 
 ![ImGui image utils output](images/imgui_image-with-bg_and_image-stack_example.png)
