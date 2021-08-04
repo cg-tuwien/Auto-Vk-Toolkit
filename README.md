@@ -35,15 +35,16 @@ _Gears-Vk_ also supports building with CMake on Linux (*gcc*) and Windows (*MSVC
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
 On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
-The preferred way of building *Gears-Vk* on Windows is still to use Visual Studio, since currently DLLs are not copied to the same location as the executable.
 
+### CMake Options
 You can configure the build process by setting the following options:
 
 | Name | Description | Default |
 | ---- | ----------- | ------- |
 | `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
 | `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. (Linux only) | `OFF` |
-| `gvk_ReleaseDLLsOnly` | **UNUSED** Sets if release DLLS (*Assimp* & *STB*) should be used, even for debug builds. (Windows only) | `ON` |
+| `gvk_ReleaseDLLsOnly` | Sets if release DLLS (*Assimp* & *STB*) should be used for examples, even for debug builds. (Windows only) | `ON` |
+| `gvk_CreateDependencySymlinks` | Sets if dependencies of examples, i.e. DLLs (Windows only) & assets, should be copied or if symbolic links should be created. | `ON` |
 | `gvk_BuildExamples` | Build all examples for *Gears-Vk*. | `OFF` |
 | `gvk_BuildHelloWorld` | Build example: hello_world. | `OFF` |
 | `gvk_BuildFramebuffer` | Build example: framebuffer. | `OFF` |
@@ -57,8 +58,21 @@ You can configure the build process by setting the following options:
 | `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
 
-**Note that assets and shaders for all examples are copied to the location of the executables, but shaders currently aren't compiled to SPIR-V.**
+### Post Build Commands (Cmake)
+For copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
+It has the following signature:
 
+```Cmake
+add_post_build_commands(
+        targetName          # the executable target (e.g. hello_world)
+        glslDirectory       # the absolute path of the directory containing GLSL shaders used by the target
+        spvDirectory        # the absolute path of the directory where compiled SPIR-V shaders should be written to
+        assetsDirectory     # the absolute path of the directory where assets should be copied to (or where symbolic links should be created)
+        assets              # a list containing absolute paths of assets which should be copied to ${assetsDirectory} - can be files or directories
+        symlinks)           # a boolean setting if symbolic links of assets (and DLLs on Windows) should be created instead of copying dependencies
+```
+
+### Creating a New Project (CMake)
 To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
 # Creating a New Project

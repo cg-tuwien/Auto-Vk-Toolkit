@@ -28,7 +28,8 @@ if (gvk_StaticDependencies)
     set(BUILD_SHARED_LIBS OFF)
 endif()
 
-option(gvk_ReleaseDLLsOnly "Use release DLLs for all dependencies. (Windows only)" ON)
+option(gvk_ReleaseDLLsOnly "Use release DLLs for all dependencies of examples. (Windows only)" ON)
+option(gvk_CreateDependencySymlinks "Create symbolic links instead of copying dependencies of examples, i.e. DLLs (Windows only) & assets." ON)
 
 option(gvk_BuildExamples "Build all examples for Gears-Vk." OFF)
 option(gvk_BuildHelloWorld "Build example: hello_world." OFF)
@@ -189,19 +190,9 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
         dbghelp)
 endif (UNIX)
 
-
-# TODO (Windows only): Windows is shitty at resolving DLL paths - copy required DLLs to same location as .exe
-#  see: https://cmake.org/cmake/help/latest/command/file.html#get-runtime-dependencies
-#  use POST_BUILD command (also for release DLLs)
-if (WIN32)
-    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
-        # TODO: copy release DLLs
-    else()
-        # TODO: copy debug DLLs
-    endif (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
-endif (WIN32)
-
 # ---------------------- Examples -------------------------
+
+include(cmake/post_build_helper/add_post_build_commands.cmake)
 
 ## hello_world
 if (gvk_BuildHelloWorld)
@@ -210,9 +201,12 @@ if (gvk_BuildHelloWorld)
     target_include_directories(hello_world PRIVATE ${PROJECT_NAME})
     target_link_libraries(hello_world PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET hello_world POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/examples/hello_world/shaders/ $<TARGET_FILE_DIR:hello_world>/shaders)
+    add_post_build_commands(hello_world
+            ${CMAKE_SOURCE_DIR}/examples/hello_world/shaders
+            $<TARGET_FILE_DIR:hello_world>/shaders
+            $<TARGET_FILE_DIR:hello_world>/assets
+            ""
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## framebuffer
@@ -222,9 +216,12 @@ if (gvk_BuildFramebuffer)
     target_include_directories(framebuffer PRIVATE ${PROJECT_NAME})
     target_link_libraries(framebuffer PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET framebuffer POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/framebuffer/shaders/ $<TARGET_FILE_DIR:framebuffer>/shaders)
+    add_post_build_commands(framebuffer
+            ${CMAKE_SOURCE_DIR}/examples/framebuffer/shaders
+            $<TARGET_FILE_DIR:framebuffer>/shaders
+            $<TARGET_FILE_DIR:framebuffer>/assets
+            ""
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## compute_image_processing
@@ -234,14 +231,15 @@ if (gvk_BuildComputeImageProcessing)
     target_include_directories(compute_image_processing PRIVATE ${PROJECT_NAME})
     target_link_libraries(compute_image_processing PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET compute_image_processing POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/compute_image_processing/shaders/
-            $<TARGET_FILE_DIR:compute_image_processing>/shaders)
-    add_custom_command(TARGET compute_image_processing POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/sponza/textures
-            $<TARGET_FILE_DIR:compute_image_processing>/assets)
+    set(compute_image_processing_assets
+            ${PROJECT_SOURCE_DIR}/assets/3rd_party/models/sponza/textures)
+
+    add_post_build_commands(compute_image_processing
+            ${CMAKE_SOURCE_DIR}/examples/compute_image_processing/shaders
+            $<TARGET_FILE_DIR:compute_image_processing>/shaders
+            $<TARGET_FILE_DIR:compute_image_processing>/assets
+            "${compute_image_processing_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## multi_invokee_rendering
@@ -251,10 +249,12 @@ if (gvk_BuildMultiInvokeeRendering)
     target_include_directories(multi_invokee_rendering PRIVATE ${PROJECT_NAME})
     target_link_libraries(multi_invokee_rendering PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET multi_invokee_rendering POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/multi_invokee_rendering/shaders/
-            $<TARGET_FILE_DIR:multi_invokee_rendering>/shaders)
+    add_post_build_commands(multi_invokee_rendering
+            ${CMAKE_SOURCE_DIR}/examples/multi_invokee_rendering/shaders
+            $<TARGET_FILE_DIR:multi_invokee_rendering>/shaders
+            $<TARGET_FILE_DIR:multi_invokee_rendering>/assets
+            ""
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## model_loader
@@ -266,12 +266,15 @@ if (gvk_BuildModelLoader)
     target_include_directories(model_loader PRIVATE ${PROJECT_NAME})
     target_link_libraries(model_loader PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET model_loader POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/model_loader/shaders/ $<TARGET_FILE_DIR:model_loader>/shaders)
-    add_custom_command(TARGET model_loader POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/sponza $<TARGET_FILE_DIR:model_loader>/assets)
+    set(model_loader_assets
+            ${PROJECT_SOURCE_DIR}/assets/3rd_party/models/sponza)
+
+    add_post_build_commands(model_loader
+            ${CMAKE_SOURCE_DIR}/examples/model_loader/shaders
+            $<TARGET_FILE_DIR:model_loader>/shaders
+            $<TARGET_FILE_DIR:model_loader>/assets
+            "${model_loader_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## orca_loader
@@ -283,12 +286,15 @@ if (gvk_BuildOrcaLoader)
     target_include_directories(orca_loader PRIVATE ${PROJECT_NAME})
     target_link_libraries(orca_loader PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET orca_loader POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/orca_loader/shaders/ $<TARGET_FILE_DIR:orca_loader>/shaders)
-    add_custom_command(TARGET orca_loader POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:orca_loader>/assets)
+    set(orca_loader_assets
+            ${PROJECT_SOURCE_DIR}/assets)
+
+    add_post_build_commands(orca_loader
+            ${CMAKE_SOURCE_DIR}/examples/orca_loader/shaders
+            $<TARGET_FILE_DIR:orca_loader>/shaders
+            $<TARGET_FILE_DIR:orca_loader>/assets
+            "${orca_loader_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## ray_query_in_ray_tracing_shaders
@@ -300,13 +306,15 @@ if (gvk_BuildRayQueryInRayTracingShaders)
     target_include_directories(ray_query_in_ray_tracing_shaders PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_query_in_ray_tracing_shaders PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET ray_query_in_ray_tracing_shaders POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/ray_query_in_ray_tracing_shaders/shaders/
-            $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/shaders)
-    add_custom_command(TARGET ray_query_in_ray_tracing_shaders POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets)
+    set(ray_query_in_ray_tracing_shaders_assets
+            ${PROJECT_SOURCE_DIR}/assets)
+
+    add_post_build_commands(ray_query_in_ray_tracing_shaders
+            ${CMAKE_SOURCE_DIR}/examples/ray_query_in_ray_tracing_shaders/shaders
+            $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/shaders
+            $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets
+            "${ray_query_in_ray_tracing_shaders_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## ray_tracing_with_shadows_and_ao
@@ -316,13 +324,15 @@ if (gvk_BuildRayTracingWithShadowsAndAO)
     target_include_directories(ray_tracing_with_shadows_and_ao PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_tracing_with_shadows_and_ao PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET ray_tracing_with_shadows_and_ao POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_with_shadows_and_ao/shaders/
-            $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/shaders)
-    add_custom_command(TARGET ray_tracing_with_shadows_and_ao POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets)
+    set(ray_tracing_with_shadows_and_ao_assets
+            ${PROJECT_SOURCE_DIR}/assets)
+
+    add_post_build_commands(ray_tracing_with_shadows_and_ao
+            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_with_shadows_and_ao/shaders
+            $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/shaders
+            $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets
+            "${ray_tracing_with_shadows_and_ao_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## ray_tracing_custom_intersection
@@ -334,10 +344,12 @@ if (gvk_BuildRayTracingCustomIntersection)
     target_include_directories(ray_tracing_custom_intersection PRIVATE ${PROJECT_NAME})
     target_link_libraries(ray_tracing_custom_intersection PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET ray_tracing_custom_intersection POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_custom_intersection/shaders/
-            $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/shaders)
+    add_post_build_commands(ray_tracing_custom_intersection
+            ${CMAKE_SOURCE_DIR}/examples/ray_tracing_custom_intersection/shaders
+            $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/shaders
+            $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/assets
+            ""
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## texture_cubemap
@@ -347,15 +359,17 @@ if (gvk_BuildTextureCubemap)
     target_include_directories(texture_cubemap PRIVATE ${PROJECT_NAME})
     target_link_libraries(texture_cubemap PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET texture_cubemap POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/texture_cubemap/shaders/ $<TARGET_FILE_DIR:texture_cubemap>/shaders)
-    add_custom_command(TARGET texture_cubemap POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/3rd_party/yokohama_at_night
-            ${CMAKE_SOURCE_DIR}/assets/1st_party/models
-            ${CMAKE_SOURCE_DIR}/assets/3rd_party/models/standford_bunny
-            $<TARGET_FILE_DIR:texture_cubemap>/assets)
+    set(texture_cubemap_assets
+            ${PROJECT_SOURCE_DIR}/assets/3rd_party/yokohama_at_night
+            ${PROJECT_SOURCE_DIR}/assets/1st_party/models
+            ${PROJECT_SOURCE_DIR}/assets/3rd_party/models/standford_bunny)
+
+    add_post_build_commands(texture_cubemap
+            ${CMAKE_SOURCE_DIR}/examples/texture_cubemap/shaders
+            $<TARGET_FILE_DIR:texture_cubemap>/shaders
+            $<TARGET_FILE_DIR:texture_cubemap>/assets
+            "${texture_cubemap_assets}"
+            ${gvk_CreateDependencySymlinks})
 endif()
 
 ## vertex_buffers
@@ -365,7 +379,10 @@ if (gvk_BuildVertexBuffers)
     target_include_directories(vertex_buffers PRIVATE ${PROJECT_NAME})
     target_link_libraries(vertex_buffers PRIVATE ${PROJECT_NAME})
 
-    add_custom_command(TARGET vertex_buffers POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/examples/vertex_buffers/shaders/ $<TARGET_FILE_DIR:vertex_buffers>/shaders)
+    add_post_build_commands(vertex_buffers
+            ${CMAKE_SOURCE_DIR}/examples/vertex_buffers/shaders
+            $<TARGET_FILE_DIR:vertex_buffers>/shaders
+            $<TARGET_FILE_DIR:vertex_buffers>/assets
+            ""
+            ${gvk_CreateDependencySymlinks})
 endif()
