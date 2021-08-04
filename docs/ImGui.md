@@ -50,3 +50,35 @@ if(nullptr != imguiManager) {
 }
 ```
 
+### ImGui Image Utils
+
+_Gears-Vk_ extends [Dear ImGui](https://github.com/ocornut/imgui) with support for a background color on images with alpha channes via `ImGui::ImageWithBg` and rendering multiple images on top of each other via `ImGui::ImageStack`. The background color is specified as the last argument to `ImGui::ImageWithBg` and defaults to fully transparent. `ImGui::ImageStack` takes a `std::initializer_list<ImTextureID>` as the first argument and renders the images in the the specified order from back to front. `ImGui::ImageStack` also supports setting a background color as the last argument which defaults to fully transparent.
+
+The added functions can be used by including `framework/include/imgui_utils.h` and usage is similar to `ImGui::Image` by first creating a suitable `ImTextureId` via `gvk::imgui_manager::get_or_create_texture_descriptor`:
+
+```cpp
+#include "imgui_utils.h"
+
+auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+if(nullptr != imguiManager) {
+	imguiManager->add_callback([this, imguiManager](){	
+		ImGui::Begin("ImTextureID usage example");
+		ImTextureID imTexIdOpaque = imguiManager->get_or_create_texture_descriptor(avk::referenced(myImageSamplerOpaque)); // mMyImageSamplerOpaque is of type avk::image_sampler 
+		ImTextureID imTexIdTransparent = imguiManager->get_or_create_texture_descriptor(avk::referenced(myImageSamplerTransparent)); // mMyImageSamplerBack is of type avk::image_sampler 
+
+		ImGui::Text("Image with alpha channel:");
+		ImGui::ImageWithBg(imTexIdTransparent, ImVec2(512.f, 512.f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+		ImGui::Text("Image with alpha channel and background:");
+		ImGui::ImageWithBg(imTexIdTransparent, ImVec2(512.f, 512.f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f), ImVec4(0.2f, 0.2f, 0.6f, 1.0f));
+
+		ImGui::Text("Two images stacked onto each other:");
+		ImGui::ImageStack({ imTexIdOpaque, imTexIdTransparent }, ImVec2(512.f, 512.f), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.5f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+		ImGui::End();
+	});
+}
+```
+Example output of an image with alpha channel without background (left), and the same image rendered with background and on top of another image:
+
+![ImGui image utils output](images/imgui_image-with-bg_and_image-stack_example.png)
