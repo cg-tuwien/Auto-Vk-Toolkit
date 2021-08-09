@@ -72,6 +72,9 @@ add_post_build_commands(
         symlinks)           # a boolean setting if symbolic links of assets (and DLLs on Windows) should be created instead of copying dependencies
 ```
 
+Note that creating symbolic links might require the user running CMake to have special privileges. E.g. on Windows the user needs the `Create symbolic links` privilege.
+If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.
+
 ### Creating a New Project (CMake)
 To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
