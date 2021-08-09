@@ -26,6 +26,11 @@ jobs:
       matrix:
         config:
           - {
+            name: "linux: clang",
+            cc: "clang",
+            cxx: "clang++"
+          }
+          - {
             name: "linux: gcc",
             cc: "gcc-10",
             cxx: "g++-10"
@@ -59,6 +64,11 @@ jobs:
           sudo apt-get install -y \
             vulkan-sdk \
             xorg-dev
+
+          # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
+          if [ "${{ matrix.config.cc }}" = "clang" ]; then
+            sudo apt remove libgcc-11-dev gcc-11
+          fi
 
           cmake -E make_directory ${{ runner.workspace }}/build
 
