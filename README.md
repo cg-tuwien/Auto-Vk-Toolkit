@@ -58,6 +58,12 @@ You can configure the build process by setting the following options:
 | `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
 
+#### Windows CMake build settings
+There are three different build settings for the examples (i.e. `gvk_BuildExamples` is `ON`) on Windows allowing you to select examples as `Startup Item` in Visual Studio:
+* `x64-Debug`: Produces debug builds, while using release DLLs and prefers symbolic links for dependencies.
+* `x64-Release`: Produces release builds and prefers symbolic links for dependencies.
+* `x64-Publish`: Produces release builds and copies dependencies.
+
 ### Post Build Commands (Cmake)
 For copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
 It has the following signature:
