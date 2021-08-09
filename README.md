@@ -31,7 +31,7 @@ Set up your own project:
 * The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links agains _Gears-Vk_.
 
 ## CMake
-_Gears-Vk_ also supports building with CMake on Linux (*gcc*) and Windows (*MSVC*).
+_Gears-Vk_ also supports building with CMake on Linux (*gcc* or *clang*) and Windows (*MSVC*).
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
 On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
