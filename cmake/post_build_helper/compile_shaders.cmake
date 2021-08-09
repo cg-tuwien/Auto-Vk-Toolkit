@@ -26,6 +26,6 @@ function(compile_shaders targetName glslDirectory spvDirectory)
         set(spvShaderFile "${spvDirectory}/${glslShaderFileName}.spv")
         execute_process(COMMAND ${glslangValidator}
                 --target-env vulkan1.2 -V ${glslShader} -o ${spvShaderFile})
-        message("Compiled GLSL shader ${glslShaderFileName} to SPIR-V shader ${spvShaderFile}")
+        message(STATUS "Compiled GLSL shader ${glslShaderFileName} to SPIR-V shader ${spvShaderFile}")
     endforeach(glslShader)
 endfunction()

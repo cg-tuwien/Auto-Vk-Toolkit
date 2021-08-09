@@ -58,6 +58,12 @@ You can configure the build process by setting the following options:
 | `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
 
+#### Windows CMake build settings
+There are three different build settings for the examples (i.e. `gvk_BuildExamples` is `ON`) on Windows allowing you to select examples as `Startup Item` in Visual Studio:
+* `x64-Debug`: Produces debug builds, while using release DLLs and prefers symbolic links for dependencies.
+* `x64-Release`: Produces release builds and prefers symbolic links for dependencies.
+* `x64-Publish`: Produces release builds and copies dependencies.
+
 ### Post Build Commands (Cmake)
 For copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
 It has the following signature:
@@ -71,6 +77,9 @@ add_post_build_commands(
         assets              # a list containing absolute paths of assets which should be copied to ${assetsDirectory} - can be files or directories
         symlinks)           # a boolean setting if symbolic links of assets (and DLLs on Windows) should be created instead of copying dependencies
 ```
+
+Note that creating symbolic links might require the user running CMake to have special privileges. E.g. on Windows the user needs the `Create symbolic links` privilege.
+If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.
 
 ### Creating a New Project (CMake)
 To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
