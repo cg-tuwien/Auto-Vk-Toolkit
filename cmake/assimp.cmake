@@ -3,21 +3,22 @@ cmake_minimum_required(VERSION 3.14)
 include(FetchContent)
 
 if(UNIX)
-    # TODO: try to find locally installed assimp
-    #  maybe set assimp_SOURCE_DIR (e.g. to external/universal)
-    #  and assimp::assimp to the .so
+    if (NOT gvk_ForceAssimpBuild)
+        find_package(assimp)
+    endif (NOT gvk_ForceAssimpBuild)
+    if (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
+        set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+        set(ASSIMP_BUILD_TESTS OFF)
+        set(INJECT_DEBUG_POSTFIX OFF)
 
-    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-    set(ASSIMP_BUILD_TESTS OFF)
-    set(INJECT_DEBUG_POSTFIX OFF)
+        FetchContent_Declare(
+                assimp
+                GIT_REPOSITORY      https://github.com/assimp/assimp.git
+                GIT_TAG             v5.0.1
+        )
 
-    FetchContent_Declare(
-            assimp
-            GIT_REPOSITORY      https://github.com/assimp/assimp.git
-            GIT_TAG             v5.0.1
-    )
-
-    FetchContent_MakeAvailable(assimp)
+        FetchContent_MakeAvailable(assimp)
+    endif (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
 else()
     set(gvk_AssimpReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/assimp-vc140-mt.dll")
     set(gvk_AssimpDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/assimp-vc140-mt.dll")

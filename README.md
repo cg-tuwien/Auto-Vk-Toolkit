@@ -34,6 +34,7 @@ Set up your own project:
 _Gears-Vk_ also supports building with CMake on Linux (*gcc* or *clang*) and Windows (*MSVC*).
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
+However, if you have an *Assimp* build installed on your system (so that it can be found via `find_package(assimp)`) it will be used instead (e.g. on Ubuntu 20.04 you can `sudo apt-get install libassimp-dev` to get *Assimp* version 5.0.1).
 On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
 
 ### CMake Options
@@ -42,6 +43,7 @@ You can configure the build process by setting the following options:
 | Name | Description | Default |
 | ---- | ----------- | ------- |
 | `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
+| `gvk_ForceAssimpBuild` | Forces a local build of *Assimp* even if it is installed on the system. (Linux only) | `OFF` |
 | `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. (Linux only) | `OFF` |
 | `gvk_ReleaseDLLsOnly` | Sets if release DLLS (*Assimp* & *STB*) should be used for examples, even for debug builds. (Windows only) | `ON` |
 | `gvk_CreateDependencySymlinks` | Sets if dependencies of examples, i.e. DLLs (Windows only) & assets, should be copied or if symbolic links should be created. | `ON` |

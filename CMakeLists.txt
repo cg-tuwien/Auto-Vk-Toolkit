@@ -23,6 +23,7 @@ if (NOT gvk_LibraryType STREQUAL "INTERFACE")
     set(gvk_SourceScope PRIVATE)
 endif (NOT gvk_LibraryType STREQUAL "INTERFACE")
 
+option(gvk_ForceAssimpBuild "Force and use a local build of Assimp even if it is installed on the system. (Linux only)" OFF)
 option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW). (Linux only)" OFF)
 if (gvk_StaticDependencies)
     set(BUILD_SHARED_LIBS OFF)

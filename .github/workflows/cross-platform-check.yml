@@ -63,6 +63,7 @@ jobs:
           # Install dependencies
           sudo apt-get install -y \
             vulkan-sdk \
+            libassimp-dev \
             xorg-dev
 
           # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
