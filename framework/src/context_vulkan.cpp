@@ -674,27 +674,27 @@ namespace gvk
 		if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0) {
 			LOG_ERROR__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
-				to_string(vk::DebugReportObjectTypeEXT{objectType}),
+				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) != 0) {
 			LOG_WARNING__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
-				to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) != 0) {
 			LOG_DEBUG__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
-				to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		LOG_INFO__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 			to_string(vk::DebugReportFlagsEXT{ flags }),
-			to_string(vk::DebugReportObjectTypeEXT{ objectType }),
+			to_string(vk::DebugReportObjectTypeEXT(objectType)),
 			pMessage));
 		return VK_FALSE;
 	}
