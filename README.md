@@ -67,18 +67,24 @@ There are three different build settings for the examples (i.e. `gvk_BuildExampl
 * `x64-Publish`: Produces release builds and copies dependencies.
 
 ### Post Build Commands (Cmake)
-For copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
+For compiling shaders and copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
 It has the following signature:
 
 ```Cmake
 add_post_build_commands(
-        targetName          # the executable target (e.g. hello_world)
+        target              # the executable target (e.g. hello_world)
         glslDirectory       # the absolute path of the directory containing GLSL shaders used by the target
         spvDirectory        # the absolute path of the directory where compiled SPIR-V shaders should be written to
-        assetsDirectory     # the absolute path of the directory where assets should be copied to (or where symbolic links should be created)
+        assetsDirectory     # the absolute path of the directory where assets should be copied to (or where symbolic links should be created) - can be a generator expression
         assets              # a list containing absolute paths of assets which should be copied to ${assetsDirectory} - can be files or directories
         symlinks)           # a boolean setting if symbolic links of assets (and DLLs on Windows) should be created instead of copying dependencies
 ```
+
+All shader files found in the given `glslDirectory` are added to a custom target (named `${target}_shaders`) which is added to the given `target` as a dependency.
+Shaders belonging to this custom target will be compiled before the dependent `target` is build.
+Whenever a shader file changes they will be recompiled automatically.
+Note, however, that new shader files are only added to the custom target at configure time, so if you're working with an IDE you must make sure to trigger CMake to reconfigure its build files whenever you add a new shader.
+E.g. on CLion or Visual Studio you can temporarily add a `message()` call as a work-around.
 
 Note that creating symbolic links might require the user running CMake to have special privileges. E.g. on Windows the user needs the `Create symbolic links` privilege.
 If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.

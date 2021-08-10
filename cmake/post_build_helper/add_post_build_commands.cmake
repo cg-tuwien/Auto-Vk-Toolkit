@@ -1,4 +1,6 @@
-function(add_post_build_commands targetName glslDirectory spvDirectory assetsDirectory assets symlinks)
+include(cmake/post_build_helper/compile_shaders.cmake)
+
+function(add_post_build_commands target glslDirectory spvDirectory assetsDirectory assets symlinks)
     # test if symbolic links are supported
     if (symlinks)
         message(STATUS "Symbolic links requested for dependencies. Checking for support...")
@@ -15,22 +17,14 @@ function(add_post_build_commands targetName glslDirectory spvDirectory assetsDir
     endif (symlinks)
 
     # shaders
-    add_custom_command(TARGET ${targetName} POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -E make_directory ${spvDirectory}
-        COMMENT "Post Build Helper: creating shader directory")
-    add_custom_command(TARGET ${targetName} POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -Dpbh_TargetName=hello_world
-            -Dpbh_glslDirectory=${glslDirectory}
-            -Dpbh_spvDirectory=${spvDirectory}
-            -P compile_shaders_command.cmake
-        COMMENT "Post Build Helper: compiling shaders"
-        WORKING_DIRECTORY ${Gears_Vk_SOURCE_DIR}/cmake/post_build_helper)
+    make_shader_target("${target}_shaders"
+        ${target}
+        ${glslDirectory}
+        ${spvDirectory})
 
     # assets
     if (assets)
-        add_custom_command(TARGET ${targetName} POST_BUILD
+        add_custom_command(TARGET ${target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND}
                 -E make_directory ${assetsDirectory}
                 COMMENT "Post Build Helper: creating assets directory")
@@ -41,14 +35,14 @@ function(add_post_build_commands targetName glslDirectory spvDirectory assetsDir
                     file(GLOB subAssets "${asset}/*")
                     foreach(subAsset ${subAssets})
                         get_filename_component(subAssetFileName ${subAsset} NAME)
-                        add_custom_command(TARGET ${targetName} POST_BUILD
+                        add_custom_command(TARGET ${target} POST_BUILD
                             COMMAND ${CMAKE_COMMAND} -E create_symlink
                                 ${subAsset}
                                 "${assetsDirectory}/${subAssetFileName}"
                             COMMENT "Post Build Helper: creating symlink for asset ${subAssetFileName}")
                     endforeach(subAsset)
                 else()
-                    add_custom_command(TARGET ${targetName} POST_BUILD
+                    add_custom_command(TARGET ${target} POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E create_symlink
                             ${asset}
                             "${assetsDirectory}/${assetFileName}"
@@ -64,14 +58,14 @@ function(add_post_build_commands targetName glslDirectory spvDirectory assetsDir
                             set(copyAssetCommand copy_if_different)
                         endif (IS_DIRECTORY "${subAsset}")
                         get_filename_component(subAssetFileName ${subAsset} NAME)
-                        add_custom_command(TARGET ${targetName} POST_BUILD
+                        add_custom_command(TARGET ${target} POST_BUILD
                             COMMAND ${CMAKE_COMMAND} -E ${copyAssetCommand}
                                 ${subAsset}
                                 ${assetsDirectory}/${subAssetFileName}
                             COMMENT "Post Build Helper: copying asset ${subAssetFileName}")
                     endforeach(subAsset)
                 else(IS_DIRECTORY "${asset}")
-                    add_custom_command(TARGET ${targetName} POST_BUILD
+                    add_custom_command(TARGET ${target} POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                             ${asset}
                             ${assetsDirectory}/${assetFileName}
@@ -92,20 +86,20 @@ function(add_post_build_commands targetName glslDirectory spvDirectory assetsDir
         foreach(dllToCopy ${dllsToCopy})
             get_filename_component(dllFileName ${dllToCopy} NAME)
             if(symlinks)
-                add_custom_command(TARGET ${targetName} POST_BUILD
+                add_custom_command(TARGET ${target} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E create_symlink
                         ${dllToCopy}
-                        $<TARGET_FILE_DIR:${targetName}>/${dllFileName}
+                        $<TARGET_FILE_DIR:${target}>/${dllFileName}
                     COMMENT "Post Build Helper: creating symlink for DLL ${dllFileName}")
             else()
-                add_custom_command(TARGET ${targetName} POST_BUILD
+                add_custom_command(TARGET ${target} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         ${dllToCopy}
-                        $<TARGET_FILE_DIR:${targetName}>/${dllFileName}
+                        $<TARGET_FILE_DIR:${target}>/${dllFileName}
                     COMMENT "Post Build Helper: copying DLL ${dllFileName}")
             endif(symlinks)
         endforeach(dllToCopy)
     else()
-        message(STATUS "Shared libraries should be in the rpath of ${targetName} and are therefore not copied to the target location. Also, the location of built libraries should be configured via CMAKE_RUNTIME_OUTPUT_DIRECTORY, etc.")
+        message(STATUS "Shared libraries should be in the rpath of ${target} and are therefore not copied to the target location. Also, the location of built libraries should be configured via CMAKE_RUNTIME_OUTPUT_DIRECTORY, etc.")
     endif (WIN32)
 endfunction()
