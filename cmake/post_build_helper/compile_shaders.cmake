@@ -18,11 +18,9 @@ function(get_shaders shaders glslDirectory)
 endfunction(get_shaders)
 
 function(make_shader_target shaderTarget target glslDirectory spvDirectory)
-    if(UNIX)
-        set(glslangValidator "glslangValidator")
-    else()
-        set(glslangValidator "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
-    endif(UNIX)
+    find_program(glslangValidator glslangValidator
+        HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/x86_64/bin"
+        DOC "The glslangValidator executable.")
 
     get_shaders(glslSourceFiles ${glslDirectory})
 
@@ -48,11 +46,9 @@ function(make_shader_target shaderTarget target glslDirectory spvDirectory)
 endfunction()
 
 function(compile_shaders targetName glslDirectory spvDirectory)
-    if(UNIX)
-        set(glslangValidator "glslangValidator")
-    else()
-        set(glslangValidator "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
-    endif(UNIX)
+    find_program(glslangValidator glslangValidator
+        HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/x86_64/bin"
+        DOC "The glslangValidator executable.")
 
     get_shaders(glslSourceFiles ${glslDirectory})
 
