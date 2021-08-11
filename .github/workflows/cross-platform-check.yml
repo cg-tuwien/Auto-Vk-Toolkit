@@ -1,4 +1,4 @@
-name: "Build (GCC)"
+name: "Build (GCC/Clang)"
 
 on:
   push:
