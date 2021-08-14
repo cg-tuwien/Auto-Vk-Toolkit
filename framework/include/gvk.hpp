@@ -106,6 +106,7 @@
 #include <avk/avk.hpp>
 
 // -------------------- Gears-Vk includes --------------------
+#include "format_for.hpp"
 #include "cgb_exceptions.hpp"
 #include "conversion_utils.hpp"
 
