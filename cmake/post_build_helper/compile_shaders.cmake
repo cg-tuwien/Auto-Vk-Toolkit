@@ -1,19 +1,6 @@
 function(get_shaders shaders glslDirectory)
-    # TODO: check if other file extensions should be included (e.g. .glsl)
     file(GLOB_RECURSE glslSourceFiles RELATIVE ${glslDirectory}
-        "*.vert"
-        "*.tesc"
-        "*.tese"
-        "*.geom"
-        "*.frag"
-        "*.comp"
-        "*.rgen"
-        "*.rint"
-        "*.rahit"
-        "*.rchit"
-        "*.rmiss"
-        "*.rcall"
-        "*.mesh")  # TODO: whats the common file extension for mesh shaders?
+        "${glslDirectory}/**.*")
     set(${shaders} ${glslSourceFiles} PARENT_SCOPE)
 endfunction(get_shaders)
 
