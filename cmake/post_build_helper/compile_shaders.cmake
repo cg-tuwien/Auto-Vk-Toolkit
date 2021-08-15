@@ -1,6 +1,18 @@
 function(get_shaders shaders glslDirectory)
     file(GLOB_RECURSE glslSourceFiles RELATIVE ${glslDirectory}
-        "${glslDirectory}/**.*")
+        "${glslDirectory}/**.vert"
+        "${glslDirectory}/**.tesc"
+        "${glslDirectory}/**.tese"
+        "${glslDirectory}/**.geom"
+        "${glslDirectory}/**.frag"
+        "${glslDirectory}/**.comp"
+        "${glslDirectory}/**.mesh"
+        "${glslDirectory}/**.task"
+        "${glslDirectory}/**.rgen"
+        "${glslDirectory}/**.rint"
+        "${glslDirectory}/**.rahit"
+        "${glslDirectory}/**.rchit"
+        "${glslDirectory}/**.*.glsl")
     set(${shaders} ${glslSourceFiles} PARENT_SCOPE)
 endfunction(get_shaders)
 
