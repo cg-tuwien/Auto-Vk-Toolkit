@@ -1349,7 +1349,7 @@ namespace gvk
 					);
 				}
 				else {
-					auto* meshRootNode = find_mesh_root_node(mi);
+					auto* meshRootNode = find_mesh_root_node(static_cast<unsigned int>(mi));
 					assert(nullptr != meshRootNode);
 					addAnimatedNode(
 						nullptr, // <-- This is fine. This node is just not affected by animation but still needs to receive bone matrix updates
