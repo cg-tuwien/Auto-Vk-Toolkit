@@ -139,7 +139,7 @@ namespace gvk
 	template <typename T, typename P>
 	P bernstein_polynomial(T i, T n, P t)
 	{
-		return binomial_coefficient(n, i) * glm::pow(t, i) * glm::pow(P(1) - t, n - i);
+		return static_cast<P>(binomial_coefficient(n, i) * glm::pow(t, i) * glm::pow(P(1) - t, n - i));
 	}
 
 	// Returns a quaternion such that q*start = dest
