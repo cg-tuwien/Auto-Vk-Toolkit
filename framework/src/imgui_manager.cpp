@@ -168,7 +168,7 @@ namespace gvk
 			io.MouseDown[3] = input().mouse_button_down(3);
 			io.MouseDown[4] = input().mouse_button_down(4);
 			const auto cursorPos = input().cursor_position();
-			io.MousePos = ImVec2(cursorPos.x, cursorPos.y);
+			io.MousePos = ImVec2(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
 			// Mouse cursor:
 			if (!input().is_cursor_disabled()) {
 				const auto mouseCursorCurValue = ImGui::GetMouseCursor();
