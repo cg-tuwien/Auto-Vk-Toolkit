@@ -11,7 +11,7 @@ To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwi
 # Installation
 
 ## Visual Studio 2019
-The project setup is provided for Visual Studio 2019.
+A preconfigured project setup is provided for Visual Studio 2019 on Windows.
 
 Requirements:
 * Windows 10 
