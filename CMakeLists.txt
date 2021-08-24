@@ -127,9 +127,7 @@ set(gvk_Sources
         framework/src/varying_update_timer.cpp
         framework/src/vk_convenience_functions.cpp
         framework/src/window.cpp
-        framework/src/window_base.cpp
-        #framework/src/window_vulkan.cpp # is this a cg_base-only thing - remove?
-        )
+        framework/src/window_base.cpp)
 
 ## Load Dependencies
 target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
