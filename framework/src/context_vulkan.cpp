@@ -614,7 +614,7 @@ namespace gvk
 				pCallbackData->pMessage));
 			return VK_FALSE; 
 		}
-		return VK_TRUE;
+		return VK_FALSE;
 	}
 
 	void context_vulkan::setup_vk_debug_callback()
