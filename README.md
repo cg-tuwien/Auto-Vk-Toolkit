@@ -84,7 +84,7 @@ All shader files found in the given `glslDirectory` are added to a custom target
 Shaders belonging to this custom target will be compiled before the dependent `target` is build.
 Whenever a shader file changes they will be recompiled automatically.
 Note, however, that new shader files are only added to the custom target at configure time. This means that if you're working with an IDE, it must be ensured to trigger CMake to reconfigure its build files whenever you add new shader files.
-E.g. on CLion or Visual Studio you can temporarily add a `message()` call as a work-around.
+As a work-around, a `message()` call can be added temporarily in CLion or Visual Studio.
 
 Note that creating symbolic links might require the user running CMake to have special privileges. E.g. on Windows the user needs the `Create symbolic links` privilege.
 If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.
