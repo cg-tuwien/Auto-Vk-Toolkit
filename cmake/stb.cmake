@@ -14,8 +14,6 @@ if(UNIX)
         FetchContent_Populate(stb)
     endif()
 
-    message(STATUS "adfasdf ${stb_SOURCE_DIR}")
-
     if (NOT EXISTS ${stb_SOURCE_DIR}/stb_lib.cpp)
         file(WRITE ${stb_SOURCE_DIR}/stb_lib.cpp
             "#include \"stb_image.h\"
