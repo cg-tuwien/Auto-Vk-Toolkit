@@ -18,6 +18,28 @@ if(UNIX)
         )
 
         FetchContent_MakeAvailable(assimp)
+    else (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
+        # there is some issue with libassimp-dev in the GitHub workflows on Ubuntu
+        # see:
+        #  - https://github.com/cg-tuwien/Gears-Vk/runs/3432527652?check_suite_focus=true#step:4:80
+        #  - https://bugs.launchpad.net/ubuntu/+source/assimp/+bug/1882427
+        # the following work-around should fix this
+        # source: https://github.com/robotology/idyntree/issues/693#issuecomment-640216067
+        get_property(assimp_INTERFACE_INCLUDE_DIRECTORIES
+                TARGET assimp::assimp
+                PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+        if(assimp_INTERFACE_INCLUDE_DIRECTORIES MATCHES "/usr/lib/include")
+            string(REPLACE "/usr/lib/include" "/usr/include" assimp_INTERFACE_INCLUDE_DIRECTORIES "${assimp_INTERFACE_INCLUDE_DIRECTORIES}")
+            set_property(TARGET assimp::assimp
+                    PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                    "${assimp_INTERFACE_INCLUDE_DIRECTORIES}")
+            get_property(assimp_LOCATION_RELEASE
+                    TARGET assimp::assimp
+                    PROPERTY LOCATION_RELEASE)
+            set_property(TARGET assimp::assimp
+                    PROPERTY IMPORTED_LOCATION
+                    "${assimp_LOCATION_RELEASE}")
+        endif()
     endif (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
 else()
     set(gvk_AssimpReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/assimp-vc140-mt.dll")
