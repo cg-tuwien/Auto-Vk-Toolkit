@@ -38,7 +38,7 @@ However, if there is already an *ASSIMP* build installed on your system (so that
 On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
 
 ### CMake Options
-You can configure the build process by setting the following options:
+The build process can be configured, supporting the following options:
 
 | Name | Description | Default |
 | ---- | ----------- | ------- |
