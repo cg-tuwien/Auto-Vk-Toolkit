@@ -90,7 +90,7 @@ Note that creating symbolic links might require the user running CMake to have s
 If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.
 
 ### Creating a New Project (CMake)
-To create a new *Gears-Vk* project using CMake you can use the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
+A new *Gears-Vk* project based on CMake can conveniently be created on GitHub with the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
 # Creating a New Project
 
