@@ -42,7 +42,7 @@ You can configure the build process by setting the following options:
 
 | Name | Description | Default |
 | ---- | ----------- | ------- |
-| `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `INTERFACE` |
+| `gvk_LibraryType` | The type of library gvk should be built as. Must be `INTERFACE`, `SHARED` or `STATIC` | `STATIC` |
 | `gvk_ForceAssimpBuild` | Forces a local build of *Assimp* even if it is installed on the system. (Linux only) | `OFF` |
 | `gvk_StaticDependencies` | Sets if dependencies (*Assimp* & *GLFW*) should be built as static instead of shared libraries. (Linux only) | `OFF` |
 | `gvk_ReleaseDLLsOnly` | Sets if release DLLS (*Assimp* & *STB*) should be used for examples, even for debug builds. (Windows only) | `ON` |

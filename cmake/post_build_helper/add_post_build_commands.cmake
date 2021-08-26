@@ -1,6 +1,9 @@
 include(${Gears_Vk_SOURCE_DIR}/cmake/post_build_helper/compile_shaders.cmake)
 
 function(add_post_build_commands target glslDirectory spvDirectory assetsDirectory assets symlinks)
+    # add precompiled headers from Gears-Vk
+    target_precompile_headers(${target} REUSE_FROM Gears_Vk)
+
     # test if symbolic links are supported
     if (symlinks)
         message(STATUS "Symbolic links requested for dependencies. Checking for support...")

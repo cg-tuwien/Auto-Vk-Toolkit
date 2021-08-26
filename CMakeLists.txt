@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 project(Gears_Vk)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -8,8 +8,8 @@ include(FetchContent)
 # ----------------------- Options -------------------------
 
 set(gvk_AllowedLibraryTypes INTERFACE SHARED STATIC)
-set(gvk_LibraryType INTERFACE CACHE STRING
-        "The type of library gvk should be built as. Must be one of ${gvk_AllowedLibraryTypes}. Default: INTERFACE")
+set(gvk_LibraryType STATIC CACHE STRING
+        "The type of library gvk should be built as. Must be one of ${gvk_AllowedLibraryTypes}. Default: STATIC")
 set_property(CACHE gvk_LibraryType PROPERTY STRINGS ${gvk_AllowedLibraryTypes})
 
 if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
@@ -138,7 +138,6 @@ target_sources(${PROJECT_NAME} ${gvk_SourceScope}
 # Auto-Vk
 # TODO: should CMake ever replace the Visual Studio build process this should use cmake/avk.cmake to fetch Auto-Vk
 set(avk_UseVMA ON)                   # make sure to add VMA stuff to Auto-Vk's sources
-add_compile_definitions(AVK_USE_VMA) # there is something wrong with the order of includes(?), so to be sure we define AVK_USE_VMA here
 set(avk_LibraryType INTERFACE)       # this is the default, but just in case
 add_subdirectory(auto_vk)            # we use the git submodule here as long as we have two separate build systems
 target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
@@ -188,6 +187,9 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
         dbghelp)
 endif (UNIX)
+
+# add gvk.hpp as precomiled header
+target_precompile_headers(${PROJECT_NAME} ${gvk_IncludeScope} [["gvk.hpp"]])
 
 # ---------------------- Examples -------------------------
 
