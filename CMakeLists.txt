@@ -61,13 +61,6 @@ endif()
 
 # ---------------------- Framework ------------------------
 
-# NOTE: Windows builds use a modified version of stb (including a small custom DLL).
-#   Since this version doesn't work on Linux, the Linux build process uses the default approach of defining
-#   STB_IMAGE_IMPLEMENTATION.
-if(UNIX)
-    add_compile_definitions(GVK_CMAKE_BUILD)
-endif(UNIX)
-
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
 ## Direct Sources & Includes
@@ -167,10 +160,12 @@ target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
     Vulkan::Vulkan)
 
 # stb
+# NOTE: Windows builds use a modified version of stb (including a small custom DLL).
+#   Since this version doesn't work on Linux, the Linux build process generates its own STB shared library.
 include(cmake/stb.cmake)
 if (UNIX)
-    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
-        ${stb_SOURCE_DIR})
+    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+            stb_shared)
 else()
     target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
         stb)

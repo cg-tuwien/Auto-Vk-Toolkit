@@ -1,10 +1,3 @@
-// NOTE: The Visual Studio build process uses a modified version of stb (including a small custom DLL).
-//  Since this doesn't work on Linux, the CMake build process uses the default approach of defining
-//  STB_IMAGE_IMPLEMENTATION.
-#ifdef GVK_CMAKE_BUILD
-  #define STB_IMAGE_IMPLEMENTATION
-#endif
-
 #include <gvk.hpp>
 
 namespace gvk
