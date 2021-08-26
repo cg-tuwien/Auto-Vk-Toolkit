@@ -34,7 +34,7 @@ Set up your own project:
 _Gears-Vk_ also supports building with CMake on Linux (*GCC* or *Clang*) and Windows (*MSVC*).
 
 There are currently no pre-built binaries of *Gears-Vk*'s dependencies for Linux included in the repository, so they are built alongside *Gears-Vk* the first time you build it.
-However, if you have an *Assimp* build installed on your system (so that it can be found via `find_package(assimp)`) it will be used instead (e.g. on Ubuntu 20.04 you can `sudo apt-get install libassimp-dev` to get *Assimp* version 5.0.1).
+However, if there is already an *ASSIMP* build installed on your system (so that it can be found via `find_package(assimp)`), it will be used instead (e.g., on Ubuntu 20.04 `sudo apt-get install libassimp-dev` can be executed to get *ASSIMP* version 5.0.1).
 On Windows pre-built binaries of dependencies are included and used when building *Gears-Vk*.
 
 ### CMake Options
