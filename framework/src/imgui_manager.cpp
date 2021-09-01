@@ -79,6 +79,7 @@ namespace gvk
 		auto restartImGui = [this, wnd, init_info]() {
 			ImGui_ImplVulkan_Shutdown(); // shut imgui down and restart with base init_info
 			ImGui_ImplVulkan_InitInfo new_init_info = init_info; // can't be temp
+			mDescriptorPool.reset();
 			new_init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images())); // opportunity to update image count
 			ImGui_ImplVulkan_Init(&new_init_info, this->mRenderpass.value()->handle()); // restart imgui
 			// Have to upload fonts just like the first time:
