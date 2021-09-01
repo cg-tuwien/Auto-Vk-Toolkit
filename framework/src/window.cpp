@@ -420,7 +420,7 @@ namespace gvk
 	void window::render_frame()
 	{
 		const auto fenceIndex = static_cast<int>(current_in_flight_index());
-		const auto& cf = mFramesInFlightFences[fenceIndex];
+		const auto& cf = *mFramesInFlightFences[fenceIndex];
 
 		// EXTERN -> WAIT
 		std::vector<vk::Semaphore> renderFinishedSemaphores;
@@ -449,7 +449,7 @@ namespace gvk
 			.setPSignalSemaphores(signalSemaphore->handle_addr());
 		// SIGNAL + FENCE, actually:
 		assert(mPresentQueue);
-		mPresentQueue->handle().submit(1u, &submitInfo, cf->handle());
+		mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
 
 		try
 		{
