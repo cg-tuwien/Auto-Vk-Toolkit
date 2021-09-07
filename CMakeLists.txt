@@ -63,6 +63,13 @@ endif()
 
 add_library(${PROJECT_NAME} ${gvk_LibraryType})
 
+# Append MSVC specific compiler flags
+if (MSVC)
+    target_compile_options(${PROJECT_NAME}
+        ${gvk_SourceScope} "/bigobj"
+        ${gvk_SourceScope} "/MP")
+endif(MSVC)
+
 ## Direct Sources & Includes
 # NOTE: We first collect all include directories and source files and add it to our target in the end.
 #   We do it like this, because depending on gvk_LibraryType the scope (INTERFACE, PUBLIC, PRIVATE) changes and we don't
