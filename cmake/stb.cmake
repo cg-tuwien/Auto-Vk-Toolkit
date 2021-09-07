@@ -6,7 +6,7 @@ if(UNIX)
     FetchContent_Declare(
             stb
             GIT_REPOSITORY      https://github.com/nothings/stb.git
-            GIT_TAG             master
+            GIT_TAG             08e89524f693651819c4de2a29685b36301a08b1 # the commit after that removes stb_perlin.h
     )
 
     FetchContent_GetProperties(stb)
