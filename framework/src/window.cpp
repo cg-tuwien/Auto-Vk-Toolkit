@@ -419,7 +419,8 @@ namespace gvk
 
 	void window::render_frame()
 	{
-		const auto cf = current_fence();
+		const auto fenceIndex = static_cast<int>(current_in_flight_index());
+		const auto& cf = *mFramesInFlightFences[fenceIndex];
 
 		// EXTERN -> WAIT
 		std::vector<vk::Semaphore> renderFinishedSemaphores;
@@ -448,7 +449,7 @@ namespace gvk
 			.setPSignalSemaphores(signalSemaphore->handle_addr());
 		// SIGNAL + FENCE, actually:
 		assert(mPresentQueue);
-		mPresentQueue->handle().submit(1u, &submitInfo, cf->handle());
+		mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
 
 		try
 		{
@@ -461,6 +462,10 @@ namespace gvk
 				.setPImageIndices(&mCurrentFrameImageIndex)
 				.setPResults(nullptr);
 			auto result = mPresentQueue->handle().presentKHR(presentInfo);
+
+			// Submitted => store the image index for extra reuse-safety:
+			mImagesInFlightFenceIndices[mCurrentFrameImageIndex] = fenceIndex;
+
 			if (vk::Result::eSuboptimalKHR == result) {
 				LOG_INFO("Swap chain is suboptimal in render_frame. Going to recreate it...");
 				mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::suboptimal_swap_chain);
@@ -502,27 +507,10 @@ namespace gvk
 
 		construct_backbuffers(aCreationMode);
 
-		// if we are creating a new swap chain from the ground up, or if the number of presentable images change
-		// set up fences and other basic initialization
-		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain ||
-			mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed)) {
-
-			auto imagesInFlight = get_config_number_of_presentable_images();
-			// ============= SYNCHRONIZATION OBJECTS ===========
-			// per IMAGE:
-
-			mImagesInFlightFenceIndices.clear();
-			mImagesInFlightFenceIndices.reserve(imagesInFlight);
-			for (uint32_t i = 0; i < imagesInFlight; ++i) {
-				mImagesInFlightFenceIndices.push_back(-1);
-			}
-
-			assert(mImagesInFlightFenceIndices.size() == imagesInFlight);
-		}
-
 		// if we are creating a new swap chain from the ground up, or if the number of concurrent frames change
 		// set up fences and other basic initialization
 		if (aCreationMode == window::swapchain_creation_mode::create_new_swapchain ||
+			mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed) ||
 			mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::concurrent_frames_count_changed)) {
 			update_concurrent_frame_synchronization(aCreationMode);
 		}
@@ -549,13 +537,21 @@ namespace gvk
 			mInitiatePresentSemaphores.push_back(context().create_semaphore());
 		}
 
+		auto imagesInFlight = get_config_number_of_presentable_images();
+		mImagesInFlightFenceIndices.clear();
+		mImagesInFlightFenceIndices.reserve(imagesInFlight);
+		for (uint32_t i = 0; i < imagesInFlight; ++i) {
+			mImagesInFlightFenceIndices.push_back(-1);
+		}
+		assert(mImagesInFlightFenceIndices.size() == imagesInFlight);
+		
 		// when updating, the current fence must be unsignaled.
 		if (aCreationMode == window::swapchain_creation_mode::update_existing_swapchain) {
 			current_fence()->reset();
 		}
 
-		assert(mFramesInFlightFences.size() == get_config_number_of_concurrent_frames());
-		assert(mImageAvailableSemaphores.size() == get_config_number_of_concurrent_frames());
+		assert(static_cast<frame_id_t>(mFramesInFlightFences.size()) == get_config_number_of_concurrent_frames());
+		assert(static_cast<frame_id_t>(mImageAvailableSemaphores.size()) == get_config_number_of_concurrent_frames());
 	}
 
 	void window::update_resolution_and_recreate_swap_chain()
