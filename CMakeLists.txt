@@ -71,8 +71,8 @@ add_library(${PROJECT_NAME} ${gvk_LibraryType})
 # Append MSVC specific compiler flags
 if (MSVC)
     target_compile_options(${PROJECT_NAME}
-        ${gvk_SourceScope} "/bigobj"
-        ${gvk_SourceScope} "/MP")
+        ${gvk_IncludeScope} "/bigobj"
+        ${gvk_IncludeScope} "/MP")
 endif(MSVC)
 
 ## Direct Sources & Includes
