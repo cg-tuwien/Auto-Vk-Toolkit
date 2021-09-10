@@ -66,7 +66,10 @@ There are three different build settings for the examples (i.e. `gvk_BuildExampl
 * `x64-Release`: Produces release builds and prefers symbolic links for dependencies.
 * `x64-Publish`: Produces release builds and copies dependencies.
 
-### Post Build Commands (Cmake)
+### Creating a New Project (CMake)
+A new *Gears-Vk* project based on CMake can conveniently be created on GitHub with the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
+
+#### Resource Management (Cmake)
 For compiling shaders and copying (or creating symbolic links to) dependencies to the same location as an executable target, you can use the provided CMake function `add_post_build_commands`.
 It has the following signature:
 
@@ -80,17 +83,42 @@ add_post_build_commands(
         symlinks)           # a boolean setting if symbolic links of assets (and DLLs on Windows) should be created instead of copying dependencies
 ```
 
-All shader files found in the given `glslDirectory` are added to a custom target (named `${target}_shaders`) which is added to the given `target` as a dependency.
-Shaders belonging to this custom target will be compiled before the dependent `target` is build.
-Whenever a shader file changes they will be recompiled automatically.
-Note, however, that new shader files are only added to the custom target at configure time. This means that if you're working with an IDE, it must be ensured to trigger CMake to reconfigure its build files whenever you add new shader files.
-As a work-around, a `message()` call can be added temporarily in CLion or Visual Studio.
+The provided examples have their own `CMakeLists.txt` which show the usage of this function.
+Alternatively, an example of this function's usage can also be found in the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
+##### Shaders
+All shader files found in the given `glslDirectory` are added to a custom target (named `${target}_shaders`) which is added to the given `target` as a dependency.
+Shaders belonging to this custom target will be compiled before the dependent `target` is built.
+Whenever a shader file has changed, `cmake --build ...` will recompile the shader before building the actual `target`.
+When working with an IDE like Clion or Visual Studio 2019, this means that changed shader files will be recompiled when pressing their respective "Play & Run"-Button.
+Note, however, that new shader files are only added to the custom target at configure time. So if a new shader should be added, the CMake build files have to be reconfigured, either by running `cmake ...` or by pressing the corresponding button in your IDE.
+
+Because `add_post_build_commands` uses `glslangValidator` internally, only shader files having a file extensions for which `glslangValidator` can automatically determine the shader's type are added to the custom target.
+The following file extensions are allowed:
+
+* `.vert`: for a vertex shader
+* `.tesc`: for a tessellation control shader
+* `.tese`: for a tessellation evaluation shader
+* `.geom`: for a geometry shader
+* `.frag`: for a fragment shader
+* `.comp`: for a compute shader
+* `.mesh`: for a mesh shader
+* `.task`: for a task shader
+* `.rgen`: for a ray generation shader
+* `.rint`: for a ray intersection shader
+* `.rahit`: for a ray any hit shader
+* `.rchit`: for a ray closest hit shader
+* `.rmiss`: for a ray miss shader
+* `.rcall`: for a ray callable shader
+* `.glsl`: for `.vert.glsl`, `.tesc.glsl`, ..., `.comp.glsl` compound suffixes
+* `.hlsl`: for `.vert.hlsl`, `.tesc.hlsl`, ..., `.comp.hlsl` compound suffixes
+
+This means that all other file extensions can be used for files meant to be used in shaders via `#include` directives (e.g. a file named `library.glsl` could contain utility functions used in multiple shaders).
+
+##### Caveats
 Note that creating symbolic links might require the user running CMake to have special privileges. E.g. on Windows the user needs the `Create symbolic links` privilege.
 If the user doesn't have the required privileges `add_post_build_commands` falls back to copying the dependencies.
 
-### Creating a New Project (CMake)
-A new *Gears-Vk* project based on CMake can conveniently be created on GitHub with the [Gears-Vk-Starter template](https://github.com/JolifantoBambla/Gears-Vk-Starter).
 
 # Creating a New Project
 
