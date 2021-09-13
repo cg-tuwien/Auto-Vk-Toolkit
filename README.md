@@ -90,8 +90,8 @@ Alternatively, an example of this function's usage can also be found in the [Gea
 All shader files found in the given `glslDirectory` are added to a custom target (named `${target}_shaders`) which is added to the given `target` as a dependency.
 Shaders belonging to this custom target will be compiled before the dependent `target` is built.
 Whenever a shader file has changed, `cmake --build ...` will recompile the shader before building the actual `target`.
-When working with an IDE like Clion or Visual Studio 2019, this means that changed shader files will be recompiled when pressing their respective "Play & Run"-Button.
-Note, however, that new shader files are only added to the custom target at configure time. So if a new shader should be added, the CMake build files have to be reconfigured, either by running `cmake ...` or by pressing the corresponding button in your IDE.
+When working with an IDE like CLion or Visual Studio 2019, this means that changed shader files will be recompiled when executing their respective "Play & Run" instruction.
+Note, however, that new shader files are only added to the custom target at configure time. I.e., if a new shader should be added, the CMake build files have to be reconfigured by either running `cmake ...` or executing "Play & Run" of an IDE.
 
 Because `add_post_build_commands` uses `glslangValidator` internally, only shader files having a file extensions for which `glslangValidator` can automatically determine the shader's type are added to the custom target.
 The following file extensions are allowed:
@@ -102,16 +102,16 @@ The following file extensions are allowed:
 * `.geom`: for a geometry shader
 * `.frag`: for a fragment shader
 * `.comp`: for a compute shader
-* `.mesh`: for a mesh shader
-* `.task`: for a task shader
 * `.rgen`: for a ray generation shader
 * `.rint`: for a ray intersection shader
 * `.rahit`: for a ray any hit shader
 * `.rchit`: for a ray closest hit shader
 * `.rmiss`: for a ray miss shader
 * `.rcall`: for a ray callable shader
-* `.glsl`: for `.vert.glsl`, `.tesc.glsl`, ..., `.comp.glsl` compound suffixes
-* `.hlsl`: for `.vert.hlsl`, `.tesc.hlsl`, ..., `.comp.hlsl` compound suffixes
+* `.task`: for a task shader
+* `.mesh`: for a mesh shader
+* `.glsl`: for `.vert.glsl`, `.tesc.glsl`, ..., `.mesh.glsl` compound suffixes
+* `.hlsl`: for `.vert.hlsl`, `.tesc.hlsl`, ..., `.mesh.hlsl` compound suffixes
 
 This means that all other file extensions can be used for files meant to be used in shaders via `#include` directives (e.g. a file named `library.glsl` could contain utility functions used in multiple shaders).
 
