@@ -6,7 +6,7 @@ target_link_libraries(texture_cubemap PRIVATE ${PROJECT_NAME})
 get_target_property(texture_cubemap_BINARY_DIR texture_cubemap BINARY_DIR)
 
 set(texture_cubemap_assets
-    ${PROJECT_SOURCE_DIR}/assets/3rd_party/yokohama_at_night
+    ${PROJECT_SOURCE_DIR}/assets/3rd_party/textures/yokohama_at_night
     ${PROJECT_SOURCE_DIR}/assets/1st_party/models
     ${PROJECT_SOURCE_DIR}/assets/3rd_party/models/standford_bunny)
 
