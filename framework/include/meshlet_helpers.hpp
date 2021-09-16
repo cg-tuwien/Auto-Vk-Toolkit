@@ -7,7 +7,7 @@ namespace gvk
 	struct meshlet
 	{
 		/** The model of the meshlet. */
-		gvk::model mModel;
+		model mModel;
 		/** The optional mesh index of the meshlet.
 		 *  Only set if the submeshes were not combined upon creation of the meshlet.
 		 */
@@ -20,20 +20,20 @@ namespace gvk
 		std::vector<uint32_t> mIndices;
 		/** The actual number of vertices inside of mVertices; */
 		uint32_t mVertexCount;
-		/** The actual numbe rof indices in mIndices; */
+		/** The actual number of indices in mIndices; */
 		uint32_t mIndexCount;
 	};
 
-	static std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
+	std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
 		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
 
-		
+
 	template <typename F>
-	static std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
+	std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
 		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
 
 	template <typename F>
-	static std::vector<meshlet> divide_into_meshlets(
+	std::vector<meshlet> divide_vertices_into_meshlets(
 		const std::vector<glm::vec3>& aVertices,
 		const std::vector<uint32_t>& aIndices,
 		avk::resource_ownership<gvk::model_t> aModel,
@@ -41,7 +41,7 @@ namespace gvk
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices,
 		F&& aMeshletDivision);
 
-	static std::vector<meshlet> divide_into_very_bad_meshlets(
+	std::vector<meshlet> divide_into_very_bad_meshlets(
 		const std::vector<uint32_t>& aIndices,
 		avk::resource_ownership<gvk::model_t> aModel,
 		const std::optional<mesh_index_t> aMeshIndex,
