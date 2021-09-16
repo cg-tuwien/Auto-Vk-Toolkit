@@ -13,19 +13,18 @@ namespace gvk
 			model ownedModel = tmpModel.own();
 
 			if (aCombineSubmeshes) {
-				auto [vertices, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(ownedModel), meshIndices) }));
+				auto [_, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(ownedModel), meshIndices) }));
 				// default to very bad meshlet generation
-				auto tmpMeshlets = divide_into_very_bad_meshlets(vertices, indices, avk::owned(ownedModel), std::nullopt, aMaxVertices, aMaxIndices);
+				auto tmpMeshlets = divide_into_very_bad_meshlets(indices, avk::owned(ownedModel), std::nullopt, aMaxVertices, aMaxIndices);
 				// append to meshlets
 				meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
 			}
 			else {
 				for (const auto meshIndex : meshIndices)
 				{
-					auto vertices = ownedModel.get().positions_for_mesh(meshIndex);
 					auto indices = ownedModel.get().indices_for_mesh<uint32_t>(meshIndex);
 					// default to very bad meshlet generation
-					auto tmpMeshlets = divide_into_very_bad_meshlets(vertices, indices, avk::owned(ownedModel), meshIndex, aMaxVertices, aMaxIndices);
+					auto tmpMeshlets = divide_into_very_bad_meshlets(indices, avk::owned(ownedModel), meshIndex, aMaxVertices, aMaxIndices);
 					// append to meshlets
 					meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
 				}
@@ -34,8 +33,7 @@ namespace gvk
 		return meshlets;
 	}
 
-	std::vector<meshlet> divide_into_very_bad_meshlets(const std::vector<glm::vec3>& aPositions,
-		const std::vector<uint32_t>& aIndices,
+	std::vector<meshlet> divide_into_very_bad_meshlets(const std::vector<uint32_t>& aIndices,
 		avk::resource_ownership<model_t> aModel,
 		const std::optional<mesh_index_t> aMeshIndex,
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices)
@@ -55,9 +53,9 @@ namespace gvk
 				ml.mIndices[meshletVertexIndex / 3 + 0] = meshletVertexIndex + 0;
 				ml.mIndices[meshletVertexIndex / 3 + 1] = meshletVertexIndex + 1;
 				ml.mIndices[meshletVertexIndex / 3 + 2] = meshletVertexIndex + 2;
-				ml.mVertices[meshletVertexIndex + 0] = aPositions[aIndices[vertexIndex + meshletVertexIndex + 0]];
-				ml.mVertices[meshletVertexIndex + 1] = aPositions[aIndices[vertexIndex + meshletVertexIndex + 1]];
-				ml.mVertices[meshletVertexIndex + 2] = aPositions[aIndices[vertexIndex + meshletVertexIndex + 2]];
+				ml.mVertices[meshletVertexIndex + 0] = aIndices[vertexIndex + meshletVertexIndex + 0];
+				ml.mVertices[meshletVertexIndex + 1] = aIndices[vertexIndex + meshletVertexIndex + 1];
+				ml.mVertices[meshletVertexIndex + 2] = aIndices[vertexIndex + meshletVertexIndex + 2];
 				ml.mVertexCount += 3u;
 
 				meshletVertexIndex += 3;
