@@ -6,6 +6,13 @@ namespace gvk
 	static std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<model_t>, std::vector<mesh_index_t>>>& aModels,
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
 	{
+		return divide_into_meshlets(aModels, divide_into_very_bad_meshlets, aMaxVertices, aMaxIndices, aCombineSubmeshes);
+	}
+
+	template <typename F>
+	static std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
+		const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
+	{
 		std::vector<meshlet> meshlets;
 		for (auto& pair : aModels) {
 			auto tmpModel = std::get<avk::resource_ownership<model_t>>(pair);
@@ -13,24 +20,49 @@ namespace gvk
 			model ownedModel = tmpModel.own();
 
 			if (aCombineSubmeshes) {
-				auto [_, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(ownedModel), meshIndices) }));
+				auto [vertices, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(ownedModel), meshIndices) }));
 				// default to very bad meshlet generation
-				auto tmpMeshlets = divide_into_very_bad_meshlets(indices, avk::owned(ownedModel), std::nullopt, aMaxVertices, aMaxIndices);
+				std::vector<meshlet> tmpMeshlets = divide_into_meshlets(vertices, indices, avk::owned(ownedModel), std::nullopt, aMaxVertices, aMaxIndices, aMeshletDivision);
 				// append to meshlets
 				meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
 			}
 			else {
 				for (const auto meshIndex : meshIndices)
 				{
+					auto vertices = ownedModel.get().positions_for_mesh(meshIndex);
 					auto indices = ownedModel.get().indices_for_mesh<uint32_t>(meshIndex);
 					// default to very bad meshlet generation
-					auto tmpMeshlets = divide_into_very_bad_meshlets(indices, avk::owned(ownedModel), meshIndex, aMaxVertices, aMaxIndices);
+					std::vector<meshlet> tmpMeshlets = divide_into_meshlets(vertices, indices, avk::owned(ownedModel), meshIndex, aMaxVertices, aMaxIndices, aMeshletDivision);
 					// append to meshlets
 					meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
 				}
 			}
 		}
 		return meshlets;
+	}
+
+	template <typename F>
+	std::vector<meshlet> divide_into_meshlets(const std::vector<glm::vec3>& aVertices,
+		const std::vector<uint32_t>& aIndices, avk::resource_ownership<gvk::model_t> aModel,
+		const std::optional<mesh_index_t> aMeshIndex, const uint32_t aMaxVertices, const uint32_t aMaxIndices,
+		F&& aMeshletDivision)
+	{
+		std::vector<meshlet> tmpMeshlets;
+		if constexpr (std::is_assignable<std::function<std::vector<meshlet>(const std::vector<uint32_t>&aIndices, avk::resource_ownership<model_t> aModel, const std::optional<mesh_index_t> aMeshIndex, const uint32_t aMaxVertices, const uint32_t aMaxIndices)>, decltype(aMeshletDivision)>::value) {
+			tmpMeshlets = aMeshletDivision(aIndices, aModel, aMeshIndex, aMaxVertices, aMaxIndices);
+		}
+		else if constexpr (std::is_assignable < std::function < std::vector<meshlet>(const std::vector<glm::vec3> &aVertices, const std::vector<uint32_t>&aIndices, avk::resource_ownership<model_t> aModel, const std::optional<mesh_index_t> aMeshIndex, const uint32_t aMaxVertices, const uint32_t aMaxIndices) >, decltype(aMeshletDivision) > ::value) {
+			tmpMeshlets = aMeshletDivision(aVertices, aIndices, aModel, aMeshIndex, aMaxVertices, aMaxIndices);
+		}
+		else {
+#if defined(_MSC_VER) && defined(__cplusplus)
+			static_assert(false);
+#else
+			assert(false);
+#endif
+			throw avk::logic_error("No lambda has been passed to divide_into_meshlets.");
+		}
+		return tmpMeshlets;
 	}
 
 	std::vector<meshlet> divide_into_very_bad_meshlets(const std::vector<uint32_t>& aIndices,
