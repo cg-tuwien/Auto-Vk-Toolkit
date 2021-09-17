@@ -17,15 +17,46 @@ namespace gvk
 		 */
 		std::vector<uint32_t> mVertices;
 		/** Contains indices into the mVertices vector. */
-		std::vector<uint32_t> mIndices;
+		std::vector<uint8_t> mIndices;
 		/** The actual number of vertices inside of mVertices; */
 		uint32_t mVertexCount;
 		/** The actual number of indices in mIndices; */
 		uint32_t mIndexCount;
 	};
 
+	struct alignas(16) gpu_meshlet
+	{
+		glm::mat4 mTransformationMatrix;
+
+		uint32_t mMaterialIndex;
+		uint32_t mTexelBufferIndex;
+		uint32_t mModelIndex;
+		uint32_t mMeshPos;
+
+		uint32_t mVertices[64];
+		uint8_t mIndices[378]; // 126*3
+		uint8_t mVertexCount;
+		uint8_t mTriangleCount;
+	};
+
+	struct alignas(16) gpu_meshlet_indirect
+	{
+		glm::mat4 mTransformationMatrix;
+
+		uint32_t mMaterialIndex;
+		uint32_t mTexelBufferIndex;
+		uint32_t mModelIndex;
+		uint32_t mMeshPos;
+
+		uint32_t mDataOffset;
+		uint8_t mVertexCount;
+		uint8_t mTriangleCount;
+	};
+
+
 	/** Divides the given models into meshlets using the default implementation divide_into_meshlets_simple.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
+	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
@@ -36,6 +67,7 @@ namespace gvk
 
 	/** Divides the given models into meshlets using the given callback function.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
+	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
 	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
@@ -126,4 +158,40 @@ namespace gvk
 		const model_t& aModel,
 		std::optional<mesh_index_t> aMeshIndex,
 		uint32_t aMaxVertices, uint32_t aMaxIndices);
+
+
+	template <typename T>
+	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& meshlets)
+	{
+		std::vector<T> gpuMeshlets;
+		std::optional<std::vector<uint32_t>> vertexIndices = std::nullopt;
+		gpuMeshlets.reserve(meshlets.size());
+		for (auto& meshlet : meshlets) {
+			auto& newEntry = gpuMeshlets.emplace_back();
+			if constexpr (std::is_convertible_v<T, gpu_meshlet>) {
+				auto& ml = static_cast<gpu_meshlet&>(newEntry);
+				ml.mVertexCount = meshlet.mVertexCount;
+				ml.mTriangleCount = meshlet.mIndexCount / 3u;
+				std::ranges::copy(meshlet.mVertices, ml.mVertices);
+				std::ranges::copy(meshlet.mIndices, ml.mIndices);
+			}
+			else if constexpr (std::is_convertible_v<T, gpu_meshlet_indirect>) {
+				if (!vertexIndices.has_value()) {
+					vertexIndices = std::vector<uint32_t>();
+				}
+				auto& ml = static_cast<gpu_meshlet_indirect&>(newEntry);
+				ml.mVertexCount = meshlet.mVertexCount;
+				ml.mTriangleCount = meshlet.mIndexCount / 3u;
+				vertexIndices->insert(vertexIndices->end(), meshlet.mVertices.begin(), meshlet.mVertices.end());
+				// ToDo: can you do that with ranges somehow, like above? problem is that 4 indices need to be packed in a single integer
+				const uint32_t* indexGroups = reinterpret_cast<const uint32_t*>(meshlet.mIndices.data());
+				const uint32_t indexGroupCount = (meshlet.mIndexCount + 3) / 4;
+				for(int i = 0; i < indexGroupCount; i++)
+				{
+					vertexIndices->push_back(indexGroups[i]);
+				}
+			}
+		}
+		return std::forward_as_tuple(gpuMeshlets, vertexIndices);
+	}
 }
