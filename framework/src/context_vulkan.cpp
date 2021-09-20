@@ -119,7 +119,7 @@ namespace gvk
 		// Setup debug callback and enable all validation layers configured in global settings 
 		setup_vk_debug_callback();
 
-		if (std::find(std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions), VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
+		if (std::find(std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions), std::string(VK_EXT_DEBUG_REPORT_EXTENSION_NAME)) != std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
 			setup_vk_debug_report_callback();
 		}
 #endif
@@ -290,7 +290,7 @@ namespace gvk
 		allocatorInfo.physicalDevice = physical_device();
 		allocatorInfo.device = device();
 		allocatorInfo.instance = vulkan_instance();
-		if (avk::contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) {
+		if (std::find(std::begin(mSettings.mRequiredDeviceExtensions.mExtensions), std::end(mSettings.mRequiredDeviceExtensions.mExtensions), std::string(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) != std::end(mSettings.mRequiredDeviceExtensions.mExtensions)) {
 			allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 		}
 		vmaCreateAllocator(&allocatorInfo, &mMemoryAllocator);
@@ -767,50 +767,50 @@ namespace gvk
 	bool context_vulkan::shading_rate_image_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 
 	bool context_vulkan::mesh_shader_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_NV_MESH_SHADER_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}	
 
 #if VK_HEADER_VERSION >= 162
 	bool context_vulkan::ray_tracing_pipeline_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 
 	bool context_vulkan::acceleration_structure_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 
 	bool context_vulkan::ray_query_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_QUERY_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_QUERY_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 
 	bool context_vulkan::pipeline_library_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 
 	bool context_vulkan::deferred_host_operations_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 #else
 	bool context_vulkan::ray_tracing_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), VK_KHR_RAY_TRACING_EXTENSION_NAME) != std::end(allRequiredDeviceExtensions);
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_TRACING_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 	}
 #endif
 
