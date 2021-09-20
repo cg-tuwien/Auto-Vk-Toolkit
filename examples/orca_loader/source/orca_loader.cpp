@@ -540,8 +540,8 @@ private: // v== Member variables ==v
 	
 	gvk::quake_camera mQuakeCam;
 
-	glm::vec3 mRotateObjects;
-	glm::vec3 mRotateScene;
+	glm::vec3 mRotateObjects = { 0.f, 0.f, 0.f };
+	glm::vec3 mRotateScene = { 0.f, 0.f, 0.f };
 
 	ImGui::FileBrowser mFileBrowser;
 	
