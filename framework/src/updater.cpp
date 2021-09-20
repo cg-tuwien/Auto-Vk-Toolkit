@@ -44,8 +44,8 @@ namespace gvk
 		auto newImage = gvk::context().create_image_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
-				aPreparedImage.config().extent.width  = newExtent.width;
-				aPreparedImage.config().extent.height = newExtent.height;
+				aPreparedImage.create_info().extent.width  = newExtent.width;
+				aPreparedImage.create_info().extent.height = newExtent.height;
 			}
 			else {
 				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
@@ -64,8 +64,8 @@ namespace gvk
 		auto newImageView = gvk::context().create_image_view_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
-				aPreparedImage.config().extent.width  = newExtent.width;
-				aPreparedImage.config().extent.height = newExtent.height;
+				aPreparedImage.create_info().extent.width  = newExtent.width;
+				aPreparedImage.create_info().extent.height = newExtent.height;
 			}
 			else {
 				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));

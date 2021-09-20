@@ -670,8 +670,8 @@ namespace gvk
 		auto extent = context().get_resolution_for_window(this);
 		auto imageResize = [&extent](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
-				aPreparedImage.config().extent.width = extent.x;
-				aPreparedImage.config().extent.height = extent.y;
+				aPreparedImage.create_info().extent.width = extent.x;
+				aPreparedImage.create_info().extent.height = extent.y;
 			}
 			else {
 				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
@@ -713,7 +713,7 @@ namespace gvk
 		newBuffers.reserve(imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
 			auto& imView = mSwapChainImageViews[i];
-			auto imExtent = imView->get_image().config().extent;
+			auto imExtent = imView->get_image().create_info().extent;
 			// Create one image view per attachment
 			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
 			imageViews.reserve(renderpassAttachments.size());

@@ -36,7 +36,7 @@ namespace gvk
 		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
 
 		// 3. Generate MIP-maps/transition to target layout:
-		if (img->config().mipLevels > 1u) {
+		if (img->create_info().mipLevels > 1u) {
 			// generat_mip_maps will perform the final layout transitiion
 			img->set_target_layout(finalTargetLayout);
 			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler,
@@ -1758,7 +1758,7 @@ namespace gvk
 	 *
 	 *		int numAutoGen = 0;
 	 *		for (int i = 0; i < std::min(2, static_cast<int>(imageSamplers.size())); ++i) {
-	 *			auto e = imageSamplers[i]->get_image_view()->get_image().config().extent;
+	 *			auto e = imageSamplers[i]->get_image_view()->get_image().create_info().extent;
 	 *			if (e.width == 1u && e.height == 1u) {
 	 *				++numAutoGen;
 	 *			}

@@ -161,14 +161,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Separator();
 
 				ImTextureID inputTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mInputImageAndSampler));
-		        auto inputTexWidth  = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.width);
-		        auto inputTexHeight = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().config().extent.height);
+		        auto inputTexWidth  = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().create_info().extent.width);
+		        auto inputTexHeight = static_cast<float>(mInputImageAndSampler->get_image_view()->get_image().create_info().extent.height);
 				ImGui::Text("Input image (%.0fx%.0f):", inputTexWidth, inputTexHeight);
 				ImGui::Image(inputTexId, ImVec2(inputTexWidth/6.0f, inputTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
 				ImTextureID targetTexId = imguiManager->get_or_create_texture_descriptor(avk::referenced(mTargetImageAndSampler));
-		        auto targetTexWidth  = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.width);
-		        auto targetTexHeight = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().config().extent.height);
+		        auto targetTexWidth  = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().create_info().extent.width);
+		        auto targetTexHeight = static_cast<float>(mTargetImageAndSampler->get_image_view()->get_image().create_info().extent.height);
 				ImGui::Text("Output image (%.0fx%.0f):", targetTexWidth, targetTexHeight);
 				ImGui::Image(targetTexId, ImVec2(targetTexWidth/6.0f, targetTexHeight/6.0f), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 

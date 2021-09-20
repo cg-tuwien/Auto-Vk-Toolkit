@@ -195,7 +195,7 @@ namespace gvk {
 		 */
 		inline void archive_buffer(avk::resource_reference<avk::buffer_t> aValue)
 		{
-			size_t size = aValue.get().config().size;
+			size_t size = aValue.get().create_info().size;
 			auto mapping =
 				(mode() == mode::serialize) ?
 				aValue->map_memory(avk::mapping_access::read) :

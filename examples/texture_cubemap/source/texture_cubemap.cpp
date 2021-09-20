@@ -83,7 +83,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			throw std::logic_error("invalid option selected");
 		}
 
-		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemapImage->config().mipLevels));
+		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemapImage->create_info().mipLevels));
 		auto cubemapImageView = gvk::context().create_image_view(avk::owned(cubemapImage), {}, avk::image_usage::general_cube_map_texture);
 		mImageSamplerCubemap = gvk::context().create_image_sampler(avk::owned(cubemapImageView), avk::owned(cubemapSampler));
 	

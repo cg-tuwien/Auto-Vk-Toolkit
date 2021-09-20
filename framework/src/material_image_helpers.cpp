@@ -101,7 +101,7 @@ namespace gvk
 
 			assert(maxLevels >= 1);
 			// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
-			assert(maxLevels == 1 || maxLevels == img->config().mipLevels);
+			assert(maxLevels == 1 || maxLevels == img->create_info().mipLevels);
 		}
 
 		if (aSerializer) {
@@ -132,7 +132,7 @@ namespace gvk
 				}
 #if _DEBUG
 				{
-					auto imgExtent = img->config().extent;
+					auto imgExtent = img->create_info().extent;
 					auto levelDivisor = 1u << level;
 					imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
 					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
@@ -168,7 +168,7 @@ namespace gvk
 			}
 		}
 
-		if (maxLevels == 1 && img->config().mipLevels > 1)
+		if (maxLevels == 1 && img->create_info().mipLevels > 1)
 		{
 			// can't create MIP-maps for compressed formats
 			assert(!avk::is_block_compressed_format(format));
