@@ -122,6 +122,7 @@ set(gvk_Sources
         framework/src/log.cpp
         framework/src/material_image_helpers.cpp
         framework/src/math_utils.cpp
+        framework/src/meshlet_helpers.cpp
         framework/src/model.cpp
         framework/src/orca_scene.cpp
         framework/src/quadratic_uniform_b_spline.cpp
