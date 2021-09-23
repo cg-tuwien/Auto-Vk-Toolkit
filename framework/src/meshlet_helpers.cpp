@@ -9,6 +9,13 @@ namespace gvk
 		return divide_into_meshlets(aModels, divide_into_very_bad_meshlets, aMaxVertices, aMaxIndices, aCombineSubmeshes);
 	}
 
+	std::vector<meshlet> divide_into_meshlets_cached(gvk::serializer& aSerializer,
+		const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
+		const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
+	{
+		return divide_into_meshlets_cached(aSerializer, aModels, divide_into_very_bad_meshlets, aMaxVertices, aMaxIndices, aCombineSubmeshes);
+	}
+
 	template <typename F>
 	std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
@@ -37,6 +44,33 @@ namespace gvk
 				}
 			}
 		}
+		return meshlets;
+	}
+
+	template <typename F>
+	std::vector<meshlet> divide_into_meshlets_cached(gvk::serializer& aSerializer,
+		const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
+		F&& aMeshletDivision, const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
+	{
+		std::vector<meshlet> meshlets;
+		if(aSerializer.mode() == gvk::serializer::mode::serialize)
+		{
+			meshlets = divide_into_meshlets(aModels, aMeshletDivision, aMaxVertices, aMaxIndices, aCombineSubmeshes);
+		}
+		aSerializer.archive(meshlets);
+
+		if (aSerializer.mode() == serializer::mode::deserialize) {
+			std::unordered_map<std::string, gvk::model> modelLookup;
+			for(auto&  pair : aModels) {
+				auto model = std::get<avk::resource_ownership<gvk::model_t>>(pair);
+				modelLookup.insert_or_assign(model->path(), model.own());
+			}
+			for(auto& meshlet: meshlets)
+			{
+				meshlet.mModel = modelLookup.at(meshlet.mModelPath);
+			}
+		}
+
 		return meshlets;
 	}
 
@@ -70,6 +104,7 @@ namespace gvk
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices)
 	{
 		std::vector<meshlet> veryBadMeshlets;
+		auto ownedModel = aModel.own();
 
 		int vertexIndex = 0;
 		const int numIndices = static_cast<int>(aIndices.size());
@@ -97,7 +132,8 @@ namespace gvk
 			ml.mVertices.shrink_to_fit();
 			ml.mIndices.resize(ml.mVertexCount);
 			ml.mIndices.shrink_to_fit();
-			ml.mModel = aModel.get_owner();
+			ml.mModel = ownedModel;
+			ml.mModelPath = ownedModel.get().path();
 			ml.mMeshIndex = aMeshIndex;
 			vertexIndex += meshletVertexIndex;
 		}
