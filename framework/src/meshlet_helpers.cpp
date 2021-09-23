@@ -33,8 +33,7 @@ namespace gvk
 				meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
 			}
 			else {
-				for (const auto meshIndex : meshIndices)
-				{
+				for (const auto meshIndex : meshIndices) {
 					auto vertices = model.get().positions_for_mesh(meshIndex);
 					auto indices = model.get().indices_for_mesh<uint32_t>(meshIndex);
 					// default to very bad meshlet generation
@@ -53,20 +52,18 @@ namespace gvk
 		F&& aMeshletDivision, const uint32_t aMaxVertices, const uint32_t aMaxIndices, const bool aCombineSubmeshes)
 	{
 		std::vector<meshlet> meshlets;
-		if(aSerializer.mode() == gvk::serializer::mode::serialize)
-		{
+		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			meshlets = divide_into_meshlets(aModels, aMeshletDivision, aMaxVertices, aMaxIndices, aCombineSubmeshes);
 		}
 		aSerializer.archive(meshlets);
 
 		if (aSerializer.mode() == serializer::mode::deserialize) {
 			std::unordered_map<std::string, gvk::model> modelLookup;
-			for(auto&  pair : aModels) {
+			for (auto& pair : aModels) {
 				auto model = std::get<avk::resource_ownership<gvk::model_t>>(pair);
 				modelLookup.insert_or_assign(model->path(), model.own());
 			}
-			for(auto& meshlet: meshlets)
-			{
+			for (auto& meshlet : meshlets) {
 				meshlet.mModel = modelLookup.at(meshlet.mModelPath);
 			}
 		}
