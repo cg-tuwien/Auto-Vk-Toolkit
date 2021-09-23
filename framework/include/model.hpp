@@ -566,7 +566,7 @@ namespace gvk
 	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
 	 */
 	template <class... Types>
-	_NODISCARD constexpr std::tuple<Types&&...> additional_vertex_data(Types&&... aArgs) noexcept {
+	[[nodiscard]] constexpr std::tuple<Types&&...> additional_vertex_data(Types&&... aArgs) noexcept {
 		return std::forward_as_tuple(std::forward<Types>(aArgs)...);
 	}
 
@@ -574,7 +574,7 @@ namespace gvk
 	 *	but it should help to express the intent better. Use it with `cgb::append_vertex_data_and_indices`!
 	 */
 	template <class... Types>
-	_NODISCARD constexpr std::tuple<Types&&...> additional_index_data(Types&&... aArgs) noexcept {
+	[[nodiscard]] constexpr std::tuple<Types&&...> additional_index_data(Types&&... aArgs) noexcept {
 		return std::forward_as_tuple(std::forward<Types>(aArgs)...);
 	}
 
@@ -582,7 +582,7 @@ namespace gvk
 	// *	but it should help to express the intent better. 
 	// */
 	//template <typename M>
-	//_NODISCARD constexpr std::tuple<std::reference_wrapper<model_t>, std::vector<size_t>> make_tuple_model_and_indices(const M& _Model, std::vector<mesh_index_t> _Indices) noexcept {
+	//[[nodiscard]] constexpr std::tuple<std::reference_wrapper<model_t>, std::vector<size_t>> make_tuple_model_and_indices(const M& _Model, std::vector<mesh_index_t> _Indices) noexcept {
 	//	return std::forward_as_tuple<std::reference_wrapper<model_t>, std::vector<size_t>>(std::ref(_Model), std::move(_Indices));
 	//}
 

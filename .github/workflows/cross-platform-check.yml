@@ -1,0 +1,99 @@
+name: "Build (GCC/Clang)"
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'cmake/**'
+      - 'examples/**'
+      - 'external/**'
+      - 'framework/**'
+      - 'CMakeLists.txt'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  linux:
+    name: ${{ matrix.config.name }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "linux: clang",
+            cc: "clang",
+            cxx: "clang++"
+          }
+          - {
+            name: "linux: gcc",
+            cc: "gcc-10",
+            cxx: "g++-10"
+          }
+        # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
+        # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
+        vulkan-sdk: ["latest"]
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Create Build Environment
+        shell: bash
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: |
+          # Add lunarg apt sources
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          if [ "${{ matrix.vulkan-sdk }}" = "latest" ]; then
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+          else
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
+          fi
+
+          # Update package lists
+          sudo apt-get update -qq
+          # Install dependencies
+          sudo apt-get install -y \
+            vulkan-sdk \
+            libassimp-dev \
+            xorg-dev
+
+          # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
+          if [ "${{ matrix.config.cc }}" = "clang" ]; then
+            sudo apt remove libgcc-11-dev gcc-11
+          fi
+
+          cmake -E make_directory ${{ runner.workspace }}/build
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{ runner.workspace }}/build
+        run: |
+          export CC=${{ matrix.config.cc }}
+          export CXX=${{ matrix.config.cxx }}
+          cmake \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -Dgvk_BuildHelloWorld=ON \
+            -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+            -DASSIMP_BUILD_TESTS=OFF \
+            -DINJECT_DEBUG_POSTFIX=OFF \
+            -DGLFW_BUILD_EXAMPLES=OFF \
+            -DGLFW_BUILD_TESTS=OFF \
+            -DGLFW_BUILD_DOCS=OFF \
+            -DGLFW_INSTALL=OFF \
+            $GITHUB_WORKSPACE
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ runner.workspace }}/build
+        run: cmake --build .

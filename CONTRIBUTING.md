@@ -24,7 +24,7 @@ namespace namespace_name_lower_case_separated_by_underscores
 
     /** @brief Comment every type in a meaningful manner
      *	
-     *	The comments should be a help to the users of cg_base
+     *	The comments should be a help to the users of the class/method/function/...
      */
     class type_name_lower_case_separated_by_underscores
     { 
@@ -40,7 +40,7 @@ namespace namespace_name_lower_case_separated_by_underscores
         }
 
         /** Getter of member variable mValue is named value */
-        const complex_type& value() const
+        complex_type value() const // Return by value unless there are good reasons not to!
         {
             return mValue; // no conflict with value here
         }
@@ -52,12 +52,12 @@ namespace namespace_name_lower_case_separated_by_underscores
          */
         void set_value(const complex_type& aValue)
         {
-            mValue = aValue ; // no conflict with mValue or value here
+            mValue = aValue; // no conflict with mValue or value here
         }
 
     protected:
         // The more public it is, the more important it is. Therefore,
-        // order like follows: public on top, then protected then private
+        // order like follows: public on top, then protected, then private
 
         template <typename Template, typename Parameters>
         void templated_method()
@@ -73,6 +73,9 @@ namespace namespace_name_lower_case_separated_by_underscores
 }
 
 // Thanks to StackOverflow user GManNickG for providing guidelines very similar to these
+
+// New line at the end of the file:
+
 ```
 
 ## Further Guidelines

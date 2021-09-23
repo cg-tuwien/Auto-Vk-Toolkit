@@ -152,7 +152,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				)
 			);
 			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
-			assert((mOffscreenImageViews.back()->config().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
+			assert((mOffscreenImageViews.back()->create_info().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		}
 
 		// Create our ray tracing pipeline with the required configuration:

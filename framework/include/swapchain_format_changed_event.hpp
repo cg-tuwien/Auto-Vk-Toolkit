@@ -8,7 +8,7 @@ namespace gvk
 	class swapchain_format_changed_event : public event
 	{
 	public:
-		swapchain_format_changed_event(window* aWindow) : mWindow{ aWindow }, mSwapChainImageFormat{ aWindow->swap_chain_image_view_at_index(0)->config().format } {}
+		swapchain_format_changed_event(window* aWindow) : mWindow{ aWindow }, mSwapChainImageFormat{ aWindow->swap_chain_image_view_at_index(0)->create_info().format } {}
 		swapchain_format_changed_event(swapchain_format_changed_event&&) noexcept = default;
 		swapchain_format_changed_event(const swapchain_format_changed_event&) = default;
 		swapchain_format_changed_event& operator=(swapchain_format_changed_event&&) noexcept = default;
@@ -17,7 +17,7 @@ namespace gvk
 
 		bool update(event_data& aData) override
 		{
-			if (auto currentFormat = mWindow->swap_chain_image_view_at_index(0)->config().format; currentFormat != mSwapChainImageFormat) {
+			if (auto currentFormat = mWindow->swap_chain_image_view_at_index(0)->create_info().format; currentFormat != mSwapChainImageFormat) {
 				mSwapChainImageFormat = currentFormat;
 				return true;
 			}
