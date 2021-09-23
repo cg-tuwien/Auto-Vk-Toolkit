@@ -1,5 +1,4 @@
 ﻿#include <gvk.hpp>
-#include "meshlet_helpers.hpp"
 
 namespace gvk
 {
