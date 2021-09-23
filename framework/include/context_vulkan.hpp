@@ -26,6 +26,7 @@ namespace gvk
 		void initialize(
 			settings aSettings,
 			vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
+			vk::PhysicalDeviceVulkan11Features aVulkan11Features,
 			vk::PhysicalDeviceVulkan12Features aVulkan12Features,
 #if VK_HEADER_VERSION >= 162
 			vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccStructureFeatures, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingPipelineFeatures, vk::PhysicalDeviceRayQueryFeaturesKHR& aRayQueryFeatures
@@ -184,7 +185,9 @@ namespace gvk
 		void set_requested_physical_device_features(vk::PhysicalDeviceFeatures aNewValue) { mRequestedPhysicalDeviceFeatures = aNewValue; }
 		auto requested_vulkan12_device_features() const { return mRequestedVulkan12DeviceFeatures; }
 		void set_requested_vulkan12_device_features(vk::PhysicalDeviceVulkan12Features aNewValue) { mRequestedVulkan12DeviceFeatures = aNewValue; }
-		
+		auto requested_vulkan11_device_features() const { return mRequestedVulkan11DeviceFeatures; }
+		void set_requested_vulkan11_device_features(vk::PhysicalDeviceVulkan11Features aNewValue) { mRequestedVulkan11DeviceFeatures = aNewValue; }
+
 	public:
 		static std::vector<const char*> sRequiredDeviceExtensions;
 
@@ -220,6 +223,7 @@ namespace gvk
 		std::deque<std::tuple<std::thread::id, avk::command_pool>> mCommandPools;
 
 		vk::PhysicalDeviceFeatures mRequestedPhysicalDeviceFeatures;
+		vk::PhysicalDeviceVulkan11Features mRequestedVulkan11DeviceFeatures;
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
 
 		std::deque<avk::queue> mQueues;
