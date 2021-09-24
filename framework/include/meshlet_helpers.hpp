@@ -8,8 +8,6 @@ namespace gvk
 	{
 		/** The model of the meshlet. */
 		model mModel;
-		/** The model path, used to find the model after deserialization. */
-		std::string mModelPath;
 		/** The optional mesh index of the meshlet.
 		 *  Only set if the submeshes were not combined upon creation of the meshlet.
 		 */
@@ -26,23 +24,8 @@ namespace gvk
 		uint32_t mIndexCount;
 	};
 
-	template<typename Archive>
-	void serialize(Archive& aArchive, gvk::meshlet& aValue)
-	{
-		aArchive(
-			//aValue.mModel,
-			aValue.mModelPath,
-			aValue.mMeshIndex,
-			aValue.mVertices,
-			aValue.mIndices,
-			aValue.mVertexCount,
-			aValue.mIndexCount
-		);
-	}
-
-	/** Divides the given models into meshlets using the default implementation divide_into_very_bad_meshlets.
+	/** Divides the given models into meshlets using the default implementation divide_into_meshlets_simple.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
@@ -53,39 +36,38 @@ namespace gvk
 
 	/** Divides the given models into meshlets using the given callback function.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
 	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
 	 */
 	template <typename F>
-	extern std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
-		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
+	extern std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F aMeshletDivision,
+		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true)
+	{
+		std::vector<meshlet> meshlets;
+		for (auto& pair : aModels) {
+			auto& model = std::get<avk::resource_ownership<model_t>>(pair);
+			auto& meshIndices = std::get<std::vector<mesh_index_t>>(pair);
 
-	/** Divides the given models into meshlets using the default implementation divide_into_very_bad_meshlets.
-	 *  @param	aSerializer			The serializer used for caching.
-	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
-	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
-	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
-	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
-	 */
-	std::vector<meshlet> divide_into_meshlets_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
-		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
-
-	/** Divides the given models into meshlets using the given callback function.
-	 *  @param	aSerializer			The serializer used for caching.
-	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets.
-	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
-	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
-	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
-	 */
-	template <typename F>
-	extern std::vector<meshlet> divide_into_meshlets_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F&& aMeshletDivision,
-		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
+			if (aCombineSubmeshes) {
+				auto [vertices, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(model.get()), meshIndices) }));
+				std::vector<meshlet> tmpMeshlets = divide_vertices_into_meshlets(vertices, indices, std::move(model), std::nullopt, aMaxVertices, aMaxIndices, aMeshletDivision);
+				// append to meshlets
+				meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
+			}
+			else {
+				for (const auto meshIndex : meshIndices) {
+					auto vertices = model.get().positions_for_mesh(meshIndex);
+					auto indices = model.get().indices_for_mesh<uint32_t>(meshIndex);
+					std::vector<meshlet> tmpMeshlets = divide_vertices_into_meshlets(vertices, indices, std::move(model), meshIndex, aMaxVertices, aMaxIndices, aMeshletDivision);
+					// append to meshlets
+					meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
+				}
+			}
+		}
+		return meshlets;
+	}
 
 	/** Divides the given vertex and index buffer into meshlets using the given callback function.
 	 *  @param	aVertices			The vertex buffer.
@@ -103,7 +85,34 @@ namespace gvk
 		avk::resource_ownership<gvk::model_t> aModel,
 		const std::optional<mesh_index_t> aMeshIndex,
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices,
-		F&& aMeshletDivision);
+		F aMeshletDivision)
+	{
+		std::vector<meshlet> tmpMeshlets;
+		auto ownedModel = aModel.own();
+		ownedModel.enable_shared_ownership();
+
+		if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<uint32_t>&tIndices, const model_t& tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
+			tmpMeshlets = aMeshletDivision(aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+		}
+		else if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<glm::vec3> &tVertices, const std::vector<uint32_t>&tIndices, const model_t& tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
+			tmpMeshlets = aMeshletDivision(aVertices, aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+		}
+		else {
+#if defined(_MSC_VER) && defined(__cplusplus)
+			static_assert(false);
+#else
+			assert(false);
+#endif
+			throw avk::logic_error("No lambda has been passed to divide_into_meshlets.");
+		}
+
+		for(auto& meshlet : tmpMeshlets)
+		{
+			meshlet.mModel = ownedModel;
+		}
+
+		return tmpMeshlets;
+	}
 
 	/** Divides the given index buffer into meshlets using a very bad algorithm. Use something else if possible.
 	 *  @param	aIndices			The index buffer.
@@ -112,9 +121,9 @@ namespace gvk
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 */
-	std::vector<meshlet> divide_into_very_bad_meshlets(
+	std::vector<meshlet> divide_into_meshlets_simple(
 		const std::vector<uint32_t>& aIndices,
-		avk::resource_ownership<gvk::model_t> aModel,
-		const std::optional<mesh_index_t> aMeshIndex,
-		const uint32_t aMaxVertices, const uint32_t aMaxIndices);
+		const model_t& aModel,
+		std::optional<mesh_index_t> aMeshIndex,
+		uint32_t aMaxVertices, uint32_t aMaxIndices);
 }
