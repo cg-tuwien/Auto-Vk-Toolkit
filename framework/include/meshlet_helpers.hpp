@@ -63,8 +63,8 @@ namespace gvk
 
 	/** Divides the given models into meshlets using the given callback function.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets.
+	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets. Must not grab ownership of the model,
+	 *								the model will be assigned after its execution.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
@@ -102,7 +102,8 @@ namespace gvk
 	 *  @param	aIndices			The index buffer.
 	 *  @param	aModel				The model these buffers belong to.
 	 *	@param	aMeshIndex			The optional mesh index of the mesh these buffers belong to.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets.
+	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets. Must not grab ownership of the model,
+	 *								the model will be assigned after its execution.
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 */
