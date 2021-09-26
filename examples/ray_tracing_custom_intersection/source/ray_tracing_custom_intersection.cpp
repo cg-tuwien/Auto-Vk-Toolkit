@@ -137,7 +137,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			// ----------- Build the top-level acceleration structure (for this frame in flight): -------------
 			assert (8 == mGeometryInstances.size());
-			tLast = gvk::context().create_top_level_acceleration_structure(mGeometryInstances.size());
+			tLast = gvk::context().create_top_level_acceleration_structure(static_cast<uint32_t>(mGeometryInstances.size()));
 			tLast->build(mGeometryInstances);
 		}
 		
@@ -191,13 +191,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				accum.push_back(ImGui::GetIO().Framerate);
 				static std::vector<float> values;
 				if (accum.size() == 10) {
-					values.push_back(std::accumulate(std::begin(accum), std::end(accum), 0) / 10.0f);
+					values.push_back(std::accumulate(std::begin(accum), std::end(accum), 0.0f) / 10.0f);
 					accum.clear();
 				}
 		        if (values.size() > 90) { // Display up to 90(*10) history frames
 			        values.erase(values.begin());
 		        }
-	            ImGui::PlotLines("FPS", values.data(), values.size(), 0, nullptr, 0.0f, 1500.0f, ImVec2(0.0f, 150.0f));
+	            ImGui::PlotLines("FPS", values.data(), static_cast<int>(values.size()), 0, nullptr, 0.0f, 1500.0f, ImVec2(0.0f, 150.0f));
 				
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
