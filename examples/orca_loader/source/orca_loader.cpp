@@ -50,10 +50,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// In update() it is not because the fence-wait that ensures that the resources are not used anymore, happens between update() and render().
 		mDestroyOldResourcesInFrame = gvk::context().main_window()->current_frame() + gvk::context().main_window()->number_of_frames_in_flight(); 
 		
-		float start = gvk::context().get_time();
-		float startPart = start;
-		float endPart = 0.0f;
-		std::vector<std::tuple<std::string, float>> times;
+		auto start = gvk::context().get_time();
+		auto startPart = start;
+		auto endPart = 0.0;
+		std::vector<std::tuple<std::string, double>> times;
 
 		// Load an ORCA scene from file:
 		auto orca = gvk::orca_scene_t::load_from_file(aPathToOrcaScene);
@@ -130,8 +130,8 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
-		float end = gvk::context().get_time();
-		float diff = end - start;
+		auto end = gvk::context().get_time();
+		auto diff = end - start;
 		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
 
 		mMaterialBuffer = gvk::context().create_buffer(
@@ -201,10 +201,10 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		auto serializer = gvk::serializer(cacheFilePath, gvk::does_cache_file_exist(cacheFilePath) ?
 			gvk::serializer::mode::deserialize : gvk::serializer::mode::serialize);
 
-		float start = gvk::context().get_time();
-		float startPart = start;
-		float endPart = 0.0f;
-		std::vector<std::tuple<std::string, float>> times;
+		auto start = gvk::context().get_time();
+		auto startPart = start;
+		auto endPart = 0.0;
+		std::vector<std::tuple<std::string, double>> times;
 
 		// Load orca scene for usage and serialization, loading the scene is not required if a cache file exists, i.e. mode == deserialize
 		if (serializer.mode() == gvk::serializer::mode::serialize) {
@@ -321,8 +321,8 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
-		float end = gvk::context().get_time();
-		float diff = end - start;
+		auto end = gvk::context().get_time();
+		auto diff = end - start;
 		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
 
 		mMaterialBuffer = gvk::context().create_buffer(
