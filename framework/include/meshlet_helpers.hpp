@@ -26,12 +26,12 @@ namespace gvk
 
 	// ToDo: Can we make vertex and index size configurable easily?
 	/** Meshlet for GPU usage */
-	struct alignas(16) meshlet_gpu_data
+	struct meshlet_gpu_data
 	{
 		/** Vertex indices into the vertex array */
 		uint32_t mVertices[64];
 		/** Indices into the vertex indices */
-		uint8_t mIndices[378]; // 126*3
+		uint8_t mIndices[378]; // 126*3 
 		/** The vertex count */
 		uint8_t mVertexCount;
 		/** The tirangle count */

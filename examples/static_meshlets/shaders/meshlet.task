@@ -6,6 +6,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_ARB_shader_draw_parameters: require
 #extension GL_KHR_shader_subgroup_ballot: require
+#extension GL_EXT_debug_printf : enable
 #include "cpu_gpu_shared_config.h"
 #include "glsl_helpers.glsl"
 

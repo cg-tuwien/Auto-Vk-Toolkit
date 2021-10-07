@@ -257,7 +257,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
-			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
@@ -270,11 +269,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #endif
 			avk::descriptor_binding(4, 0, mMeshletsBuffer)
 		);
-
 		// set up updater
 		// we want to use an updater, so create one:
 
 		mUpdater.emplace();
+		mPipeline.enable_shared_ownership(); // Make it usable with the updater
+		mUpdater->on(gvk::shader_files_changed_event(mPipeline)).update(mPipeline);
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 
 		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke([this]() {
@@ -297,7 +297,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::swapchain_changed_event(gvk::context().main_window()),
 				gvk::shader_files_changed_event(mPipeline)
 			).update(mPipeline);
-
 
 			// Add the camera to the composition (and let it handle the updates)
 			mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
@@ -513,15 +512,16 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Static Meshlets"),
-			gvk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME),
+			gvk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME)
+			.add_extension(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME),
 			[](vk::PhysicalDeviceVulkan12Features& features) {
 				features.setUniformAndStorageBuffer8BitAccess(VK_TRUE);
 				features.setStorageBuffer8BitAccess(VK_TRUE);
 			},
 			mainWnd,
-			app,
-			ui
-		);
+				app,
+				ui
+				);
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}

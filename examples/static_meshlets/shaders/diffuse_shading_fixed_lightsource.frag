@@ -88,5 +88,5 @@ void main()
 	vec3 illum = vec3(ambient) + diffuse * max(0.0, dot(normalize(v_in.normalWS), toLight));
 	color *= illum;
 	
-	fs_out = vec4(1.0,0.0,0.0, 1.0);
+	fs_out = vec4(color, 1.0);
 }
