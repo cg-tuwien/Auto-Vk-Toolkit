@@ -42,7 +42,11 @@ class model_loader_app : public gvk::invokee
 		uint32_t mMaterialIndex;
 		uint32_t mTexelBufferIndex;
 
+#if USE_DIRECT_MESHLET
 		gvk::meshlet_gpu_data mGeometry;
+#else
+		gvk::meshlet_indirect_gpu_data mGeometry;
+#endif
 	};
 
 	struct transformation_matrices {
@@ -72,6 +76,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 
+		glm::mat4 globalTransform = glm::scale(glm::vec3(0.01f));
 		std::vector<gvk::model> loadedModels;
 		// Load a model from file:
 		auto sponza = gvk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
@@ -104,7 +109,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto& drawCallData = rDataForDrawCallOpaque.emplace_back();
 
 				drawCallData.mMaterialIndex = static_cast<int32_t>(matOffset);
-				drawCallData.mModelMatrix = curModel->transformation_matrix_for_mesh(meshIndex);
+				drawCallData.mModelMatrix = globalTransform * curModel->transformation_matrix_for_mesh(meshIndex);
 				// Find and assign the correct material (in the ~"global" allMatConfigs vector!)
 				for (auto pair : distinctMaterials) {
 					if (std::end(pair.second) != std::find(std::begin(pair.second), std::end(pair.second), meshIndex)) {
@@ -126,10 +131,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				meshletSelection.emplace_back(avk::shared(curModel), meshIndices);
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
+#if USE_DIRECT_MESHLET
 				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage<gvk::meshlet_gpu_data>(cpuMeshlets);
-
-#if !USE_DIRECT_MESHLET
-				drawCallData.mMeshletData = std::move(generatedMeshletData);
+#else
+				auto [gpuMeshlets,generatedMeshletData] = gvk::convert_for_gpu_usage<gvk::meshlet_indirect_gpu_data>(cpuMeshlets);
+				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
 
 				for (size_t mshltidx = 0; mshltidx < gpuMeshlets.size(); ++mshltidx) {
@@ -143,7 +149,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					ml.mMaterialIndex = drawCallData.mMaterialIndex;
 					ml.mTexelBufferIndex = static_cast<uint32_t>(texelBufferIndex);
 
+#if USE_DIRECT_MESHLET
 					memcpy(&ml.mGeometry, &genMeshlet, sizeof(gvk::meshlet_gpu_data));
+#else
+					memcpy(&ml.mGeometry, &genMeshlet, sizeof(gvk::meshlet_indirect_gpu_data));
+#endif
+
 #pragma endregion 
 				}
 			}
@@ -265,7 +276,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if !USE_DIRECT_MESHLET
-			avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
+			avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
 #endif
 			avk::descriptor_binding(4, 0, mMeshletsBuffer)
 		);
@@ -355,7 +366,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if !USE_DIRECT_MESHLET
-					avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
+					avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
 #endif
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
 			}));

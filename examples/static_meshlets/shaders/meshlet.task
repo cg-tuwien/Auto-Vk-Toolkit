@@ -50,7 +50,6 @@ layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
 layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
 #if !USE_DIRECT_MESHLET
 layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
-layout(set = 3, binding = 5) uniform usamplerBuffer  meshletTriangleIndices[];
 #endif
 layout(set = 4, binding = 0) buffer MeshletsBuffer { meshlet values[]; } meshletsBuffer;
 //-------------------------------------
