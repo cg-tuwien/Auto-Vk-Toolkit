@@ -49,6 +49,20 @@ namespace gvk
 		uint8_t mTriangleCount;
 	};
 
+	template<typename Archive>
+	void serialize(Archive& aArchive, meshlet_gpu_data& aValue)
+	{
+		aArchive(gvk::serializer::binary_data(aValue.mVertices, sizeof(meshlet_gpu_data::mVertices)));
+		aArchive(gvk::serializer::binary_data(aValue.mVertices, sizeof(meshlet_gpu_data::mIndices)));
+		aArchive(aValue.mVertexCount, aValue.mTriangleCount);
+	}
+
+	template<typename Archive>
+	void serialize(Archive& aArchive, meshlet_indirect_gpu_data& aValue)
+	{
+		aArchive(aValue.mDataOffset, aValue.mVertexCount, aValue.mTriangleCount);
+	}
+
 
 	/** Divides the given models into meshlets using the default implementation divide_into_meshlets_simple.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
@@ -157,7 +171,7 @@ namespace gvk
 		uint32_t aMaxVertices, uint32_t aMaxIndices);
 
 	/** Converts meshlets into a GPU usable representation.
-	 *	@param	meshlets	The meshlets to convert
+	 *	@param	aMeshlets	The meshlets to convert
 	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
 	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
 	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
@@ -166,12 +180,12 @@ namespace gvk
 	 *						is used.
 	 */
 	template <typename T>
-	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& meshlets)
+	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& aMeshlets)
 	{
 		std::vector<T> gpuMeshlets;
 		std::optional<std::vector<uint32_t>> vertexIndices = std::nullopt;
-		gpuMeshlets.reserve(meshlets.size());
-		for (auto& meshlet : meshlets) {
+		gpuMeshlets.reserve(aMeshlets.size());
+		for (auto& meshlet : aMeshlets) {
 			auto& newEntry = gpuMeshlets.emplace_back();
 			if constexpr (std::is_convertible_v<T, meshlet_gpu_data>) {
 				auto& ml = static_cast<meshlet_gpu_data&>(newEntry);
@@ -195,7 +209,55 @@ namespace gvk
 				const uint32_t indexGroupCount = (meshlet.mIndexCount + 3) / 4;
 				vertexIndices->insert(vertexIndices->end(), indexGroups, indexGroups + indexGroupCount);
 			}
+			else {
+#if defined(_MSC_VER) && defined(__cplusplus)
+				static_assert(false);
+#else
+				assert(false);
+#endif
+				throw avk::logic_error("No suitable type passed to convert_for_gpu_usage.");
+			}
 		}
 		return std::forward_as_tuple(gpuMeshlets, vertexIndices);
 	}
+
+	/** Converts meshlets into a GPU usable representation.
+	 *  @param  aSerializer The serializer for the meshlet gpu data.
+	 *	@param	aMeshlets	The meshlets to convert
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
+	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
+	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
+	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4]
+	 * @returns				A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
+	 *						is used.
+	 */
+	template <typename T>
+	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage_cached(serializer& aSerializer, const std::vector<meshlet>& aMeshlets)
+	{
+		std::vector<T> resultMeshlets;
+		std::optional<std::vector<uint32_t>> resultMeshletsData;
+		if (aSerializer.mode() == serializer::mode::serialize)
+		{
+			std::tie(resultMeshlets, resultMeshletsData) = convert_for_gpu_usage<T>(aMeshlets);
+		}
+
+		if constexpr (std::is_convertible_v<T, meshlet_gpu_data>)
+		{
+			aSerializer.archive(resultMeshlets);
+		}
+		else if constexpr (std::is_convertible_v<T, meshlet_indirect_gpu_data>)
+		{
+			aSerializer.archive(resultMeshlets);
+			aSerializer.archive(resultMeshletsData);
+	}
+		else {
+#if defined(_MSC_VER) && defined(__cplusplus)
+			static_assert(false);
+#else
+			assert(false);
+#endif
+			throw avk::logic_error("No suitable type passed to convert_for_gpu_usage_cached.");
+		}
+		return std::make_tuple(resultMeshlets, resultMeshletsData);
+}
 }
