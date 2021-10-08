@@ -132,11 +132,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if USE_DIRECT_MESHLET
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage<gvk::meshlet_gpu_data>(cpuMeshlets);
+				gvk::serializer serializer("direct_meshlets-"+meshname+"-"+std::to_string(mpos)+".cache");
+				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data>(serializer, cpuMeshlets);
 #else
-				auto [gpuMeshlets,generatedMeshletData] = gvk::convert_for_gpu_usage<gvk::meshlet_indirect_gpu_data>(cpuMeshlets);
+				gvk::serializer serializer("indirect_meshlets-"+meshname+"-"+std::to_string(mpos)+".cache");
+				auto [gpuMeshlets,generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_indirect_gpu_data>(serializer, cpuMeshlets);
 				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
+
+				serializer.flush();
 
 				for (size_t mshltidx = 0; mshltidx < gpuMeshlets.size(); ++mshltidx) {
 					auto& genMeshlet = gpuMeshlets[mshltidx];
