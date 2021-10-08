@@ -84,29 +84,31 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		loadedModels.push_back(std::move(sponza));
 
 
-		std::vector<gvk::material_config> rAllMatConfigs; // <-- Gather the material config from all models to be loaded
-		std::vector<std::vector<glm::mat4>> rMeshRootMatricesPerModel;
-		std::vector<loaded_data_for_draw_call> rDataForDrawCallOpaque;
-		std::vector<meshlet> rMeshletsOpaqueGeometry;
+		std::vector<gvk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
+		std::vector<std::vector<glm::mat4>> meshRootMatricesPerModel;
+		std::vector<loaded_data_for_draw_call> dataForDrawCall;
+		std::vector<meshlet> meshletsGeometry;
 
 
 		for (size_t i = 0; i < loadedModels.size(); ++i) {
 			auto curModel = std::move(loadedModels[i]);
 
+			// get all the meshlet indices of the model
 			const auto meshIndicesInOrder = curModel->select_all_meshes();
 
 			auto distinctMaterials = curModel->distinct_material_configs();
-			const auto matOffset = rAllMatConfigs.size();
+			const auto matOffset = allMatConfigs.size();
+			// add all the materials of the model
 			for (auto& pair : distinctMaterials) {
-				rAllMatConfigs.push_back(pair.first);
+				allMatConfigs.push_back(pair.first);
 			}
 
 			for (size_t mpos = 0; mpos < meshIndicesInOrder.size(); mpos++) {
 				auto meshIndex = meshIndicesInOrder[mpos];
 				std::string meshname = curModel->name_of_mesh(mpos);
 
-				auto texelBufferIndex = rDataForDrawCallOpaque.size();
-				auto& drawCallData = rDataForDrawCallOpaque.emplace_back();
+				auto texelBufferIndex = dataForDrawCall.size();
+				auto& drawCallData = dataForDrawCall.emplace_back();
 
 				drawCallData.mMaterialIndex = static_cast<int32_t>(matOffset);
 				drawCallData.mModelMatrix = globalTransform * curModel->transformation_matrix_for_mesh(meshIndex);
@@ -127,6 +129,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCallData.mNormals = gvk::get_normals(selection);
 				drawCallData.mTexCoords = gvk::get_2d_texture_coordinates(selection, 0);
 
+				// create selection for the meshlets
 				std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<gvk::mesh_index_t>>> meshletSelection;
 				meshletSelection.emplace_back(avk::shared(curModel), meshIndices);
 
@@ -142,10 +145,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				serializer.flush();
 
+				// fill our own meshlets with the loaded/generated data
 				for (size_t mshltidx = 0; mshltidx < gpuMeshlets.size(); ++mshltidx) {
 					auto& genMeshlet = gpuMeshlets[mshltidx];
 
-					auto& ml = rMeshletsOpaqueGeometry.emplace_back();
+					auto& ml = meshletsGeometry.emplace_back();
 					memset(&ml, 0, sizeof(meshlet));
 
 #pragma region start to assemble meshlet struct
@@ -164,6 +168,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		} // end for (auto& loadInfo : toLoad)
 
+		// lambda to create all the buffers for us
 		auto addDrawCalls = [this](auto& dataForDrawCall, auto& drawCallsTarget) {
 			for (auto& drawCallData : dataForDrawCall) {
 				auto& drawCall = drawCallsTarget.emplace_back();
@@ -210,6 +215,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::sync::wait_idle(true));
 #endif
 
+				// add them to the texel buffers
 				mPositionBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mPositionsBuffer)));
 				mIndexBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mIndexBuffer)));
 				mNormalBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mNormalsBuffer)));
@@ -219,22 +225,23 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #endif
 			}
 		};
-		addDrawCalls(rDataForDrawCallOpaque, mDrawCalls);
+		// create all the buffers for our drawcall data
+		addDrawCalls(dataForDrawCall, mDrawCalls);
 
 		// Put the meshlets that we have gathered into a buffer:
 		mMeshletsBuffer = gvk::context().create_buffer(
 			avk::memory_usage::device, {},
-			avk::storage_buffer_meta::create_from_data(rMeshletsOpaqueGeometry)
+			avk::storage_buffer_meta::create_from_data(meshletsGeometry)
 		);
-		mMeshletsBuffer->fill(rMeshletsOpaqueGeometry.data(), 0, avk::sync::wait_idle(true));
-		mNumMeshletWorkgroups = rMeshletsOpaqueGeometry.size();
+		mMeshletsBuffer->fill(meshletsGeometry.data(), 0, avk::sync::wait_idle(true));
+		mNumMeshletWorkgroups = meshletsGeometry.size();
 
 		// For all the different materials, transfer them in structs which are well
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
 		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
-			rAllMatConfigs, false, true,
+			allMatConfigs, false, true,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear,
 			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
@@ -275,6 +282,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
+			// texel buffers
 			avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 			avk::descriptor_binding(3, 1, avk::as_uniform_texel_buffer_views(mIndexBuffers)),
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
@@ -379,6 +387,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
 			}));
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eFragment, 0u, sizeof(push_constants), &pushConstants);
+		// draw our meshlets
 		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0, gvk::context().dynamic_dispatch());
 
 		cmdbfr->end_render_pass();
