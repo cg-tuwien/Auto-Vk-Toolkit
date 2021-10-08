@@ -72,6 +72,10 @@ layout (location = 0) in PerVertexData
 	vec3 color;
 } v_in;
 
+layout(push_constant) uniform PushConstants {
+	uint highlightMeshlets;
+} pushConstants;
+
 
 layout (location = 0) out vec4 fs_out;
 
@@ -80,7 +84,10 @@ void main()
 	int matIndex = v_in.materialIndex;
 
 	int diffuseTexIndex = matSsbo.materials[matIndex].mDiffuseTexIndex;
-    vec3 color = mix(texture(textures[diffuseTexIndex], v_in.texCoord).rgb, v_in.color, 0.5);
+    vec3 color = texture(textures[diffuseTexIndex], v_in.texCoord).rgb;
+	if(pushConstants.highlightMeshlets == 1) {
+		color = mix(color, v_in.color, 0.2);
+	}
 	
 	float ambient = 0.1;
 	vec3 diffuse = matSsbo.materials[matIndex].mDiffuseReflectivity.rgb;

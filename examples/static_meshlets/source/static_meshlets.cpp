@@ -6,6 +6,11 @@
 
 class model_loader_app : public gvk::invokee
 {
+	struct alignas(16) push_constants
+	{
+		uint32_t mHighlightMeshlets;
+	};
+
 	struct data_for_draw_call
 	{
 		avk::buffer mPositionsBuffer;
@@ -47,11 +52,6 @@ class model_loader_app : public gvk::invokee
 #else
 		gvk::meshlet_indirect_gpu_data mGeometry;
 #endif
-	};
-
-	struct transformation_matrices {
-		glm::mat4 mModelMatrix;
-		int mMaterialIndex;
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
@@ -271,7 +271,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store),	 // But not in presentable format, because ImGui comes after
 			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
-			//   We'll pass two matrices to our vertex shader via push constants:
+			avk::push_constant_binding_data {avk::shader_type::fragment, 0, sizeof(push_constants)},
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
@@ -344,6 +344,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					mNumPresentableImagesSlider->invokeImGui();
 					mPresentationModeCombo->invokeImGui();
 
+					ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
+
 					ImGui::End();
 					});
 			}
@@ -355,6 +357,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
+
+		auto pushConstants = push_constants{ mHighlightMeshlets };
 
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -374,6 +378,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #endif
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
 			}));
+		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eFragment, 0u, sizeof(push_constants), &pushConstants);
 		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0, gvk::context().dynamic_dispatch());
 
 		cmdbfr->end_render_pass();
@@ -489,6 +494,8 @@ private: // v== Member variables ==v
 #if !USE_DIRECT_MESHLET
 	std::vector<avk::buffer_view> mMeshletDataBuffers;
 #endif
+
+	bool mHighlightMeshlets;
 
 	// imgui elements
 	std::optional<combo_box_container> mPresentationModeCombo;
