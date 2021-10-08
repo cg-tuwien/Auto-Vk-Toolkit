@@ -43,6 +43,7 @@ option(gvk_BuildFramebuffer "Build example: framebuffer." OFF)
 option(gvk_BuildComputeImageProcessing "Build example: compute_image_processing." OFF)
 option(gvk_BuildMultiInvokeeRendering "Build example: multi_invokee_rendering." OFF)
 option(gvk_BuildModelLoader "Build example: model_loader." OFF)
+option(gvk_BuildStaticMeshlets "Build example: static_meshlets." OFF)
 option(gvk_BuildOrcaLoader "Build example: orca_loader." OFF)
 option(gvk_BuildRayQueryInRayTracingShaders "Build example: ray_query_in_ray_tracing_shaders." OFF)
 option(gvk_BuildRayTracingWithShadowsAndAO "Build example: ray_tracing_with_shadows_and_ao." OFF)
@@ -56,6 +57,7 @@ if (gvk_BuildExamples)
     set(gvk_BuildComputeImageProcessing ON)
     set(gvk_BuildMultiInvokeeRendering ON)
     set(gvk_BuildModelLoader ON)
+    set(gvk_BuildStaticMeshlets ON)
     set(gvk_BuildOrcaLoader ON)
     set(gvk_BuildRayQueryInRayTracingShaders ON)
     set(gvk_BuildRayTracingWithShadowsAndAO ON)
@@ -226,6 +228,11 @@ endif()
 ## model_loader
 if (gvk_BuildModelLoader)
     add_subdirectory(examples/model_loader)
+endif()
+
+## model_loader
+if (gvk_BuildStaticMeshlets)
+    add_subdirectory(examples/static_meshlets)
 endif()
 
 ## orca_loader
