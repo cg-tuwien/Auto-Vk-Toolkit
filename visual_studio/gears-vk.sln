@@ -14,7 +14,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vertex_buffers", "examples\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_loader", "examples\model_loader\model_loader.vcxproj", "{017E78C0-EA95-4C68-866B-51664926D8C9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "model_loading", "model_loading", "{B883882B-129A-4528-86E3-68638929D9EC}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "models_and_geometry", "models_and_geometry", "{B883882B-129A-4528-86E3-68638929D9EC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compute_image_processing", "examples\compute_image_processing\compute_image_processing.vcxproj", "{87425D27-E858-4E57-A482-21346163B972}"
 EndProject
