@@ -503,7 +503,7 @@ namespace gvk
 
 		auto lifetimeHandler = [this](vk::UniqueSwapchainKHR&& aOldResource) { this->handle_lifetime(std::move(aOldResource)); };
 		// assign the new swap chain instead of the old one, if one exists
-		avk::assign_and_lifetime_handle_previous(mSwapChain, context().device().createSwapchainKHRUnique(mSwapChainCreateInfo), lifetimeHandler);
+		avk::assign_and_lifetime_handle_previous(mSwapChain, context().device().createSwapchainKHRUnique(mSwapChainCreateInfo, nullptr, context().dispatch_loader_core()), lifetimeHandler);
 
 		construct_backbuffers(aCreationMode);
 
