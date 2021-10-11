@@ -37,7 +37,8 @@ namespace gvk
 		vk::Instance& vulkan_instance() { return mInstance; }
 		vk::PhysicalDevice& physical_device() override { return mPhysicalDevice; }
 		vk::Device& device() override { return mLogicalDevice; }
-		vk::DispatchLoaderDynamic& dynamic_dispatch() override { return mDynamicDispatch; }
+		vk::DispatchLoaderStatic& dispatch_loader_core() override { return mStaticDispatch; }
+		vk::DispatchLoaderDynamic& dispatch_loader_ext() override { return mDynamicDispatch; }
 #if defined(AVK_USE_VMA)
 		VmaAllocator& memory_allocator() override { return mMemoryAllocator; }
 #else
@@ -202,6 +203,7 @@ namespace gvk
 		//std::vector<swap_chain_data_ptr> mSurfSwap;
 		vk::PhysicalDevice mPhysicalDevice;
 		vk::Device mLogicalDevice;
+		vk::DispatchLoaderStatic  mStaticDispatch;
 		vk::DispatchLoaderDynamic mDynamicDispatch;
 		
 #if defined(AVK_USE_VMA)

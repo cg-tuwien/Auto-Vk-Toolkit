@@ -165,7 +165,7 @@ namespace gvk
 		// If the user has not created any queue, create at least one
 		if (mQueues.empty()) {
 			auto familyIndex = avk::queue::select_queue_family_index(mPhysicalDevice, {}, avk::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
-			mQueues.emplace_back(avk::queue::prepare(mPhysicalDevice, familyIndex, 0));
+			mQueues.emplace_back(avk::queue::prepare(mPhysicalDevice, mStaticDispatch, familyIndex, 0));
 		}
 		
 		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
@@ -256,6 +256,7 @@ namespace gvk
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
 		// Create a dynamic dispatch loader for extensions
+		context().mStaticDispatch = vk::DispatchLoaderStatic{};
 		context().mDynamicDispatch = vk::DispatchLoaderDynamic{
 			context().vulkan_instance(), 
 			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
@@ -420,7 +421,7 @@ namespace gvk
 			}
 #endif
 			
-			nuQu = avk::queue::prepare(context().physical_device(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
+			nuQu = avk::queue::prepare(context().physical_device(), context().dispatch_loader_core(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
 
 			return true;
 		});
@@ -463,7 +464,7 @@ namespace gvk
 				throw gvk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
-			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, vk::DispatchLoaderStatic());
+			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
 			window->mSurface = vk::UniqueHandle<vk::SurfaceKHR, vk::DispatchLoaderStatic>(surface, deleter);
 			return true;
 		});
@@ -893,7 +894,7 @@ namespace gvk
 				//auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{};
 				//auto features = vk::PhysicalDeviceFeatures2KHR{}
 				//	.setPNext(&indexingFeatures);
-				//device.getFeatures2KHR(&features, dynamic_dispatch());
+				//device.getFeatures2KHR(&features, dispatch_loader_ext());
 
 				//if (!indexingFeatures.descriptorBindingVariableDescriptorCount) {
 				//	score = 0;
