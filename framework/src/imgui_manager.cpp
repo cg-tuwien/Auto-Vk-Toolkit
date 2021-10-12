@@ -54,7 +54,7 @@ namespace gvk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eUniformBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
-		allocRequest.set_num_sets(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor);
+		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
 		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 
 		// DescriptorSet chache for user textures
@@ -171,7 +171,7 @@ namespace gvk
 			io.MouseDown[3] = input().mouse_button_down(3);
 			io.MouseDown[4] = input().mouse_button_down(4);
 			const auto cursorPos = input().cursor_position();
-			io.MousePos = ImVec2(cursorPos.x, cursorPos.y);
+			io.MousePos = ImVec2(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
 			// Mouse cursor:
 			if (!input().is_cursor_disabled()) {
 				const auto mouseCursorCurValue = ImGui::GetMouseCursor();

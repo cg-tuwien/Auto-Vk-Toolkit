@@ -17,7 +17,7 @@ Requirements:
 * Windows 10 
 * Visual Studio 2019 with a Windows 10 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
 * A [Vulkan 1.2 SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer     
-  **_Attention:_ SDKs 1.2.189.x are currently _incompatible_.** A fix that reestablishes compatibility can be expected until October 11, 2021.      
+  **_Attention:_ SDKs 1.2.189.x are currently _incompatible_.** A fix that reestablishes compatibility can be expected until October 15, 2021.      
   For now, please use older SDKs (SDK 1.2.182.0 is recommended).
 
 Setup and build instructions:
