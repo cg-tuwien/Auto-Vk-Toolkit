@@ -162,7 +162,7 @@ int main() // <== Starting point ==
 			if (values.size() > 90) {
 				values.erase(values.begin());
 			}
-			ImGui::PlotLines("ms/frame", values.data(), values.size(), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
+			ImGui::PlotLines("ms/frame", values.data(), static_cast<int>(values.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 100.0f));
 			ImGui::End();
 		});
 		

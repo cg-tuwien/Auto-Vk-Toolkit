@@ -45,14 +45,14 @@ namespace gvk
 			return mSwapchainImageExtent.value_or(aOldExtent);
 		}
 
-		std::tuple<float, float> get_extent_for_old_extent(float aOldWidth, float aOldHeight)
+		auto get_extent_for_old_extent(float aOldWidth, float aOldHeight)
 		{
 			const auto it = find_old_extent(aOldWidth, aOldHeight);
 			if (std::end(mExtents) != it) {
-				return std::make_tuple(it->mNewExtent.width, it->mNewExtent.height);
+				return std::make_tuple(static_cast<float>(it->mNewExtent.width), static_cast<float>(it->mNewExtent.height));
 			}
 			if (mSwapchainImageExtent.has_value()) {
-				return std::make_tuple(mSwapchainImageExtent.value().width, mSwapchainImageExtent.value().height);
+				return std::make_tuple(static_cast<float>(mSwapchainImageExtent.value().width), static_cast<float>(mSwapchainImageExtent.value().height));
 			}
 			return std::make_tuple(aOldWidth, aOldHeight);
 		}
