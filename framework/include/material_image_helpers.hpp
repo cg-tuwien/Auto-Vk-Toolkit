@@ -1288,8 +1288,8 @@ namespace gvk
 	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, v, and w coordinates (in that order)
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	/**	Create a new sampler with the given configuration parameters
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1297,8 +1297,8 @@ namespace gvk
 	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, and v coordinates (in that order). (The w direction will get the same strategy assigned as v)
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	/**	Create a new sampler with the given configuration parameters
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1306,8 +1306,8 @@ namespace gvk
 	 *	@param	aBorderHandlingMode			Border handling strategy for all coordinates u, v, and w.
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	template <typename T>
 	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
@@ -1635,11 +1635,11 @@ namespace gvk
 					
 					avk::sampler smplr;
 					if (aSerializer) {
-						smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+						smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes);
 					}
 					else
 					{
-						smplr = context().create_sampler(aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+						smplr = context().create_sampler(aTextureFilterMode, bhModes);
 					}
 
 					if (numDifferentSamplers > 1) {
@@ -1683,7 +1683,7 @@ namespace gvk
 				for (int i = 0; i < numDifferentSamplers; ++i) {
 					
 					// Read sampler from cache
-					auto smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+					auto smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes);
 
 					if (numDifferentSamplers > 1) {
 						// If we indeed have different border handling modes, create multiple samplers and share the image view resource among them:
