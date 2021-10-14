@@ -64,6 +64,19 @@ namespace gvk
 	}
 
 
+	/** Divides the given index buffer into meshlets by simply aggregating every aMaxVertices indices into a meshlet.
+	 *  @param	aIndices			The index buffer.
+	 *  @param	aModel				The model these buffers belong to.
+	 *	@param	aMeshIndex			The optional mesh index of the mesh these buffers belong to.
+	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
+	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
+	 */
+	std::vector<meshlet> basic_meshlets_divider(
+		const std::vector<uint32_t>& aIndices,
+		const model_t& aModel,
+		std::optional<mesh_index_t> aMeshIndex,
+		uint32_t aMaxVertices, uint32_t aMaxIndices);
+
 	/** Divides the given models into meshlets using the default implementation divide_into_meshlets_simple.
 	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
 	 *								If aCombineSubmeshes is enabled, all the submeshes of a given model will be combined into a single vertex/index buffer.
@@ -74,37 +87,58 @@ namespace gvk
 	std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels,
 		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true);
 
-
 	/** Divides the given models into meshlets using the given callback function.
-	 *  @param	aModels				All the models and associated meshes that should be divided into meshlets.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets. Must not grab ownership of the model,
-	 *								the model will be assigned after its execution.
+	 *  @param	aModelsAndMeshletIndices				All the models and associated meshes that should be divided into meshlets.
+	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets with a maximum number of vertices and indices.
+	 *								It can either receive the vertices and indices or just the indices depending on your specific needs.
+	 *								Additionally it provides the model and an optional mesh index if more data is needed. If no mesh index is provided then the meshes were combined beforehand.
+	 *								Must not grab ownership of the model, the model will be assigned to the meshlets after its execution.\n\n
+	 *								The callback has a specific layout, optional parameters can be omitted, but all of them need to be provided in the following order.
+	 *								Parameters in definition order:
+	 *								 - const std::vector<glm::vec3>& tVertices:		optional	The vertices of the mesh or combined meshes of the model
+	 *								 - const std::vector<uint32_t>& tIndices:  		mandatory	The indices of the mesh or combined meshes of the model
+	 *								 - const model_t& tModel:						mandatory	The model these meshlets are generated from
+	 *								 - std::optional<mesh_index_t> tMeshIndex: 		mandatory	The optional mesh index. If no value is provided, it means the meshes of the model are combined into a single vertex and index buffer
+	 *								 - uint32_t tMaxVertices:						mandatory	The maximum number of vertices that are allowed in a single meshlet.
+	 *								 - uint32_t tMaxIndices:						mandatory	The maximum number of indices that are allowed in a single meshlet.
+	 *								Return value:
+	 *								 - std::vector<meshlet>										The generated meshlets.\n\n
+	 *								Example:
+	 *								@code
+	 *								[](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
+	 *											const model_t& aModel, std::optional<mesh_index_t> aMeshIndex,
+	 *											uint32_t aMaxVertices, uint32_t aMaxIndices) {
+	 *									std::vector<gvk::meshlet> generatedMeshlets;
+	 *									// Do your meshlet division here
+	 *									return generatedMeshlets;
+	 *								}
+	 *								@endcode
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 *	@param	aCombineSubmeshes	If submeshes should be combined into a single vertex/index buffer.
 	 */
 	template <typename F>
-	extern std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModels, F aMeshletDivision,
+	extern std::vector<meshlet> divide_into_meshlets(const std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices, F aMeshletDivision,
 		const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378, const bool aCombineSubmeshes = true)
 	{
 		std::vector<meshlet> meshlets;
-		for (auto& pair : aModels) {
-			auto& model = std::get<avk::resource_ownership<model_t>>(pair);
+		for (auto& pair : aModelsAndMeshletIndices) {
+			const auto& model = std::get<avk::resource_ownership<model_t>>(pair);
 			auto& meshIndices = std::get<std::vector<mesh_index_t>>(pair);
 
 			if (aCombineSubmeshes) {
 				auto [vertices, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(model.get()), meshIndices) }));
-				std::vector<meshlet> tmpMeshlets = divide_vertices_into_meshlets(vertices, indices, std::move(model), std::nullopt, aMaxVertices, aMaxIndices, aMeshletDivision);
+				std::vector<meshlet> tmpMeshlets = divide_indexed_geometry_into_meshlets(vertices, indices, std::move(model), std::nullopt, aMaxVertices, aMaxIndices, std::move(aMeshletDivision));
 				// append to meshlets
-				meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
+				meshlets.insert(std::end(meshlets), std::make_move_iterator(std::begin(tmpMeshlets)), std::make_move_iterator(std::end(tmpMeshlets)));
 			}
 			else {
 				for (const auto meshIndex : meshIndices) {
 					auto vertices = model.get().positions_for_mesh(meshIndex);
 					auto indices = model.get().indices_for_mesh<uint32_t>(meshIndex);
-					std::vector<meshlet> tmpMeshlets = divide_vertices_into_meshlets(vertices, indices, std::move(model), meshIndex, aMaxVertices, aMaxIndices, aMeshletDivision);
+					std::vector<meshlet> tmpMeshlets = divide_indexed_geometry_into_meshlets(vertices, indices, std::move(model), meshIndex, aMaxVertices, aMaxIndices, std::move(aMeshletDivision));
 					// append to meshlets
-					meshlets.insert(std::end(meshlets), std::begin(tmpMeshlets), std::end(tmpMeshlets));
+					meshlets.insert(std::end(meshlets), std::make_move_iterator(std::begin(tmpMeshlets)), std::make_move_iterator(std::end(tmpMeshlets)));
 				}
 			}
 		}
@@ -116,13 +150,35 @@ namespace gvk
 	 *  @param	aIndices			The index buffer.
 	 *  @param	aModel				The model these buffers belong to.
 	 *	@param	aMeshIndex			The optional mesh index of the mesh these buffers belong to.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets. Must not grab ownership of the model,
-	 *								the model will be assigned after its execution.
+	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets with a maximum number of vertices and indices.
+	 *								It can either receive the vertices and indices or just the indices depending on your specific needs.
+	 *								Additionally it provides the model and an optional mesh index if more data is needed. If no mesh index is provided then the meshes were combined beforehand.
+	 *								Must not grab ownership of the model, the model will be assigned to the meshlets after its execution.\n\n
+	 *								The callback has a specific layout, optional parameters can be omitted, but all of them need to be provided in the following order.
+	 *								Parameters in definition order:
+	 *								 - const std::vector<glm::vec3>& tVertices:		optional	The vertices of the mesh or combined meshes of the model
+	 *								 - const std::vector<uint32_t>& tIndices:  		mandatory	The indices of the mesh or combined meshes of the model
+	 *								 - const model_t& tModel:						mandatory	The model these meshlets are generated from
+	 *								 - std::optional<mesh_index_t> tMeshIndex: 		mandatory	The optional mesh index. If no value is provided, it means the meshes of the model are combined into a single vertex and index buffer
+	 *								 - uint32_t tMaxVertices:						mandatory	The maximum number of vertices that are allowed in a single meshlet.
+	 *								 - uint32_t tMaxIndices:						mandatory	The maximum number of indices that are allowed in a single meshlet.
+	 *								Return value:
+	 *								 - std::vector<meshlet>										The generated meshlets.\n\n
+	 *								Example:
+	 *								@code
+	 *								[](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
+	 *											const model_t& aModel, std::optional<mesh_index_t> aMeshIndex,
+	 *											uint32_t aMaxVertices, uint32_t aMaxIndices) {
+	 *									std::vector<gvk::meshlet> generatedMeshlets;
+	 *									// Do your meshlet division here
+	 *									return generatedMeshlets;
+	 *								}
+	 *								@endcode
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 */
 	template <typename F>
-	extern std::vector<meshlet> divide_vertices_into_meshlets(
+	extern std::vector<meshlet> divide_indexed_geometry_into_meshlets(
 		const std::vector<glm::vec3>& aVertices,
 		const std::vector<uint32_t>& aIndices,
 		avk::resource_ownership<gvk::model_t> aModel,
@@ -130,15 +186,15 @@ namespace gvk
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices,
 		F aMeshletDivision)
 	{
-		std::vector<meshlet> tmpMeshlets;
+		std::vector<meshlet> generatedMeshlets;
 		auto ownedModel = aModel.own();
 		ownedModel.enable_shared_ownership();
 
 		if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<uint32_t>&tIndices, const model_t & tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
-			tmpMeshlets = aMeshletDivision(aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+			generatedMeshlets = aMeshletDivision(aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
 		}
-		else if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<glm::vec3> &tVertices, const std::vector<uint32_t>&tIndices, const model_t & tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
-			tmpMeshlets = aMeshletDivision(aVertices, aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+		else if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<glm::vec3>&tVertices, const std::vector<uint32_t>&tIndices, const model_t & tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
+			generatedMeshlets = aMeshletDivision(aVertices, aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
 		}
 		else {
 #if defined(_MSC_VER) && defined(__cplusplus)
@@ -146,29 +202,16 @@ namespace gvk
 #else
 			assert(false);
 #endif
-			throw avk::logic_error("No lambda has been passed to divide_into_meshlets.");
+			throw avk::logic_error("No compatible lambda has been passed to divide_into_meshlets.");
 		}
 
-		for (auto& meshlet : tmpMeshlets)
+		for (auto& meshlet : generatedMeshlets)
 		{
 			meshlet.mModel = ownedModel;
 		}
 
-		return tmpMeshlets;
+		return generatedMeshlets;
 	}
-
-	/** Divides the given index buffer into meshlets using a very bad algorithm. Use something else if possible.
-	 *  @param	aIndices			The index buffer.
-	 *  @param	aModel				The model these buffers belong to.
-	 *	@param	aMeshIndex			The optional mesh index of the mesh these buffers belong to.
-	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
-	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
-	 */
-	std::vector<meshlet> divide_into_meshlets_simple(
-		const std::vector<uint32_t>& aIndices,
-		const model_t& aModel,
-		std::optional<mesh_index_t> aMeshIndex,
-		uint32_t aMaxVertices, uint32_t aMaxIndices);
 
 	/** Converts meshlets into a GPU usable representation.
 	 *	@param	aMeshlets	The meshlets to convert
@@ -249,7 +292,7 @@ namespace gvk
 		{
 			aSerializer.archive(resultMeshlets);
 			aSerializer.archive(resultMeshletsData);
-	}
+		}
 		else {
 #if defined(_MSC_VER) && defined(__cplusplus)
 			static_assert(false);
@@ -259,5 +302,5 @@ namespace gvk
 			throw avk::logic_error("No suitable type passed to convert_for_gpu_usage_cached.");
 		}
 		return std::make_tuple(resultMeshlets, resultMeshletsData);
-}
+	}
 }
