@@ -21,7 +21,7 @@ layout(set = 0, binding = 1) uniform CameraTransform
 
 //-------------------------------------
 #if USE_DIRECT_MESHLET
-struct core_meshlet
+struct meshlet
 {
 	uint vertices[64];
 	uint8_t indices[378];
@@ -29,7 +29,7 @@ struct core_meshlet
 	uint8_t triangle_count;
 };
 #else
-struct core_meshlet
+struct meshlet
 {
 	uint data_offset;
 	uint8_t vertex_count;
@@ -37,13 +37,13 @@ struct core_meshlet
 };
 #endif
 
-struct meshlet
+struct extended_meshlet
 {
 	mat4 mTransformationMatrix;
 	uint mMaterialIndex;
 	uint mTexelBufferIndex;
 	
-	core_meshlet mGeometry;
+	meshlet mGeometry;
 };
 
 in taskNV block
@@ -58,7 +58,7 @@ layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
 #if !USE_DIRECT_MESHLET
 layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
 #endif
-layout(set = 4, binding = 0) buffer MeshletsBuffer { meshlet values[]; } meshletsBuffer;
+layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;
 //-------------------------------------
 
 // Mesh shader output block.

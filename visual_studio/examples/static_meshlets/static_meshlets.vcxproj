@@ -16,8 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\examples\static_meshlets\shaders\cpu_gpu_shared_config.h" />
-    <ClInclude Include="..\..\..\examples\static_meshlets\source\camera_path.hpp" />
-    <ClInclude Include="..\..\..\examples\static_meshlets\source\ui_helper.hpp" />
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>

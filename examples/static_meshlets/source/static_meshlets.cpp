@@ -1,14 +1,16 @@
 #include <gvk.hpp>
 #include <imgui.h>
-#include "camera_path.hpp"
-#include "ui_helper.hpp"
 #include "../shaders/cpu_gpu_shared_config.h"
 
-class model_loader_app : public gvk::invokee
+class static_meshlets_app : public gvk::invokee
 {
+
+	static constexpr size_t sNumVertices = 64;
+	static constexpr size_t sNumIndices = 378;
+
 	struct alignas(16) push_constants
 	{
-		uint32_t mHighlightMeshlets;
+		VkBool32 mHighlightMeshlets;
 	};
 
 	struct data_for_draw_call
@@ -48,30 +50,21 @@ class model_loader_app : public gvk::invokee
 		uint32_t mTexelBufferIndex;
 
 #if USE_DIRECT_MESHLET
-		gvk::meshlet_gpu_data mGeometry;
+		gvk::meshlet_gpu_data<sNumVertices, sNumIndices> mGeometry;
 #else
-		gvk::meshlet_indirect_gpu_data mGeometry;
+		gvk::meshlet_redirected_gpu_data mGeometry;
 #endif
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
-	model_loader_app(avk::queue& aQueue)
+	static_meshlets_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
-		, mScale{ 1.0f, 1.0f, 1.0f }
 	{}
 
 	void initialize() override
 	{
 		// use helper functions to create ImGui elements
 		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(gvk::context().main_window()->surface());
-		mPresentationModeCombo = model_loader_ui_generator::get_presentation_mode_imgui_element();
-		mSrgbFrameBufferCheckbox = model_loader_ui_generator::get_framebuffer_mode_imgui_element();
-		mNumConcurrentFramesSlider = model_loader_ui_generator::get_number_of_concurrent_frames_imgui_element();
-		mNumPresentableImagesSlider = model_loader_ui_generator::get_number_of_presentable_images_imgui_element(3, surfaceCap.minImageCount, surfaceCap.maxImageCount);
-		mResizableWindowCheckbox = model_loader_ui_generator::get_window_resize_imgui_element();
-		mAdditionalAttachmentsCheckbox = model_loader_ui_generator::get_additional_attachments_imgui_element();
-
-		mInitTime = std::chrono::high_resolution_clock::now();
 
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
@@ -135,11 +128,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if USE_DIRECT_MESHLET
-				gvk::serializer serializer("direct_meshlets-"+meshname+"-"+std::to_string(mpos)+".cache");
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data>(serializer, cpuMeshlets);
+				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
+				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
-				gvk::serializer serializer("indirect_meshlets-"+meshname+"-"+std::to_string(mpos)+".cache");
-				auto [gpuMeshlets,generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_indirect_gpu_data>(serializer, cpuMeshlets);
+				gvk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
+				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
 
@@ -149,20 +142,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				for (size_t mshltidx = 0; mshltidx < gpuMeshlets.size(); ++mshltidx) {
 					auto& genMeshlet = gpuMeshlets[mshltidx];
 
-					auto& ml = meshletsGeometry.emplace_back();
-					memset(&ml, 0, sizeof(meshlet));
+					auto& ml = meshletsGeometry.emplace_back(meshlet{});
 
 #pragma region start to assemble meshlet struct
 					ml.mTransformationMatrix = drawCallData.mModelMatrix;
 					ml.mMaterialIndex = drawCallData.mMaterialIndex;
 					ml.mTexelBufferIndex = static_cast<uint32_t>(texelBufferIndex);
 
-#if USE_DIRECT_MESHLET
-					memcpy(&ml.mGeometry, &genMeshlet, sizeof(gvk::meshlet_gpu_data));
-#else
-					memcpy(&ml.mGeometry, &genMeshlet, sizeof(gvk::meshlet_indirect_gpu_data));
-#endif
-
+					ml.mGeometry = genMeshlet;
 #pragma endregion 
 				}
 			}
@@ -278,7 +265,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store),	 // But not in presentable format, because ImGui comes after
 			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
 			// The following define additional data which we'll pass to the pipeline:
-			avk::push_constant_binding_data {avk::shader_type::fragment, 0, sizeof(push_constants)},
+			avk::push_constant_binding_data{ avk::shader_type::fragment, 0, sizeof(push_constants) },
 			avk::descriptor_binding(0, 0, mImageSamplers),
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
@@ -311,9 +298,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			std::vector<avk::attachment> renderpassAttachments = {
 				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
 			};
-			if (mAdditionalAttachmentsCheckbox->checked()) {
-				renderpassAttachments.push_back(avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care));
-			}
 			auto renderPass = gvk::context().create_renderpass(renderpassAttachments);
 			gvk::context().replace_render_pass_for_pipeline(mPipeline, std::move(renderPass));
 			}).then_on( // ... next, at this point, we are sure that the render pass is correct -> check if there are events that would update the pipeline
@@ -337,20 +321,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-					ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
 					ImGui::Checkbox("Enable/Disable invokee", &isEnabled);
 					if (isEnabled != this->is_enabled())
 					{
 						if (!isEnabled) this->disable();
 						else this->enable();
 					}
-
-					mSrgbFrameBufferCheckbox->invokeImGui();
-					mResizableWindowCheckbox->invokeImGui();
-					mAdditionalAttachmentsCheckbox->invokeImGui();
-					mNumConcurrentFramesSlider->invokeImGui();
-					mNumPresentableImagesSlider->invokeImGui();
-					mPresentationModeCombo->invokeImGui();
 
 					ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
 
@@ -404,16 +380,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		static int counter = 0;
-		if (++counter == 4) {
-			auto current = std::chrono::high_resolution_clock::now();
-			auto time_span = current - mInitTime;
-			auto int_min = std::chrono::duration_cast<std::chrono::minutes>(time_span).count();
-			auto int_sec = std::chrono::duration_cast<std::chrono::seconds>(time_span).count();
-			auto fp_ms = std::chrono::duration<double, std::milli>(time_span).count();
-			printf("Time from init to fourth frame: %d min, %lld sec %lf ms\n", int_min, int_sec - static_cast<decltype(int_sec)>(int_min) * 60, fp_ms - 1000.0 * int_sec);
-		}
-
 		if (gvk::input().key_pressed(gvk::key_code::c)) {
 			// Center the cursor:
 			auto resolution = gvk::context().main_window()->resolution();
@@ -456,28 +422,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
 		}
-
-		// Automatic camera path:
-		if (gvk::input().key_pressed(gvk::key_code::c)) {
-			if (gvk::input().key_down(gvk::key_code::left_shift)) { // => disable
-				if (mCameraPath.has_value()) {
-					gvk::current_composition()->remove_element_immediately(mCameraPath.value());
-					mCameraPath.reset();
-				}
-			}
-			else { // => enable
-				if (mCameraPath.has_value()) {
-					gvk::current_composition()->remove_element_immediately(mCameraPath.value());
-				}
-				mCameraPath.emplace(mQuakeCam);
-				gvk::current_composition()->add_element(mCameraPath.value());
-			}
-		}
 	}
 
 private: // v== Member variables ==v
-
-	std::chrono::high_resolution_clock::time_point mInitTime;
 
 	avk::queue* mQueue;
 	avk::descriptor_cache mDescriptorCache;
@@ -492,10 +439,6 @@ private: // v== Member variables ==v
 	gvk::quake_camera mQuakeCam;
 	size_t mNumMeshletWorkgroups;
 
-	glm::vec3 mScale;
-
-	std::optional<camera_path> mCameraPath;
-
 	std::vector<avk::buffer_view> mPositionBuffers;
 	std::vector<avk::buffer_view> mIndexBuffers;
 	std::vector<avk::buffer_view> mTexCoordsBuffers;
@@ -506,15 +449,7 @@ private: // v== Member variables ==v
 
 	bool mHighlightMeshlets;
 
-	// imgui elements
-	std::optional<combo_box_container> mPresentationModeCombo;
-	std::optional<check_box_container> mSrgbFrameBufferCheckbox;
-	std::optional<slider_container<int>> mNumConcurrentFramesSlider;
-	std::optional<slider_container<int>> mNumPresentableImagesSlider;
-	std::optional<check_box_container> mResizableWindowCheckbox;
-	std::optional<check_box_container> mAdditionalAttachmentsCheckbox;
-
-}; // model_loader_app
+}; // static_meshlets_app
 
 int main() // <== Starting point ==
 {
@@ -522,11 +457,11 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Static Meshlets");
 
-		mainWnd->set_resolution({ 1000, 480 });
+		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments({
 			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
-			});
+		});
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
@@ -536,7 +471,7 @@ int main() // <== Starting point ==
 		mainWnd->set_present_queue(singleQueue);
 
 		// Create an instance of our main avk::element which contains all the functionality:
-		auto app = model_loader_app(singleQueue);
+		auto app = static_meshlets_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
@@ -550,12 +485,13 @@ int main() // <== Starting point ==
 				features.setStorageBuffer8BitAccess(VK_TRUE);
 			},
 			mainWnd,
-				app,
-				ui
-				);
+			app,
+			ui
+		);
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
+

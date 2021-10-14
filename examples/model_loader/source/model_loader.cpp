@@ -3,7 +3,7 @@
 #include "camera_path.hpp"
 #include "ui_helper.hpp"
 
-class model_loader_app : public gvk::invokee
+class static_meshlets_app : public gvk::invokee
 {
 	struct data_for_draw_call
 	{
@@ -26,7 +26,7 @@ class model_loader_app : public gvk::invokee
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
-	model_loader_app(avk::queue& aQueue)
+	static_meshlets_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mScale{1.0f, 1.0f, 1.0f}
 	{}
@@ -398,7 +398,7 @@ int main() // <== Starting point ==
 		mainWnd->set_present_queue(singleQueue);
 
 		// Create an instance of our main avk::element which contains all the functionality:
-		auto app = model_loader_app(singleQueue);
+		auto app = static_meshlets_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 

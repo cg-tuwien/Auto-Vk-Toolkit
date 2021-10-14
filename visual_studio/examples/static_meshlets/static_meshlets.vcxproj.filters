@@ -42,8 +42,6 @@
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\examples\static_meshlets\source\ui_helper.hpp" />
-    <ClInclude Include="..\..\..\examples\static_meshlets\source\camera_path.hpp" />
     <ClInclude Include="..\..\..\examples\static_meshlets\shaders\cpu_gpu_shared_config.h">
       <Filter>shared</Filter>
     </ClInclude>
