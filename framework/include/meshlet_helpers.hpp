@@ -210,7 +210,7 @@ namespace gvk
 			meshlet.mModel = ownedModel;
 		}
 
-		return tmpMeshlets;
+		return generatedMeshlets;
 	}
 
 	/** Converts meshlets into a GPU usable representation.
@@ -292,7 +292,7 @@ namespace gvk
 		{
 			aSerializer.archive(resultMeshlets);
 			aSerializer.archive(resultMeshletsData);
-	}
+		}
 		else {
 #if defined(_MSC_VER) && defined(__cplusplus)
 			static_assert(false);
@@ -302,5 +302,5 @@ namespace gvk
 			throw avk::logic_error("No suitable type passed to convert_for_gpu_usage_cached.");
 		}
 		return std::make_tuple(resultMeshlets, resultMeshletsData);
-}
+	}
 }
