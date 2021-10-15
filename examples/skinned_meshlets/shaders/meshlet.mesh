@@ -42,6 +42,7 @@ struct extended_meshlet
 	mat4 mTransformationMatrix;
 	uint mMaterialIndex;
 	uint mTexelBufferIndex;
+	uint mModelIndex;
 	
 	meshlet mGeometry;
 };
@@ -51,6 +52,21 @@ in taskNV block
 	uint meshletIndices[32];
 };
 
+layout(set = 2, binding = 0) buffer BoneMatrices 
+{
+	mat4 mat[]; // length of #bones
+} boneMatrices[]; // length of #models
+
+layout(set = 2, binding = 1) buffer MeshRootMatrices
+{
+	mat4 mat[]; // length of #meshes
+} meshRootMatrices[]; // length of #models
+
+layout(set = 2, binding = 2) buffer BindPoseMatrices 
+{
+	mat4 mat[]; // length of #bones
+} bindPoseMatrices[]; // length of #models
+
 layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 1) uniform usamplerBuffer indexBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
@@ -58,6 +74,8 @@ layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
 #if !USE_DIRECT_MESHLET
 layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
 #endif
+layout(set = 3, binding = 5) uniform usamplerBuffer boneIndicesBuffers[];
+layout(set = 3, binding = 6) uniform  samplerBuffer boneWeightsBuffers[];
 layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;
 //-------------------------------------
 
@@ -99,6 +117,7 @@ void main()
 	uint materialIndex        = meshletsBuffer.values[mshIdx].mMaterialIndex;
 	mat4 transformationMatrix = meshletsBuffer.values[mshIdx].mTransformationMatrix;
 
+	uint modelIdx			  = meshletsBuffer.values[mshIdx].mModelIndex;
 	uint texelBufferIndex     = meshletsBuffer.values[mshIdx].mTexelBufferIndex;
 #if !USE_DIRECT_MESHLET
 	uint indexOffset = uint(meshletsBuffer.values[mshIdx].mGeometry.data_offset + vertexCount);
@@ -113,14 +132,40 @@ void main()
 #endif
 		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
 		vec3 nrmMshSp = texelFetch(normalBuffers[texelBufferIndex], int(vi)).xyz;
+		vec4 boneWeights = texelFetch(boneWeightsBuffers[texelBufferIndex], int(vi));
+		uvec4 boneIndices = texelFetch(boneIndicesBuffers[texelBufferIndex], int(vi));
 
-		vec4 posWS = transformationMatrix * posMshSp;
+		vec4 aniPos = bone_transform(
+			boneMatrices[modelIdx].mat[boneIndices[0]], 
+			boneMatrices[modelIdx].mat[boneIndices[1]], 
+			boneMatrices[modelIdx].mat[boneIndices[2]], 
+			boneMatrices[modelIdx].mat[boneIndices[3]], 
+			boneWeights, 
+			posMshSp
+		);
+		aniPos = meshRootMatrices[modelIdx].mat[0] * aniPos;
+
+		vec3 aniNrm = bone_transform(
+			boneMatrices[modelIdx].mat[boneIndices[0]], 
+			boneMatrices[modelIdx].mat[boneIndices[1]], 
+			boneMatrices[modelIdx].mat[boneIndices[2]], 
+			boneMatrices[modelIdx].mat[boneIndices[3]], 
+			boneWeights, 
+			nrmMshSp
+		);
+		
+		/*
+		aniPos = posMshSp;
+		aniNrm = nrmMshSp;
+		*/
+
+		vec4 posWS = transformationMatrix * aniPos;
 		vec4 posCS = ubo.mViewProjMatrix * posWS;
  
 		gl_MeshVerticesNV[i].gl_Position = posCS;
  
 		v_out[i].positionWS = posWS.xyz;
-		v_out[i].normalWS = mat3(transformationMatrix) * nrmMshSp;
+		v_out[i].normalWS = mat3(transformationMatrix) * aniNrm;
 		v_out[i].texCoord = texelFetch(texCoordsBuffers[texelBufferIndex], int(vi)).st;
 		v_out[i].materialIndex = int(materialIndex);
 		v_out[i].color = meshletcolors[mshIdx % MAX_COLORS];

@@ -34,6 +34,9 @@
     <None Include="..\..\..\examples\skinned_meshlets\shaders\glsl_helpers.glsl">
       <Filter>shared</Filter>
     </None>
+    <None Include="..\..\..\assets\pigman\pigman.fbx">
+      <Filter>assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\examples\skinned_meshlets\shaders\cpu_gpu_shared_config.h">
@@ -51,5 +54,73 @@
     <ClCompile Include="cg_stdafx.cpp">
       <Filter>precompiled_headers</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\assets\pigman\axe_AO.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\axe_m.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\axe_Normal_OpenGL.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\axe_Roughness.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Body_and_head_Base_Color.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Body_and_head_Metallic.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Body_and_head_Mixed_AO.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Body_and_head_Normal_OpenGL.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Body_and_head_Roughness2.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\H6_dif_alpha.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\H6_dif_nrml.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Armor_Base_Color.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Armor_Metallic.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Armor_Mixed_AO.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Armor_Normal_OpenGL.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Armor_Roughness.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Base_Color.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Metallic.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Mixed_AO.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Normal_OpenGL.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Roughness2.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\pigman\axe.png">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>
