@@ -146,6 +146,7 @@ jobs:
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
           cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
+            -Dgvk_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
 
       - name: Build
