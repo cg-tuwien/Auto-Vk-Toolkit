@@ -143,7 +143,6 @@ void main()
 			boneWeights, 
 			posMshSp
 		);
-		aniPos = meshRootMatrices[modelIdx].mat[0] * aniPos;
 
 		vec3 aniNrm = bone_transform(
 			boneMatrices[modelIdx].mat[boneIndices[0]], 
@@ -154,11 +153,6 @@ void main()
 			nrmMshSp
 		);
 		
-		/*
-		aniPos = posMshSp;
-		aniNrm = nrmMshSp;
-		*/
-
 		vec4 posWS = transformationMatrix * aniPos;
 		vec4 posCS = ubo.mViewProjMatrix * posWS;
  

@@ -2,6 +2,8 @@
 #include <imgui.h>
 #include "../shaders/cpu_gpu_shared_config.h"
 
+#define USE_CACHE 0
+
 static constexpr size_t sNumVertices = 64;
 static constexpr size_t sNumIndices = 378;
 static constexpr uint32_t cConcurrecntFrames = 3u;
@@ -49,14 +51,6 @@ class skinned_meshlets_app : public gvk::invokee
 		uint32_t mModelIndex;
 	};
 
-	struct nav_path_element
-	{
-		uint32_t mNodeIndex;
-		vk::Bool32 mApplyInverse;
-		vk::Bool32 mExtendBounds;
-		vk::Bool32 mApplyParentTransform;
-	};
-
 	struct additional_animated_model_data
 	{
 		std::vector<glm::mat4> mBoneMatricesAni;
@@ -77,21 +71,6 @@ class skinned_meshlets_app : public gvk::invokee
 		uint32_t mNumBoneMatrices;
 		size_t mBoneMatricesBufferIndex;
 		gvk::animation mAnimation;
-
-		// Contains vectors of the following elements:
-		//  [0]: node index
-		//  [1]: (bool) is inversed direction
-		//  [2]: (bool) should extend bounds
-		//  [3]: (bool) should apply parent transformation
-		std::vector<nav_path_element> mNavPaths;
-		std::optional<avk::buffer> mNavPathBuffer;
-
-		// Contains the following elements:
-		//  [0]: path index (pointing into mNavPaths)
-		//  [1]-[3]: padding
-		std::vector<std::vector<glm::ivec4>> mNavPathsPerOriginBone;
-		std::optional<std::vector<avk::buffer>> mNavPathsPerOriginBoneBuffers;
-
 
 		double start_sec() const { return mClip.mStartTicks / mClip.mTicksPerSecond; }
 		double end_sec() const { return mClip.mEndTicks / mClip.mTicksPerSecond; }
@@ -143,12 +122,18 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		std::vector<meshlet> meshletsGeometry;
 		std::vector<animated_model_data> rAnimatedModels;
 
+		// just use some animation for now
+		const uint32_t cAnimationIndex = 2;
+		const uint32_t cStartTimeTicks = 0;
+		const uint32_t cEndTimeTicks   = 100;
+		const uint32_t cTicksPerSecond = 60;
+
 
 		for (size_t i = 0; i < loadedModels.size(); ++i) {
 			auto curModel = std::move(loadedModels[i]);
 
-			auto curClip = curModel->load_animation_clip(0, 0, 100);
-			curClip.mTicksPerSecond = 30;
+			auto curClip = curModel->load_animation_clip(cAnimationIndex, cStartTimeTicks, cEndTimeTicks);
+			curClip.mTicksPerSecond = cTicksPerSecond;
 			auto& curEntry = rAnimatedModels.emplace_back();
 			curEntry.mModelName = curModel->path();
 			curEntry.mClip = std::move(curClip);
@@ -239,7 +224,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto& drawCallData = dataForDrawCall.emplace_back();
 
 				drawCallData.mMaterialIndex = static_cast<int32_t>(matOffset);
-				drawCallData.mModelMatrix = globalTransform * curModel->transformation_matrix_for_mesh(meshIndex);
+				drawCallData.mModelMatrix = globalTransform;
 				drawCallData.mModelIndex = curEntry.mBoneMatricesBufferIndex;
 				// Find and assign the correct material (in the ~"global" allMatConfigs vector!)
 				for (auto pair : distinctMaterials) {
@@ -266,15 +251,21 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if USE_DIRECT_MESHLET
+#if USE_CACHE
 				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
+				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(cpuMeshlets);
+#endif
+#else
+#if USE_CACHE
 				gvk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
+#else
+				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
+#endif
 				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
-
-				serializer.flush();
 
 				// fill our own meshlets with the loaded/generated data
 				for (size_t mshltidx = 0; mshltidx < gpuMeshlets.size(); ++mshltidx) {
@@ -286,7 +277,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					ml.mTransformationMatrix = drawCallData.mModelMatrix;
 					ml.mMaterialIndex = drawCallData.mMaterialIndex;
 					ml.mTexelBufferIndex = static_cast<uint32_t>(texelBufferIndex);
-					ml.mModelIndex = drawCallData.mModelIndex;
+					ml.mModelIndex = curEntry.mBoneMatricesBufferIndex;
 
 					ml.mGeometry = genMeshlet;
 #pragma endregion 
@@ -296,17 +287,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// create buffers for animation data
 		for (int i = 0; i < loadedModels.size(); ++i) {
-			auto& dude = mAnimatedModels.emplace_back(std::move(rAnimatedModels[i]), additional_animated_model_data{});
+			auto& animModel = mAnimatedModels.emplace_back(std::move(rAnimatedModels[i]), additional_animated_model_data{});
 
-			std::get<additional_animated_model_data>(dude).mBoneMatricesAni.resize(std::get<animated_model_data>(dude).mNumBoneMatrices);
+			std::get<additional_animated_model_data>(animModel).mBoneMatricesAni.resize(std::get<animated_model_data>(animModel).mNumBoneMatrices);
 			for (size_t cfi = 0; cfi < cConcurrecntFrames; ++cfi) {
 				mBoneMatricesBuffersAni[cfi].push_back(gvk::context().create_buffer(
 					avk::memory_usage::host_coherent, {},
-					avk::storage_buffer_meta::create_from_data(std::get<additional_animated_model_data>(dude).mBoneMatricesAni)
+					avk::storage_buffer_meta::create_from_data(std::get<additional_animated_model_data>(animModel).mBoneMatricesAni)
 				));
 			}
-			assert(std::get<additional_animated_model_data>(dude).mBoneMatricesAni.size() == std::get<additional_animated_model_data>(dude).mBoneMatricesAabbs.size());
-			assert(mBoneMatricesBuffersAni.size() == mBoneMatricesBuffersAabbs.size());
 
 			auto& mrm = mMeshRootMatrices.emplace_back(gvk::context().create_buffer(
 				avk::memory_usage::device, {},
@@ -321,7 +310,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			bpmtrxesMeshSpace->fill(rBindPoseMatricesMeshSpacePerModel[i].data(), 0, avk::sync::wait_idle());
 		}
 
-		// lambda to create all the buffers for us
+		// lambda to create all the other buffers for us
 		auto addDrawCalls = [this](auto& dataForDrawCall, auto& drawCallsTarget) {
 			for (auto& drawCallData : dataForDrawCall) {
 				auto& drawCall = drawCallsTarget.emplace_back();
@@ -527,6 +516,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 		auto ifi = mainWnd->current_in_flight_index();
 
+		// fill the animated bone buffers
+		for (auto& models : mAnimatedModels) {
+			mBoneMatricesBuffersAni[ifi][std::get<animated_model_data>(models).mBoneMatricesBufferIndex]->fill(std::get<additional_animated_model_data>(models).mBoneMatricesAni.data(), 0, avk::sync::not_required());
+		}
+
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
 
@@ -617,10 +611,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		// Animate all the meshes
-		for (auto& dude : mAnimatedModels) {
+		for (auto& model : mAnimatedModels) {
 			const auto boneMatSpaceAni = gvk::bone_matrices_space::model_space;
-
-			const auto boneMatSpaceAabb = gvk::bone_matrices_space::mesh_space;
 
 			static auto customAniFu = [this](gvk::animation& aAnimation, const gvk::animation_clip_data& aClip, double aTime, gvk::bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory) {
 				switch (aTargetSpace) {
@@ -654,20 +646,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						// Construction of the bone matrix for this node:
 						//   1. Bring vertex into bone space
 						//   2. Apply transformaton in bone space => MODEL SPACE
-
-							// => overwrite all the data! :O
-
-						gvk::animated_node& anode = aAnimation.get_animated_node_at(aAnimatedNodeIndex);
-						auto newLocalTransform = aAnimation.compute_node_local_transform(anode, 0.0 /* TODO: <-- which time for "no animation"? */);
-
-						// Calculate the node's global transform, using its local transform and the transforms of its parents:
-						if (anode.mAnimatedParentIndex.has_value()) {
-							anode.mGlobalTransform = aAnimation.get_animated_node_at(anode.mAnimatedParentIndex.value()).get().mGlobalTransform * anode.mParentTransform * newLocalTransform;
-						}
-						else {
-							anode.mGlobalTransform = anode.mParentTransform * newLocalTransform;
-						}
-
 						aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
 						});
 					break;
@@ -676,11 +654,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}
 			};
 
-			auto aniTimeFu = [&dude]() {
-				const auto doubleTime = fmod(gvk::time().absolute_time_dp(), std::get<animated_model_data>(dude).duration_sec() * 2);
-				return  glm::lerp(std::get<animated_model_data>(dude).start_sec(), std::get<animated_model_data>(dude).end_sec(), (doubleTime > std::get<animated_model_data>(dude).duration_sec() ? doubleTime - std::get<animated_model_data>(dude).duration_sec() : doubleTime) / std::get<animated_model_data>(dude).duration_sec());
+			auto aniTimeFu = [&model]() {
+				const auto doubleTime = fmod(gvk::time().absolute_time_dp(), std::get<animated_model_data>(model).duration_sec() * 2);
+				return  glm::lerp(std::get<animated_model_data>(model).start_sec(), std::get<animated_model_data>(model).end_sec(), (doubleTime > std::get<animated_model_data>(model).duration_sec() ? doubleTime - std::get<animated_model_data>(model).duration_sec() : doubleTime) / std::get<animated_model_data>(model).duration_sec());
 			};
-			customAniFu(std::get<animated_model_data>(dude).mAnimation, std::get<animated_model_data>(dude).mClip, aniTimeFu(), boneMatSpaceAni, std::get<additional_animated_model_data>(dude).mBoneMatricesAni.data());
+			customAniFu(std::get<animated_model_data>(model).mAnimation, std::get<animated_model_data>(model).mClip, aniTimeFu(), boneMatSpaceAni, std::get<additional_animated_model_data>(model).mBoneMatricesAni.data());
 		}
 	}
 
