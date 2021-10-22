@@ -89,7 +89,7 @@ void main()
 		color = mix(color, v_in.color, 0.2);
 	}
 	
-	float ambient = 0.1;
+	float ambient = 0.3;
 	vec3 diffuse = matSsbo.materials[matIndex].mDiffuseReflectivity.rgb;
 	vec3 toLight = normalize(vec3(1.0, 1.0, 0.5));
 	vec3 illum = vec3(ambient) + diffuse * max(0.0, dot(normalize(v_in.normalWS), toLight));

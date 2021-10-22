@@ -57,16 +57,6 @@ layout(set = 2, binding = 0) buffer BoneMatrices
 	mat4 mat[]; // length of #bones
 } boneMatrices[]; // length of #models
 
-layout(set = 2, binding = 1) buffer MeshRootMatrices
-{
-	mat4 mat[]; // length of #meshes
-} meshRootMatrices[]; // length of #models
-
-layout(set = 2, binding = 2) buffer BindPoseMatrices 
-{
-	mat4 mat[]; // length of #bones
-} bindPoseMatrices[]; // length of #models
-
 layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 1) uniform usamplerBuffer indexBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];

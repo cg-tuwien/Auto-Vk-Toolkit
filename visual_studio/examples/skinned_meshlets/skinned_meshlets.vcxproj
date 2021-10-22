@@ -24,10 +24,7 @@
     <ClCompile Include="cg_stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\..\..\assets\pigman\pigman.fbx" />
+    <None Include="..\..\..\assets\3rd_party\models\DancingCrab\crab.fbx" />
     <None Include="..\..\..\examples\skinned_meshlets\shaders\diffuse_shading_fixed_lightsource.frag" />
     <None Include="..\..\..\examples\skinned_meshlets\shaders\glsl_helpers.glsl" />
     <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.mesh" />
@@ -40,28 +37,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\assets\pigman\Armor_Base_Color.png" />
-    <Image Include="..\..\..\assets\pigman\Armor_Metallic.png" />
-    <Image Include="..\..\..\assets\pigman\Armor_Mixed_AO.png" />
-    <Image Include="..\..\..\assets\pigman\Armor_Normal_OpenGL.png" />
-    <Image Include="..\..\..\assets\pigman\Armor_Roughness.png" />
-    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Base_Color.png" />
-    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Metallic.png" />
-    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Mixed_AO.png" />
-    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Normal_OpenGL.png" />
-    <Image Include="..\..\..\assets\pigman\Arms_and_Legs_Roughness2.png" />
-    <Image Include="..\..\..\assets\pigman\axe.png" />
-    <Image Include="..\..\..\assets\pigman\axe_AO.png" />
-    <Image Include="..\..\..\assets\pigman\axe_m.png" />
-    <Image Include="..\..\..\assets\pigman\axe_Normal_OpenGL.png" />
-    <Image Include="..\..\..\assets\pigman\axe_Roughness.png" />
-    <Image Include="..\..\..\assets\pigman\Body_and_head_Base_Color.png" />
-    <Image Include="..\..\..\assets\pigman\Body_and_head_Metallic.png" />
-    <Image Include="..\..\..\assets\pigman\Body_and_head_Mixed_AO.png" />
-    <Image Include="..\..\..\assets\pigman\Body_and_head_Normal_OpenGL.png" />
-    <Image Include="..\..\..\assets\pigman\Body_and_head_Roughness2.png" />
-    <Image Include="..\..\..\assets\pigman\H6_dif_alpha.png" />
-    <Image Include="..\..\..\assets\pigman\H6_dif_nrml.png" />
+    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\Ambient Occlusion Map from Mesh initialShadingGroup.png" />
+    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Diffuse.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Glossiness.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Normal.jpg" />
+    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Specular.jpg" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

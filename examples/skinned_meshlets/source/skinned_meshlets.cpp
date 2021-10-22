@@ -2,11 +2,11 @@
 #include <imgui.h>
 #include "../shaders/cpu_gpu_shared_config.h"
 
-#define USE_CACHE 0
+#define USE_CACHE 1
 
 static constexpr size_t sNumVertices = 64;
 static constexpr size_t sNumIndices = 378;
-static constexpr uint32_t cConcurrecntFrames = 3u;
+static constexpr uint32_t cConcurrentFrames = 3u;
 
 class skinned_meshlets_app : public gvk::invokee
 {
@@ -105,28 +105,23 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 
-		glm::mat4 globalTransform = glm::scale(glm::vec3(0.01f));
+		glm::mat4 globalTransform = glm::rotate(glm::radians(180.f), glm::vec3(0.f, 1.f, 0.f)) * glm::scale(glm::vec3(1.f));
 		std::vector<gvk::model> loadedModels;
 		// Load a model from file:
-		auto model = gvk::model_t::load_from_file("assets/pigman.fbx", aiProcess_Triangulate);
+		auto model = gvk::model_t::load_from_file("assets/crab.fbx", aiProcess_Triangulate);
 
 		loadedModels.push_back(std::move(model));
 
-
 		std::vector<gvk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
-		std::vector<std::vector<glm::mat4>> meshRootMatricesPerModel;
-		std::vector<std::vector<glm::mat4>> rMeshRootMatricesPerModel;
-		std::vector<std::vector<glm::mat4>> rBindPoseMatricesMeshSpacePerModel;
-		std::vector<std::vector<glm::mat4>> rInverseBindPoseMatricesMeshSpacePerModel;
 		std::vector<loaded_data_for_draw_call> dataForDrawCall;
 		std::vector<meshlet> meshletsGeometry;
-		std::vector<animated_model_data> rAnimatedModels;
+		std::vector<animated_model_data> animatedModels;
 
-		// just use some animation for now
-		const uint32_t cAnimationIndex = 2;
+		// just use some animation for now, define for each model if needed
+		const uint32_t cAnimationIndex = 0;
 		const uint32_t cStartTimeTicks = 0;
-		const uint32_t cEndTimeTicks   = 100;
-		const uint32_t cTicksPerSecond = 60;
+		const uint32_t cEndTimeTicks   = 58;
+		const uint32_t cTicksPerSecond = 34;
 
 
 		for (size_t i = 0; i < loadedModels.size(); ++i) {
@@ -134,9 +129,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			auto curClip = curModel->load_animation_clip(cAnimationIndex, cStartTimeTicks, cEndTimeTicks);
 			curClip.mTicksPerSecond = cTicksPerSecond;
-			auto& curEntry = rAnimatedModels.emplace_back();
+			auto& curEntry = animatedModels.emplace_back();
 			curEntry.mModelName = curModel->path();
-			curEntry.mClip = std::move(curClip);
+			curEntry.mClip = curClip;
 
 			// get all the meshlet indices of the model
 			const auto meshIndicesInOrder = curModel->select_all_meshes();
@@ -146,25 +141,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Store offset into the vector of buffers that store the bone matrices
 			curEntry.mBoneMatricesBufferIndex = i;
 
-			auto& mrms = rMeshRootMatricesPerModel.emplace_back();
-			for (auto mi : meshIndicesInOrder) {
-				mrms.push_back(curModel->mesh_root_matrix(mi));
-			}
-
-			auto& bpmsMS = rBindPoseMatricesMeshSpacePerModel.emplace_back();
-			auto& ibpmsMS = rInverseBindPoseMatricesMeshSpacePerModel.emplace_back();
-			bpmsMS.reserve(curModel->num_bone_matrices(meshIndicesInOrder));
-			for (auto mi : meshIndicesInOrder) {
-				// Insert all the "bind pose matrices" (i.e. the INVERTED "inverse bind pose matrices"!), also store all the "inverse bind pose matrices".
-				auto inverseBindPoseMatrices = curModel->inverse_bind_pose_matrices(mi, gvk::bone_matrices_space::mesh_space);
-				std::transform(
-					std::begin(inverseBindPoseMatrices), std::end(inverseBindPoseMatrices),
-					std::back_inserter(bpmsMS), [](const glm::mat4& m) { return glm::inverse(m); }
-				);
-				ibpmsMS = std::move(inverseBindPoseMatrices);
-			}
-
-
 			auto distinctMaterials = curModel->distinct_material_configs();
 			const auto matOffset = allMatConfigs.size();
 			// add all the materials of the model
@@ -173,47 +149,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 
 			curEntry.mAnimation = curModel->prepare_animation(curEntry.mClip.mAnimationIndex, meshIndicesInOrder);
-
-			// We'll need some storage to hold bone matrices further down, in the inner loop:
-			std::vector<glm::mat4> spaceForBoneMatrices; // Provides storage for the bone matrices
-			spaceForBoneMatrices.resize(curEntry.mNumBoneMatrices); // Make sure it has enough space for all the matrices
-			std::vector<glm::mat4> inverseBindPoseMatrices; // Stores the inverse bind pose matrices, i.e. to transform mesh input data into bind pose
-			std::vector<glm::mat4> inverseMeshRootMatrices;
-			std::vector<glm::mat4> intoBoneSpaceMatrices;
-			std::vector<uint32_t> boneMatToAniNode; // Stores for each bone matrix which animation_node it was that wrote it (into spaceForBoneMatrices)
-			spaceForBoneMatrices.resize(curEntry.mNumBoneMatrices); // Make sure it has enough space for all the matrices
-			inverseBindPoseMatrices.resize(curEntry.mNumBoneMatrices); // Make sure it has enough space for all the matrices
-			inverseMeshRootMatrices.resize(curEntry.mNumBoneMatrices);
-			intoBoneSpaceMatrices.resize(curEntry.mNumBoneMatrices);
-			boneMatToAniNode.resize(curEntry.mNumBoneMatrices); // Make sure it has enough space for all the matrices
-
-			curEntry.mAnimation.animate(curEntry.mClip, curEntry.mClip.start_time(), [&spaceForBoneMatrices, &inverseBindPoseMatrices, &boneMatToAniNode, &inverseMeshRootMatrices, &intoBoneSpaceMatrices](
-				gvk::mesh_bone_info aInfo,
-				const glm::mat4& aInverseMeshRootMatrix,
-				const glm::mat4& aTransformMatrix,
-				const glm::mat4& aInverseBindPoseMatrix,
-				const glm::mat4& aLocalTransformMatrix,
-				size_t aAnimatedNodeIndex,
-				size_t aBoneMeshTargetIndex,
-				double aAnimationTimeInTicks) {
-					// Construction of the bone matrix for this node:
-					//   1. Bring vertex into bone space
-					//   2. Apply transformaton in bone space
-					//   3. Convert transformed vertex back to mesh space
-
-					size_t bmi = aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex;
-					spaceForBoneMatrices[bmi] = aTransformMatrix * aInverseBindPoseMatrix; // Store the bone matrix
-					// Into PBS:
-					spaceForBoneMatrices[bmi] = aInverseMeshRootMatrix * spaceForBoneMatrices[bmi];
-					inverseBindPoseMatrices[bmi] = aInverseBindPoseMatrix; // Store the inverse bind pose matrix a.k.a. offset matrix
-					boneMatToAniNode[bmi] = static_cast<uint32_t>(aAnimatedNodeIndex); // Store the animation node index this bone matrix is assigned to
-																// (This means that this animation node is the last one in the bone hierarchy
-																//  which is relevant for modifying the bone's position. Hence, from this
-																//  animation_node, it is safe to write the bone matrix.)
-					inverseMeshRootMatrices[bmi] = aInverseMeshRootMatrix;
-					intoBoneSpaceMatrices[bmi] = glm::inverse(aInverseMeshRootMatrix * aTransformMatrix);
-				}
-			);
 
 			auto boneOffsetSoFar = 0u;
 			for (size_t mpos = 0; mpos < meshIndicesInOrder.size(); mpos++) {
@@ -242,6 +177,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				std::tie(drawCallData.mPositions, drawCallData.mIndices) = gvk::get_vertices_and_indices(selection);
 				drawCallData.mNormals = gvk::get_normals(selection);
 				drawCallData.mTexCoords = gvk::get_2d_texture_coordinates(selection, 0);
+				// Get bone indices and weights
 				drawCallData.mBoneIndices = gvk::get_bone_indices_for_single_target_buffer(selection, meshIndicesInOrder);
 				drawCallData.mBoneWeights = gvk::get_bone_weights(selection);
 
@@ -262,7 +198,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
-				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
+				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
 #endif
 				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
@@ -287,27 +223,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// create buffers for animation data
 		for (int i = 0; i < loadedModels.size(); ++i) {
-			auto& animModel = mAnimatedModels.emplace_back(std::move(rAnimatedModels[i]), additional_animated_model_data{});
+			auto& animModel = mAnimatedModels.emplace_back(std::move(animatedModels[i]), additional_animated_model_data{});
 
+			// buffers for the animated bone matrices, will be populated before rendering
 			std::get<additional_animated_model_data>(animModel).mBoneMatricesAni.resize(std::get<animated_model_data>(animModel).mNumBoneMatrices);
-			for (size_t cfi = 0; cfi < cConcurrecntFrames; ++cfi) {
+			for (size_t cfi = 0; cfi < cConcurrentFrames; ++cfi) {
 				mBoneMatricesBuffersAni[cfi].push_back(gvk::context().create_buffer(
 					avk::memory_usage::host_coherent, {},
 					avk::storage_buffer_meta::create_from_data(std::get<additional_animated_model_data>(animModel).mBoneMatricesAni)
 				));
 			}
-
-			auto& mrm = mMeshRootMatrices.emplace_back(gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::storage_buffer_meta::create_from_data(rMeshRootMatricesPerModel[i])
-			));
-			mrm->fill(rMeshRootMatricesPerModel[i].data(), 0, avk::sync::wait_idle());
-
-			auto& bpmtrxesMeshSpace = mBindPoseMatrices.emplace_back(gvk::context().create_buffer(
-				avk::memory_usage::device, {},
-				avk::storage_buffer_meta::create_from_data(rBindPoseMatricesMeshSpacePerModel[i])
-			));
-			bpmtrxesMeshSpace->fill(rBindPoseMatricesMeshSpacePerModel[i].data(), 0, avk::sync::wait_idle());
 		}
 
 		// lambda to create all the other buffers for us
@@ -441,8 +366,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
 			avk::descriptor_binding(2, 0, mBoneMatricesBuffersAni[0]),
-			avk::descriptor_binding(2, 1, mMeshRootMatrices),
-			avk::descriptor_binding(2, 2, mBindPoseMatrices),
 			// texel buffers
 			avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 			avk::descriptor_binding(3, 1, avk::as_uniform_texel_buffer_views(mIndexBuffers)),
@@ -455,6 +378,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
 			avk::descriptor_binding(4, 0, mMeshletsBuffer)
 		);
+
 		// set up updater
 		// we want to use an updater, so create one:
 
@@ -482,7 +406,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			).update(mPipeline);
 
 			// Add the camera to the composition (and let it handle the updates)
-			mQuakeCam.set_translation({ 0.0f, 1.0f, 5.0f });
+			mQuakeCam.set_translation({ 0.0f, -1.0f, 8.0f });
 			mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 			//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 			gvk::current_composition()->add_element(mQuakeCam);
@@ -536,8 +460,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(0, 1, mViewProjBuffer),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
 			avk::descriptor_binding(2, 0, mBoneMatricesBuffersAni[ifi]),
-			avk::descriptor_binding(2, 1, mMeshRootMatrices),
-			avk::descriptor_binding(2, 2, mBindPoseMatrices),
 			avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 			avk::descriptor_binding(3, 1, avk::as_uniform_texel_buffer_views(mIndexBuffers)),
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
@@ -612,53 +534,19 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Animate all the meshes
 		for (auto& model : mAnimatedModels) {
-			const auto boneMatSpaceAni = gvk::bone_matrices_space::model_space;
+			auto& animation = std::get<animated_model_data>(model).mAnimation;
+			auto& clip = std::get<animated_model_data>(model).mClip;
+			const auto doubleTime = fmod(gvk::time().absolute_time_dp(), std::get<animated_model_data>(model).duration_sec() * 2);
+			auto time = glm::lerp(std::get<animated_model_data>(model).start_sec(), std::get<animated_model_data>(model).end_sec(), (doubleTime > std::get<animated_model_data>(model).duration_sec() ? doubleTime - std::get<animated_model_data>(model).duration_sec() : doubleTime) / std::get<animated_model_data>(model).duration_sec());
+			auto targetMemory = std::get<additional_animated_model_data>(model).mBoneMatricesAni.data();
 
-			static auto customAniFu = [this](gvk::animation& aAnimation, const gvk::animation_clip_data& aClip, double aTime, gvk::bone_matrices_space aTargetSpace, glm::mat4* aTargetMemory) {
-				switch (aTargetSpace) {
-				case gvk::bone_matrices_space::mesh_space:
-					// Use lambda option 1 that takes as parameters: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
-					aAnimation.animate(aClip, aTime, [this, &aAnimation, aTargetMemory](gvk::mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix, const glm::mat4& aLocalTransformMatrix, size_t aAnimatedNodeIndex, size_t aBoneMeshTargetIndex, double aAnimationTimeInTicks) {
-						// Construction of the bone matrix for this node:
-						//   1. Bring vertex into bone space
-						//   2. Apply transformaton in bone space
-						//   3. Convert transformed vertex back to mesh space
-
-							// => overwrite all the data! :O
-
-						gvk::animated_node& anode = aAnimation.get_animated_node_at(aAnimatedNodeIndex);
-						auto newLocalTransform = aAnimation.compute_node_local_transform(anode, 0.0 /* TODO: <-- which time for "no animation"? */);
-
-						// Calculate the node's global transform, using its local transform and the transforms of its parents:
-						if (anode.mAnimatedParentIndex.has_value()) {
-							anode.mGlobalTransform = aAnimation.get_animated_node_at(anode.mAnimatedParentIndex.value()).get().mGlobalTransform * anode.mParentTransform * newLocalTransform;
-						}
-						else {
-							anode.mGlobalTransform = anode.mParentTransform * newLocalTransform;
-						}
-
-						aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aInverseMeshRootMatrix * aTransformMatrix * aInverseBindPoseMatrix;
-						});
-					break;
-				case gvk::bone_matrices_space::model_space:
-					// Use lambda option 1 that takes as parameters: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
-					aAnimation.animate(aClip, aTime, [this, &aAnimation, aTargetMemory](gvk::mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix, const glm::mat4& aLocalTransformMatrix, size_t aAnimatedNodeIndex, size_t aBoneMeshTargetIndex, double aAnimationTimeInTicks) {
-						// Construction of the bone matrix for this node:
-						//   1. Bring vertex into bone space
-						//   2. Apply transformaton in bone space => MODEL SPACE
-						aTargetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
-						});
-					break;
-				default:
-					throw gvk::runtime_error("Unknown target space value.");
-				}
-			};
-
-			auto aniTimeFu = [&model]() {
-				const auto doubleTime = fmod(gvk::time().absolute_time_dp(), std::get<animated_model_data>(model).duration_sec() * 2);
-				return  glm::lerp(std::get<animated_model_data>(model).start_sec(), std::get<animated_model_data>(model).end_sec(), (doubleTime > std::get<animated_model_data>(model).duration_sec() ? doubleTime - std::get<animated_model_data>(model).duration_sec() : doubleTime) / std::get<animated_model_data>(model).duration_sec());
-			};
-			customAniFu(std::get<animated_model_data>(model).mAnimation, std::get<animated_model_data>(model).mClip, aniTimeFu(), boneMatSpaceAni, std::get<additional_animated_model_data>(model).mBoneMatricesAni.data());
+			// Use lambda option 1 that takes as parameters: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
+			animation.animate(clip, time, [this, &animation, targetMemory](gvk::mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix, const glm::mat4& aLocalTransformMatrix, size_t aAnimatedNodeIndex, size_t aBoneMeshTargetIndex, double aAnimationTimeInTicks) {
+				// Construction of the bone matrix for this node:
+				//   1. Bring vertex into bone space
+				//   2. Apply transformaton in bone space => MODEL SPACE
+				targetMemory[aInfo.mGlobalBoneIndexOffset + aInfo.mMeshLocalBoneIndex] = aTransformMatrix * aInverseBindPoseMatrix;
+			});
 		}
 	}
 
@@ -672,9 +560,7 @@ private: // v== Member variables ==v
 	avk::buffer mViewProjBuffer;
 	avk::buffer mMaterialBuffer;
 	avk::buffer mMeshletsBuffer;
-	std::array<std::vector<avk::buffer>, cConcurrecntFrames> mBoneMatricesBuffersAni;
-	std::vector<avk::buffer> mMeshRootMatrices;
-	std::vector<avk::buffer> mBindPoseMatrices;
+	std::array<std::vector<avk::buffer>, cConcurrentFrames> mBoneMatricesBuffersAni;
 	std::vector<avk::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
@@ -708,7 +594,7 @@ int main() // <== Starting point ==
 			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
 			});
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
-		mainWnd->set_number_of_concurrent_frames(cConcurrecntFrames);
+		mainWnd->set_number_of_concurrent_frames(cConcurrentFrames);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
