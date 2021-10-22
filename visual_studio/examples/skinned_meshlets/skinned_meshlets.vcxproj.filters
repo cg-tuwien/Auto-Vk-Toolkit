@@ -19,9 +19,6 @@
     <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.task">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\skinned_meshlets\shaders\transform_and_pass_pos_nrm_uv.vert">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="..\..\..\examples\skinned_meshlets\shaders\diffuse_shading_fixed_lightsource.frag">
       <Filter>shaders</Filter>
     </None>

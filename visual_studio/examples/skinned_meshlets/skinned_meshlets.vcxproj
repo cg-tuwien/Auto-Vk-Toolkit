@@ -29,7 +29,6 @@
     <None Include="..\..\..\examples\skinned_meshlets\shaders\glsl_helpers.glsl" />
     <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.mesh" />
     <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.task" />
-    <None Include="..\..\..\examples\skinned_meshlets\shaders\transform_and_pass_pos_nrm_uv.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
