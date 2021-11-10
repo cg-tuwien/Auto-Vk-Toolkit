@@ -434,9 +434,9 @@ namespace gvk
 
 	// A concept which requires a type to have a .describe_member(size_t aOffset, content_description aContent)
 	template <typename T>
-	concept has_describe_only_member = requires (T x)
+	concept has_describe_member = requires (T x)
 	{
-		x.describe_only_member(size_t{ 0 }, avk::content_description::position);
+		x.describe_member(size_t{ 0 }, vk::Format::eUndefined, avk::content_description::position);
 	};
 
 	// A concept which requires a type to have a .set_format<glm::uvec3>(avk::content_description)
@@ -448,30 +448,58 @@ namespace gvk
 
 	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
 	template <typename Meta>
-	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
+	auto set_up_meta_from_data_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
 	{
 		return Meta::create_from_data(aIndicesData).template set_format<glm::uvec3>(avk::content_description::index); // Combine 3 consecutive elements to one unit
 	}
 
 	// ...and another helper which creates metas for other Meta types:
 	template <typename Meta>
-	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires (!has_set_format_for_index_buffer<Meta>)
+	auto set_up_meta_from_data_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires (!has_set_format_for_index_buffer<Meta>)
 	{
 		return Meta::create_from_data(aIndicesData);
 	}
 
 	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
 	template <typename Meta>
-	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires has_describe_only_member<Meta>
+	auto set_up_meta_from_data_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires has_describe_member<Meta>
 	{
-		return Meta::create_from_data(aVerticesData).describe_only_member(aVerticesData[0], avk::content_description::position);
+		return Meta::create_from_data(aVerticesData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(aVerticesData)>::value_type>(), avk::content_description::position);
 	}
 
 	// ...and another helper which creates metas for other Meta types:
 	template <typename Meta>
-	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires (!has_describe_only_member<Meta>)
+	auto set_up_meta_from_data_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires (!has_describe_member<Meta>)
 	{
 		return Meta::create_from_data(aVerticesData);
+	}
+
+	// Helper which creates meta data for uniform/storage_texel_buffer_view from size specification
+	template <typename Meta>
+	auto set_up_meta_from_total_size_for_index_buffer(size_t aTotalSize, size_t aNumElements) requires has_set_format_for_index_buffer<Meta>
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements).template set_format<glm::uvec3>(avk::content_description::index); // Combine 3 consecutive elements to one unit
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta>
+	auto set_up_meta_from_total_size_for_index_buffer(size_t aTotalSize, size_t aNumElements) requires (!has_set_format_for_index_buffer<Meta>)
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements);
+	}
+
+	// Helper which creates meta data for uniform/storage_texel_buffer_view from size specification
+	template <typename Meta, typename FMT>
+	auto set_up_meta_from_total_size_for_vertex_buffer(size_t aTotalSize, size_t aNumElements) requires has_describe_member<Meta>
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements).describe_member(0, avk::format_for<FMT>(), avk::content_description::position);
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta, typename FMT>
+	auto set_up_meta_from_total_size_for_vertex_buffer(size_t aTotalSize, size_t aNumElements) requires (!has_describe_member<Meta>)
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements);
 	}
 
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
@@ -486,7 +514,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_and_fill(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 
@@ -498,8 +526,8 @@ namespace gvk
 
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
-			avk::vertex_buffer_meta::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position),
-			set_up_meta_for_vertex_buffer<Metas>(positionsData)...
+			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
 		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
@@ -508,7 +536,7 @@ namespace gvk
 		auto indexBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::index_buffer_meta::create_from_data(indicesData),
-			set_up_meta_for_index_buffer<Metas>(indicesData)...
+			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
 		indexBuffer->fill(indicesData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let indicesData go out of scope, since its data has been copied to a
@@ -538,7 +566,7 @@ namespace gvk
 	template <typename... Metas>
 	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags, std::move(aSyncHandler));
+		return create_vertex_and_index_buffers_and_fill<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags, std::move(aSyncHandler));
 	}
 	
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
@@ -561,13 +589,12 @@ namespace gvk
 		size_t numIndices = 0;
 		size_t totalIndicesSize = 0;
 
+		auto& [positionsData, indicesData] = aVerticesAndIndices;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
-			auto& [positionsData, indicesData] = aVerticesAndIndices;
-
 			numPositions = positionsData.size();
-			totalPositionsSize = sizeof(positionsData[0]) * numPositions;
+			totalPositionsSize = sizeof(std::remove_reference_t<decltype(positionsData)>::value_type) * numPositions;
 			numIndices = indicesData.size();
-			totalIndicesSize = sizeof(indicesData[0]) * numIndices;
+			totalIndicesSize = sizeof(std::remove_reference_t<decltype(indicesData)>::value_type) * numIndices;
 
 			aSerializer.archive(numPositions);
 			aSerializer.archive(totalPositionsSize);
@@ -577,7 +604,7 @@ namespace gvk
 			aSerializer.archive_memory(positionsData.data(), totalPositionsSize);
 			aSerializer.archive_memory(indicesData.data(), totalIndicesSize);
 
-			return create_vertex_and_index_buffers<Metas...>(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags, std::move(aSyncHandler));
+			return create_vertex_and_index_buffers_and_fill<Metas...>(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags, std::move(aSyncHandler));
 		}
 		else {
 			aSerializer.archive(numPositions);
@@ -587,15 +614,16 @@ namespace gvk
 
 			auto positionsBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions)
-				.describe_member(0, avk::format_for<glm::vec3>(), avk::content_description::position)
+				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+				set_up_meta_from_total_size_for_vertex_buffer<Metas, std::remove_reference_t<decltype(positionsData)>::value_type>(totalPositionsSize, numPositions)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize, aSyncHandler);
 
 			auto indexBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices)
+				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices),
+				set_up_meta_from_total_size_for_index_buffer<Metas>(totalIndicesSize, numIndices)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize, aSyncHandler);
@@ -637,12 +665,12 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_buffer_and_fill(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::generic_buffer_meta::create_from_data(aBufferData),
-			Metas::create_from_data(aBufferData).describe_only_member(aBufferData[0], aContentDescription)...
+			Metas::create_from_data(aBufferData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 		);
 		buffer->fill(aBufferData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let aBufferData go out of scope, since its data has been copied to a
@@ -669,14 +697,14 @@ namespace gvk
 
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			numBufferEntries = aBufferData.size();
-			bufferTotalSize = sizeof(aBufferData[0]) * numBufferEntries;
+			bufferTotalSize = sizeof(typename std::remove_reference_t<decltype(aBufferData)>::value_type) * numBufferEntries;
 
 			aSerializer.archive(numBufferEntries);
 			aSerializer.archive(bufferTotalSize);
 
 			aSerializer.archive_memory(aBufferData.data(), bufferTotalSize);
 
-			return create_buffer<T, Metas...>(aBufferData, aContentDescription, aUsageFlags, std::move(aSyncHandler));
+			return create_buffer_and_fill<T, Metas...>(aBufferData, aContentDescription, aUsageFlags, std::move(aSyncHandler));
 		}
 		else {
 			aSerializer.archive(numBufferEntries);
@@ -684,7 +712,8 @@ namespace gvk
 
 			auto buffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::vertex_buffer_meta::create_from_total_size(bufferTotalSize, numBufferEntries)
+				avk::generic_buffer_meta::create_from_size(bufferTotalSize),
+				Metas::create_from_total_size(bufferTotalSize, numBufferEntries).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize, aSyncHandler);
@@ -720,7 +749,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing normals from the given input data.
@@ -770,7 +799,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing tangents from the given input data.
@@ -820,7 +849,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing bitangents from the given input data.
@@ -872,7 +901,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing colors from the given input data.
@@ -925,7 +954,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing bone weights from the given input data.
@@ -1020,7 +1049,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1057,7 +1086,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1095,7 +1124,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1184,7 +1213,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing 2D texture coordinates from the given input data.
@@ -1221,7 +1250,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing 2D texture coordinates from the given input data, with their y-coordinates flipped.
@@ -1258,7 +1287,7 @@ namespace gvk
 	template <typename... Metas>
 	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_and_fill<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
 
 	/** Get a buffer containing 3D texture coordinates from the given input data.
