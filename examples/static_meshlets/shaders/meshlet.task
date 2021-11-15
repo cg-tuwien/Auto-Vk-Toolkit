@@ -17,7 +17,7 @@ layout(set = 0, binding = 1) uniform CameraTransform
 } ubo;
 
 //-------------------------------------
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 struct meshlet
 {
 	uint vertices[64];
@@ -47,7 +47,7 @@ layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 1) uniform usamplerBuffer indexBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
 layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
 #endif
 layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;

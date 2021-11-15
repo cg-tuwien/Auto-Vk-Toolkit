@@ -19,7 +19,7 @@ class static_meshlets_app : public gvk::invokee
 		avk::buffer mTexCoordsBuffer;
 		avk::buffer mNormalsBuffer;
 		avk::buffer mIndexBuffer;
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 		avk::buffer mMeshletDataBuffer;
 #endif
 
@@ -34,7 +34,7 @@ class static_meshlets_app : public gvk::invokee
 		std::vector<glm::vec2> mTexCoords;
 		std::vector<glm::vec3> mNormals;
 		std::vector<uint32_t> mIndices;
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 		std::vector<uint32_t> mMeshletData;
 #endif
 
@@ -49,7 +49,7 @@ class static_meshlets_app : public gvk::invokee
 		uint32_t mMaterialIndex;
 		uint32_t mTexelBufferIndex;
 
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 		gvk::meshlet_gpu_data<sNumVertices, sNumIndices> mGeometry;
 #else
 		gvk::meshlet_redirected_gpu_data mGeometry;
@@ -127,7 +127,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				meshletSelection.emplace_back(avk::shared(curModel), meshIndices);
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
@@ -186,7 +186,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mTexCoords).describe_only_member(drawCallData.mTexCoords[0]) // just take the vec2 as it is   
 				);
 
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 				drawCall.mMeshletDataBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
 					avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
 					avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
@@ -198,7 +198,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCall.mIndexBuffer->fill(drawCallData.mIndices.data(), 0, avk::sync::wait_idle(true));
 				drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0, avk::sync::wait_idle(true));
 				drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0, avk::sync::wait_idle(true));
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 				drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::sync::wait_idle(true));
 #endif
 
@@ -207,7 +207,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				mIndexBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mIndexBuffer)));
 				mNormalBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mNormalsBuffer)));
 				mTexCoordsBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mTexCoordsBuffer)));
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 				mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mMeshletDataBuffer)));
 #endif
 			}
@@ -274,7 +274,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 1, avk::as_uniform_texel_buffer_views(mIndexBuffers)),
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 			avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
 #endif
 			avk::descriptor_binding(4, 0, mMeshletsBuffer)
@@ -348,7 +348,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 1, avk::as_uniform_texel_buffer_views(mIndexBuffers)),
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 					avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
 #endif
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
@@ -434,7 +434,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mIndexBuffers;
 	std::vector<avk::buffer_view> mTexCoordsBuffers;
 	std::vector<avk::buffer_view> mNormalBuffers;
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 	std::vector<avk::buffer_view> mMeshletDataBuffers;
 #endif
 

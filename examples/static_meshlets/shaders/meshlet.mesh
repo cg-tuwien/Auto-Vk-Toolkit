@@ -19,7 +19,7 @@ layout(set = 0, binding = 1) uniform CameraTransform
 
 
 //-------------------------------------
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 struct meshlet
 {
 	uint vertices[64];
@@ -54,7 +54,7 @@ layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 1) uniform usamplerBuffer indexBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
 layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
 #endif
 layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;
@@ -99,13 +99,13 @@ void main()
 	mat4 transformationMatrix = meshletsBuffer.values[mshIdx].mTransformationMatrix;
 
 	uint texelBufferIndex     = meshletsBuffer.values[mshIdx].mTexelBufferIndex;
-#if !USE_DIRECT_MESHLET
+#if USE_REDIRECTED_GPU_DATA
 	uint indexOffset = uint(meshletsBuffer.values[mshIdx].mGeometry.data_offset + vertexCount);
 #endif
 	
 	for (uint i = thread_id; i < vertexCount; i+=32)
 	{
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 		uint vi = meshletsBuffer.values[mshIdx].mGeometry.vertices[i];
 #else
 		uint vi = texelFetch(meshletVertexIndices[texelBufferIndex], int(meshletsBuffer.values[mshIdx].mGeometry.data_offset + i)).x;
@@ -130,14 +130,14 @@ void main()
 		gl_PrimitiveCountNV = triangleCount;
 	}
  
-#if USE_DIRECT_MESHLET
+#if !USE_REDIRECTED_GPU_DATA
 	for (uint i = thread_id; i < triangleCount; i+=32)
 	{
 		gl_PrimitiveIndicesNV[i*3 + 0] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 0]);
 		gl_PrimitiveIndicesNV[i*3 + 1] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 1]);
 		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]);
 	}
-#else // !USE_DIRECT_MESHLET
+#else // USE_REDIRECTED_GPU_DATA
 	uint indexGroupCount = (triangleCount * 3 + 3) / 4;
 	for (uint i = thread_id; i < indexGroupCount; i += 32)
 	{
