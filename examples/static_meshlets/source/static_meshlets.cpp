@@ -69,10 +69,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
 
-		glm::mat4 globalTransform = glm::scale(glm::vec3(0.01f));
+		glm::mat4 globalTransform = glm::translate(glm::vec3(0.f, -0.5f, -3.f)) * glm::scale(glm::vec3(1.f));
 		std::vector<gvk::model> loadedModels;
 		// Load a model from file:
-		auto sponza = gvk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto sponza = gvk::model_t::load_from_file("assets/stanford_bunny.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
 		loadedModels.push_back(std::move(sponza));
 
@@ -438,7 +438,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mMeshletDataBuffers;
 #endif
 
-	bool mHighlightMeshlets;
+	bool mHighlightMeshlets = true;
 
 }; // static_meshlets_app
 
