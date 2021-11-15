@@ -319,13 +319,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-					ImGui::Checkbox("Enable/Disable invokee", &isEnabled);
-					if (isEnabled != this->is_enabled())
-					{
-						if (!isEnabled) this->disable();
-						else this->enable();
-					}
-
 					ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
 
 					ImGui::End();
