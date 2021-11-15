@@ -28,7 +28,6 @@
     <None Include="..\..\..\examples\static_meshlets\shaders\glsl_helpers.glsl" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.mesh" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.task" />
-    <None Include="..\..\..\examples\static_meshlets\shaders\transform_and_pass_pos_nrm_uv.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
@@ -37,11 +36,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
