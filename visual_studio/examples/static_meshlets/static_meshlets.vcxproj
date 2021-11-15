@@ -40,6 +40,11 @@
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{2e2f473e-af6a-4fc1-9d2d-b4541ead7bee}</ProjectGuid>

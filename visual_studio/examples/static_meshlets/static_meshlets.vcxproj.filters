@@ -34,6 +34,9 @@
     <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
       <Filter>assets</Filter>
     </None>
+    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
+      <Filter>assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

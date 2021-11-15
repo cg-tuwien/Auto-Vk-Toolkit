@@ -72,9 +72,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		glm::mat4 globalTransform = glm::translate(glm::vec3(0.f, -0.5f, -3.f)) * glm::scale(glm::vec3(1.f));
 		std::vector<gvk::model> loadedModels;
 		// Load a model from file:
-		auto sponza = gvk::model_t::load_from_file("assets/stanford_bunny.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto bunny = gvk::model_t::load_from_file("assets/stanford_bunny.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
-		loadedModels.push_back(std::move(sponza));
+		loadedModels.push_back(std::move(bunny));
 
 
 		std::vector<gvk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
@@ -84,7 +84,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 
 		for (size_t i = 0; i < loadedModels.size(); ++i) {
-			auto curModel = std::move(loadedModels[i]);
+			auto& curModel = loadedModels[i];
 
 			// get all the meshlet indices of the model
 			const auto meshIndicesInOrder = curModel->select_all_meshes();
@@ -107,24 +107,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCallData.mModelMatrix = globalTransform * curModel->transformation_matrix_for_mesh(meshIndex);
 				// Find and assign the correct material in the allMatConfigs vector
 				for (auto pair : distinctMaterials) {
-					if (std::end(pair.second) != std::find(std::begin(pair.second), std::end(pair.second), meshIndex)) {
+					if (std::end(pair.second) != std::ranges::find(pair.second, meshIndex)) {
 						break;
 					}
-
 					drawCallData.mMaterialIndex++;
 				}
 
 				auto selection = gvk::make_models_and_meshes_selection(curModel, meshIndex);
-				std::vector<gvk::mesh_index_t> meshIndices;
-				meshIndices.push_back(meshIndex);
 				// Build meshlets:
 				std::tie(drawCallData.mPositions, drawCallData.mIndices) = gvk::get_vertices_and_indices(selection);
 				drawCallData.mNormals = gvk::get_normals(selection);
 				drawCallData.mTexCoords = gvk::get_2d_texture_coordinates(selection, 0);
 
 				// create selection for the meshlets
-				std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<gvk::mesh_index_t>>> meshletSelection;
-				meshletSelection.emplace_back(avk::shared(curModel), meshIndices);
+				auto meshletSelection = gvk::make_shared_owning_models_and_meshes_selection(curModel, meshIndex);
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if !USE_REDIRECTED_GPU_DATA
