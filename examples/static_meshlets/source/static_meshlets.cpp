@@ -61,6 +61,67 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		: mQueue{ &aQueue }
 	{}
 
+	/** Creates buffers for all the drawcalls.
+	 *  @param dataForDrawCall		The loaded data for the drawcalls.
+	 *	@param drawCallsTarget		The target vector for the draw call data.
+	 */
+	void add_draw_calls(std::vector<loaded_data_for_draw_call>& dataForDrawCall, std::vector<data_for_draw_call>& drawCallsTarget) {
+		for (auto& drawCallData : dataForDrawCall) {
+			auto& drawCall = drawCallsTarget.emplace_back();
+			drawCall.mModelMatrix = drawCallData.mModelMatrix;
+			drawCall.mMaterialIndex = drawCallData.mMaterialIndex;
+
+			drawCall.mPositionsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0], avk::content_description::position),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mPositions),
+				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0]) // just take the vec3 as it is
+			);
+
+			drawCall.mIndexBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+				avk::index_buffer_meta::create_from_data(drawCallData.mIndices),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mIndices),
+				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mIndices).template set_format<glm::uvec3>() // Set a diferent format => combine 3 consecutive elements into one unit
+			);
+
+			drawCall.mNormalsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(drawCallData.mNormals),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mNormals),
+				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mNormals).describe_only_member(drawCallData.mNormals[0]) // just take the vec3 as it is
+			);
+
+			drawCall.mTexCoordsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(drawCallData.mTexCoords),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mTexCoords),
+				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mTexCoords).describe_only_member(drawCallData.mTexCoords[0]) // just take the vec2 as it is   
+			);
+
+#if USE_REDIRECTED_GPU_DATA
+			drawCall.mMeshletDataBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
+				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mMeshletData).describe_only_member(drawCallData.mMeshletData[0])
+			);
+#endif
+
+			drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0, avk::sync::wait_idle(true));
+			drawCall.mIndexBuffer->fill(drawCallData.mIndices.data(), 0, avk::sync::wait_idle(true));
+			drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0, avk::sync::wait_idle(true));
+			drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0, avk::sync::wait_idle(true));
+#if USE_REDIRECTED_GPU_DATA
+			drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::sync::wait_idle(true));
+#endif
+
+			// add them to the texel buffers
+			mPositionBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mPositionsBuffer)));
+			mIndexBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mIndexBuffer)));
+			mNormalBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mNormalsBuffer)));
+			mTexCoordsBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mTexCoordsBuffer)));
+#if USE_REDIRECTED_GPU_DATA
+			mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mMeshletDataBuffer)));
+#endif
+		}
+	}
+
 	void initialize() override
 	{
 		// use helper functions to create ImGui elements
@@ -151,65 +212,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		} // end for (auto& loadInfo : toLoad)
 
-		// lambda to create all the buffers for us
-		auto addDrawCalls = [this](auto& dataForDrawCall, auto& drawCallsTarget) {
-			for (auto& drawCallData : dataForDrawCall) {
-				auto& drawCall = drawCallsTarget.emplace_back();
-				drawCall.mModelMatrix = drawCallData.mModelMatrix;
-				drawCall.mMaterialIndex = drawCallData.mMaterialIndex;
-
-				drawCall.mPositionsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
-					avk::vertex_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0], avk::content_description::position),
-					avk::storage_buffer_meta::create_from_data(drawCallData.mPositions),
-					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0]) // just take the vec3 as it is
-				);
-
-				drawCall.mIndexBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
-					avk::index_buffer_meta::create_from_data(drawCallData.mIndices),
-					avk::storage_buffer_meta::create_from_data(drawCallData.mIndices),
-					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mIndices).template set_format<glm::uvec3>() // Set a diferent format => combine 3 consecutive elements into one unit
-				);
-
-				drawCall.mNormalsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
-					avk::vertex_buffer_meta::create_from_data(drawCallData.mNormals),
-					avk::storage_buffer_meta::create_from_data(drawCallData.mNormals),
-					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mNormals).describe_only_member(drawCallData.mNormals[0]) // just take the vec3 as it is
-				);
-
-				drawCall.mTexCoordsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
-					avk::vertex_buffer_meta::create_from_data(drawCallData.mTexCoords),
-					avk::storage_buffer_meta::create_from_data(drawCallData.mTexCoords),
-					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mTexCoords).describe_only_member(drawCallData.mTexCoords[0]) // just take the vec2 as it is   
-				);
-
-#if USE_REDIRECTED_GPU_DATA
-				drawCall.mMeshletDataBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
-					avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
-					avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
-					avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mMeshletData).describe_only_member(drawCallData.mMeshletData[0])
-				);
-#endif
-
-				drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0, avk::sync::wait_idle(true));
-				drawCall.mIndexBuffer->fill(drawCallData.mIndices.data(), 0, avk::sync::wait_idle(true));
-				drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0, avk::sync::wait_idle(true));
-				drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0, avk::sync::wait_idle(true));
-#if USE_REDIRECTED_GPU_DATA
-				drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::sync::wait_idle(true));
-#endif
-
-				// add them to the texel buffers
-				mPositionBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mPositionsBuffer)));
-				mIndexBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mIndexBuffer)));
-				mNormalBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mNormalsBuffer)));
-				mTexCoordsBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mTexCoordsBuffer)));
-#if USE_REDIRECTED_GPU_DATA
-				mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mMeshletDataBuffer)));
-#endif
-			}
-		};
 		// create all the buffers for our drawcall data
-		addDrawCalls(dataForDrawCall, mDrawCalls);
+		add_draw_calls(dataForDrawCall, mDrawCalls);
 
 		// Put the meshlets that we have gathered into a buffer:
 		mMeshletsBuffer = gvk::context().create_buffer(
