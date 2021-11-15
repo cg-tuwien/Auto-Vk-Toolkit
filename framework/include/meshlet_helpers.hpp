@@ -31,8 +31,8 @@ namespace gvk
 	template <size_t NV = 64, size_t NI = 378>
 	struct meshlet_gpu_data
 	{
-		static size_t sNumVertices = NV;
-		static size_t sNumIndices = NI;
+		static const size_t sNumVertices = NV;
+		static const size_t sNumIndices = NI;
 
 		/** Vertex indices into the vertex array */
 		uint32_t mVertices[NV];
