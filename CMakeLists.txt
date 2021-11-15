@@ -230,7 +230,7 @@ if (gvk_BuildModelLoader)
     add_subdirectory(examples/model_loader)
 endif()
 
-## model_loader
+## static_meshlets
 if (gvk_BuildStaticMeshlets)
     add_subdirectory(examples/static_meshlets)
 endif()

@@ -10,7 +10,7 @@ class static_meshlets_app : public gvk::invokee
 
 	struct alignas(16) push_constants
 	{
-		VkBool32 mHighlightMeshlets;
+		vk::Bool32 mHighlightMeshlets;
 	};
 
 	struct data_for_draw_call
@@ -105,7 +105,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				drawCallData.mMaterialIndex = static_cast<int32_t>(matOffset);
 				drawCallData.mModelMatrix = globalTransform * curModel->transformation_matrix_for_mesh(meshIndex);
-				// Find and assign the correct material (in the ~"global" allMatConfigs vector!)
+				// Find and assign the correct material in the allMatConfigs vector
 				for (auto pair : distinctMaterials) {
 					if (std::end(pair.second) != std::find(std::begin(pair.second), std::end(pair.second), meshIndex)) {
 						break;
@@ -308,13 +308,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Add the camera to the composition (and let it handle the updates)
 			mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 			mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-			//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 			gvk::current_composition()->add_element(mQuakeCam);
 
 			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 			if (nullptr != imguiManager) {
 				imguiManager->add_callback([this]() {
-					bool isEnabled = this->is_enabled();
 					ImGui::Begin("Info & Settings");
 					ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 					ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
