@@ -45,7 +45,7 @@ namespace gvk
 	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets with a maximum number of vertices and indices each.
 	 *								It can either receive the vertices and indices or just the indices depending on your specific needs.
 	 *								Additionally it provides the model and an optional mesh index if more data is needed. If no mesh index is provided then the meshes were combined beforehand.
-	 *								Must not grab ownership of the model, the model will be assigned to the meshlets after its execution.\n\n
+	 *								Ownership of the model must not be taken within the body of aMeshletDivision. The model will be assigned to each `meshlet` after aMeshletDivision has executed. \n\n
 	 *								The callback must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
 	 *								 - const std::vector<glm::vec3>& tVertices:		optional	The vertices of the mesh or combined meshes of the model
 	 *								 - const std::vector<uint32_t>& tIndices:  		mandatory	The indices of the mesh or combined meshes of the model
@@ -65,8 +65,8 @@ namespace gvk
 	 *									return generatedMeshlets;
 	 *								}
 	 *								@endcode
-	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
-	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
+	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet. This value is just passed on to aMeshletDivision.
+	 *	@param	aMaxIndices			The maximum number of indices of a meshlet. This value is just passed on to aMeshletDivision.
 	 */
 	template <typename F>
 	std::vector<meshlet> divide_indexed_geometry_into_meshlets(
@@ -115,12 +115,11 @@ namespace gvk
 
 	/** Divides the given models into meshlets using the given callback function.
 	 *  @param	aModelsAndMeshletIndices				All the models and associated meshes that should be divided into meshlets.
-	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets with a maximum number of vertices and indices.
+	 *  @param	aMeshletDivision	Callback used to divide meshes into meshlets with a maximum number of vertices and indices each.
 	 *								It can either receive the vertices and indices or just the indices depending on your specific needs.
 	 *								Additionally it provides the model and an optional mesh index if more data is needed. If no mesh index is provided then the meshes were combined beforehand.
 	 *								Ownership of the model must not be taken within the body of aMeshletDivision. The model will be assigned to each `meshlet` after aMeshletDivision has executed. \n\n
-	 *								The callback has a specific layout, optional parameters can be omitted, but all of them need to be provided in the following order.
-	 *								Parameters in definition order:
+	 *								The callback must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
 	 *								 - const std::vector<glm::vec3>& tVertices:		optional	The vertices of the mesh or combined meshes of the model
 	 *								 - const std::vector<uint32_t>& tIndices:  		mandatory	The indices of the mesh or combined meshes of the model
 	 *								 - const model_t& tModel:						mandatory	The model these meshlets are generated from
