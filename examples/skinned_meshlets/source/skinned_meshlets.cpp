@@ -440,7 +440,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 		auto ifi = mainWnd->current_in_flight_index();
 
-		// fill the animated bone buffers
+		// Upload the updated bone matrices into the buffer for the current frame (considering that we have cConcurrentFrames-many concurrent frames):
 		for (auto& models : mAnimatedModels) {
 			mBoneMatricesBuffersAni[ifi][std::get<animated_model_data>(models).mBoneMatricesBufferIndex]->fill(std::get<additional_animated_model_data>(models).mBoneMatricesAni.data(), 0, avk::sync::not_required());
 		}
