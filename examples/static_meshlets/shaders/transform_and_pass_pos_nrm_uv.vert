@@ -27,3 +27,4 @@ void main() {
 	materialIndex = pushConstants.mMaterialIndex;
     gl_Position = ubo.mViewProjMatrix * posWS;
 }
+

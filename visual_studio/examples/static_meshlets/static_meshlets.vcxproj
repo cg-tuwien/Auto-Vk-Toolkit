@@ -24,19 +24,20 @@
     <ClCompile Include="cg_stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <FileType>Document</FileType>
-    </None>
     <None Include="..\..\..\examples\static_meshlets\shaders\diffuse_shading_fixed_lightsource.frag" />
     <None Include="..\..\..\examples\static_meshlets\shaders\glsl_helpers.glsl" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.mesh" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.task" />
-    <None Include="..\..\..\examples\static_meshlets\shaders\transform_and_pass_pos_nrm_uv.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
       <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

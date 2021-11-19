@@ -16,13 +16,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\assets\3rd_party\models\sponza\sponza_structure.obj">
-      <Filter>assets</Filter>
-    </None>
     <None Include="..\..\..\examples\static_meshlets\shaders\diffuse_shading_fixed_lightsource.frag">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="..\..\..\examples\static_meshlets\shaders\transform_and_pass_pos_nrm_uv.vert">
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.mesh">
@@ -33,6 +27,9 @@
     </None>
     <None Include="..\..\..\examples\static_meshlets\shaders\glsl_helpers.glsl">
       <Filter>shared</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
+      <Filter>assets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
