@@ -72,10 +72,10 @@ class skinned_meshlets_app : public gvk::invokee
 		size_t mBoneMatricesBufferIndex;
 		gvk::animation mAnimation;
 
-		double start_sec() const { return mClip.mStartTicks / mClip.mTicksPerSecond; }
-		double end_sec() const { return mClip.mEndTicks / mClip.mTicksPerSecond; }
-		double duration_sec() const { return end_sec() - start_sec(); }
-		double duration_ticks() const { return mClip.mEndTicks - mClip.mStartTicks; }
+		[[nodiscard]] double start_sec() const { return mClip.mStartTicks / mClip.mTicksPerSecond; }
+		[[nodiscard]] double end_sec() const { return mClip.mEndTicks / mClip.mTicksPerSecond; }
+		[[nodiscard]] double duration_sec() const { return end_sec() - start_sec(); }
+		[[nodiscard]] double duration_ticks() const { return mClip.mEndTicks - mClip.mStartTicks; }
 	};
 
 	struct alignas(16) meshlet
@@ -117,7 +117,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		std::vector<meshlet> meshletsGeometry;
 		std::vector<animated_model_data> animatedModels;
 
-		// just use some animation for now, define for each model if needed
+		// Crab-specific animation config: (Needs to be adapted for other models)
 		const uint32_t cAnimationIndex = 0;
 		const uint32_t cStartTimeTicks = 0;
 		const uint32_t cEndTimeTicks   = 58;
@@ -160,7 +160,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				drawCallData.mMaterialIndex = static_cast<int32_t>(matOffset);
 				drawCallData.mModelMatrix = globalTransform;
-				drawCallData.mModelIndex = curEntry.mBoneMatricesBufferIndex;
+				drawCallData.mModelIndex = static_cast<uint32_t>(curEntry.mBoneMatricesBufferIndex);
 				// Find and assign the correct material (in the ~"global" allMatConfigs vector!)
 				for (auto pair : distinctMaterials) {
 					if (std::end(pair.second) != std::find(std::begin(pair.second), std::end(pair.second), meshIndex)) {
@@ -222,7 +222,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		} // end for (auto& loadInfo : toLoad)
 
 		// create buffers for animation data
-		for (int i = 0; i < loadedModels.size(); ++i) {
+		for (size_t i = 0; i < loadedModels.size(); ++i) {
 			auto& animModel = mAnimatedModels.emplace_back(std::move(animatedModels[i]), additional_animated_model_data{});
 
 			// buffers for the animated bone matrices, will be populated before rendering
