@@ -85,9 +85,6 @@ void main()
 
 	int diffuseTexIndex = matSsbo.materials[matIndex].mDiffuseTexIndex;
     vec3 color = texture(textures[diffuseTexIndex], v_in.texCoord).rgb;
-	if(pushConstants.highlightMeshlets == 1) {
-		color = mix(color, v_in.color, 0.2);
-	}
 	
 	float ambient = 0.3;
 	vec3 diffuse = matSsbo.materials[matIndex].mDiffuseReflectivity.rgb;
@@ -95,5 +92,9 @@ void main()
 	vec3 illum = vec3(ambient) + diffuse * max(0.0, dot(normalize(v_in.normalWS), toLight));
 	color *= illum;
 	
+	if(pushConstants.highlightMeshlets == 1) {
+		color = mix(color, v_in.color, 0.5);
+	}
+
 	fs_out = vec4(color, 1.0);
 }
