@@ -19,17 +19,17 @@ out taskNV block
 
 void main() 
 {
-	// calculate and set the meshlet index for this execution
+	// Calculate and set the meshlet index for this execution:
 	uint meshlet_group_id = gl_WorkGroupID.x;
 	uint thread_id = gl_LocalInvocationID.x;
 	uint mshIdx = meshlet_group_id * 32 + thread_id;
 
 	meshletIndices[thread_id] = mshIdx;
 
-	// Here you could do some culling on a per meshlet basis and only execute the meshlet shader for the surviving ones
-	// For example backface culling or frustum culling
+	// Here culling on a per meshlet basis can be performed, so that the subsequent mesh shader is only executed for the surviving meshlets.
+	// For example backface culling or frustum culling.
 
-	// we only need to write the task count once for all executions
+	// We only need to write the task count once for all executions:
 	if (thread_id == 0) {
 		gl_TaskCountNV = 32;
 	}

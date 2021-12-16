@@ -170,16 +170,29 @@ namespace gvk
 		std::function<void(vk::PhysicalDeviceFeatures&)> mFunction;
 	};
 
-	/** Pass a function to modify the requested Vulkan 1.2 device features.
-	 *	@typedef	F		void(vk::PhysicalDeviceVulkan12Features&)
-	 *						Modify the values of the passed reference to vk::PhysicalDeviceVulkan12Features& directly!
+	/** Pass a function to modify the requested Vulkan 1.1 device features.
+	 *	@typedef	F		void(vk::PhysicalDeviceVulkan11Features&)
+	 *						Modify the values of the passed reference to vk::PhysicalDeviceVulkan11Features& directly!
 	 */
+	struct alter_vulkan11_device_features
+	{
+		template <typename F>
+		alter_vulkan11_device_features(F&& aCallback) : mFunction{ std::forward(aCallback) }
+		{ }
+		
+		std::function<void(vk::PhysicalDeviceVulkan11Features&)> mFunction;
+	};
+
+	/** Pass a function to modify the requested Vulkan 1.2 device features.
+	*	@typedef	F		void(vk::PhysicalDeviceVulkan12Features&)
+	*						Modify the values of the passed reference to vk::PhysicalDeviceVulkan12Features& directly!
+	*/
 	struct alter_vulkan12_device_features
 	{
 		template <typename F>
 		alter_vulkan12_device_features(F&& aCallback) : mFunction{ std::forward(aCallback) }
 		{ }
-		
+
 		std::function<void(vk::PhysicalDeviceVulkan12Features&)> mFunction;
 	};
 

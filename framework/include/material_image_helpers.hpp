@@ -373,7 +373,7 @@ namespace gvk
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult, std::vector<size_t> aMeshIndices, Rest&... rest)
+	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult, std::vector<size_t>& aMeshIndices, Rest&... rest)
 	{
 		auto& idxes = std::get<std::vector<size_t>>(aResult.back());
 		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
@@ -400,21 +400,21 @@ namespace gvk
 		return result;
 	}
 
-	/**	This is a convenience method that allows to compile a selection of shared owning models and mesh indices.
+	/** This is a convenience function that allows to compile a selection of models and associated mesh indices.
 	 *	Valid usage means passing a model as parameter, and following it up with one or multiple mesh index parameters.
 	 *
-	 *	Model parameters must have shared ownership enabled.
+	 *	Shared ownership will be enabled on the models.
 	 *	Mesh index parameters are supported in the forms:
 	 *	 - size_t
 	 *	 - std::vector<size_t>
 	 *
 	 *	Examples of valid parameters:
-	 *	 - make_models_and_meshes_selection(myModel, 1, 2, 3); // => a model and 3x size_t
-	 *	 - make_models_and_meshes_selection(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
-	 *	 - make_models_and_meshes_selection(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, 2, 3); // => a model and 3x size_t
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
 	 */
 	template <typename... Args>
-	std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>> make_shared_owning_models_and_meshes_selection(Args&... args)
+	std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>> make_selection_of_shared_models_and_mesh_indices(Args&... args)
 	{
 		std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>> result;
 		add_tuple_or_indices_shared(result, args...);
@@ -480,9 +480,9 @@ namespace gvk
 
 	// A concept which requires a type to have a .describe_member(size_t aOffset, content_description aContent)
 	template <typename T>
-	concept has_describe_only_member = requires (T x)
+	concept has_describe_member = requires (T x)
 	{
-		x.describe_only_member(size_t{ 0 }, avk::content_description::position);
+		x.describe_member(size_t{ 0 }, vk::Format::eUndefined, avk::content_description::position);
 	};
 
 	// A concept which requires a type to have a .set_format<glm::uvec3>(avk::content_description)
@@ -494,30 +494,58 @@ namespace gvk
 
 	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
 	template <typename Meta>
-	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
+	auto set_up_meta_from_data_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires has_set_format_for_index_buffer<Meta>
 	{
 		return Meta::create_from_data(aIndicesData).template set_format<glm::uvec3>(avk::content_description::index); // Combine 3 consecutive elements to one unit
 	}
 
 	// ...and another helper which creates metas for other Meta types:
 	template <typename Meta>
-	auto set_up_meta_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires (!has_set_format_for_index_buffer<Meta>)
+	auto set_up_meta_from_data_for_index_buffer(const std::vector<uint32_t>& aIndicesData) requires (!has_set_format_for_index_buffer<Meta>)
 	{
 		return Meta::create_from_data(aIndicesData);
 	}
 
 	// Helper which creates meta data for uniform/storage_texel_buffer_view metas:
 	template <typename Meta>
-	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires has_describe_only_member<Meta>
+	auto set_up_meta_from_data_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires has_describe_member<Meta>
 	{
-		return Meta::create_from_data(aVerticesData).describe_only_member(aVerticesData[0], avk::content_description::position);
+		return Meta::create_from_data(aVerticesData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(aVerticesData)>::value_type>(), avk::content_description::position);
 	}
 
 	// ...and another helper which creates metas for other Meta types:
 	template <typename Meta>
-	auto set_up_meta_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires (!has_describe_only_member<Meta>)
+	auto set_up_meta_from_data_for_vertex_buffer(const std::vector<glm::vec3>& aVerticesData) requires (!has_describe_member<Meta>)
 	{
 		return Meta::create_from_data(aVerticesData);
+	}
+
+	// Helper which creates meta data for uniform/storage_texel_buffer_view from size specification
+	template <typename Meta>
+	auto set_up_meta_from_total_size_for_index_buffer(size_t aTotalSize, size_t aNumElements) requires has_set_format_for_index_buffer<Meta>
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements).template set_format<glm::uvec3>(avk::content_description::index); // Combine 3 consecutive elements to one unit
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta>
+	auto set_up_meta_from_total_size_for_index_buffer(size_t aTotalSize, size_t aNumElements) requires (!has_set_format_for_index_buffer<Meta>)
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements);
+	}
+
+	// Helper which creates meta data for uniform/storage_texel_buffer_view from size specification
+	template <typename Meta, typename FMT>
+	auto set_up_meta_from_total_size_for_vertex_buffer(size_t aTotalSize, size_t aNumElements) requires has_describe_member<Meta>
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements).describe_member(0, avk::format_for<FMT>(), avk::content_description::position);
+	}
+
+	// ...and another helper which creates metas for other Meta types:
+	template <typename Meta, typename FMT>
+	auto set_up_meta_from_total_size_for_vertex_buffer(size_t aTotalSize, size_t aNumElements) requires (!has_describe_member<Meta>)
+	{
+		return Meta::create_from_total_size(aTotalSize, aNumElements);
 	}
 
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
@@ -544,21 +572,21 @@ namespace gvk
 
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
-			avk::vertex_buffer_meta::create_from_data(positionsData).describe_only_member(positionsData[0], avk::content_description::position),
-			set_up_meta_for_vertex_buffer<Metas>(positionsData)...
+			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
 		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
 		auto indexBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::index_buffer_meta::create_from_data(indicesData),
-			set_up_meta_for_index_buffer<Metas>(indicesData)...
+			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
 		indexBuffer->fill(indicesData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let indicesData go out of scope, since its data has been copied to a
-		// staging buffer within create_and_fill, which is lifetime-handled by the command buffer.
+		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
 		// Sync after:
 		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
@@ -607,13 +635,12 @@ namespace gvk
 		size_t numIndices = 0;
 		size_t totalIndicesSize = 0;
 
+		auto& [positionsData, indicesData] = aVerticesAndIndices;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
-			auto& [positionsData, indicesData] = aVerticesAndIndices;
-
 			numPositions = positionsData.size();
-			totalPositionsSize = sizeof(positionsData[0]) * numPositions;
+			totalPositionsSize = sizeof(std::remove_reference_t<decltype(positionsData)>::value_type) * numPositions;
 			numIndices = indicesData.size();
-			totalIndicesSize = sizeof(indicesData[0]) * numIndices;
+			totalIndicesSize = sizeof(std::remove_reference_t<decltype(indicesData)>::value_type) * numIndices;
 
 			aSerializer.archive(numPositions);
 			aSerializer.archive(totalPositionsSize);
@@ -633,15 +660,16 @@ namespace gvk
 
 			auto positionsBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions)
-				.describe_member(0, avk::format_for<glm::vec3>(), avk::content_description::position)
+				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+				set_up_meta_from_total_size_for_vertex_buffer<Metas, std::remove_reference_t<decltype(positionsData)>::value_type>(totalPositionsSize, numPositions)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize, aSyncHandler);
 
 			auto indexBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices)
+				avk::index_buffer_meta::create_from_total_size(totalIndicesSize, numIndices),
+				set_up_meta_from_total_size_for_index_buffer<Metas>(totalIndicesSize, numIndices)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize, aSyncHandler);
@@ -688,7 +716,7 @@ namespace gvk
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::generic_buffer_meta::create_from_data(aBufferData),
-			Metas::create_from_data(aBufferData).describe_only_member(aBufferData[0], aContentDescription)...
+			Metas::create_from_data(aBufferData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 		);
 		buffer->fill(aBufferData.data(), 0, std::move(aSyncHandler));
 		// It is fine to let aBufferData go out of scope, since its data has been copied to a
@@ -715,7 +743,7 @@ namespace gvk
 
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			numBufferEntries = aBufferData.size();
-			bufferTotalSize = sizeof(aBufferData[0]) * numBufferEntries;
+			bufferTotalSize = sizeof(typename std::remove_reference_t<decltype(aBufferData)>::value_type) * numBufferEntries;
 
 			aSerializer.archive(numBufferEntries);
 			aSerializer.archive(bufferTotalSize);
@@ -730,7 +758,8 @@ namespace gvk
 
 			auto buffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::vertex_buffer_meta::create_from_total_size(bufferTotalSize, numBufferEntries)
+				avk::generic_buffer_meta::create_from_size(bufferTotalSize),
+				Metas::create_from_total_size(bufferTotalSize, numBufferEntries).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize, aSyncHandler);
@@ -1334,8 +1363,8 @@ namespace gvk
 	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, v, and w coordinates (in that order)
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 3> aBorderHandlingModes, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	/**	Create a new sampler with the given configuration parameters
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1343,8 +1372,8 @@ namespace gvk
 	 *	@param	aBorderHandlingModes		Border handling strategy for the sampler to be created for u, and v coordinates (in that order). (The w direction will get the same strategy assigned as v)
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, std::array<avk::border_handling_mode, 2> aBorderHandlingModes, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	/**	Create a new sampler with the given configuration parameters
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1352,8 +1381,8 @@ namespace gvk
 	 *	@param	aBorderHandlingMode			Border handling strategy for all coordinates u, v, and w.
 	 *	@param	aMipMapMaxLod				Default value = house number
 	 *	@param	aAlterConfigBeforeCreation	A context-specific function which allows to alter the configuration before the sampler is created.
-	 */                                                                                                      // TODO: vvv Which value by default for the mip-map max lod?
-	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = 32.0f, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
+	 */
+	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
 	template <typename T>
 	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
@@ -1681,11 +1710,11 @@ namespace gvk
 					
 					avk::sampler smplr;
 					if (aSerializer) {
-						smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+						smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes);
 					}
 					else
 					{
-						smplr = context().create_sampler(aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+						smplr = context().create_sampler(aTextureFilterMode, bhModes);
 					}
 
 					if (numDifferentSamplers > 1) {
@@ -1729,7 +1758,7 @@ namespace gvk
 				for (int i = 0; i < numDifferentSamplers; ++i) {
 					
 					// Read sampler from cache
-					auto smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes); // TODO: What about max mip-map levels?
+					auto smplr = create_sampler_cached(aSerializer->get(), aTextureFilterMode, bhModes);
 
 					if (numDifferentSamplers > 1) {
 						// If we indeed have different border handling modes, create multiple samplers and share the image view resource among them:

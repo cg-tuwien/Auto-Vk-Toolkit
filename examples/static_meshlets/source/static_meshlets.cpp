@@ -176,7 +176,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCallData.mTexCoords = gvk::get_2d_texture_coordinates(selection, 0);
 
 				// create selection for the meshlets
-				auto meshletSelection = gvk::make_shared_owning_models_and_meshes_selection(curModel, meshIndex);
+				auto meshletSelection = gvk::make_selection_of_shared_models_and_mesh_indices(curModel, meshIndex);
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if !USE_REDIRECTED_GPU_DATA
@@ -249,7 +249,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create our rasterization graphics pipeline with the required configuration:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			// Specify which shaders the pipeline consists of:
-			avk::task_shader("shaders/meshlet.task"), // we use a task and meshlet shader
+			avk::task_shader("shaders/meshlet.task"), // we use a task and mesh shader
 			avk::mesh_shader("shaders/meshlet.mesh"),
 			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// Some further settings:

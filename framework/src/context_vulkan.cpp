@@ -99,6 +99,7 @@ namespace gvk
 	void context_vulkan::initialize(
 		settings aSettings,
 		vk::PhysicalDeviceFeatures aPhysicalDeviceFeatures,
+		vk::PhysicalDeviceVulkan11Features aVulkan11Features,
 		vk::PhysicalDeviceVulkan12Features aVulkan12Features,
 #if VK_HEADER_VERSION >= 162
 		vk::PhysicalDeviceAccelerationStructureFeaturesKHR& aAccStructureFeatures, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& aRayTracingPipelineFeatures, vk::PhysicalDeviceRayQueryFeaturesKHR& aRayQueryFeatures
@@ -109,6 +110,7 @@ namespace gvk
 	{
 		mSettings = std::move(aSettings);
 		mRequestedPhysicalDeviceFeatures = std::move(aPhysicalDeviceFeatures);
+		mRequestedVulkan11DeviceFeatures = std::move(aVulkan11Features);
 		mRequestedVulkan12DeviceFeatures = std::move(aVulkan12Features);
 		
 		// So it begins
@@ -199,8 +201,11 @@ namespace gvk
 			.setFeatures(context().mRequestedPhysicalDeviceFeatures)
 			.setPNext(activateShadingRateImage ? &shadingRateImageFeatureNV : nullptr);
 
+		auto deviceVulkan11Features = context().mRequestedVulkan11DeviceFeatures;
+		deviceVulkan11Features.setPNext(&deviceFeatures);
+
 	    auto deviceVulkan12Features = context().mRequestedVulkan12DeviceFeatures;
-		deviceVulkan12Features.setPNext(&deviceFeatures);
+		deviceVulkan12Features.setPNext(&deviceVulkan11Features);
 
 #if VK_HEADER_VERSION >= 162
 		assert(nullptr == aAccStructureFeatures.pNext);
