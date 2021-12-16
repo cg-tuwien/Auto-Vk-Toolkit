@@ -278,7 +278,7 @@ namespace gvk
 #endif
 				throw avk::logic_error("No suitable type passed to convert_for_gpu_usage.");
 			}
-		}
+}
 		return std::forward_as_tuple(gpuMeshlets, vertexIndices);
 	}
 

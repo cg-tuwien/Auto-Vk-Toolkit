@@ -69,7 +69,7 @@ class combo_box_container {
 public:
 	combo_box_container(std::string&& aTitle, std::vector<const char*>&& aItems, int aCurrent, std::optional<std::function<void(std::string)>>&& aCallback)
 		: mTitle(aTitle), mItems(aItems), mCurrent(aCurrent), mCallback(std::move(aCallback)) {
-		mVisibleRowsCount = std::min(static_cast<size_t>(default_max_visible_count), mItems.size());
+		mVisibleRowsCount = std::min(default_max_visible_count, static_cast<int>(mItems.size()));
 	};
 
 	void invokeImGui()

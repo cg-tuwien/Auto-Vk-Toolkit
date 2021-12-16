@@ -12,7 +12,7 @@ namespace gvk
 
 	glm::vec3 catmull_rom_spline::value_at(float t)
 	{
-		uint32_t numSections = num_control_points() - 3;
+		uint32_t numSections = static_cast<uint32_t>(num_control_points() - 3);
 		float tns = t * numSections;
 		uint32_t section = glm::min(static_cast<uint32_t>(tns), numSections - 1);
 		float u = tns - static_cast<float>(section);
@@ -32,7 +32,7 @@ namespace gvk
 
 	glm::vec3 catmull_rom_spline::slope_at(float t)
 	{
-		uint32_t numSections = num_control_points() - 3;
+		uint32_t numSections = static_cast<uint32_t>(num_control_points() - 3);
 		float tns = t * numSections;
 		uint32_t section = glm::min(static_cast<uint32_t>(tns), numSections - 1);
 		float u = tns - static_cast<float>(section);
