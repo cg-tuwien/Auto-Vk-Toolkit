@@ -35,17 +35,69 @@ namespace gvk
 #endif
 		);
 		
-		vk::Instance& vulkan_instance() { return mInstance; }
-		vk::PhysicalDevice& physical_device() override { return mPhysicalDevice; }
-		vk::Device& device() override { return mLogicalDevice; }
-		vk::DispatchLoaderStatic& dispatch_loader_core() override { return mStaticDispatch; }
-		vk::DispatchLoaderDynamic& dispatch_loader_ext() override { return mDynamicDispatch; }
+		vk::Instance& vulkan_instance()                                         { return mInstance;        }
+		vk::PhysicalDevice& physical_device() override                          { return mPhysicalDevice;  }
+		vk::Device& device() override                                           { return mLogicalDevice;   }
+
+		DISPATCH_LOADER_CORE_TYPE& dispatch_loader_core() override
+		{
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
+			if constexpr (std::is_same<std::remove_cv_t<decltype(VULKAN_HPP_DEFAULT_DISPATCHER)>, DISPATCH_LOADER_CORE_TYPE>()) {
+				return VULKAN_HPP_DEFAULT_DISPATCHER;
+			}
+#else
+			return mDispatchCore;
+#endif
+		}
+
+		DISPATCH_LOADER_EXT_TYPE& dispatch_loader_ext()  override
+		{
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
+			if constexpr (std::is_same<std::remove_cv_t<decltype(VULKAN_HPP_DEFAULT_DISPATCHER)>, DISPATCH_LOADER_EXT_TYPE>()) {
+				return VULKAN_HPP_DEFAULT_DISPATCHER;
+			}
+#else
+			return mDispatchExt;
+#endif
+		}
+
 #if defined(AVK_USE_VMA)
-		VmaAllocator& memory_allocator() override { return mMemoryAllocator; }
+		VmaAllocator& memory_allocator() override                               { return mMemoryAllocator; }
 #else
 		std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() override { return mMemoryAllocator; }
 #endif
-		
+		const vk::Instance& vulkan_instance() const                             { return mInstance;        }
+		const vk::PhysicalDevice& physical_device() const override              { return mPhysicalDevice;  }
+		const vk::Device& device() const override                               { return mLogicalDevice;   }
+
+		const DISPATCH_LOADER_CORE_TYPE& dispatch_loader_core() const override
+		{
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
+			if constexpr (std::is_same<std::remove_cv_t<decltype(VULKAN_HPP_DEFAULT_DISPATCHER)>, DISPATCH_LOADER_CORE_TYPE>()) {
+				return VULKAN_HPP_DEFAULT_DISPATCHER;
+			}
+#else
+			return mDispatchCore;
+#endif
+		}
+
+		const DISPATCH_LOADER_EXT_TYPE& dispatch_loader_ext()  const override
+		{
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
+			if constexpr (std::is_same<std::remove_cv_t<decltype(VULKAN_HPP_DEFAULT_DISPATCHER)>, DISPATCH_LOADER_EXT_TYPE>()) {
+				return VULKAN_HPP_DEFAULT_DISPATCHER;
+			}
+#else
+			return mDispatchExt;
+#endif
+		}
+
+#if defined(AVK_USE_VMA)
+		const VmaAllocator& memory_allocator() const override                   { return mMemoryAllocator; }
+#else
+		const std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() override { return mMemoryAllocator; }
+#endif
+
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
 
 		/** Gets a command pool for the given queue family index.
@@ -206,8 +258,10 @@ namespace gvk
 		//std::vector<swap_chain_data_ptr> mSurfSwap;
 		vk::PhysicalDevice mPhysicalDevice;
 		vk::Device mLogicalDevice;
-		vk::DispatchLoaderStatic  mStaticDispatch;
-		vk::DispatchLoaderDynamic mDynamicDispatch;
+#if !(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1)
+		DISPATCH_LOADER_CORE_TYPE mDispatchCore;
+		DISPATCH_LOADER_EXT_TYPE  mDispatchExt;
+#endif
 		
 #if defined(AVK_USE_VMA)
 		VmaAllocator mMemoryAllocator;

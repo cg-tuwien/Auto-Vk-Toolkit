@@ -1,6 +1,9 @@
 #include <gvk.hpp>
-
 #include <set>
+
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+#endif
 
 namespace gvk
 {
@@ -167,7 +170,7 @@ namespace gvk
 		// If the user has not created any queue, create at least one
 		if (mQueues.empty()) {
 			auto familyIndex = avk::queue::select_queue_family_index(mPhysicalDevice, {}, avk::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
-			mQueues.emplace_back(avk::queue::prepare(mPhysicalDevice, mStaticDispatch, familyIndex, 0));
+			mQueues.emplace_back(avk::queue::prepare(physical_device(), dispatch_loader_core(), familyIndex, 0));
 		}
 		
 		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
@@ -260,13 +263,15 @@ namespace gvk
 			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
-		// Create a dynamic dispatch loader for extensions
-		context().mStaticDispatch = vk::DispatchLoaderStatic{};
-		context().mDynamicDispatch = vk::DispatchLoaderDynamic{
-			context().vulkan_instance(), 
-			vkGetInstanceProcAddr, // TODO: <-- Is this the right choice? There's also glfwGetInstanceProcAddress.. just saying.
-			context().device()
-		};
+
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
+			reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_core()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
+		}
+		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
+				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
+			}
+		}
 
 		mContextState = context_state::device_created;
 		work_off_event_handlers();
@@ -469,8 +474,8 @@ namespace gvk
 				throw gvk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
-			vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
-			window->mSurface = vk::UniqueHandle<vk::SurfaceKHR, vk::DispatchLoaderStatic>(surface, deleter);
+			vk::ObjectDestroy<vk::Instance, DISPATCH_LOADER_CORE_TYPE> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
+			window->mSurface = vk::UniqueHandle<vk::SurfaceKHR, DISPATCH_LOADER_CORE_TYPE>(surface, deleter);
 			return true;
 		});
 
@@ -498,6 +503,15 @@ namespace gvk
 
 	void context_vulkan::create_instance()
 	{
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
+			reinterpret_cast<vk::DispatchLoaderDynamic&>(dispatch_loader_core()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
+		}
+		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
+				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
+			}
+		}
+
 		// Information about the application for the instance creation call
 		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
 										   "Gears-Vk", VK_MAKE_VERSION(0, 1, 0), // TODO: Real version of Gears-Vk
@@ -545,7 +559,15 @@ namespace gvk
 		
 		// Create it, errors will result in an exception.
 		mInstance = vk::createInstance(instCreateInfo);
-		mDynamicDispatch.init((VkInstance)mInstance, vkGetInstanceProcAddr);
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
+			reinterpret_cast<vk::DispatchLoaderDynamic&>(dispatch_loader_core()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
+		}
+		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
+				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
+			}
+		}
+
 	}
 
 	bool context_vulkan::is_validation_layer_supported(const char* pName)
