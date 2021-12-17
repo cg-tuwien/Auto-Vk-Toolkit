@@ -257,7 +257,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCallData.mBoneWeights = gvk::get_bone_weights(selection);
 
 				// create selection for the meshlets
-				auto meshletSelection = gvk::make_shared_owning_models_and_meshes_selection(curModel, meshIndex);
+				auto meshletSelection = gvk::make_selection_of_shared_models_and_mesh_indices(curModel, meshIndex);
 
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if !USE_REDIRECTED_GPU_DATA
