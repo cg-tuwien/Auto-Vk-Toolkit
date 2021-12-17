@@ -101,7 +101,7 @@ void main()
 	uint mshIdx = meshletIndices[gl_WorkGroupID.x];
 	uint thread_id = gl_LocalInvocationID.x;
 
-	// get all the meshlet data
+	// Get all the meshlet data:
 	uint vertexCount          = uint(meshletsBuffer.values[mshIdx].mGeometry.vertex_count);
 	uint triangleCount        = uint(meshletsBuffer.values[mshIdx].mGeometry.triangle_count);
 	uint materialIndex        = meshletsBuffer.values[mshIdx].mMaterialIndex;
@@ -113,22 +113,22 @@ void main()
 	uint indexOffset = uint(meshletsBuffer.values[mshIdx].mGeometry.data_offset + vertexCount);
 #endif
 	
-	// step by 32 as we have that many threads but potentially more vertices to calculate
+	// Step by 32 as we have that many threads but potentially more vertices to calculate:
 	for (uint i = thread_id; i < vertexCount; i+=32)
 	{
-		// get the vertex index
+		// Get the vertex index:
 #if !USE_REDIRECTED_GPU_DATA
 		uint vi = meshletsBuffer.values[mshIdx].mGeometry.vertices[i];
 #else
 		uint vi = texelFetch(meshletVertexIndices[texelBufferIndex], int(meshletsBuffer.values[mshIdx].mGeometry.data_offset + i)).x;
 #endif
-		// get vertex data from the appropriate texel buffers and vertex indices
+		// Get vertex data from the appropriate texel buffers and vertex indices:
 		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
 		vec3 nrmMshSp = texelFetch(normalBuffers[texelBufferIndex], int(vi)).xyz;
 		vec4 boneWeights = texelFetch(boneWeightsBuffers[texelBufferIndex], int(vi));
 		uvec4 boneIndices = texelFetch(boneIndicesBuffers[texelBufferIndex], int(vi));
 
-		// do the bone transform for the position
+		// Do the bone transform for the position:
 		vec4 aniPos = bone_transform(
 			boneMatrices[modelIdx].mat[boneIndices[0]], 
 			boneMatrices[modelIdx].mat[boneIndices[1]], 
@@ -138,7 +138,7 @@ void main()
 			posMshSp
 		);
 
-		// do the bone transform for the normal
+		// Do the bone transform for the normal:
 		vec3 aniNrm = bone_transform(
 			boneMatrices[modelIdx].mat[boneIndices[0]], 
 			boneMatrices[modelIdx].mat[boneIndices[1]], 
@@ -148,14 +148,14 @@ void main()
 			nrmMshSp
 		);
 		
-		// rest of the transformation
+		// Rest of the transformation:
 		vec4 posWS = transformationMatrix * aniPos;
 		vec4 posCS = ubo.mViewProjMatrix * posWS;
  
-		// set the vertex position
+		// Set the vertex position:
 		gl_MeshVerticesNV[i].gl_Position = posCS;
  
-		// set the per vertex data for the fragment shader
+		// Set the per vertex data for the fragment shader:
 		v_out[i].positionWS = posWS.xyz;
 		v_out[i].normalWS = mat3(transformationMatrix) * aniNrm;
 		v_out[i].texCoord = texelFetch(texCoordsBuffers[texelBufferIndex], int(vi)).st;
@@ -163,13 +163,13 @@ void main()
 		v_out[i].color = meshletcolors[mshIdx % MAX_COLORS];
 	}
  
-	// only set once
+	// Only set once:
 	if(thread_id == 0)
 	{
 		gl_PrimitiveCountNV = triangleCount;
 	}
  
-	// write the indices for the vertices
+	// Write the indices for the vertices:
 #if !USE_REDIRECTED_GPU_DATA
 	// write for each triangle, also note the 32 stepping
 	for (uint i = thread_id; i < triangleCount; i+=32)
@@ -179,12 +179,12 @@ void main()
 		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]);
 	}
 #else // USE_REDIRECTED_GPU_DATA
-	// here we have the indices packed into an uint, so we can write each of the uints at once
+	// Here we have the indices packed into an uint, so we can write each of the uints at once:
 	uint indexGroupCount = (triangleCount * 3 + 3) / 4; // need to calculate how many packed uints we have
 	for (uint i = thread_id; i < indexGroupCount; i += 32)
 	{
 		uint index = uint(texelFetch(meshletVertexIndices[texelBufferIndex], int(indexOffset + i))).x;
-		// this writes the whole uint at once
+		// This writes the whole uint at once:
 		writePackedPrimitiveIndices4x8NV(i * 4, index);
 	}
 #endif
