@@ -51,6 +51,7 @@
     <ClCompile Include="..\..\framework\src\log.cpp" />
     <ClCompile Include="..\..\framework\src\material_image_helpers.cpp" />
     <ClCompile Include="..\..\framework\src\math_utils.cpp" />
+    <ClCompile Include="..\..\framework\src\meshlet_helpers.cpp" />
     <ClCompile Include="..\..\framework\src\model.cpp" />
     <ClCompile Include="..\..\framework\src\orca_scene.cpp" />
     <ClCompile Include="..\..\framework\src\quadratic_uniform_b_spline.cpp" />
@@ -181,6 +182,7 @@
     <ClInclude Include="..\..\framework\include\material_gpu_data_ext.hpp" />
     <ClInclude Include="..\..\framework\include\material_image_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\math_utils.hpp" />
+    <ClInclude Include="..\..\framework\include\meshlet_helpers.hpp" />
     <ClInclude Include="..\..\framework\include\model.hpp" />
     <ClInclude Include="..\..\framework\include\model_types.hpp" />
     <ClInclude Include="..\..\framework\include\orca_scene.hpp" />

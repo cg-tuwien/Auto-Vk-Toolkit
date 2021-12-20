@@ -214,6 +214,7 @@ namespace gvk {
 #include "serializer.hpp"
 #include "image_data.hpp"
 #include "material_image_helpers.hpp"
+#include "meshlet_helpers.hpp"
 
 #include "composition.hpp"
 #include "setup.hpp"

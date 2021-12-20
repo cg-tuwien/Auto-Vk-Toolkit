@@ -130,6 +130,9 @@
     <ClCompile Include="..\..\framework\src\imgui_utils.cpp">
       <Filter>gears-vk_src\user_interface</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\framework\src\meshlet_helpers.cpp">
+      <Filter>gears-vk_src\data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\framework\include\fixed_update_timer.hpp">
@@ -518,6 +521,9 @@
     </ClInclude>
     <ClInclude Include="..\..\framework\include\imgui_utils.h">
       <Filter>gears-vk_include\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\framework\include\meshlet_helpers.hpp">
+      <Filter>gears-vk_include\data</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
