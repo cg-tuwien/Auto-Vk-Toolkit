@@ -1,0 +1,192 @@
+#version 460
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
+#extension GL_NV_mesh_shader : require
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_ARB_shader_draw_parameters: require
+#extension GL_EXT_debug_printf : enable
+#include "cpu_gpu_shared_config.h"
+#include "glsl_helpers.glsl"
+
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 64, max_primitives = 126) out;
+
+layout(set = 0, binding = 1) uniform CameraTransform
+{
+	mat4 mViewProjMatrix;
+} ubo;
+
+
+//-------------------------------------
+#if !USE_REDIRECTED_GPU_DATA
+struct meshlet
+{
+	uint vertices[64];
+	uint8_t indices[378];
+	uint8_t vertex_count;
+	uint8_t triangle_count;
+};
+#else
+struct meshlet
+{
+	uint data_offset;
+	uint8_t vertex_count;
+	uint8_t triangle_count;
+};
+#endif
+
+struct extended_meshlet
+{
+	mat4 mTransformationMatrix;
+	uint mMaterialIndex;
+	uint mTexelBufferIndex;
+	uint mModelIndex;
+	
+	meshlet mGeometry;
+};
+
+in taskNV block
+{
+	uint meshletIndices[32];
+};
+
+layout(set = 2, binding = 0) buffer BoneMatrices 
+{
+	mat4 mat[]; // length of #bones
+} boneMatrices[]; // length of #models
+
+layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
+layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
+layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
+#if USE_REDIRECTED_GPU_DATA
+layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
+#endif
+layout(set = 3, binding = 5) uniform usamplerBuffer boneIndicesBuffers[];
+layout(set = 3, binding = 6) uniform  samplerBuffer boneWeightsBuffers[];
+layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;
+//-------------------------------------
+
+// Mesh shader output block.
+//
+layout (location = 0) out PerVertexData
+{
+	vec3 positionWS;
+	vec3 normalWS;
+	vec2 texCoord;
+	flat int materialIndex;
+	vec3 color;
+} v_out[];   // [max_vertices]
+ 
+ 
+// Color table for drawing each meshlet with a different color.
+//
+#define MAX_COLORS 10
+vec3 meshletcolors[MAX_COLORS] = {
+  vec3(1,0,0), 
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  vec3(1,1,1)
+};
+
+void main() 
+{
+	uint mshIdx = meshletIndices[gl_WorkGroupID.x];
+	uint thread_id = gl_LocalInvocationID.x;
+
+	// Get all the meshlet data:
+	uint vertexCount          = uint(meshletsBuffer.values[mshIdx].mGeometry.vertex_count);
+	uint triangleCount        = uint(meshletsBuffer.values[mshIdx].mGeometry.triangle_count);
+	uint materialIndex        = meshletsBuffer.values[mshIdx].mMaterialIndex;
+	mat4 transformationMatrix = meshletsBuffer.values[mshIdx].mTransformationMatrix;
+
+	uint modelIdx			  = meshletsBuffer.values[mshIdx].mModelIndex;
+	uint texelBufferIndex     = meshletsBuffer.values[mshIdx].mTexelBufferIndex;
+#if USE_REDIRECTED_GPU_DATA
+	uint indexOffset = uint(meshletsBuffer.values[mshIdx].mGeometry.data_offset + vertexCount);
+#endif
+	
+	// Step by 32 as we have that many threads but potentially more vertices to calculate:
+	for (uint i = thread_id; i < vertexCount; i+=32)
+	{
+		// Get the vertex index:
+#if !USE_REDIRECTED_GPU_DATA
+		uint vi = meshletsBuffer.values[mshIdx].mGeometry.vertices[i];
+#else
+		uint vi = texelFetch(meshletVertexIndices[texelBufferIndex], int(meshletsBuffer.values[mshIdx].mGeometry.data_offset + i)).x;
+#endif
+		// Get vertex data from the appropriate texel buffers and vertex indices:
+		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
+		vec3 nrmMshSp = texelFetch(normalBuffers[texelBufferIndex], int(vi)).xyz;
+		vec4 boneWeights = texelFetch(boneWeightsBuffers[texelBufferIndex], int(vi));
+		uvec4 boneIndices = texelFetch(boneIndicesBuffers[texelBufferIndex], int(vi));
+
+		// Do the bone transform for the position:
+		vec4 aniPos = bone_transform(
+			boneMatrices[modelIdx].mat[boneIndices[0]], 
+			boneMatrices[modelIdx].mat[boneIndices[1]], 
+			boneMatrices[modelIdx].mat[boneIndices[2]], 
+			boneMatrices[modelIdx].mat[boneIndices[3]], 
+			boneWeights, 
+			posMshSp
+		);
+
+		// Do the bone transform for the normal:
+		vec3 aniNrm = bone_transform(
+			boneMatrices[modelIdx].mat[boneIndices[0]], 
+			boneMatrices[modelIdx].mat[boneIndices[1]], 
+			boneMatrices[modelIdx].mat[boneIndices[2]], 
+			boneMatrices[modelIdx].mat[boneIndices[3]], 
+			boneWeights, 
+			nrmMshSp
+		);
+		
+		// Rest of the transformation:
+		vec4 posWS = transformationMatrix * aniPos;
+		vec4 posCS = ubo.mViewProjMatrix * posWS;
+ 
+		// Set the vertex position:
+		gl_MeshVerticesNV[i].gl_Position = posCS;
+ 
+		// Set the per vertex data for the fragment shader:
+		v_out[i].positionWS = posWS.xyz;
+		v_out[i].normalWS = mat3(transformationMatrix) * aniNrm;
+		v_out[i].texCoord = texelFetch(texCoordsBuffers[texelBufferIndex], int(vi)).st;
+		v_out[i].materialIndex = int(materialIndex);
+		v_out[i].color = meshletcolors[mshIdx % MAX_COLORS];
+	}
+ 
+	// Only set once:
+	if(thread_id == 0)
+	{
+		gl_PrimitiveCountNV = triangleCount;
+	}
+ 
+	// Write the indices for the vertices:
+#if !USE_REDIRECTED_GPU_DATA
+	// write for each triangle, also note the 32 stepping
+	for (uint i = thread_id; i < triangleCount; i+=32)
+	{
+		gl_PrimitiveIndicesNV[i*3 + 0] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 0]);
+		gl_PrimitiveIndicesNV[i*3 + 1] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 1]);
+		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]);
+	}
+#else // USE_REDIRECTED_GPU_DATA
+	// Here we have the indices packed into an uint, so we can write each of the uints at once:
+	uint indexGroupCount = (triangleCount * 3 + 3) / 4; // need to calculate how many packed uints we have
+	for (uint i = thread_id; i < indexGroupCount; i += 32)
+	{
+		uint index = uint(texelFetch(meshletVertexIndices[texelBufferIndex], int(indexOffset + i))).x;
+		// This writes the whole uint at once:
+		writePackedPrimitiveIndices4x8NV(i * 4, index);
+	}
+#endif
+}
+

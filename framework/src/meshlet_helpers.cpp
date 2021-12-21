@@ -26,9 +26,9 @@ namespace gvk
 			int meshletVertexIndex = 0;
 			// this simple algorithm duplicates vertices, therefore vertexCount == indexCount
 			while (meshletVertexIndex < aMaxVertices - 3 && ml.mVertexCount < aMaxIndices - 3 && vertexIndex + meshletVertexIndex < numIndices) {
-				ml.mIndices[meshletVertexIndex / 3 + 0] = meshletVertexIndex + 0;
-				ml.mIndices[meshletVertexIndex / 3 + 1] = meshletVertexIndex + 1;
-				ml.mIndices[meshletVertexIndex / 3 + 2] = meshletVertexIndex + 2;
+				ml.mIndices[meshletVertexIndex  + 0] = meshletVertexIndex + 0;
+				ml.mIndices[meshletVertexIndex  + 1] = meshletVertexIndex + 1;
+				ml.mIndices[meshletVertexIndex  + 2] = meshletVertexIndex + 2;
 				ml.mVertices[meshletVertexIndex + 0] = aIndices[vertexIndex + meshletVertexIndex + 0];
 				ml.mVertices[meshletVertexIndex + 1] = aIndices[vertexIndex + meshletVertexIndex + 1];
 				ml.mVertices[meshletVertexIndex + 2] = aIndices[vertexIndex + meshletVertexIndex + 2];

@@ -94,6 +94,13 @@ The following files are licensed by Stanford University:
  
 See http://www.graphics.stanford.edu/data/3Dscanrep/ for full license details.
 
+**3D Models and Textures under CC BY 4.0**
+
+The following files are licensed under the Attribution 4.0 International (CC BY 4.0) License:
+ * all files under [`assets/3rd_party/models/DancingCrab`](assets/3rd_party/models/DancingCrab)
+ 
+See https://creativecommons.org/licenses/by/4.0/ for full license details.
+
 **3D Models and Textures under CC BY 3.0**
 
 The following files are licensed under the Attribution 3.0 Unported (CC BY 3.0) License:      

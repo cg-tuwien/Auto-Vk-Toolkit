@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="assets">
+      <UniqueIdentifier>{24240a51-8fdb-478f-8c1c-27cbca7adc3f}</UniqueIdentifier>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{1d345cf5-0451-42e0-83a8-6a3f5a7203ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="precompiled_headers">
+      <UniqueIdentifier>{a498e4bc-580a-49d7-9a8e-ec57803fdcd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shared">
+      <UniqueIdentifier>{064141dd-28bf-4502-bd4f-aef5a4d1f6d1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.task">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\diffuse_shading_fixed_lightsource.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.mesh">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\glsl_helpers.glsl">
+      <Filter>shared</Filter>
+    </None>
+    <None Include="..\..\..\assets\3rd_party\models\dancing_crab\crab.fbx">
+      <Filter>assets</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\examples\skinned_meshlets\shaders\cpu_gpu_shared_config.h">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_stdafx.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_targetver.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\examples\skinned_meshlets\source\skinned_meshlets.cpp" />
+    <ClCompile Include="cg_stdafx.cpp">
+      <Filter>precompiled_headers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\Ambient Occlusion Map from Mesh initialShadingGroup.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Diffuse.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Glossiness.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Normal.jpg">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Specular.jpg">
+      <Filter>assets</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

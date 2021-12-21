@@ -353,7 +353,7 @@ namespace gvk
 		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
 		add_tuple_or_indices(aResult, rest...);
 	}
-
+	
 	/**	This is a convenience method that allows to compile a selection of models and mesh indices.
 	 *	Valid usage means passing a model as parameter, and following it up with one or multiple mesh index parameters.
 	 *
@@ -372,6 +372,53 @@ namespace gvk
 	{
 		std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>> result;
 		add_tuple_or_indices(result, args...);
+		return result;
+	}
+
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult)
+	{ }
+
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult, model& aModel, Rest&... rest)
+	{
+		aResult.emplace_back(avk::shared(aModel), std::vector<size_t>{});
+		add_tuple_or_indices_shared(aResult, rest...);
+	}
+
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult, size_t aMeshIndex, Rest&... rest)
+	{
+		std::get<std::vector<size_t>>(aResult.back()).emplace_back(aMeshIndex);
+		add_tuple_or_indices_shared(aResult, rest...);
+	}
+
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aResult, std::vector<size_t>& aMeshIndices, Rest&... rest)
+	{
+		auto& idxes = std::get<std::vector<size_t>>(aResult.back());
+		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
+		add_tuple_or_indices_shared(aResult, rest...);
+	}
+
+	/** This is a convenience function that allows to compile a selection of models and associated mesh indices.
+	 *	Valid usage means passing a model as parameter, and following it up with one or multiple mesh index parameters.
+	 *
+	 *	Shared ownership will be enabled on the models.
+	 *	Mesh index parameters are supported in the forms:
+	 *	 - size_t
+	 *	 - std::vector<size_t>
+	 *
+	 *	Examples of valid parameters:
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, 2, 3); // => a model and 3x size_t
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
+	 */
+	template <typename... Args>
+	std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>> make_selection_of_shared_models_and_mesh_indices(Args&... args)
+	{
+		std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>> result;
+		add_tuple_or_indices_shared(result, args...);
 		return result;
 	}
 
