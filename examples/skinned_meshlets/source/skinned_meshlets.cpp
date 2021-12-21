@@ -263,7 +263,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #if !USE_REDIRECTED_GPU_DATA
 #if USE_CACHE
 				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
+				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>>(serializer, cpuMeshlets);
 #else
 				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(cpuMeshlets);
 #endif
@@ -404,27 +404,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::shader_files_changed_event(mPipeline)
 			).update(mPipeline);
 
-			// Add the camera to the composition (and let it handle the updates)
-			mQuakeCam.set_translation({ 0.0f, -1.0f, 8.0f });
-			mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-			//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-			gvk::current_composition()->add_element(mQuakeCam);
+		// Add the camera to the composition (and let it handle the updates)
+		mQuakeCam.set_translation({ 0.0f, -1.0f, 8.0f });
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
+		gvk::current_composition()->add_element(mQuakeCam);
 
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
-			if (nullptr != imguiManager) {
-				imguiManager->add_callback([this]() {
-					ImGui::Begin("Info & Settings");
-					ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-					ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this]() {
+				ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
 
-					ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
+				ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
 
-					ImGui::End();
-					});
-			}
+				ImGui::End();
+			});
+		}
 	}
 
 	void update() override
@@ -527,7 +527,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}));
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eFragment, 0u, sizeof(push_constants), &pushConstants);
 		// draw our meshlets
-		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0, gvk::context().dynamic_dispatch());
+		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0);
 
 		cmdbfr->end_render_pass();
 		cmdbfr->end_recording();
@@ -576,7 +576,7 @@ int main() // <== Starting point ==
 {
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Static Meshlets");
+		auto mainWnd = gvk::context().create_window("Skinned Meshlets");
 
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->enable_resizing(true);
@@ -598,7 +598,7 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Static Meshlets"),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: Skinned Meshlets"),
 			gvk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME)
 			.add_extension(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME),
 			[](vk::PhysicalDeviceVulkan12Features& features) {
@@ -615,4 +615,3 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-

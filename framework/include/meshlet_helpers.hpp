@@ -228,7 +228,15 @@ namespace gvk
 
 		return meshlets;
 	}
-
+	
+	// A concept which requires a type to have ::sNumVertices and ::sNumIndices
+	template <typename T>
+	concept has_static_num_vertices_and_num_indices = requires
+	{
+		T::sNumVertices; // Meaning: Static member T::sNumVertices exists
+		T::sNumIndices;  // Meaning: Static member T::sNumIndices exists
+	};
+	
 	/** Converts meshlets into a GPU usable representation.
 	 *	@param	aMeshlets	The meshlets to convert
 	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
@@ -278,8 +286,24 @@ namespace gvk
 #endif
 				throw avk::logic_error("No suitable type passed to convert_for_gpu_usage.");
 			}
-}
+		}
 		return std::forward_as_tuple(gpuMeshlets, vertexIndices);
+	}
+
+	/** Converts meshlets into a GPU usable representation.
+	 *	@param	aMeshlets	The meshlets to convert
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
+	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
+	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
+	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4]
+	 *						T must provide static members ::sNumVertices and ::sNumIndices
+	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
+	 *						is used.
+	 */
+	template <typename T> requires has_static_num_vertices_and_num_indices<T>
+	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& aMeshlets)
+	{
+		return convert_for_gpu_usage<T, T::sNumVertices, T::sNumIndices>(aMeshlets);
 	}
 
 	/** Converts meshlets into a GPU usable representation.
@@ -305,7 +329,7 @@ namespace gvk
 			std::tie(resultMeshlets, resultMeshletsData) = convert_for_gpu_usage<T, NV, NI>(aMeshlets);
 		}
 
-		if constexpr (std::is_convertible_v<T, meshlet_gpu_data<NV,NI>>)
+		if constexpr (std::is_convertible_v<T, meshlet_gpu_data<NV, NI>>)
 		{
 			aSerializer.archive(resultMeshlets);
 		}
@@ -325,5 +349,21 @@ namespace gvk
 		return result;
 	}
 
-}
+	/** Converts meshlets into a GPU usable representation.
+	 *  @param  aSerializer The serializer for the meshlet gpu data.
+	 *	@param	aMeshlets	The meshlets to convert
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
+	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
+	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
+	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4].
+	 *						T must provide static members ::sNumVertices and ::sNumIndices
+	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
+	 *						is used.
+	 */
+	template <typename T> requires has_static_num_vertices_and_num_indices<T>
+	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage_cached(serializer& aSerializer, const std::vector<meshlet>& aMeshlets)
+	{
+		return convert_for_gpu_usage_cached<T, T::sNumVertices, T::sNumIndices>(aSerializer, aMeshlets);
+	}
 
+}

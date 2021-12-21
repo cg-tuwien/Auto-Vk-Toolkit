@@ -28,7 +28,7 @@
     <None Include="..\..\..\examples\skinned_meshlets\shaders\glsl_helpers.glsl">
       <Filter>shared</Filter>
     </None>
-    <None Include="..\..\..\assets\3rd_party\models\DancingCrab\crab.fbx">
+    <None Include="..\..\..\assets\3rd_party\models\dancing_crab\crab.fbx">
       <Filter>assets</Filter>
     </None>
   </ItemGroup>
@@ -50,19 +50,19 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\Ambient Occlusion Map from Mesh initialShadingGroup.png">
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\Ambient Occlusion Map from Mesh initialShadingGroup.png">
       <Filter>assets</Filter>
     </Image>
-    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Diffuse.jpg">
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Diffuse.jpg">
       <Filter>assets</Filter>
     </Image>
-    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Glossiness.jpg">
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Glossiness.jpg">
       <Filter>assets</Filter>
     </Image>
-    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Normal.jpg">
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Normal.jpg">
       <Filter>assets</Filter>
     </Image>
-    <Image Include="..\..\..\assets\3rd_party\models\DancingCrab\FullyAssembled_initialShadingGroup_Specular.jpg">
+    <Image Include="..\..\..\assets\3rd_party\models\dancing_crab\FullyAssembled_initialShadingGroup_Specular.jpg">
       <Filter>assets</Filter>
     </Image>
   </ItemGroup>

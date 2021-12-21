@@ -151,7 +151,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				allMatConfigs.push_back(pair.first);
 			}
 
-			// Generate meshlets for each submesh of the current loaded model. Load all it's data into the drawcall for later use.
+			// Generate meshlets for each submesh of the current loaded model. Load all it's data into the draw call for later use.
 			for (size_t mpos = 0; mpos < meshIndicesInOrder.size(); mpos++) {
 				auto meshIndex = meshIndicesInOrder[mpos];
 				std::string meshname = curModel->name_of_mesh(mpos);
@@ -181,7 +181,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
 #if !USE_REDIRECTED_GPU_DATA
 				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
+				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>>(serializer, cpuMeshlets);
 #else
 				gvk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
@@ -299,25 +299,25 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				gvk::shader_files_changed_event(mPipeline)
 			).update(mPipeline);
 
-			// Add the camera to the composition (and let it handle the updates)
-			mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-			mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-			gvk::current_composition()->add_element(mQuakeCam);
+		// Add the camera to the composition (and let it handle the updates)
+		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		gvk::current_composition()->add_element(mQuakeCam);
 
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
-			if (nullptr != imguiManager) {
-				imguiManager->add_callback([this]() {
-					ImGui::Begin("Info & Settings");
-					ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
-					ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-					ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
+		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		if (nullptr != imguiManager) {
+			imguiManager->add_callback([this]() {
+				ImGui::Begin("Info & Settings");
+				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
+				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
+				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
+				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
 
-					ImGui::End();
-					});
-			}
+				ImGui::End();
+			});
+		}
 	}
 
 	void render() override
@@ -348,7 +348,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}));
 		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eFragment, 0u, sizeof(push_constants), &pushConstants);
 		// draw our meshlets
-		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0, gvk::context().dynamic_dispatch());
+		cmdbfr->handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0);
 
 		cmdbfr->end_render_pass();
 		cmdbfr->end_recording();
@@ -477,4 +477,3 @@ int main() // <== Starting point ==
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 }
-
