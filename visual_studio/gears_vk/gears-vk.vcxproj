@@ -124,7 +124,6 @@
     <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\renderpass_sync.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\avk\root_example_implementation.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp" />

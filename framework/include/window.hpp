@@ -20,8 +20,8 @@ namespace gvk
 		};
 
 		using frame_id_t = int64_t;
-		using outdated_swapchain_t = std::tuple<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
-		using outdated_swapchain_resource_t = std::variant<vk::UniqueSwapchainKHR, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
+		using outdated_swapchain_t = std::tuple<vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE>, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
+		using outdated_swapchain_resource_t = std::variant<vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE>, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
 
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
@@ -433,11 +433,11 @@ namespace gvk
 		// The image usage parameters for a swap chain
 		avk::image_usage mImageUsage;
 		// The window's surface
-		vk::UniqueSurfaceKHR mSurface;
+		vk::UniqueHandle<vk::SurfaceKHR, DISPATCH_LOADER_CORE_TYPE> mSurface;
 		// The swap chain create info
 		vk::SwapchainCreateInfoKHR mSwapChainCreateInfo;
 		// The swap chain for this surface
-		vk::UniqueSwapchainKHR mSwapChain;
+		vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE> mSwapChain;
 		// The swap chain's image format
 		vk::Format mSwapChainImageFormat;
 		// The swap chain's color space

@@ -102,6 +102,15 @@
 #define AVK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
 
+// Before including the Auto-Vk header, we define some settings
+// that influence Auto-Vk's behavior/workings:
+//  - We're going to use a dynamic dispatch loader for everything
+//	- We're going to use the global VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+//	  s.t. the dynamic dispatch loader is the default for all Vulkan-Hpp calls.
+//  - We're going to use the VMA library for memory allocations
+#define DISPATCH_LOADER_CORE_TYPE vk::DispatchLoaderDynamic
+#define DISPATCH_LOADER_EXT_TYPE vk::DispatchLoaderDynamic
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #define AVK_USE_VMA
 #include <avk/avk.hpp>
 
