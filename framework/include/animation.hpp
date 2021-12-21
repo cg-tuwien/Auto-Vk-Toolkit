@@ -328,7 +328,7 @@ namespace gvk
 #else
 						assert(false);
 #endif
-						throw avk::logic_error("No lambda has been passed to animation::animate.");
+						throw avk::logic_error("No compatible lambda has been passed to animation::animate.");
 					}
 					
 				}
