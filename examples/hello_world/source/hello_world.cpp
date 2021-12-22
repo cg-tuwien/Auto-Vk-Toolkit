@@ -31,7 +31,6 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			)
 			.update(mPipeline);				
 
-		
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){	
@@ -89,10 +88,12 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
+
 		cmdBfr->begin_render_pass_for_framebuffer(gvk::context().main_window()->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
 		cmdBfr->end_render_pass();
+
 		cmdBfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.

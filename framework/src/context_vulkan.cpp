@@ -8,7 +8,9 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 namespace gvk
 {
 	std::vector<const char*> context_vulkan::sRequiredDeviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+		VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME
 	};
 
 	std::mutex context_vulkan::sConcurrentAccessMutex;
@@ -250,7 +252,13 @@ namespace gvk
 			meshShaderFeatureNV.pNext = deviceFeatures.pNext;
 			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
-		
+
+		// Unconditionally enable Synchronization2, because synchronization abstraction depends on it; it is just not implemented for Synchronization1:
+		auto physicalDeviceSync2Features = vk::PhysicalDeviceSynchronization2FeaturesKHR{}
+			.setPNext(deviceFeatures.pNext)
+			.setSynchronization2(VK_TRUE);
+		deviceFeatures.setPNext(&physicalDeviceSync2Features);
+
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
 		auto deviceCreateInfo = vk::DeviceCreateInfo()
 			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
