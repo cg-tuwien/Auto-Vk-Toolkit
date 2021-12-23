@@ -18,9 +18,19 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) // But not in presentable format, because ImGui comes after
+			gvk::context().create_renderpass(
+				{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) }, // But not in presentable format, because ImGui comes after
+				[](avk::renderpass_sync& rpSyncToModify) {
+					rpSyncToModify.mSourceStage = avk::pipeline_stage::top_of_pipe;
+					rpSyncToModify.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
+					rpSyncToModify.mSourceMemoryDependency = {};
+					rpSyncToModify.mDestinationMemoryDependency = {};
+				}
+				//avk::subpass_dependency(avk::external()->avk::subpass(0), avk::top_of_pipe|avk::top_of_pipe -> avk::bottom_of_pipe(), avk::access::none() -> avk::access::none());
+			)
+			
 		);
-
+		
 		// set up updater
 		// we want to use an updater, so create one:
 		mUpdater.emplace();

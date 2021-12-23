@@ -106,6 +106,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\image.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_layout.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp" />
@@ -132,6 +133,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\sync.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\usage_desc.hpp" />

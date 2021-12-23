@@ -525,6 +525,12 @@
     <ClInclude Include="..\..\framework\include\meshlet_helpers.hpp">
       <Filter>gears-vk_include\data</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_layout.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">
