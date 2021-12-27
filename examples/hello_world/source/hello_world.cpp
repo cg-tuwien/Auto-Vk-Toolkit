@@ -1,5 +1,6 @@
 #include <gvk.hpp>
 #include <imgui.h>
+#include <imgui_impl_vulkan.h>
 
 class draw_a_triangle_app : public gvk::invokee
 {
@@ -19,14 +20,19 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
 			gvk::context().create_renderpass(
-				{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) }, // But not in presentable format, because ImGui comes after
-				[](avk::renderpass_sync& rpSyncToModify) {
-					rpSyncToModify.mSourceStage = avk::pipeline_stage::top_of_pipe;
-					rpSyncToModify.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-					rpSyncToModify.mSourceMemoryDependency = {};
-					rpSyncToModify.mDestinationMemoryDependency = {};
+				{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) } // But not in presentable format, because ImGui comes after
+				, {
+					avk::subpass_dependency(
+						avk::subpass::external   >> avk::subpass::index(0),
+						avk::stage::none         >> avk::stage::color_attachment_output,
+						avk::access::none        >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
+					),
+					avk::subpass_dependency(
+						avk::subpass::index(0)              >> avk::subpass::external,
+						avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+						avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
+					)
 				}
-				//avk::subpass_dependency(avk::external()->avk::subpass(0), avk::top_of_pipe|avk::top_of_pipe -> avk::bottom_of_pipe(), avk::access::none() -> avk::access::none());
 			)
 			
 		);
@@ -92,6 +98,10 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	{
 		auto mainWnd = gvk::context().main_window();
 
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
@@ -99,16 +109,14 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 
-		cmdBfr->begin_render_pass_for_framebuffer(gvk::context().main_window()->get_renderpass(), gvk::context().main_window()->current_backbuffer());
+		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
 		cmdBfr->end_render_pass();
 
-		cmdBfr->end_recording();
+		gvk::current_composition()->element_by_type<gvk::imgui_manager>()->render_into_command_buffer(cmdBfr);
 
-		// The swap chain provides us with an "image available semaphore" for the current frame.
-		// Only after the swapchain image has become available, we may start rendering into it.
-		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		cmdBfr->end_recording();
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
 		mQueue->submit(cmdBfr, imageAvailableSemaphore);
@@ -145,6 +153,10 @@ int main() // <== Starting point ==
 		// GO:
 		gvk::start(
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
+			},
 			mainWnd,
 			app,
 			ui

@@ -126,10 +126,27 @@ namespace gvk
 		// Setup debug callback and enable all validation layers configured in global settings 
 		setup_vk_debug_callback();
 
-		if (std::find(std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions), std::string(VK_EXT_DEBUG_REPORT_EXTENSION_NAME)) != std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
+		if (std::ranges::find(mSettings.mRequiredInstanceExtensions.mExtensions, std::string(VK_EXT_DEBUG_REPORT_EXTENSION_NAME)) != std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
 			setup_vk_debug_report_callback();
 		}
 #endif
+
+		// If not already enabled...
+		if (std::ranges::find(mSettings.mRequiredInstanceExtensions.mExtensions, VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == std::end(mSettings.mRequiredInstanceExtensions.mExtensions)) {
+			// Automatically add some extensions:
+			for (auto feature : mSettings.mValidationLayers.mFeaturesToEnable) {
+				if (vk::ValidationFeatureEnableEXT::eGpuAssisted == feature ||
+					vk::ValidationFeatureEnableEXT::eGpuAssistedReserveBindingSlot == feature ||
+					vk::ValidationFeatureEnableEXT::eBestPractices == feature ||
+					vk::ValidationFeatureEnableEXT::eDebugPrintf == feature ||
+					vk::ValidationFeatureEnableEXT::eSynchronizationValidation == feature) {
+
+					// Gotta enable the EXT Validation features:
+					mSettings.mRequiredInstanceExtensions.add_extension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+					break;
+				}
+			}
+		}
 
 		// The window surface needs to be created right after the instance creation 
 		// and before physical device selection, because it can actually influence 

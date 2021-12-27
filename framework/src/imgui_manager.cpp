@@ -284,32 +284,48 @@ namespace gvk
 		}
 		// start of new frame and callback invocations have to be in the update() call of the invokee,
 		// ... to give the updater an opportunity to clean up (callbacks themselves may cause update events)
+		mAlreadyRendered = false;
 		ImGui_ImplVulkan_NewFrame();
 		ImGui::NewFrame();
 	}
 
-	void imgui_manager::render()
+	void imgui_manager::render_into_command_buffer(avk::resource_reference<avk::command_buffer> aCommandBuffer)
 	{
 		for (auto& cb : mCallback) {
 			cb();
 		}
-		
-		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
-		ImGui::Render();
-		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
 
+		auto& cmdBfr = aCommandBuffer.get().get();
+
+		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass.value()), referenced(mainWnd->current_backbuffer()));
-			cmdBfr->end_render_pass();
+			cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass.value()), referenced(mainWnd->current_backbuffer()));
+			cmdBfr.end_render_pass();
 		}
 
 		assert(mRenderpass.has_value());
-		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr->handle());
-		cmdBfr->end_render_pass();
+		cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
+
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
+
+		cmdBfr.end_render_pass();
+
+		mAlreadyRendered = true;
+	}
+
+	void imgui_manager::render()
+	{
+		if (mAlreadyRendered) {
+			return;
+		}
+		
+		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		cmdBfr->begin_recording();
+		render_into_command_buffer(cmdBfr);
 		cmdBfr->end_recording();
 
 		// if this is the first render call (other invokees are disabled or only ImGui renders),
@@ -350,50 +366,48 @@ namespace gvk
 
 	void imgui_manager::construct_render_pass()
 	{
+		using namespace avk;
+
 		auto* wnd = gvk::context().main_window();
-		std::vector<avk::attachment> attachments;
-		attachments.push_back(avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::load, avk::color(0), avk::on_store::store_in_presentable_format));
+		std::vector<attachment> attachments;
+		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, color(0), on_store::store_in_presentable_format));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {
-			a.mLoadOperation = avk::on_load::dont_care;
-			a.mStoreOperation = avk::on_store::dont_care;
+			a.mLoadOperation = on_load::dont_care;
+			a.mStoreOperation = on_store::dont_care;
 			attachments.push_back(a);
 		}
 		auto newRenderpass = context().create_renderpass(
 			attachments,
-			[](avk::renderpass_sync& rpSync) {
-				if (rpSync.is_external_pre_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-				}
-				if (rpSync.is_external_post_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-					rpSync.mDestinationMemoryDependency = {};
-				}
+			{
+				subpass_dependency(
+					subpass::external >> subpass::index(0), 
+					stage::color_attachment_output >> stage::color_attachment_output,
+					access::color_attachment_write >> access::color_attachment_read
+				),
+				subpass_dependency(
+					subpass::index(0) >> subpass::external,
+					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
+					access::color_attachment_write >> access::none
+				)
 			}
 		);
 
 		// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
 		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear, avk::color(0), avk::on_store::store);
 		auto newClearRenderpass = context().create_renderpass(
-			attachments,
-			[](avk::renderpass_sync& rpSync) {
-				if (rpSync.is_external_pre_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-				}
-				if (rpSync.is_external_post_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-					rpSync.mDestinationMemoryDependency = {};
-				}
-			}
+			attachments
+			//, {
+			//	subpass_dependency(
+			//		subpass::external >> subpass::index(0),
+			//		stage::color_attachment_output >> stage::color_attachment_output,
+			//		access::color_attachment_write >> access::color_attachment_read
+			//	),
+			//	subpass_dependency(
+			//		subpass::index(0) >> subpass::external,
+			//		stage::color_attachment_output >> stage::none, // assume semaphore afterwards
+			//		access::color_attachment_write >> access::none
+			//	)
+			//}
 		);
 
 		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };

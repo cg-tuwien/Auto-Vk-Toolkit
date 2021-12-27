@@ -8,11 +8,11 @@ namespace gvk
 	{
 	public:
 		/**	Create an ImGui manager element.
-		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui".
+		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui_manager".
 		 *	@param		aExecutionOrder		UI should probably draw after most/all of the other invokees.
 		 *									Therefore, use a high execution order. Default value is 100000.
 		 */
-		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui", std::optional<avk::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, int aExecutionOrder = 100000)
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mExecutionOrder{ aExecutionOrder }
@@ -29,6 +29,19 @@ namespace gvk
 		void initialize() override;
 
 		void update() override;
+
+		/**	This method can be used to prematurely render ImGui into the given command buffer.
+		 *	If this method is invoked before ::render, then ::render will NOT create a new command buffer
+		 *	and submit that to the queue.
+		 *
+		 *	A prime example for following this approach might be to streamline rendering into few command buffers,
+		 *	but it can also be helpful for validation synchronization, which is only able to perform its checks
+		 *	WITHIN command buffers---not across different command buffers.
+		 *
+		 *	The flag mAlreadyRendered is set in ::update and evaluated in ::render to determine if ::render
+		 *	shall create a new command buffer and render into it and submit it to the queue.
+		 */
+		void render_into_command_buffer(avk::resource_reference<avk::command_buffer> aCommandBuffer);
 
 		void render() override;
 
@@ -71,6 +84,7 @@ namespace gvk
 		int mExecutionOrder;
 		int mMouseCursorPreviousValue;
 		bool mUserInteractionEnabled;
+		bool mAlreadyRendered;
 	};
 
 }

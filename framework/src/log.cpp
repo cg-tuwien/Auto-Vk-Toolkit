@@ -260,7 +260,7 @@ namespace gvk
 		{
 			std::scoped_lock<std::mutex> guard(sLogMutex);
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
-			if (pToBeLogged.mLogType == log_type::error) {
+			if (pToBeLogged.mLogType == log_type::error || pToBeLogged.mLogType == log_type::warning) {
 				pToBeLogged.mStacktrace = get_current_callstack();
 			}
 #endif
@@ -274,7 +274,7 @@ namespace gvk
 		gvk::set_console_output_color(pToBeLogged.mLogType, pToBeLogged.mLogImportance);
 		std::cout << pToBeLogged.mMessage;
 #if defined(_WIN32) && defined (_DEBUG) && defined (PRINT_STACKTRACE)
-		if (pToBeLogged.mLogType == log_type::error) {
+		if (pToBeLogged.mLogType == log_type::error || pToBeLogged.mLogType == log_type::warning) {
 			set_console_output_color_for_stacktrace(pToBeLogged.mLogType, pToBeLogged.mLogImportance);
 			std::cout << get_current_callstack();
 		}
