@@ -108,14 +108,16 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
 
-		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
-		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
-		cmdBfr->end_render_pass();
-		
-		cmdBfr->end_recording();
+		gvk::context().record({
+			avk::command::render_pass(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer(), {
+				avk::command::bind(mPipeline),
+				avk::command::draw(3u, 1u, 0u, 0u)
+			})
+		})
+		.into_command_buffer(cmdBfr)
+		.then_submit_to(mQueue)
+		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output);
 		
 		// Submit the draw call and take care of the command buffer's lifetime:
 		mQueue->submit(cmdBfr, imageAvailableSemaphore);
