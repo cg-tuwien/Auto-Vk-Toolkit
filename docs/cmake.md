@@ -22,7 +22,7 @@ sudo apt install libvulkan-dev libvulkan1 mesa-vulkan-drivers vulkan-utils
 # Verify that Vulkan has been installed correctly:
 vulkaninfo
 
-# Now install additional vulkan packages:
+# Install additional Vulkan packages:
 wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
 sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
 sudo apt update
