@@ -33,9 +33,7 @@ These steps have been tested on Ubuntu 20.
 
 ### Windows
 
-Windows needs a little special treatment with CMake. I did not test it with Cygwin or MinGW, so if you try that, be warned that it might not work at all.
-You first have to install the latest Visual Studio and its SDKs.
-Then, assuming you have already installed Vulkan (along with any SDKs and tools) and CMake, and also downloaded the latest CLion, open the project with CLion and go to the Settings menu of CLion:
+Under the assumption that the Visual Studio, Vulkan SDK, CMake, and CLion are installed, the following settings have to be set in CLion:
 
 You have to adapt the toolchain to Visual Studio and change the default setting to x64, or the code of the framework will not compile.
 Then, select the correct toolchain in your CMake settings menu.
