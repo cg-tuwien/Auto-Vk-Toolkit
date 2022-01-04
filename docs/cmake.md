@@ -29,7 +29,7 @@ sudo apt update
 sudo apt install vulkan-sdk dpkg-dev libvulkan1-dbgsym vulkan-tools-dbgsym
 ```
 After following these steps, the examples should build and execute successfully.
-I only tested this on Ubuntu 20. Please refer to the original sources of vulkan and cmake in order to correctly install the necessary packages for other linux distros.
+These steps have been tested on Ubuntu 20. 
 
 ### Windows
 
