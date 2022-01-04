@@ -28,7 +28,7 @@ sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.l
 sudo apt update
 sudo apt install vulkan-sdk dpkg-dev libvulkan1-dbgsym vulkan-tools-dbgsym
 ```
-Now you should be able to build the examples and run it.
+After following these steps, the examples should build and execute successfully.
 I only tested this on Ubuntu 20. Please refer to the original sources of vulkan and cmake in order to correctly install the necessary packages for other linux distros.
 
 ### Windows
