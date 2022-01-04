@@ -35,15 +35,15 @@ These steps have been tested on Ubuntu 20.
 
 Under the assumption that the Visual Studio, Vulkan SDK, CMake, and CLion are installed, the following settings have to be set in CLion:
 
-You have to adapt the toolchain to Visual Studio and change the default setting to x64, or the code of the framework will not compile.
-Then, select the correct toolchain in your CMake settings menu.
+The toolchain has to be adapted to Visual Studio and the default setting to x64, or the code of the framework will not compile.
+Then, select the correct toolchain in the CMake settings menu.
 
 ![CLion Toolchains Settings](images/clion_toolchains_vs_64bit.png)
 ![CLion CMake Settings](images/clion_cmake_settings.png)
 
-You can optionally also set the Build directory to `out`, as this specific name is included in the `.gitignore`, any other default name from CLion is not.
+The Build directory can optionally also be set to `out`, as this specific name is included in the `.gitignore`, any other default name from CLion is not.
 
-Note that you might need to activate the developer-mode in your Windows account in order to get it to work (see caveats at the bottom of this readme).
+The developer-mode in the current Windows account might be needed in order to get it to work (see caveats at the bottom of this readme).
 
 ### CMake Options
 The build process can be configured, supporting the following options:
@@ -68,7 +68,7 @@ The build process can be configured, supporting the following options:
 | `gvk_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `gvk_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
 
-In CLion, you can open the Settings menu, find CMake and enter `-D gvk_BuildModelLoader=ON` in the "CMake options"-field for example, then reload the CMakeLists in your project and CLion should automagically add the example's build configuration which you can then run on the top right of the UI.
+In CLion, under the Settings menu, find CMake and enter `-D gvk_BuildModelLoader=ON` in the "CMake options"-field for example, then reload the CMakeLists in the project and CLion should automagically add the example's build configuration which can then be run on the top right of the UI.
 
 #### Windows CMake build settings
 There are three different build settings for the examples (i.e. `gvk_BuildExamples` is `ON`) on Windows allowing you to select examples as `Startup Item` in Visual Studio:
