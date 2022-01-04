@@ -51,6 +51,7 @@ option(gvk_BuildRayTracingWithShadowsAndAO "Build example: ray_tracing_with_shad
 option(gvk_BuildRayTracingCustomIntersection "Build example: ray_tracing_custom_intersection." OFF)
 option(gvk_BuildTextureCubemap "Build example: texture_cubemap." OFF)
 option(gvk_BuildVertexBuffers "Build example: vertex_buffers." OFF)
+option(gvk_BuildVertexSkinning "Build example: vertex_skinning." OFF)
 
 if (gvk_BuildExamples)
     set(gvk_BuildHelloWorld ON)
@@ -66,6 +67,7 @@ if (gvk_BuildExamples)
     set(gvk_BuildRayTracingCustomIntersection ON)
     set(gvk_BuildTextureCubemap ON)
     set(gvk_BuildVertexBuffers ON)
+    set(gvk_BuildVertexSkinning ON)
 endif()
 
 # ---------------------- Framework ------------------------
@@ -270,4 +272,9 @@ endif()
 ## vertex_buffers
 if (gvk_BuildVertexBuffers)
     add_subdirectory(examples/vertex_buffers)
+endif()
+
+## vertex_skinning
+if (gvk_BuildVertexSkinning)
+    add_subdirectory(examples/vertex_skinning)
 endif()
