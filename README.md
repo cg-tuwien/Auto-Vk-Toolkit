@@ -32,7 +32,7 @@ Set up your own project:
 
 ## CMake
 
-Please read the [CMake - Readme](/docs/cmake.md)
+Please see [docs/cmake.md](/docs/cmake.md)!
 
 # Creating a New Project
 
