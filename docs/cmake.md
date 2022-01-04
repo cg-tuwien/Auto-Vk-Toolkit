@@ -19,7 +19,7 @@ sudo add-apt-repository ppa:oibaf/graphics-drivers
 sudo apt update && sudo apt upgrade -y
 sudo apt install libvulkan-dev libvulkan1 mesa-vulkan-drivers vulkan-utils
 
-# Now verify your vulkan installation:
+# Verify that Vulkan has been installed correctly:
 vulkaninfo
 
 # Now install additional vulkan packages:
