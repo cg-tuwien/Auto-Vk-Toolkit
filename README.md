@@ -103,7 +103,7 @@ See: [Automatic Resource-Updates](./docs/updater.md)
 # FAQs, Known Issues, Troubleshooting
 
 **Q: Can Gears-Vk be used on Linux?**           
-_A:_ Yes. See [CMake](/docs/cmake.md).
+_A:_ Yes. Please see the CMake documentation at [docs/cmake.md](/docs/cmake.md)!
 
 **Q: Can Gears-Vk be used without the _Post Build Helper_?**      
 _A:_ Yes. The _Post Build Helper_ is a convenience tool that handles resource deployment, asset dependencies, and also file updates (useful for shader hot reloading, depending on the project structure). If you're not using it, you'll have to manage deployment of resources, and compilation of shader files into SPIR-V manually.
