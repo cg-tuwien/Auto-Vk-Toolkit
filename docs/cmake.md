@@ -10,7 +10,7 @@ On Windows pre-built binaries of dependencies are included and used when buildin
 
 ### Linux: Ubuntu
 
-No special settings are required on Linux: CLion can use the bundled cmake, you have to install the following packages on your system to get it work:
+No special settings are required on Linux. CLion can use the bundled cmake. The following packages have to be installed on your system:
 ```
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt update && sudo apt install libassimp-dev g++-11 
