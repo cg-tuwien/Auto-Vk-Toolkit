@@ -1,0 +1,72 @@
+<code_scheme name="Project" version="173">
+  <Objective-C>
+    <option name="KEEP_DIRECTIVE_AT_FIRST_COLUMN" value="false" />
+    <option name="FUNCTION_NON_TOP_AFTER_RETURN_TYPE_WRAP" value="0" />
+    <option name="FUNCTION_TOP_AFTER_RETURN_TYPE_WRAP" value="0" />
+    <option name="FUNCTION_PARAMETERS_ALIGN_MULTILINE" value="false" />
+    <option name="FUNCTION_PARAMETERS_NEW_LINE_AFTER_LPAR" value="true" />
+    <option name="FUNCTION_PARAMETERS_NEW_LINE_BEFORE_RPAR" value="true" />
+    <option name="LAMBDA_CAPTURE_LIST_WRAP" value="5" />
+    <option name="LAMBDA_CAPTURE_LIST_NEW_LINE_AFTER_LBRACKET" value="true" />
+    <option name="LAMBDA_CAPTURE_LIST_NEW_LINE_BEFORE_RBRACKET" value="true" />
+    <option name="FUNCTION_CALL_ARGUMENTS_WRAP" value="2" />
+    <option name="FUNCTION_CALL_ARGUMENTS_ALIGN_MULTILINE" value="false" />
+    <option name="FUNCTION_CALL_ARGUMENTS_NEW_LINE_AFTER_LPAR" value="true" />
+    <option name="FUNCTION_CALL_ARGUMENTS_NEW_LINE_BEFORE_RPAR" value="true" />
+    <option name="CLASS_CONSTRUCTOR_INIT_LIST_NEW_LINE_BEFORE_COLON" value="0" />
+    <option name="SUPERCLASS_LIST_BEFORE_COLON" value="0" />
+  </Objective-C>
+  <Objective-C-extensions>
+    <extensions>
+      <pair source="cpp" header="hpp" fileNamingConvention="SNAKE_CASE" />
+      <pair source="c" header="h" fileNamingConvention="SNAKE_CASE" />
+      <pair source="cu" header="cuh" fileNamingConvention="NONE" />
+    </extensions>
+    <rules>
+      <rule entity="NAMESPACE" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="MACRO" visibility="ANY" specifier="ANY" prefix="" style="SCREAMING_SNAKE_CASE" suffix="" />
+      <rule entity="CLASS" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="STRUCT" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="ENUM" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="ENUMERATOR" visibility="ANY" specifier="ANY" prefix="" style="PASCAL_CASE" suffix="" />
+      <rule entity="TYPEDEF" visibility="ANY" specifier="ANY" prefix="" style="PASCAL_CASE" suffix="" />
+      <rule entity="UNION" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="CLASS_MEMBER_FUNCTION" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="STRUCT_MEMBER_FUNCTION" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="CLASS_MEMBER_FIELD" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="STRUCT_MEMBER_FIELD" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="GLOBAL_FUNCTION" visibility="ANY" specifier="ANY" prefix="" style="SNAKE_CASE" suffix="" />
+      <rule entity="GLOBAL_VARIABLE" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="PARAMETER" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+      <rule entity="LOCAL_VARIABLE" visibility="ANY" specifier="ANY" prefix="" style="CAMEL_CASE" suffix="" />
+    </rules>
+  </Objective-C-extensions>
+  <clangFormatSettings>
+    <option name="ENABLED" value="true" />
+  </clangFormatSettings>
+  <codeStyleSettings language="ObjectiveC">
+    <option name="RIGHT_MARGIN" value="140" />
+    <option name="KEEP_LINE_BREAKS" value="false" />
+    <option name="KEEP_FIRST_COLUMN_COMMENT" value="false" />
+    <option name="KEEP_CONTROL_STATEMENT_IN_ONE_LINE" value="false" />
+    <option name="METHOD_CALL_CHAIN_WRAP" value="5" />
+    <option name="PARENTHESES_EXPRESSION_LPAREN_WRAP" value="true" />
+    <option name="PARENTHESES_EXPRESSION_RPAREN_WRAP" value="true" />
+    <option name="KEEP_SIMPLE_BLOCKS_IN_ONE_LINE" value="false" />
+    <option name="KEEP_SIMPLE_METHODS_IN_ONE_LINE" value="false" />
+    <option name="FOR_STATEMENT_WRAP" value="1" />
+    <option name="ARRAY_INITIALIZER_WRAP" value="5" />
+    <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true" />
+    <option name="ARRAY_INITIALIZER_RBRACE_ON_NEXT_LINE" value="true" />
+    <option name="IF_BRACE_FORCE" value="3" />
+    <option name="DOWHILE_BRACE_FORCE" value="3" />
+    <option name="WHILE_BRACE_FORCE" value="3" />
+    <option name="FOR_BRACE_FORCE" value="3" />
+    <option name="WRAP_ON_TYPING" value="0" />
+    <indentOptions>
+      <option name="CONTINUATION_INDENT_SIZE" value="4" />
+      <option name="USE_TAB_CHARACTER" value="true" />
+      <option name="LABEL_INDENT_ABSOLUTE" value="true" />
+    </indentOptions>
+  </codeStyleSettings>
+</code_scheme>
