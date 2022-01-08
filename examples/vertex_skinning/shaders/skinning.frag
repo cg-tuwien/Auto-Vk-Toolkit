@@ -1,7 +1,7 @@
 #version 460
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(set = 0, binding = 0) uniform sampler2D textures[];
+layout(set = 2, binding = 0) uniform sampler2D textures[];
 
 struct MaterialGpuData
 {
@@ -58,7 +58,7 @@ struct MaterialGpuData
 	vec4 mExtraTexOffsetTiling;
 };
 
-layout(set = 1, binding = 0) buffer Material 
+layout(set = 3, binding = 0) buffer Material
 {
 	MaterialGpuData materials[];
 } matSsbo;
