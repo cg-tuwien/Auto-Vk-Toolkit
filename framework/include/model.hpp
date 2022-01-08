@@ -366,8 +366,14 @@ namespace gvk
 		/** Returns all cameras stored in the model file */
 		std::vector<gvk::camera> cameras() const;
 
-		/** Load an animation clip's data */
-		animation_clip_data load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const;
+		/** Load an animation clip's data
+		 * Per default, aStartTimeTicks is set to 0, meaning the animation will start at the very beginning.
+		 * aEndTimeTicks is set to -1, so per default the animation will be played through its full
+		 * length. The duration is inferred from mScene->mAnimations[aAnimationIndex]->mDuration.
+		 * If aEndTimeTicks is provided and greater than this duration value, the inferred duration value
+		 * will be used instead.
+		 * */
+		animation_clip_data load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks = 0, double aEndTimeTicks = -1) const;
 
 		/**	Prepare an animation data structure for the given animation index and the given mesh indices.
 		 *	The bone matrices shall be written into contiguous memory, but the stride between the start

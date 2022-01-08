@@ -984,7 +984,7 @@ namespace gvk
 	animation_clip_data model_t::load_animation_clip(unsigned int aAnimationIndex, double aStartTimeTicks, double aEndTimeTicks) const
 	{
 		assert(mScene);
-		assert(aEndTimeTicks > aStartTimeTicks);
+		assert(aEndTimeTicks < 0.0 || (aEndTimeTicks > aStartTimeTicks));
 		assert(aStartTimeTicks >= 0.0);
 		if (!mScene->HasAnimations()) {
 			throw avk::runtime_error("Model has no animations");
@@ -995,7 +995,7 @@ namespace gvk
 
 		double ticksPerSec = mScene->mAnimations[aAnimationIndex]->mTicksPerSecond;
 		double durationTicks = mScene->mAnimations[aAnimationIndex]->mDuration;
-		double endTicks = glm::min(aEndTimeTicks, durationTicks);
+		double endTicks = (aEndTimeTicks < 0.0) ? durationTicks : glm::min(aEndTimeTicks, durationTicks);
 
 		return animation_clip_data{ aAnimationIndex, ticksPerSec, aStartTimeTicks, endTicks };
 	}
