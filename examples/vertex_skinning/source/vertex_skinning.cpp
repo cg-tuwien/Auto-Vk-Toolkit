@@ -8,6 +8,7 @@ class model_loader_app : public gvk::invokee {
 		glm::mat4 mModelMatrix;
 		glm::vec4 mCamPos;
 		int mMaterialIndex;
+		int mSkinningMode;
 	};
 
 public:// v== avk::invokee overrides which will be invoked by the framework ==v
@@ -33,6 +34,7 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 			glm::mat4(1.0f),
 			false,
 			100,
+			// false, // do not use optimized centers of rotation skinning TODO uncomment for cors (or not cors), compare two tubes with and without.
 			0
 		);
 
@@ -93,8 +95,9 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::push_constant_binding_data{avk::shader_type::vertex, 0, sizeof(transformation_matrix)},
 				avk::descriptor_binding(0, 0, mViewProjBuffer),
 				avk::descriptor_binding(1, 0, model.get_bone_data().mBoneMatricesBuffer),
-				avk::descriptor_binding(2, 0, model.get_material_data().mImageSamplers),
-				avk::descriptor_binding(3, 0, model.get_material_data().mMaterialsBuffer)
+				avk::descriptor_binding(2, 0, model.get_bone_data().mDualQuaternionsBuffer),
+				avk::descriptor_binding(3, 0, model.get_material_data().mImageSamplers),
+				avk::descriptor_binding(4, 0, model.get_material_data().mMaterialsBuffer)
 			);
 		}
 	}
@@ -127,17 +130,21 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 			cmdbfr->bind_pipeline(avk::const_referenced(pipeline));
 			cmdbfr->bind_descriptors(pipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
 				avk::descriptor_binding(0, 0, mViewProjBuffer),
-				// avk::descriptor_binding(4, 0, model.get_bone_data().mDualQuaternionsBuffer), // TODO uncomment for dual quat and cors
 				avk::descriptor_binding(1, 0, model.get_bone_data().mBoneMatricesBuffer),
-				avk::descriptor_binding(2, 0, model.get_material_data().mImageSamplers),
-				avk::descriptor_binding(3, 0, model.get_material_data().mMaterialsBuffer)
+				avk::descriptor_binding(2, 0, model.get_bone_data().mDualQuaternionsBuffer),
+				avk::descriptor_binding(3, 0, model.get_material_data().mImageSamplers),
+				avk::descriptor_binding(4, 0, model.get_material_data().mMaterialsBuffer)
 			}));
 			for (auto& meshData : model.get_mesh_data()) {
 				auto pushConst = transformation_matrix {
 					// Set model matrix for this mesh:
-					model.get_model_transform(), glm::vec4(mQuakeCam.translation(), 1.0f),
+					model.get_model_transform(),
+					// Camera position
+					glm::vec4(mQuakeCam.translation(), 1.0f),
 					// Set material index for this mesh:
-					meshData.mMaterialIndex
+					meshData.mMaterialIndex,
+					// Skinning mode (linear blend, dual quat or cors)
+					mSkinningMode
 				};
 				cmdbfr->handle().pushConstants(
 					pipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConst),
@@ -242,6 +249,7 @@ private: // v== Member variables ==v
 
 	std::vector<animated_model> mAnimatedModels;
 	gvk::quake_camera mQuakeCam;
+	int mSkinningMode = 1;
 
 	glm::vec3 mScale;
 }; // model_loader_app

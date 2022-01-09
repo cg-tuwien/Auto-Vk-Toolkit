@@ -1,5 +1,13 @@
-add_executable(vertex_skinning
-    source/vertex_skinning.cpp source/animated_model.cpp source/animated_model.hpp)
+add_executable(
+        vertex_skinning
+        source/vertex_skinning.cpp
+        source/animated_model.cpp
+        source/animated_model.hpp
+        source/dual_quaternion.cpp
+        source/dual_quaternion.hpp
+        source/quaternion.cpp
+        source/quaternion.hpp
+)
 target_include_directories(vertex_skinning PRIVATE ${PROJECT_NAME})
 target_link_libraries(vertex_skinning PRIVATE ${PROJECT_NAME})
 

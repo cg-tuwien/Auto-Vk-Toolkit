@@ -1,5 +1,5 @@
 #pragma once
-
+#include "dual_quaternion.hpp"
 
 class animated_model {
 public:
@@ -32,9 +32,9 @@ public:
 
 	struct bone_data {
 		std::vector<glm::mat4> mBoneMatrices;
-		// std::vector<DualQuaternionStruct> mDualQuaternions; // TODO: uncomment for dualquaternions and cors
+		std::vector<dual_quaternion::dual_quaternion_struct> mDualQuaternions;
 		avk::buffer mBoneMatricesBuffer;
-		// avk::buffer mDualQuaternionsBuffer; // TODO: uncomment for dualquaternions and cors
+		avk::buffer mDualQuaternionsBuffer;
 	};
 
 	struct material_data {
@@ -101,5 +101,5 @@ private:
 	bool mFlipTexCoords = false;
 
 	// CoRCalculator mCoRCalc = CoRCalculator(0.1f, 0.1f, false, 128);  // TODO: uncomment for cors
-	// bool mUseCoR = false;  // TODO: uncomment for dualquaternions and cors
+	// bool mUseCoR = false;  // TODO: uncomment for cors
 };

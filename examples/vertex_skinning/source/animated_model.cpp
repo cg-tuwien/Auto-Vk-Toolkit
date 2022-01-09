@@ -135,13 +135,13 @@ void animated_model::initialize(
 			}
 		}
 		mBoneData.mBoneMatrices.resize(max_bone_mat_count * allMeshIndices.size(), glm::mat4(0));
-		/* mBoneData.mDualQuaternions.resize(
+		mBoneData.mDualQuaternions.resize(
 			max_bone_mat_count * allMeshIndices.size(),
-			DualQuaternionStruct{
+			dual_quaternion::dual_quaternion_struct {
 				glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
 				glm::vec4(0.0f, 0.0f, 0.0f, 0.0f)
 			}
-		); TODO: uncomment for dualquaternions and cors */
+		);
 	}
 
 	std::cout << "Number Of Animations: " << mNumAnimations << std::endl;
@@ -162,10 +162,10 @@ void animated_model::initialize(
 			avk::storage_buffer_meta::create_from_size(total_num_bone_matrices * sizeof(glm::mat4))
 		);
 
-		/* mBoneData.mDualQuaternionsBuffer = gvk::context().create_buffer(
+		mBoneData.mDualQuaternionsBuffer = gvk::context().create_buffer(
 			avk::memory_usage::host_coherent, {},
-			avk::storage_buffer_meta::create_from_size(total_num_bone_matrices * sizeof(DualQuaternionStruct))
-		); TODO: uncomment for dual quaternions and cors */
+			avk::storage_buffer_meta::create_from_size(total_num_bone_matrices * sizeof(dual_quaternion::dual_quaternion_struct))
+		);
 	}
 
 	auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
@@ -249,7 +249,7 @@ void animated_model::update_bone_matrices() {
 	for (int i = 0; i < mBoneData.mBoneMatrices.size(); i++) {
 		auto m = glm::inverse(mParts[0].mMeshTransform) * mBoneData.mBoneMatrices[i];
 		mBoneData.mBoneMatrices[i] = m;
-		// mBoneData.mDualQuaternions[i] = DualQuaternion::to_struct(DualQuaternion::from_mat4(m)); TODO uncomment for dual quat and cors
+		mBoneData.mDualQuaternions[i] = dual_quaternion::to_struct(dual_quaternion::from_mat4(m));
 	}
 
 	mBoneData.mBoneMatricesBuffer->fill(
@@ -257,12 +257,12 @@ void animated_model::update_bone_matrices() {
 		mBoneData.mBoneMatrices.size() * sizeof(glm::mat4),
 		avk::sync::not_required()
 	);
-	/*
+
 	mBoneData.mDualQuaternionsBuffer->fill(
 		mBoneData.mDualQuaternions.data(), 0, 0,
-		mBoneData.mDualQuaternions.size() * sizeof(DualQuaternionStruct),
+		mBoneData.mDualQuaternions.size() * sizeof(dual_quaternion::dual_quaternion_struct),
 		avk::sync::not_required()
-	); TODO uncomment for dual quat and cors */
+	);
 }
 
 void animated_model::update() {
