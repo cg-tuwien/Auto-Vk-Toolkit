@@ -2,75 +2,37 @@
 #ifndef quaternion_glsl
 #define quaternion_glsl
 
-struct Quaternion {
-    vec4 q;
-};
+// code from https://github.com/pmbittner/OptimisedCentresOfRotationSkinning/blob/master/shader/quaternion.glsl
 
-Quaternion quat() {
-    return Quaternion(vec4(0.0, 0.0, 0.0, 1.0));
+float quat_norm(in vec4 a)
+{
+    return length(a);
 }
 
-Quaternion quat(vec4 v) {
-    return Quaternion(v);
+vec4 quat_conj(vec4 q)
+{
+    return vec4(-q.xyz, q.w);
 }
 
-Quaternion quat(float theta, vec3 axis) {
-    vec4 norm_axis = vec4(normalize(axis), 1.0);
-    vec4 q = vec4(sin(theta/2.0), sin(theta/2.0), sin(theta/2.0), cos(theta/2.0)) * norm_axis;
-    return Quaternion(q);
+vec4 quat_mult(vec4 q1, vec4 q2)
+{
+    vec4 qr;
+    qr.x = (q1.w * q2.x) + (q1.x * q2.w) + (q1.y * q2.z) - (q1.z * q2.y);
+    qr.y = (q1.w * q2.y) - (q1.x * q2.z) + (q1.y * q2.w) + (q1.z * q2.x);
+    qr.z = (q1.w * q2.z) + (q1.x * q2.y) - (q1.y * q2.x) + (q1.z * q2.w);
+    qr.w = (q1.w * q2.w) - (q1.x * q2.x) - (q1.y * q2.y) - (q1.z * q2.z);
+    return qr;
 }
 
-Quaternion quat_add(Quaternion q1, Quaternion q2) {
-    float w1 = q1.q.w;
-    float w2 = q2.q.w;
-    vec3 v1 = q1.q.xyz;
-    vec3 v2 = q2.q.xyz;
-    vec4 q = vec4(v1+v2, w1+w2);
-    return Quaternion(q);
-}
-
-Quaternion quat_mult(float s, Quaternion q) {
-    vec4 vals = s * q.q;
-    return Quaternion(vals);
-}
-
-Quaternion quat_mult(Quaternion q1, Quaternion q2) {
-    float w1 = q1.q.w;
-    float w2 = q2.q.w;
-    vec3 v1 = q1.q.xyz;
-    vec3 v2 = q2.q.xyz;
-    vec4 vals = vec4(
-    w1*v2 + w2*v1 + cross(v1, v2),
-    w1*w2 - dot(v1, v2)
+// function from https://twistedpairdevelopment.wordpress.com/2013/02/11/rotating-a-vector-by-a-quaternion-in-glsl/
+vec4 multQuat(vec4 q1, vec4 q2)
+{
+    return vec4(
+        q1.w * q2.x + q1.x * q2.w + q1.z * q2.y - q1.y * q2.z,
+        q1.w * q2.y + q1.y * q2.w + q1.x * q2.z - q1.z * q2.x,
+        q1.w * q2.z + q1.z * q2.w + q1.y * q2.x - q1.x * q2.y,
+        q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z
     );
-    return Quaternion(vals);
-}
-
-Quaternion quat_mult(vec4 q1, vec4 q2) {
-    float w1 = q1.w;
-    float w2 = q2.w;
-    vec3 v1 = q1.xyz;
-    vec3 v2 = q2.xyz;
-    vec4 vals = vec4(
-    w1*v2 + w2*v1 + cross(v1, v2),
-    w1*w2 - dot(v1, v2)
-    );
-    return Quaternion(vals);
-}
-
-Quaternion quat_conj(Quaternion q) {
-    vec4 vals = vec4(-q.q.xyz, q.q.w);
-    return Quaternion(vals);
-}
-
-float quat_mag(Quaternion q) {
-    return quat_mult(q, quat_conj(q)).q.w;
-}
-
-Quaternion quat_normalize(Quaternion q) {
-    float mag = quat_mag(q);
-    vec4 vals = q.q / mag;
-    return Quaternion(vals);
 }
 
 vec4 quat_add_oriented(vec4 q1, vec4 q2)
@@ -82,23 +44,97 @@ vec4 quat_add_oriented(vec4 q1, vec4 q2)
     }
 }
 
-mat4 quat_to_matrix(Quaternion q) {
-    Quaternion tmp = quat_normalize(q);
-    mat4 m  = mat4(1.0);
-    vec4 rv = tmp.q;
+mat3 quat_toRotationMatrix(vec4 quat)
+{
+    float twiceXY  = 2 * quat.x * quat.y;
+    float twiceXZ  = 2 * quat.x * quat.z;
+    float twiceYZ  = 2 * quat.y * quat.z;
+    float twiceWX  = 2 * quat.w * quat.x;
+    float twiceWY  = 2 * quat.w * quat.y;
+    float twiceWZ  = 2 * quat.w * quat.z;
 
-    // rotation
-    m[0][0] = rv.w * rv.w + rv.x * rv.x - rv.y * rv.y - rv.z * rv.z;
-    m[0][1] = 2.0  * rv.x * rv.y + 2.0  * rv.w * rv.z;
-    m[0][2] = 2.0  * rv.x * rv.z - 2.0  * rv.w * rv.y;
-    m[1][0] = 2.0  * rv.x * rv.y - 2.0  * rv.w * rv.z;
-    m[1][1] = rv.w * rv.w + rv.y * rv.y - rv.x * rv.x - rv.z * rv.z;
-    m[1][2] = 2.0  * rv.y * rv.z + 2.0  * rv.w * rv.x;
-    m[2][0] = 2.0  * rv.x * rv.z + 2.0  * rv.w * rv.y;
-    m[2][1] = 2.0  * rv.y * rv.z - 2.0  * rv.w * rv.x;
-    m[2][2] = rv.w * rv.w + rv.z * rv.z - rv.x * rv.x - rv.y * rv.y;
+    float wSqrd = quat.w * quat.w;
+    float xSqrd = quat.x * quat.x;
+    float ySqrd = quat.y * quat.y;
+    float zSqrd = quat.z * quat.z;
 
-    return m;
+    return mat3(
+        // first column
+        vec3(
+            1.0f - 2*(ySqrd + zSqrd),
+            twiceXY + twiceWZ,
+            twiceXZ - twiceWY
+        ),
+        // second column
+        vec3(
+            twiceXY - twiceWZ,
+            1.0f - 2*(xSqrd + zSqrd),
+            twiceYZ + twiceWX
+        ),
+        // third column
+        vec3(
+            twiceXZ + twiceWY,
+            twiceYZ - twiceWX,
+            1.0f - 2*(xSqrd + ySqrd)
+        )
+    );
+}
+
+vec4 quat_from_axis_angle(vec3 axis, float angle)
+{
+    vec4 qr;
+    float half_angle = (angle * 0.5) * 3.14159 / 180.0;
+    qr.x = axis.x * sin(half_angle);
+    qr.y = axis.y * sin(half_angle);
+    qr.z = axis.z * sin(half_angle);
+    qr.w = cos(half_angle);
+    return qr;
+}
+
+vec4 quat_from_axis_angle_rad(vec3 axis, float angle)
+{
+    vec4 qr;
+    float half_angle = (angle * 0.5);
+    qr.x = axis.x * sin(half_angle);
+    qr.y = axis.y * sin(half_angle);
+    qr.z = axis.z * sin(half_angle);
+    qr.w = cos(half_angle);
+    return qr;
+}
+
+vec3 rotate_vertex_position(vec3 position, vec3 axis, float angle)
+{
+    vec4 qr = quat_from_axis_angle(axis, angle);
+    vec4 qr_conj = quat_conj(qr);
+    vec4 q_pos = vec4(position.x, position.y, position.z, 0);
+
+    vec4 q_tmp = quat_mult(qr, q_pos);
+    qr = quat_mult(q_tmp, qr_conj);
+
+    return vec3(qr.x, qr.y, qr.z);
+}
+
+// function from https://twistedpairdevelopment.wordpress.com/2013/02/11/rotating-a-vector-by-a-quaternion-in-glsl/
+vec3 rotate_vector( vec4 quat, vec3 vec )
+{
+    vec4 qv = multQuat( quat, vec4(vec, 0.0) );
+    return multQuat( qv, vec4(-quat.x, -quat.y, -quat.z, quat.w) ).xyz;
+}
+
+// function from https://twistedpairdevelopment.wordpress.com/2013/02/11/rotating-a-vector-by-a-quaternion-in-glsl/
+vec3 rotate_vector_optimized( vec4 quat, vec3 vec )
+{
+    return vec + 2.0 * cross( cross( vec, quat.xyz ) + quat.w * vec, quat.xyz );
+}
+
+vec4 quat_from_two_vectors(vec3 u, vec3 v)
+{
+    vec3 unorm = normalize(u);
+    vec3 vnorm = normalize(v);
+    float cos_theta = dot(unorm, vnorm);
+    float angle = acos(cos_theta);
+    vec3 w = normalize(cross(u, v));
+    return quat_from_axis_angle_rad(w, angle);
 }
 
 #endif

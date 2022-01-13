@@ -284,7 +284,13 @@ int main() // <== Starting point ==
 		auto ui = gvk::imgui_manager(singleQueue);
 
 		// GO:
-		gvk::start(gvk::application_name("Gears-Vk + Auto-Vk Example: Model Loader"), mainWnd, app, ui);
+		gvk::start(
+			gvk::required_device_extensions(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME),
+			gvk::application_name("Gears-Vk + Auto-Vk Example: Model Loader"),
+			mainWnd,
+			app,
+			ui
+		);
 	} catch (gvk::logic_error &) {
 	} catch (gvk::runtime_error &) {
 	} catch (avk::logic_error &) {
