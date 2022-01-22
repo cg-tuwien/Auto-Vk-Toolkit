@@ -10,6 +10,7 @@ layout (location = 3) in vec3 inTangent;
 layout (location = 4) in vec3 inBiTangent;
 layout (location = 5) in vec4 inBoneWeights;
 layout (location = 6) in uvec4 inBoneIndices;
+layout (location = 7) in vec3 inCenterOfRotation;
 
 layout(push_constant) uniform PushConstants {
 	mat4 mModelMatrix;
@@ -51,6 +52,7 @@ void main() {
 						+ boneMatrices.mat[inBoneIndices.z] * inBoneWeights.z
 						+ boneMatrices.mat[inBoneIndices.w] * inBoneWeights.w;
 	} else if (pushConstants.mSkinningMode == 1) {
+		// DQS
 		DualQuaternion dqResult = DualQuaternion(vec4(0,0,0,0), vec4(0));
 		for (int i = 0; i < 4; ++i) {
 			dqResult = dualquat_add(dqResult, dualquat_mult(inBoneWeights[i], dqb.mDqs[inBoneIndices[i]]));
@@ -60,7 +62,24 @@ void main() {
 		vec4 translation = vec4(dualquat_getTranslation(c), 1);
 		skinning_matrix = mat4(quat_toRotationMatrix(c.real));
 		skinning_matrix[3] = translation;
-		debugMsg(77);
+		//debugMsg(77);
+	} else if (pushConstants.mSkinningMode == 2) {
+		// COR
+		vec4 quatRotation = vec4(0);
+		mat4 lbs = mat4(0);
+
+		for (int i = 0; i < 4; ++i) {
+			quatRotation = quat_add_oriented(quatRotation, inBoneWeights[i] * dqb.mDqs[inBoneIndices[i]].real);
+			lbs += inBoneWeights[i] * boneMatrices.mat[inBoneIndices[i]];
+		}
+
+		quatRotation = normalize(quatRotation);
+		mat3 quatRotationMatrix = quat_toRotationMatrix(quatRotation);
+
+		vec4 translation = vec4((lbs*vec4(inCenterOfRotation, 1.0) - vec4(quatRotationMatrix*inCenterOfRotation, 0.0)).xyz, 1.0);
+
+		skinning_matrix = mat4(quatRotationMatrix);
+		skinning_matrix[3] = translation;
 	}
 
 	// debugPrintfEXT("debug text vong shader wuhu");

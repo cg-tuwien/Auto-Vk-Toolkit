@@ -34,7 +34,7 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 			glm::mat4(1.0f),
 			false,
 			100,
-			// false, // do not use optimized centers of rotation skinning TODO uncomment for cors (or not cors), compare two tubes with and without.
+			(mSkinningMode == 2), // false: do not use optimized centers of rotation skinning
 			0
 		);
 
@@ -68,6 +68,7 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::from_buffer_binding(4)->stream_per_vertex<glm::vec3>()->to_location(4), // Bitangent
 				avk::from_buffer_binding(5)->stream_per_vertex<glm::vec4>()->to_location(5), // Bone Weights
 				avk::from_buffer_binding(6)->stream_per_vertex<glm::uvec4>()->to_location(6), // Bone Indices
+				avk::from_buffer_binding(7)->stream_per_vertex<glm::vec3>()->to_location(7), // Centers Of Rotation
 				// Some further settings:
 				avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
 				avk::cfg::culling_mode::cull_back_faces,
@@ -158,7 +159,8 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::const_referenced(meshData.mTangentsBuffer),
 					avk::const_referenced(meshData.mBiTangentsBuffer),
 					avk::const_referenced(meshData.mBoneWeightsBuffer),
-					avk::const_referenced(meshData.mBoneIndexBuffer));
+					avk::const_referenced(meshData.mBoneIndexBuffer),
+					avk::const_referenced(meshData.mCentersOfRotationBuffer));
 			}
 		}
 
@@ -249,7 +251,7 @@ private: // v== Member variables ==v
 
 	std::vector<animated_model> mAnimatedModels;
 	gvk::quake_camera mQuakeCam;
-	int mSkinningMode = 1;
+	int mSkinningMode = 2;
 
 	glm::vec3 mScale;
 }; // model_loader_app

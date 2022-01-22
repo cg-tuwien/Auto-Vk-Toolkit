@@ -1,5 +1,6 @@
 #pragma once
 #include "dual_quaternion.hpp"
+#include "cor.hpp"
 
 class animated_model {
 public:
@@ -12,7 +13,7 @@ public:
 		std::vector<glm::vec3> mBiTangents;
 		std::vector<glm::uvec4> mBoneIndices;
 		std::vector<glm::vec4> mBoneWeights;
-		// std::vector<glm::vec3> mCentersOfRotation; // TODO: uncomment for cors
+		std::vector<glm::vec3> mCentersOfRotation;
 		avk::buffer mIndexBuffer;
 		avk::buffer mPositionsBuffer;
 		avk::buffer mNormalsBuffer;
@@ -21,7 +22,7 @@ public:
 		avk::buffer mBiTangentsBuffer;
 		avk::buffer mBoneIndexBuffer;
 		avk::buffer mBoneWeightsBuffer;
-		// avk::buffer mCentersOfRotationBuffer; // TODO: uncomment for cors
+		avk::buffer mCentersOfRotationBuffer;
 		int mMaterialIndex;
 	};
 
@@ -51,7 +52,7 @@ public:
 		glm::mat4 model_matrix = glm::mat4(1.0f),
 		bool flipUV = false,
 		int MAX_BONE_COUNT = 1000,
-		/* bool use_CoR = false TODO uncomment for cor , */
+		bool use_CoR = false,
 		int initial_animation_index = 0
 	);
 
@@ -72,7 +73,7 @@ public:
 	bool is_animated();
 	bool is_dynamic();
 	bool has_bones();
-	// bool uses_cor(); // TODO: uncomment for cors
+	bool uses_cor();
 	std::vector<gvk::animation> &get_animations();
 	std::vector<gvk::animation_clip_data> &get_animation_clips();
 
@@ -80,7 +81,7 @@ private:
 	static glm::mat4 aiMat4_to_glmMat4(const aiMatrix4x4 &ai);
 	void collect_mesh_transforms_from_node(
 		int meshId, aiNode *node, const glm::mat4 &accTransform, std::vector<glm::mat4> &transforms);
-	// void load_or_compute_centers_of_rotations(gvk::model &gvkModel); // TODO: uncomment for cors
+	void load_or_compute_centers_of_rotations(gvk::model &gvkModel);
 
 	std::string mIdentifier;
 
@@ -100,6 +101,6 @@ private:
 	std::vector<gvk::animation_clip_data> mAnimClips;
 	bool mFlipTexCoords = false;
 
-	// CoRCalculator mCoRCalc = CoRCalculator(0.1f, 0.1f, false, 128);  // TODO: uncomment for cors
-	// bool mUseCoR = false;  // TODO: uncomment for cors
+	cor_calculator mCoRCalc = cor_calculator(0.1f, 0.1f, false, 128);
+	bool mUseCoR = false;
 };

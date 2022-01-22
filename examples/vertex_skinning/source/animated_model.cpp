@@ -6,13 +6,13 @@ void animated_model::initialize(
 	glm::mat4 model_matrix,
 	bool flipUV,
 	int MAX_BONE_COUNT,
-	// bool use_CoR, TODO: activate for cors
+	bool use_CoR,
 	int initial_animation_index
 ) {
 	mIdentifier = identifier;
 	mFlipTexCoords = flipUV;
 	mModelTrafo = model_matrix;
-	// mUseCoR = use_CoR; // TODO: uncomment for cors
+	mUseCoR = use_CoR;
 
 	// NOTE: aiProcess_PreTransformVertices removes bones
 	auto gvkModel = gvk::model_t::load_from_file(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
@@ -221,11 +221,22 @@ void animated_model::initialize(
 
 	mMaterialData.mMaterialsBuffer->fill(mMaterialData.mMaterialGPUData.data(), 0, avk::sync::not_required());
 
-	/*
+
 	if (mUseCoR) {
 		std::cout << "USING Optimized Centers Of Rotation Skinning." << std::endl;
 		load_or_compute_centers_of_rotations(gvkModel);
-	} TODO uncomment for cors */
+	} else {
+		// Initialize empty centers of rotation buffer for shader.
+		mMeshDataAndBuffers[0].mCentersOfRotation = std::vector<glm::vec3>(mMeshDataAndBuffers[0].mIndices.size());
+		mMeshDataAndBuffers[0].mCentersOfRotationBuffer = gvk::context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::vertex_buffer_meta::create_from_data(mMeshDataAndBuffers[0].mCentersOfRotation)
+		);
+		mMeshDataAndBuffers[0].mCentersOfRotationBuffer->fill(
+			mMeshDataAndBuffers[0].mCentersOfRotation.data(), 0,
+			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+		);
+	}
 
 	update();
 	update_bone_matrices();
@@ -332,10 +343,9 @@ bool animated_model::has_bones() {
 	return mAnyMeshHasBones;
 }
 
-/*
 bool animated_model::uses_cor() {
 	return mUseCoR;
-} TODO uncomment for cors */
+}
 
 std::vector<gvk::animation>& animated_model::get_animations() {
 	return mAnimations;
@@ -371,10 +381,9 @@ void animated_model::collect_mesh_transforms_from_node(
 	}
 }
 
-/*
 void animated_model::load_or_compute_centers_of_rotations(gvk::model& gvkModel) {
 	int meshIndex = 0; // for now just one mesh
-	const std::string cached_file_path = "cached_" + gvkModel->name_of_mesh(meshIndex);
+	const std::string cached_file_path = "cached_" + mIdentifier;
 	const std::string cached_file_path_bin = cached_file_path + ".cors";
 	const std::string cached_file_path_txt = cached_file_path + ".txt";
 	bool finished_calc = false;
@@ -386,8 +395,8 @@ void animated_model::load_or_compute_centers_of_rotations(gvk::model& gvkModel) 
 		std::vector<glm::vec3> vertices = mMeshDataAndBuffers[meshIndex].mPositions;
 		std::vector<uint32_t> indices = mMeshDataAndBuffers[meshIndex].mIndices;
 
-		std::vector<std::vector<unsigned int>> boneIndices;
-		std::vector<std::vector<float>> boneWeights;
+		std::vector<std::vector<unsigned int>> bone_indices;
+		std::vector<std::vector<float>> bone_weights;
 		
 		for (int i = 0; i < num_verts; i++) {
 			auto vi = mMeshDataAndBuffers[meshIndex].mBoneIndices[i];
@@ -400,54 +409,58 @@ void animated_model::load_or_compute_centers_of_rotations(gvk::model& gvkModel) 
 				inds.push_back(idx);
 				wgts.push_back(wgt);
 			}
-			boneIndices.push_back(inds);
-			boneWeights.push_back(wgts);
+			bone_indices.push_back(inds);
+			bone_weights.push_back(wgts);
 		}
 
-		std::vector<WeightsPerBone> weightsPerBone = mCoRCalc.convertWeights(num_bones, boneIndices, boneWeights);
+		std::vector<weights_per_bone> weights_per_bone =
+			mCoRCalc.convert_weights(num_bones, bone_indices, bone_weights);
 		
 		// normalize weights
-		for (int i = 0; i < weightsPerBone.size(); i++) {
+		for (int i = 0; i < weights_per_bone.size(); i++) {
 			float sum = 0.0f;
-			for (int j = 0; j < weightsPerBone[i].weights.size(); j++) {
-				sum = sum + weightsPerBone[i].weights[j];
+			for (int j = 0; j < weights_per_bone[i].weights.size(); j++) {
+				sum = sum + weights_per_bone[i].weights[j];
 			}
 			if (sum != 0.0f) {
-				for (int j = 0; j < weightsPerBone[i].weights.size(); j++) {
-					weightsPerBone[i].weights[j] = weightsPerBone[i].weights[j] / sum;
+				for (int j = 0; j < weights_per_bone[i].weights.size(); j++) {
+					weights_per_bone[i].weights[j] = weights_per_bone[i].weights[j] / sum;
 				}
 			}
 			else {
-				weightsPerBone[i].weights[0] = 1.0f;
+				weights_per_bone[i].weights[0] = 1.0f;
 			}
 		}
-		
-		CoRCalculator c(0.1f, 0.1f, false, 128);
-		
-		CoRMesh mesh = c.createCoRMesh(vertices, indices, weightsPerBone, 0.1f);
+
+		cor_calculator c(0.1f, 0.1f, false, 128);
+
+		cor_mesh mesh = c.create_cor_mesh(vertices, indices, weights_per_bone, 0.1f);
 
 		bool finished_calc = false;
 
-		c.calculateCoRsAsync(mesh, [&c, &finished_calc, cached_file_path_bin, cached_file_path_txt](std::vector<glm::vec3>& cors) {
-			c.saveCoRsToBinaryFile(cached_file_path_bin, cors);
-			c.saveCoRsToTextFile(cached_file_path_txt, cors);
-			finished_calc = true;
-		});
-		
+		c.calculate_cors_async(
+			mesh,
+			[&c, &finished_calc, cached_file_path_bin, cached_file_path_txt](std::vector<glm::vec3> &cors) {
+				c.save_cors_to_binary_file(cached_file_path_bin, cors);
+				c.save_cors_to_text_file(cached_file_path_txt, cors);
+				finished_calc = true;
+			});
+
 		// wait for threads to finish
 		while (!finished_calc) {
 			Sleep(300);
 		}
 		LOG_INFO(std::string("All threads of CoRs calculation joined."));
 	}
-	
+
 	if (!std::filesystem::exists(cached_file_path_bin)) {
 		throw avk::runtime_error(
 			"Just finished export of cors but could not locate cache file !"
 		);
 	}
 
-	mMeshDataAndBuffers[meshIndex].mCentersOfRotation = mCoRCalc.loadCoRsFromBinaryFile(cached_file_path_bin);
+	mMeshDataAndBuffers[meshIndex].mCentersOfRotation =
+		mCoRCalc.load_cors_from_binary_file(cached_file_path_bin);
 	for (int i = 0; i < mMeshDataAndBuffers[meshIndex].mCentersOfRotation.size(); i++) {
 		auto m = mParts[meshIndex].mMeshTransform;
 		mMeshDataAndBuffers[meshIndex].mCentersOfRotation[i] = glm::vec3(m * glm::vec4(mMeshDataAndBuffers[meshIndex].mCentersOfRotation[i], 1.0f));
@@ -463,4 +476,4 @@ void animated_model::load_or_compute_centers_of_rotations(gvk::model& gvkModel) 
 	);
 	std::cout << "\t\tNumber of Positions:" << mMeshDataAndBuffers[meshIndex].mPositions.size() << std::endl;
 	std::cout << "\t\tNumber of CORS:" << mMeshDataAndBuffers[meshIndex].mCentersOfRotation.size() << std::endl;
-} TODO uncomment for cors */
+}

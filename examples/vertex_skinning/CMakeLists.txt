@@ -7,6 +7,8 @@ add_executable(
         source/dual_quaternion.hpp
         source/quaternion.cpp
         source/quaternion.hpp
+        source/cor.cpp
+        source/cor.hpp
 )
 target_include_directories(vertex_skinning PRIVATE ${PROJECT_NAME})
 target_link_libraries(vertex_skinning PRIVATE ${PROJECT_NAME})
