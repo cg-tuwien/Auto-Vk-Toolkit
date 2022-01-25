@@ -186,7 +186,7 @@ namespace gvk
 		void add_updatee(uint64_t aEventsBitset, updatee_t aUpdatee, window::frame_id_t aTtl);
 
 	private:
-		const size_t cMaxEvents = 64;
+		static constexpr size_t cMaxEvents = 64;
 		window::frame_id_t mCurrentUpdaterFrame = 0;
 
 		// List of events. Must not be something that moves elements around once initialized.
