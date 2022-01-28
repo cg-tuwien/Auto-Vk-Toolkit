@@ -1,10 +1,10 @@
-# Meshlets in Gears-Vk
+# Meshlets
 
 When using mesh shaders, the mesh is segmented into smaller segments called meshlets. These meshlets contain multiple triangles that should ideally be directly attached to one another to leverage the better vertex reuse capabilities of the mesh shader pipeline. 
 
 More information on how the meshlet pipeline works can be found on [Nvidias developer blog.](https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/)
 
-## Meshlets in gears-vk
+## Meshlets in Gears-Vk
 
 Gears-Vk provides some methods that help divide a mesh into meshlets and convert the resulting data structure to one that can be directly used on the GPU.
 
