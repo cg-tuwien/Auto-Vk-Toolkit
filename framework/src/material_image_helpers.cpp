@@ -68,20 +68,6 @@ namespace gvk
 			aSerializer->get().archive(numLayers);
 		}
 
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
-		// TODO: if image resource does not have a full mipmap pyramid, create image with fewer levels
-		auto img = context().create_image(width, height, format, numLayers, aMemoryUsage, aImageUsage);
-		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
-
-		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
-		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
-
-		// 2. Copy buffer to image
-		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
-
 		size_t maxLevels = 0;
 		size_t maxFaces = 0;
 
@@ -100,14 +86,36 @@ namespace gvk
 			}
 
 			assert(maxLevels >= 1);
-			// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
-			assert(maxLevels == 1 || maxLevels == img->create_info().mipLevels);
 		}
 
 		if (aSerializer) {
 			aSerializer->get().archive(maxLevels);
 			aSerializer->get().archive(maxFaces);
 		}
+
+		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
+		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
+
+		// TODO: if image resource does not have a full mipmap pyramid, create image with fewer levels
+		auto img = context().create_image(width, height, format, numLayers, aMemoryUsage, aImageUsage, [&](avk::image_t& image) {
+			if (avk::is_block_compressed_format(format)) {
+				// We don't create mip maps in the case of a compressed format. We simply assume the mip maps are contained
+				// in the file and use these provided levels only.
+				// TODO: this should probably be done in avk.cpp and not here?
+				image.create_info().mipLevels = maxLevels;
+			}
+		});
+		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
+
+		// 1. Transition image layout to eTransferDstOptimal
+		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
+
+		// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
+		assert(maxLevels == 1 || maxLevels == img->create_info().mipLevels);
+
+		// 2. Copy buffer to image
+		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
 
 		std::vector<avk::buffer> stagingBuffers;
 
@@ -134,9 +142,9 @@ namespace gvk
 				{
 					auto imgExtent = img->create_info().extent;
 					auto levelDivisor = 1u << level;
-					imgExtent.width = imgExtent.width > 1u ? imgExtent.width / levelDivisor : 1u;
-					imgExtent.height = imgExtent.height > 1u ? imgExtent.height / levelDivisor : 1u;
-					imgExtent.depth = imgExtent.depth > 1u ? imgExtent.depth / levelDivisor : 1u;
+					imgExtent.width = imgExtent.width > levelDivisor ? imgExtent.width / levelDivisor : 1u;
+					imgExtent.height = imgExtent.height > levelDivisor ? imgExtent.height / levelDivisor : 1u;
+					imgExtent.depth = imgExtent.depth > levelDivisor ? imgExtent.depth / levelDivisor : 1u;
 					assert(levelExtent.width == static_cast<int>(imgExtent.width));
 					assert(levelExtent.height == static_cast<int>(imgExtent.height));
 					assert(levelExtent.depth == static_cast<int>(imgExtent.depth));
