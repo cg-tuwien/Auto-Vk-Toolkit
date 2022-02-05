@@ -1,4 +1,5 @@
 #include <gvk.hpp>
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 
 // There are several options for this example application:

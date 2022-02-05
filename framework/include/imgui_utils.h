@@ -3,6 +3,7 @@
 #include <initializer_list>
 #include <limits>
 
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 
 namespace ImGui

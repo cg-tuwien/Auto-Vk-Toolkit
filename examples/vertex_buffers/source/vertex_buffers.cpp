@@ -1,4 +1,5 @@
 #include <gvk.hpp>
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 
 class vertex_buffers_app : public gvk::invokee

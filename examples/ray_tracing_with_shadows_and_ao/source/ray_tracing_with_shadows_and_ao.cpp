@@ -1,4 +1,5 @@
 #include <gvk.hpp>
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 #include "triangle_mesh_geometry_manager.hpp"
 
