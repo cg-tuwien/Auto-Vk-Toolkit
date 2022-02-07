@@ -123,7 +123,7 @@ namespace gvk
 
 #if defined(_WIN32)
 		gvk::context().dispatch_to_main_thread([](){
-		    ImGui::GetIO().ImeWindowHandle = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
+		    ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
 		});
 #endif
 
@@ -213,7 +213,7 @@ namespace gvk
 			io.AddKeyEvent(ImGuiKey_Space, input().key_down(key_code::space));
 			io.AddKeyEvent(ImGuiKey_Enter, input().key_down(key_code::enter));
 			io.AddKeyEvent(ImGuiKey_Escape, input().key_down(key_code::escape));
-			io.AddKeyEvent(ImGuiKey_KeyPadEnter, input().key_down(key_code::numpad_enter));
+			io.AddKeyEvent(ImGuiKey_KeypadEnter, input().key_down(key_code::numpad_enter));
 			io.AddKeyEvent(ImGuiKey_A, input().key_down(key_code::a));
 			io.AddKeyEvent(ImGuiKey_C, input().key_down(key_code::c));
 			io.AddKeyEvent(ImGuiKey_V, input().key_down(key_code::v));
