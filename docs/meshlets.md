@@ -5,23 +5,23 @@ More information on how the meshlet pipeline works can be found on Nvidia's deve
 
 ## Dividing Meshes into Meshlets in Gears-Vk
 
-Gears-Vk provides utility functions that help to divide a mesh into meshlets and convert the resulting data structure to one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../framework/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../framework/src/meshlet_helpers.cpp).
+Gears-Vk provides utility functions that help to divide a mesh into meshlets and convert the resulting data structure into one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../framework/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../framework/src/meshlet_helpers.cpp).
 
 As a first step, the models and mesh indices that are to be divided into meshlets need to be selected. The helper function `gvk::make_selection_of_shared_models_and_mesh_indices()` can be used for this purpose.
 
-The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until it is full w.r.t. its parameters `aMaxVertices` and `aMaxIndices`. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
+The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until the limits defined by its parameters `aMaxVertices` and `aMaxIndices` have been reached. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
 
 The function `gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraries like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
 
 ### Using a Custom Division Function
 
-The custom division function (parameter `aMeshletDivision` to `gvk::divide_into_meshlets()`) can either receive the vertices and indices or just the indices depending on the use-case.
+The custom division function (parameter `aMeshletDivision` to `gvk::divide_into_meshlets()`) can either receive the vertices and indices or just the indices depending on the use case.
 Additionally it receives the model and optionally the mesh index. If no mesh index is provided then the meshes were combined beforehand.
 Ownership of the model **must not** be taken within the body of the custom `aMeshletDivision` function. 
 
-Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#L139).
+Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#L139)).
 
-The custom division function must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
+The custom division function must follow a specific declaration schema. Optional parameters can be omitted, but all of them need to be provided in the following order:
 
 | Parameter | Mandatory? | Description |
 | :------ | :---: | :--- |
@@ -32,11 +32,9 @@ The custom division function must follow a specific declaration schema, optional
 | `uint32_t tMaxVertices` | yes | The maximum number of vertices that should be added to a single meshlet | 
 | `uint32_t tMaxIndices` | yes | The maximum number of indices that should be added to a single meshlet | 
 
-Return value:
+The custom division function **must** return a `std::vector<meshlet>` by value, containing the generated meshlets.
 
-`std::vector<meshlet>`: The generated meshlets
-
-#### Example for Vertices and Indices
+#### Example for Vertices and Indices:
 
 Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes both, vertices and indices:
 
@@ -51,7 +49,7 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
 }
 ```
 
-#### Example for Indices Only
+#### Example for Indices Only:
 
 Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes indices only:
 
@@ -66,11 +64,11 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
 }
 ```
 
-#### Example That Uses a 3rd Party Library
+#### Example That Uses a 3rd Party Library:
 
-An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) _could_ be used via the custom division function that can be passed to `gvk::divide_into_meshlets()`:
+An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) **can** be used via the custom division function that can be passed to `gvk::divide_into_meshlets()`:
 
-Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Use 124 for Nvidia!
+Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. The value 124 has been recommended for Nvidia!
 
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
@@ -119,9 +117,9 @@ Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Use 124 f
 
 ## Converting Into a Format for GPU Usage
 
-Meshlets in the host-side format [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) cannot be directly used on the GPU as they store data in data types from the C++ Standard Library. Therefore, these records need to be converted into a suitable format for the GPU. The `gvk::convert_for_gpu_usage<T>()` utility functions can be used for this purpose. 
+Meshlets in the host-side format [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) cannot be directly used in device code, because they store data in data types from the C++ Standard Library. Therefore, these records need to be converted into a suitable format for the GPU. The `gvk::convert_for_gpu_usage<T>()` utility functions **can** be used for this purpose. 
 
-Two types are provided by Gears-Vk for this purpuse, which are supported by `gvk::convert_for_gpu_usage<T>()`:
+Two types for device-side meshlets are provided by Gears-Vk, which are both supported by `gvk::convert_for_gpu_usage<T>()`:
 
 ```c++
 /** Meshlet for GPU usage
@@ -156,6 +154,6 @@ struct meshlet_redirected_gpu_data
 };
 ```
 
-The main conceptual difference between the two types `gvk::meshlet_gpu_data` and `gvk::meshlet_redirected_gpu_data` is that `gvk::meshlet_gpu_data` has the vertex indices of the meshlet directly stored in the meshlet, whereas `gvk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the meshlet. Therefore, the latter type is called "redirected" and it can help to reduce the memory footprint of a meshlet. On the other hand, it requires an additional indirection into the separate index buffer.
+The main conceptual difference between the two types `gvk::meshlet_gpu_data` and `gvk::meshlet_redirected_gpu_data` is that `gvk::meshlet_gpu_data` has the vertex indices of a meshlet stored directly in the meshlet struct instance, whereas `gvk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the data stored in the meshlet struct instance. Therefore, the latter type is called "redirected" and it can help to reduce the memory footprint of a meshlet. On the other hand, it requires an additional indirection into a separate index buffer.
 
 If a custom GPU-suitable format is needed, our implementation can be used as a reference for converting [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) into that custom GPU-suitable format. Transformation into a different GPU-suitable format must be implemented manually.
