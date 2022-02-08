@@ -11,31 +11,34 @@ As a first step, the models and mesh indices that are to be divided into meshlet
 
 The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until it is full w.r.t. its parameters `aMaxVertices` and `aMaxIndices`. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
 
-The function `gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraris like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
+The function `gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraries like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
 
 ### Using a Custom Division Function
 
 The custom division function (parameter `aMeshletDivision` to `gvk::divide_into_meshlets()`) can either receive the vertices and indices or just the indices depending on the use-case.
 Additionally it receives the model and optionally the mesh index. If no mesh index is provided then the meshes were combined beforehand.
-Ownership of the model **must not** be taken within the body of the custom `aMeshletDivision`. 
-Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#139).
+Ownership of the model **must not** be taken within the body of the custom `aMeshletDivision` function. 
+
+Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#L139).
 
 The custom division function must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
 
-| Parameter | Mandatory ? | Description |
-| --- | --- | --- |
-| `const std::vector<glm::vec3>& tVertices` | no | The vertices of the mesh or combined meshes of the model. |
-| `const std::vector<uint32_t>& tIndices` | yes | The indices of the mesh or combined meshes of the model. | 
-| `const model_t& tModel` | yes	| The model these meshlets are generated from. | 
-| `std::optional<mesh_index_t> tMeshIndex` | yes | The optional mesh index. If no value is provided, it means the meshes of the model are combined into a single vertex and index buffer. | 
-| `uint32_t tMaxVertices` | yes | The maximum number of vertices that are allowed in a single meshlet. | 
-| `uint32_t tMaxIndices` | yes | The maximum number of indices that are allowed in a single meshlet. | 
+| Parameter | Mandatory? | Description |
+| :------ | :---: | :--- |
+| `const std::vector<glm::vec3>& tVertices` | no | The vertices of the mesh, or of combined meshes of the model |
+| `const std::vector<uint32_t>& tIndices` | yes | The indices of the mesh, or of combined meshes of the model | 
+| `const model_t& tModel` | yes	| The model these meshlets are generated from | 
+| `std::optional<mesh_index_t> tMeshIndex` | yes | The optional mesh index. If no value is passed, it means the meshes of the model are combined into a single vertex and index buffer. | 
+| `uint32_t tMaxVertices` | yes | The maximum number of vertices that should be added to a single meshlet | 
+| `uint32_t tMaxIndices` | yes | The maximum number of indices that should be added to a single meshlet | 
 
 Return value:
 
 `std::vector<meshlet>`: The generated meshlets
 
-A basic example: 
+#### Example for Vertices and Indices
+
+Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes both, vertices and indices:
 
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
@@ -48,7 +51,9 @@ A basic example:
 }
 ```
 
-An example just with indices and no vertices:
+#### Example for Indices Only
+
+Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes indices only:
 
 ```C++
 [](const std::vector<uint32_t>& aIndices,
@@ -61,10 +66,12 @@ An example just with indices and no vertices:
 }
 ```
 
+#### Example That Uses a 3rd Party Library
 
-An example on how [meshoptimizer](https://github.com/zeux/meshoptimizer) _could_ be used:
+An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) _could_ be used via the custom division function that can be passed to `gvk::divide_into_meshlets()`:
 
-(meshoptimizer expects the aMaxIndices to be divisible by 4, so use 124 for Nvidia as an example)
+Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Use 124 for Nvidia!
+
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
     const gvk::model_t& aModel, std::optional<gvk::mesh_index_t> aMeshIndex,
