@@ -46,7 +46,7 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
     uint32_t aMaxVertices, uint32_t aMaxIndices) {
 
     std::vector<gvk::meshlet> generatedMeshlets;
-    // Perform meshlet division here
+    // Perform meshlet division here, and store resulting meshlet in generatedMeshlets
     return generatedMeshlets;
 }
 ```
@@ -61,7 +61,7 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
     uint32_t aMaxVertices, uint32_t aMaxIndices) {
 
     std::vector<gvk::meshlet> generatedMeshlets;
-    // perform meshlet division here
+    // Perform meshlet division here, and store resulting meshlet in generatedMeshlets
     return generatedMeshlets;
 }
 ```
@@ -117,15 +117,17 @@ Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Use 124 f
 }
 ```
 
-## Converting into a format for GPU usage
+## Converting Into a Format for GPU Usage
 
-Meshlets in such a format cannot be directly used on the GPU as they contain additional information which is aslo in non suitable containers. Therefore these need to be converted into a suitable format for the GPU. For this the `gvk::convert_for_gpu_usage<T>()` utility functions can be used. 
+Meshlets in the host-side format [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) cannot be directly used on the GPU as they store data in data types from the C++ Standard Library. Therefore, these records need to be converted into a suitable format for the GPU. The `gvk::convert_for_gpu_usage<T>()` utility functions can be used for this purpose. 
+
+Two types are provided by Gears-Vk for this purpuse, which are supported by `gvk::convert_for_gpu_usage<T>()`:
 
 ```c++
 /** Meshlet for GPU usage
-    *  @tparam NV	The number of vertices
-    *	@tparam NI	The number of indices
-    */
+ *  @tparam NV    The number of vertices
+ *  @tparam NI    The number of indices
+ */
 template <size_t NV = 64, size_t NI = 378>
 struct meshlet_gpu_data
 {
@@ -154,6 +156,6 @@ struct meshlet_redirected_gpu_data
 };
 ```
 
-There are two GPU suitable types already defined that work with this utility functions. One is `gvk::meshlet_gpu_data` and the other `gvk::meshlet_redirected_gpu_data`. The difference between those is that `gvk::meshlet_gpu_data` has the vertex indices of the meshlet directly stored in the meshlet and `gvk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the meshlet. Therefore the redirected version reduces the memory footprint of a meshlet while introducing an additional indirection into the separate index buffer.
+The main conceptual difference between the two types `gvk::meshlet_gpu_data` and `gvk::meshlet_redirected_gpu_data` is that `gvk::meshlet_gpu_data` has the vertex indices of the meshlet directly stored in the meshlet, whereas `gvk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the meshlet. Therefore, the latter type is called "redirected" and it can help to reduce the memory footprint of a meshlet. On the other hand, it requires an additional indirection into the separate index buffer.
 
-If a custom GPU suitable format is needed, our implementation can be used as a starting point. Otherwise gears-vr can also be used to convert it into it's GPU format first that can then be converted into a different format if so desired.
+If a custom GPU-suitable format is needed, our implementation can be used as a reference for converting [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) into that custom GPU-suitable format. Transformation into a different GPU-suitable format must be implemented manually.
