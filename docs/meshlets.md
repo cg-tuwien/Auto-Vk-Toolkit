@@ -3,15 +3,15 @@
 When using _graphics mesh pipelines_ with _task_ and _mesh shaders_, a typical use case is to segmented meshes into smaller segments called meshlets, and process these. These meshlets contain multiple triangles that should ideally be structured in a meaningful way in memory in order to enable efficient processing, like for example good memory and cache coherency. Meshlets of triangle meshes typically consist of relatively small packages of vertices and triangles of the original mesh geometry.
 More information on how the meshlet pipeline works can be found on Nvidia's developer blog: [Christoph Kubisch - Introduction to Turing Mesh Shaders](https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/).
 
-## Meshlets in Gears-Vk
+## Dividing Meshes into Meshlets in Gears-Vk
 
-Gears-Vk provides some methods that help divide a mesh into meshlets and convert the resulting data structure to one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../framework/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../framework/src/meshlet_helpers.cpp).
+Gears-Vk provides utility functions that help to divide a mesh into meshlets and convert the resulting data structure to one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../framework/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../framework/src/meshlet_helpers.cpp).
 
-First the meshes and models indices that are to be divided into meshlets need to be selected. The selection can be created from scratch or with the helper function `gvk::make_selection_of_shared_models_and_mesh_indices()`.
+As a first step, the models and mesh indices that are to be divided into meshlets need to be selected. The helper function `gvk::make_selection_of_shared_models_and_mesh_indices()` can be used for this purpose.
 
-The resulting collection can then be used with the `gvk::divide_into_meshlets()` functions. If no division function is provided to this helper function, a simple algorithm (`gvk::basic_meshlet_divider()`) is used that just puts consecutive vertices into a meshlet until it is full. Though it should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
+The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until it is full w.r.t. its parameters `aMaxVertices` and `aMaxIndices`. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
 
-The `gvk::divide_into_meshlets()` also offers to provide a custom division function. This allows the usage of custom division algorithms or the use of external libraris like [meshoptimizer](https://github.com/zeux/meshoptimizer) for example.
+`gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraris like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
 
 ### Using a custom division function
 
