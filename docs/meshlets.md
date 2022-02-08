@@ -68,7 +68,7 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
 
 An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) **can** be used via the custom division function that can be passed to `gvk::divide_into_meshlets()`:
 
-Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. The value 124 has been recommended for Nvidia!
+Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Therefore the value 124 triangles (372 indices) has been recommended by [meshoptimizer](https://github.com/zeux/meshoptimizer#mesh-shading) for Nvidia cards!
 
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
