@@ -11,15 +11,16 @@ As a first step, the models and mesh indices that are to be divided into meshlet
 
 The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until it is full w.r.t. its parameters `aMaxVertices` and `aMaxIndices`. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
 
-`gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraris like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
+The function `gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraris like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
 
-### Using a custom division function
+### Using a Custom Division Function
 
-The callback can either receive the vertices and indices or just the indices depending on the use-case.
-Additionally it provides the model and an optional mesh index if more data is needed. If no mesh index is provided then the meshes were combined beforehand.
-Ownership of the model must not be taken within the body of aMeshletDivision. The model will be assigned to each `meshlet` after aMeshletDivision has executed.
+The custom division function (parameter `aMeshletDivision` to `gvk::divide_into_meshlets()`) can either receive the vertices and indices or just the indices depending on the use-case.
+Additionally it receives the model and optionally the mesh index. If no mesh index is provided then the meshes were combined beforehand.
+Ownership of the model **must not** be taken within the body of the custom `aMeshletDivision`. 
+Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#139).
 
-The callback must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
+The custom division function must follow a specific declaration schema, optional parameters can be omitted, but all of them need to be provided in the following order:
 
 | Parameter | Mandatory ? | Description |
 | --- | --- | --- |
