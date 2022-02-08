@@ -1,8 +1,7 @@
 # Meshlets
 
-When using mesh shaders, the mesh is segmented into smaller segments called meshlets. These meshlets contain multiple triangles that should ideally be directly attached to one another to leverage the better vertex reuse capabilities of the mesh shader pipeline. 
-
-More information on how the meshlet pipeline works can be found on [Nvidias developer blog.](https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/)
+When using _graphics mesh pipelines_ with _task_ and _mesh shaders_, a typical use case is to segmented meshes into smaller segments called meshlets, and process these. These meshlets contain multiple triangles that should ideally be structured in a meaningful way in memory in order to enable efficient processing, like for example good memory and cache coherency. Meshlets of triangle meshes typically consist of relatively small packages of vertices and triangles of the original mesh geometry.
+More information on how the meshlet pipeline works can be found on Nvidia's developer blog: [Christoph Kubisch - Introduction to Turing Mesh Shaders](https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/).
 
 ## Meshlets in Gears-Vk
 
