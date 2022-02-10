@@ -116,30 +116,6 @@ namespace gvk
 	    //io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
 	    io.BackendPlatformName = "imgui_impl_glfw";
 
-	    // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
-	    io.KeyMap[ImGuiKey_Tab]			= ImGuiKey_Tab;
-	    io.KeyMap[ImGuiKey_LeftArrow]	= ImGuiKey_LeftArrow;
-	    io.KeyMap[ImGuiKey_RightArrow]	= ImGuiKey_RightArrow;
-	    io.KeyMap[ImGuiKey_UpArrow]		= ImGuiKey_UpArrow;
-	    io.KeyMap[ImGuiKey_DownArrow]	= ImGuiKey_DownArrow;
-	    io.KeyMap[ImGuiKey_PageUp]		= ImGuiKey_PageUp;
-	    io.KeyMap[ImGuiKey_PageDown]	= ImGuiKey_PageDown;
-	    io.KeyMap[ImGuiKey_Home]		= ImGuiKey_Home;
-	    io.KeyMap[ImGuiKey_End]			= ImGuiKey_End;
-	    io.KeyMap[ImGuiKey_Insert]		= ImGuiKey_Insert;
-	    io.KeyMap[ImGuiKey_Delete]		= ImGuiKey_Delete;
-	    io.KeyMap[ImGuiKey_Backspace]	= ImGuiKey_Backspace;
-	    io.KeyMap[ImGuiKey_Space]		= ImGuiKey_Space;
-	    io.KeyMap[ImGuiKey_Enter]		= ImGuiKey_Enter;
-	    io.KeyMap[ImGuiKey_Escape]		= ImGuiKey_Escape;
-	    io.KeyMap[ImGuiKey_KeyPadEnter] = ImGuiKey_KeyPadEnter;
-	    io.KeyMap[ImGuiKey_A]			= ImGuiKey_A;
-	    io.KeyMap[ImGuiKey_C]			= ImGuiKey_C;
-	    io.KeyMap[ImGuiKey_V]			= ImGuiKey_V;
-	    io.KeyMap[ImGuiKey_X]			= ImGuiKey_X;
-	    io.KeyMap[ImGuiKey_Y]			= ImGuiKey_Y;
-	    io.KeyMap[ImGuiKey_Z]			= ImGuiKey_Z;
-
 	    //io.SetClipboardTextFn = ImGui_ImplGlfw_SetClipboardText; // TODO clipboard abstraction via cgb::input()
 	    //io.GetClipboardTextFn = ImGui_ImplGlfw_GetClipboardText;
 	    //io.ClipboardUserData = g_Window;
@@ -164,14 +140,19 @@ namespace gvk
 	    io.DeltaTime = gvk::time().delta_time();
 
 		if (mUserInteractionEnabled) {
-			// Mouse buttons and cursor position:
-			io.MouseDown[0] = input().mouse_button_down(0);
-			io.MouseDown[1] = input().mouse_button_down(1);
-			io.MouseDown[2] = input().mouse_button_down(2);
-			io.MouseDown[3] = input().mouse_button_down(3);
-			io.MouseDown[4] = input().mouse_button_down(4);
+			// Cursor position:
 			const auto cursorPos = input().cursor_position();
-			io.MousePos = ImVec2(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
+			io.AddMousePosEvent(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
+
+			// Mouse buttons:
+			for (int button = 0; button < 5; ++button) {
+				io.AddMouseButtonEvent(button, input().mouse_button_down(button));
+			}
+
+			// Scroll position:
+			io.AddMouseWheelEvent(static_cast<float>(input().scroll_delta().x),
+								  static_cast<float>(input().scroll_delta().y));
+
 			// Mouse cursor:
 			if (!input().is_cursor_disabled()) {
 				const auto mouseCursorCurValue = ImGui::GetMouseCursor();
@@ -214,36 +195,42 @@ namespace gvk
 					mMouseCursorPreviousValue = static_cast<int>(mouseCursorCurValue);
 				}
 			}
-			// Scroll position:
-			io.MouseWheelH += static_cast<float>(input().scroll_delta().x);
-			io.MouseWheel  += static_cast<float>(input().scroll_delta().y);
+
 			// Update keys:
-			io.KeysDown[ImGuiKey_Tab]           = input().key_down(key_code::tab);
-			io.KeysDown[ImGuiKey_LeftArrow]     = input().key_down(key_code::left);
-			io.KeysDown[ImGuiKey_RightArrow]    = input().key_down(key_code::right);
-			io.KeysDown[ImGuiKey_UpArrow]       = input().key_down(key_code::up);
-			io.KeysDown[ImGuiKey_DownArrow]     = input().key_down(key_code::down);
-			io.KeysDown[ImGuiKey_PageUp]        = input().key_down(key_code::page_up);
-			io.KeysDown[ImGuiKey_PageDown]      = input().key_down(key_code::page_down);
-			io.KeysDown[ImGuiKey_Home]          = input().key_down(key_code::home);
-			io.KeysDown[ImGuiKey_End]           = input().key_down(key_code::end);
-			io.KeysDown[ImGuiKey_Insert]        = input().key_down(key_code::insert);
-			io.KeysDown[ImGuiKey_Delete]        = input().key_down(key_code::del);
-			io.KeysDown[ImGuiKey_Backspace]     = input().key_down(key_code::backspace);
-			io.KeysDown[ImGuiKey_Space]         = input().key_down(key_code::space);
-			io.KeysDown[ImGuiKey_Enter]         = input().key_down(key_code::enter);
-			io.KeysDown[ImGuiKey_Escape]        = input().key_down(key_code::escape);
-			io.KeysDown[ImGuiKey_KeyPadEnter]   = input().key_down(key_code::numpad_enter);
-			io.KeysDown[ImGuiKey_A]             = input().key_down(key_code::a);
-			io.KeysDown[ImGuiKey_C]             = input().key_down(key_code::c);
-			io.KeysDown[ImGuiKey_V]             = input().key_down(key_code::v);
-			io.KeysDown[ImGuiKey_X]             = input().key_down(key_code::x);
-			io.KeysDown[ImGuiKey_Y]             = input().key_down(key_code::y);
-			io.KeysDown[ImGuiKey_Z]             = input().key_down(key_code::z);
+			io.AddKeyEvent(ImGuiKey_Tab, input().key_down(key_code::tab));
+			io.AddKeyEvent(ImGuiKey_LeftArrow, input().key_down(key_code::left));
+			io.AddKeyEvent(ImGuiKey_RightArrow, input().key_down(key_code::right));
+			io.AddKeyEvent(ImGuiKey_UpArrow, input().key_down(key_code::up));
+			io.AddKeyEvent(ImGuiKey_DownArrow, input().key_down(key_code::down));
+			io.AddKeyEvent(ImGuiKey_PageUp, input().key_down(key_code::page_up));
+			io.AddKeyEvent(ImGuiKey_PageDown, input().key_down(key_code::page_down));
+			io.AddKeyEvent(ImGuiKey_Home, input().key_down(key_code::home));
+			io.AddKeyEvent(ImGuiKey_End, input().key_down(key_code::end));
+			io.AddKeyEvent(ImGuiKey_Insert, input().key_down(key_code::insert));
+			io.AddKeyEvent(ImGuiKey_Delete, input().key_down(key_code::del));
+			io.AddKeyEvent(ImGuiKey_Backspace, input().key_down(key_code::backspace));
+			io.AddKeyEvent(ImGuiKey_Space, input().key_down(key_code::space));
+			io.AddKeyEvent(ImGuiKey_Enter, input().key_down(key_code::enter));
+			io.AddKeyEvent(ImGuiKey_Escape, input().key_down(key_code::escape));
+			io.AddKeyEvent(ImGuiKey_KeyPadEnter, input().key_down(key_code::numpad_enter));
+			io.AddKeyEvent(ImGuiKey_A, input().key_down(key_code::a));
+			io.AddKeyEvent(ImGuiKey_C, input().key_down(key_code::c));
+			io.AddKeyEvent(ImGuiKey_V, input().key_down(key_code::v));
+			io.AddKeyEvent(ImGuiKey_X, input().key_down(key_code::x));
+			io.AddKeyEvent(ImGuiKey_Y, input().key_down(key_code::y));
+			io.AddKeyEvent(ImGuiKey_Z, input().key_down(key_code::z));
+
 			// Modifiers are not reliable across systems
-			io.KeyCtrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
-			io.KeyShift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
-			io.KeyAlt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
+			if (input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) {
+				io.AddKeyModsEvent(ImGuiKeyModFlags_Ctrl);
+			}
+			if (input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift)) {
+				io.AddKeyModsEvent(ImGuiKeyModFlags_Shift);
+			}
+			if (input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
+				io.AddKeyModsEvent(ImGuiKeyModFlags_Alt);
+			}
+
 			// Characters:
 			for (auto c : input().entered_characters()) {
 				io.AddInputCharacter(c);
