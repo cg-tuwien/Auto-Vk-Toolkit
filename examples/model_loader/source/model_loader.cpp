@@ -1,5 +1,4 @@
 #include <gvk.hpp>
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 #include "camera_path.hpp"
 #include "ui_helper.hpp"

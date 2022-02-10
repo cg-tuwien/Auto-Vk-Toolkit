@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gvk.hpp>
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 #include <imgui_internal.h>
 

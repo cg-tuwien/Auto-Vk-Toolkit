@@ -1,5 +1,4 @@
 #include <gvk.hpp>
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 
 class ray_tracing_custom_intersection_app : public gvk::invokee

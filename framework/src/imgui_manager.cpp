@@ -1,5 +1,4 @@
 #include <gvk.hpp>
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>

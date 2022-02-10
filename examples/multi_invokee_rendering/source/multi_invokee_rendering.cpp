@@ -1,5 +1,4 @@
 #include <gvk.hpp>
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
 #include <imgui.h>
 
 class multi_invokee_rendering_app : public gvk::invokee
