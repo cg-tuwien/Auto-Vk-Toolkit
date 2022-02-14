@@ -81,7 +81,7 @@ endif(MSVC)
 
 # Disable obsolete functionality in ImGui:
 # (Can be removed once ImGui has deprecated these for good, and acts as if these were defined.)
-add_definitions(-DIMGUI_DISABLE_OBSOLETE_KEYIO -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_DISABLE_OBSOLETE_KEYIO IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
 
 ## Direct Sources & Includes
 # NOTE: We first collect all include directories and source files and add it to our target in the end.
