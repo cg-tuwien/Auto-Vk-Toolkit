@@ -213,7 +213,7 @@ namespace gvk
 		*
 		*	Event handlers are always executed on the main thread.
 		*/
-		std::list<std::tuple<event_handler_func, gvk::context_state>> mEventHandlers;
+		std::deque<std::tuple<event_handler_func, gvk::context_state>> mEventHandlers;
 
 		// Which state the context is currently in
 		gvk::context_state mContextState = context_state::uninitialized;

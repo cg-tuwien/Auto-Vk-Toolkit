@@ -1,6 +1,8 @@
 #pragma once
 #include <gvk.hpp>
-#include <imgui.h>
+
+// Forward-declare ImGui's ImTextureID type:
+typedef void* ImTextureID;
 
 namespace gvk
 {
