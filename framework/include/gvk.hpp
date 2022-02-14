@@ -50,8 +50,6 @@
 #include <assimp/postprocess.h> // Post processing flags
 #include <assimp/anim.h>
 
-#include <cpplinq.hpp>
-
 #include <nlohmann/json.hpp>
 
 // DEFINES:
