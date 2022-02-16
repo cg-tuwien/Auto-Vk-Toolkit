@@ -21,18 +21,6 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
 			gvk::context().create_renderpass(
 				{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) } // But not in presentable format, because ImGui comes after
-				, {
-					avk::subpass_dependency(
-						avk::subpass::external   >> avk::subpass::index(0),
-						avk::stage::none         >> avk::stage::color_attachment_output,
-						avk::access::none        >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
-					),
-					avk::subpass_dependency(
-						avk::subpass::index(0)              >> avk::subpass::external,
-						avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
-						avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
-					)
-				}
 			)
 			
 		);
@@ -42,10 +30,10 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater->on(
-				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
-			)
-			.update(mPipeline);				
+			gvk::swapchain_resized_event(gvk::context().main_window()),
+			gvk::shader_files_changed_event(mPipeline)
+		)
+		.update(mPipeline);				
 
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
@@ -118,9 +106,11 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		.into_command_buffer(cmdBfr)
 		.then_submit_to(mQueue)
 		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output);
+
+		gvk::current_composition()->element_by_type<gvk::imgui_manager>()->render_into_command_buffer()
 		
-		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
+		// Take care of the command buffer's lifetime -- let the window handle it
+		// based on its associated swap chain's number of concurrent images:
 		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 
@@ -156,7 +146,6 @@ int main() // <== Starting point ==
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
 			},
 			mainWnd,
 			app,

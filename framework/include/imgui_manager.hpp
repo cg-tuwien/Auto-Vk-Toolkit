@@ -67,6 +67,13 @@ namespace gvk
 		 */
 		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler);
 
+		operator avk::command::action_type_command() const
+		{
+			return avk::command::action_type_command{
+
+			};
+		}
+
 	private:
 		void upload_fonts();
 		void construct_render_pass();

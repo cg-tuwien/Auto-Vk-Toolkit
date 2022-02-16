@@ -20,20 +20,17 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			attachments.push_back(a);
 		}
 		mRenderPass = gvk::context().create_renderpass(
-			attachments,
-			[](avk::renderpass_sync& rpSync) {
-				if (rpSync.is_external_pre_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-				}
-				if (rpSync.is_external_post_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-					rpSync.mDestinationMemoryDependency = {};
-				}
+			attachments, {
+				avk::subpass_dependency(
+					avk::subpass::external >> avk::subpass::index(0),
+					avk::stage::none >> avk::stage::color_attachment_output,
+					avk::access::none >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
+				),
+				avk::subpass_dependency(
+					avk::subpass::index(0) >> avk::subpass::external,
+					avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+					avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
+				)
 			}
 		);
 
@@ -169,7 +166,11 @@ int main() // <== Starting point ==
 
 		// GO:
 		gvk::start(
-			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
+			gvk::application_name("Hello, multiple invokees!"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
+			},
 			mainWnd,
 			app1,
 			app2,
