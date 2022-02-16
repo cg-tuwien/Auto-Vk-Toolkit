@@ -6,13 +6,13 @@ void animated_model::initialize(
 	glm::mat4 model_matrix,
 	bool flipUV,
 	int MAX_BONE_COUNT,
-	bool use_CoR,
+	skinning_mode skinningMode,
 	int initial_animation_index
 ) {
 	mIdentifier = identifier;
 	mFlipTexCoords = flipUV;
 	mModelTrafo = model_matrix;
-	mUseCoR = use_CoR;
+	mSkinningMode = skinningMode;
 
 	// NOTE: aiProcess_PreTransformVertices removes bones
 	auto gvkModel = gvk::model_t::load_from_file(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
@@ -222,7 +222,7 @@ void animated_model::initialize(
 	mMaterialData.mMaterialsBuffer->fill(mMaterialData.mMaterialGPUData.data(), 0, avk::sync::not_required());
 
 
-	if (mUseCoR) {
+	if (mSkinningMode == skinning_mode::optimized_centers_of_rotation_skinning) {
 		std::cout << "USING Optimized Centers Of Rotation Skinning." << std::endl;
 		load_or_compute_centers_of_rotations(gvkModel);
 	} else {
@@ -244,6 +244,10 @@ void animated_model::initialize(
 
 std::string animated_model::get_identifier() {
 	return  mIdentifier;
+}
+
+animated_model::skinning_mode animated_model::get_skinning_mode() {
+	return mSkinningMode;
 }
 
 void animated_model::update_bone_matrices() {
@@ -344,7 +348,7 @@ bool animated_model::has_bones() {
 }
 
 bool animated_model::uses_cor() {
-	return mUseCoR;
+	return mSkinningMode == skinning_mode::optimized_centers_of_rotation_skinning;
 }
 
 std::vector<gvk::animation>& animated_model::get_animations() {
@@ -416,19 +420,19 @@ void animated_model::load_or_compute_centers_of_rotations(gvk::model& gvkModel) 
 		std::vector<weights_per_bone> weights_per_bone =
 			mCoRCalc.convert_weights(num_bones, bone_indices, bone_weights);
 		
-		// normalize weights
+		// normalize mWeights
 		for (int i = 0; i < weights_per_bone.size(); i++) {
 			float sum = 0.0f;
-			for (int j = 0; j < weights_per_bone[i].weights.size(); j++) {
-				sum = sum + weights_per_bone[i].weights[j];
+			for (int j = 0; j < weights_per_bone[i].mWeights.size(); j++) {
+				sum = sum + weights_per_bone[i].mWeights[j];
 			}
 			if (sum != 0.0f) {
-				for (int j = 0; j < weights_per_bone[i].weights.size(); j++) {
-					weights_per_bone[i].weights[j] = weights_per_bone[i].weights[j] / sum;
+				for (int j = 0; j < weights_per_bone[i].mWeights.size(); j++) {
+					weights_per_bone[i].mWeights[j] = weights_per_bone[i].mWeights[j] / sum;
 				}
 			}
 			else {
-				weights_per_bone[i].weights[0] = 1.0f;
+				weights_per_bone[i].mWeights[0] = 1.0f;
 			}
 		}
 

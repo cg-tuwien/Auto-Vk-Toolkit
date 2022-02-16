@@ -25,7 +25,7 @@ float similarity(const weights_per_bone & wp, const weights_per_bone & wv, float
 	return sim;
 }
 
-int&cor_triangle::operator[](int idx) {
+int& cor_triangle::operator[](int idx) {
 	assert(idx < 3);
 	return *(&mAlpha + idx);
 }
@@ -79,14 +79,14 @@ cor_calculator::cor_calculator(
 
 std::vector<weights_per_bone> cor_calculator::convert_weights(
 	unsigned int num_bones,
-	const std::vector<std::vector<unsigned int>>&skeleton_bone_indices,
-	const std::vector<std::vector<float>>&skeleton_bone_weights) const
+	const std::vector<std::vector<unsigned int>>& skeleton_bone_indices,
+	const std::vector<std::vector<float>>& skeleton_bone_weights) const
 {
 	std::vector<weights_per_bone> weights(skeleton_bone_weights.size(), weights_per_bone(num_bones));
 
 	for (int i = 0; i < skeleton_bone_weights.size(); ++i) {
 		const std::vector<unsigned int>& indices = skeleton_bone_indices[i];
-		const std::vector<float>&weights_to_convert = skeleton_bone_weights[i];
+		const std::vector<float>& weights_to_convert = skeleton_bone_weights[i];
 		weights_per_bone &weights_to_set = weights[i];
 
 		for (int weight_index = 0; weight_index < indices.size(); ++weight_index) {
@@ -190,7 +190,7 @@ std::vector<glm::vec3> cor_calculator::load_cors_from_binary_file(const std::str
 cor_mesh cor_calculator::create_cor_mesh(
 	const std::vector<glm::vec3>& vertices,
 	const std::vector<unsigned int>& indices,
-	std::vector<weights_per_bone>&skeleton_bone_weights,
+	std::vector<weights_per_bone>& skeleton_bone_weights,
 	float subdiv_epsilon) const
 {
 	std::vector<glm::vec3> sub_vertices = vertices;

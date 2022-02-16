@@ -44,6 +44,12 @@ public:
 		avk::buffer mMaterialsBuffer;
 	};
 
+	enum class skinning_mode {
+		linear_blend_skinning,
+		dual_quaternion_skinning,
+		optimized_centers_of_rotation_skinning
+	};
+
 	animated_model() = default;
 
 	void initialize(
@@ -52,7 +58,7 @@ public:
 		glm::mat4 model_matrix = glm::mat4(1.0f),
 		bool flipUV = false,
 		int MAX_BONE_COUNT = 1000,
-		bool use_CoR = false,
+		skinning_mode skinningMode = skinning_mode::linear_blend_skinning,
 		int initial_animation_index = 0
 	);
 
@@ -74,6 +80,7 @@ public:
 	bool is_dynamic();
 	bool has_bones();
 	bool uses_cor();
+	skinning_mode get_skinning_mode();
 	std::vector<gvk::animation> &get_animations();
 	std::vector<gvk::animation_clip_data> &get_animation_clips();
 
@@ -100,7 +107,7 @@ private:
 	std::vector<gvk::animation> mAnimations;
 	std::vector<gvk::animation_clip_data> mAnimClips;
 	bool mFlipTexCoords = false;
+	skinning_mode mSkinningMode;
 
 	cor_calculator mCoRCalc = cor_calculator(0.1f, 0.1f, false, 128);
-	bool mUseCoR = false;
 };

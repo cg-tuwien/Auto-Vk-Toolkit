@@ -27,16 +27,7 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_usage::host_visible, {}, avk::uniform_buffer_meta::create_from_data(glm::mat4()));
 
 		// Load a model from file:
-		auto& model = mAnimatedModels.emplace_back();
-		model.initialize(
-			"assets/skinning_test_tube_animation.fbx",
-			"test_tube",
-			glm::mat4(1.0f),
-			false,
-			100,
-			(mSkinningMode == 2), // false: do not use optimized centers of rotation skinning
-			0
-		);
+		load_model_once_for_each_skinning_mode("skinning_test_tube_animation.fbx");
 
 		// Create our rasterization graphics pipeline with the required
 		// configuration:
@@ -49,6 +40,51 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 			glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f
 		);
 		gvk::current_composition()->add_element(mQuakeCam);
+	}
+
+	void load_model_once_for_each_skinning_mode (
+		const std::string &filename,
+		float global_z_offset = 0.0f,
+		float position_x_offset_between_each = 3.0f
+	) {
+		auto& lbs_model = mAnimatedModels.emplace_back();
+		lbs_model.initialize(
+			"assets/" + filename,
+			filename + "_linear_blend_skinning",
+			glm::translate(glm::vec3(-position_x_offset_between_each, 0.0f, global_z_offset))
+				* glm::scale(glm::vec3(1.0f, 1.0f, 1.0f))
+				* glm::rotate(-glm::pi<float>() / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)),
+			false,
+			100,
+			animated_model::skinning_mode::linear_blend_skinning,
+			0
+		);
+
+		auto& dqs_model = mAnimatedModels.emplace_back();
+		dqs_model.initialize(
+			"assets/" + filename,
+			filename + "_dual_quaternion_skinning",
+			glm::translate(glm::vec3(0.0f, 0.0f, 0.0f))
+				* glm::scale(glm::vec3(1.0f, 1.0f, 1.0f))
+				* glm::rotate(-glm::pi<float>() / 2.0f, glm::vec3(1.0f, 0.0f, global_z_offset)),
+			false,
+			100,
+			animated_model::skinning_mode::dual_quaternion_skinning,
+			0
+		);
+
+		auto& cors_model = mAnimatedModels.emplace_back();
+		cors_model.initialize(
+			"assets/" + filename,
+			filename + "_optimized_centers_of_rotation_skinning",
+			glm::translate(glm::vec3(position_x_offset_between_each, 0.0f, global_z_offset))
+				* glm::scale(glm::vec3(1.0f, 1.0f, 1.0f))
+				* glm::rotate(-glm::pi<float>() / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)),
+			false,
+			100,
+			animated_model::skinning_mode::optimized_centers_of_rotation_skinning,
+			0
+		);
 	}
 
 	void setup_pipelines() {
@@ -145,7 +181,7 @@ public:// v== avk::invokee overrides which will be invoked by the framework ==v
 					// Set material index for this mesh:
 					meshData.mMaterialIndex,
 					// Skinning mode (linear blend, dual quat or cors)
-					mSkinningMode
+					static_cast<int>(model.get_skinning_mode())
 				};
 				cmdbfr->handle().pushConstants(
 					pipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConst),
@@ -251,7 +287,6 @@ private: // v== Member variables ==v
 
 	std::vector<animated_model> mAnimatedModels;
 	gvk::quake_camera mQuakeCam;
-	int mSkinningMode = 2;
 
 	glm::vec3 mScale;
 }; // model_loader_app
@@ -262,7 +297,7 @@ int main() // <== Starting point ==
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Vertex Skinning");
 
-		mainWnd->set_resolution({1000, 480});
+		mainWnd->set_resolution({1600, 880});
 		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments(
 			{

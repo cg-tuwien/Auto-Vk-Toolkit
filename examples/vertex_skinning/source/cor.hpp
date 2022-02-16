@@ -11,23 +11,23 @@
 
 struct weights_per_bone {
 	// index of vector equals bone-index (the vertex-index must be remembered outside of this struct for an instance of a weights_per_bone)
-	std::vector<float> weights;
+	std::vector<float> mWeights;
 
 	weights_per_bone() = default;
 	explicit weights_per_bone(unsigned long n) {
-		weights = std::vector<float>(n, 0);
+		mWeights = std::vector<float>(n, 0);
 	}
 
 	unsigned long size() const {
-		return weights.size();
+		return mWeights.size();
 	}
 
 	float& operator[](int idx) {
-		return weights[idx];
+		return mWeights[idx];
 	}
 
 	float operator[](int idx) const {
-		return weights[idx];
+		return mWeights[idx];
 	}
 
 	/*
@@ -37,44 +37,44 @@ struct weights_per_bone {
 	weights_per_bone operator + (const weights_per_bone & other) const {
 		weights_per_bone sum(size());
 		for (int i = 0; i < size(); ++i)
-			sum.weights[i] = weights[i] + other.weights[i];
+			sum.mWeights[i] = mWeights[i] + other.mWeights[i];
 		return sum;
 	}
 
 	weights_per_bone operator - (const weights_per_bone & other) const {
 		weights_per_bone dif(size());
 		for (int i = 0; i < size(); ++i)
-			dif.weights[i] = weights[i] - other.weights[i];
+			dif.mWeights[i] = mWeights[i] - other.mWeights[i];
 		return dif;
 	}
 
 	weights_per_bone operator * (const float scalar) const {
 		weights_per_bone ret(size());
 		for (int i = 0; i < size(); ++i)
-			ret.weights[i] = weights[i] * scalar;
+			ret.mWeights[i] = mWeights[i] * scalar;
 		return ret;
 	}
 
 	float norm() const {
 		float norm = 0;
 		for (int i = 0; i < size(); ++i)
-			norm += weights[i] * weights[i];
+			norm += mWeights[i] * mWeights[i];
 		return std::sqrt(norm);
 	}
 
 	void validate() {
 		float sum_of_weight_of_vertex = 0;
-		for (uint32_t bone_index = 0; bone_index < weights.size(); bone_index++) {
-			if (weights[bone_index] < -0.0) {
-				LOG_ERROR(std::string("Weight was: ") + std::to_string(weights[bone_index]));
+		for (uint32_t bone_index = 0; bone_index < mWeights.size(); bone_index++) {
+			if (mWeights[bone_index] < -0.0) {
+				LOG_ERROR(std::string("Weight was: ") + std::to_string(mWeights[bone_index]));
 				throw avk::runtime_error("Encountered weight which was < 0 !");
 			}
-			if (weights[bone_index] > 1.00001) {
-				LOG_ERROR(std::string("Weight was: ") + std::to_string(weights[bone_index]));
+			if (mWeights[bone_index] > 1.00001) {
+				LOG_ERROR(std::string("Weight was: ") + std::to_string(mWeights[bone_index]));
 				throw avk::runtime_error("Encountered weight which was > 1 !");
 			}
-			sum_of_weight_of_vertex += weights[bone_index];
-			//LOG_INFO(std::string("Weight of bone ") + std::to_string(bone_index) + ": " + std::to_string(weights[bone_index]));
+			sum_of_weight_of_vertex += mWeights[bone_index];
+			//LOG_INFO(std::string("Weight of bone ") + std::to_string(bone_index) + ": " + std::to_string(mWeights[bone_index]));
 		}
 		if (sum_of_weight_of_vertex > 1.00001 || sum_of_weight_of_vertex < 0.999) {
 			LOG_ERROR(std::string("Sum of weight was: ") + std::to_string(sum_of_weight_of_vertex));
@@ -159,7 +159,7 @@ public:
 	cor_mesh create_cor_mesh(
 		const std::vector<glm::vec3>& vertices,
 		const std::vector<unsigned int>& indices,
-		std::vector<weights_per_bone>&skeleton_bone_weights,
+		std::vector<weights_per_bone>& skeleton_bone_weights,
 		float subdiv_epsilon = 0.1f) const;
 
 	void calculate_cors_async(const cor_mesh & mesh, const std::function<void(std::vector<glm::vec3>&)>& callback);
