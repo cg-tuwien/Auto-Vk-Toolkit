@@ -43,7 +43,7 @@ namespace gvk
 		 *	The flag mAlreadyRendered is set in ::update and evaluated in ::render to determine if ::render
 		 *	shall create a new command buffer and render into it and submit it to the queue.
 		 */
-		void render_into_command_buffer(avk::resource_reference<avk::command_buffer> aCommandBuffer);
+		void render_into_command_buffer(avk::resource_reference<avk::command_buffer_t> aCommandBuffer);
 
 		void render() override;
 
@@ -67,10 +67,36 @@ namespace gvk
 		 */
 		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler);
 
-		operator avk::command::action_type_command() const
+		operator avk::command::action_type_command()
 		{
 			return avk::command::action_type_command{
-
+				// According to imgui_impl_vulkan.cpp, the code of the relevant fragment shader is:
+				//
+				// #version 450 core
+				// layout(location = 0) out vec4 fColor;
+				// layout(set = 0, binding = 0) uniform sampler2D sTexture;
+				// layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+				// void main()
+				// {
+				// 	fColor = In.Color * texture(sTexture, In.UV.st);
+				// }
+				//
+				// Therefore, sync with sampled reads in fragment shaders.
+				// 
+				// ImGui seems to not use any depth testing/writing.
+				// 
+				// ImGui's color attachment write must still wait for preceding color attachment writes because
+				// the user interface shall be drawn on top of the rest.
+				// 
+				avk::syncxxx::sync_hint {
+					vk::PipelineStageFlagBits2KHR::eFragmentShader | vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
+					vk::AccessFlagBits2KHR::eShaderSampledRead     | vk::AccessFlagBits2KHR::eColorAttachmentWrite,
+					vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
+					vk::AccessFlagBits2KHR::eColorAttachmentWrite
+				},
+				[this] (avk::resource_reference<avk::command_buffer_t> cb) {
+					this->render_into_command_buffer(cb);
+				}
 			};
 		}
 

@@ -44,7 +44,7 @@ namespace gvk
 		const uint32_t magicImguiFactor = 1;
 		auto allocRequest = avk::descriptor_alloc_request{};
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, magicImguiFactor});
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, std::max(magicImguiFactor, 32u)}); // User could alloc several of these via imgui_manager::get_or_create_texture_descriptor
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampledImage,		 magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageImage,		 magicImguiFactor});
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eUniformTexelBuffer,	 magicImguiFactor});
@@ -58,7 +58,7 @@ namespace gvk
 		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 
 		// DescriptorSet chache for user textures
-		mImTextureDescriptorCache = gvk::context().create_descriptor_cache();
+		mImTextureDescriptorCache = gvk::context().create_descriptor_cache("imgui_manager's texture descriptor cache");
 
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
@@ -276,13 +276,13 @@ namespace gvk
 		ImGui::NewFrame();
 	}
 
-	void imgui_manager::render_into_command_buffer(avk::resource_reference<avk::command_buffer> aCommandBuffer)
+	void imgui_manager::render_into_command_buffer(avk::resource_reference<avk::command_buffer_t> aCommandBuffer)
 	{
 		for (auto& cb : mCallback) {
 			cb();
 		}
 
-		auto& cmdBfr = aCommandBuffer.get().get();
+		auto& cmdBfr = aCommandBuffer.get();
 
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		// if no invokee has written on the attachment (no previous render calls this frame),
@@ -406,7 +406,7 @@ namespace gvk
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler.get(), avk::shader_type::fragment)
-			});
+		});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler
 		assert(sets.size() == 1);

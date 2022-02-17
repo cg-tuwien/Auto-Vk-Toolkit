@@ -33,7 +33,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 				)
 			}
 		);
-
+		mRenderPass.enable_shared_ownership();
 
 		// Create a graphics pipeline:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
@@ -41,7 +41,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store),
+			mRenderPass,
 			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(unsigned int) }
 		);
 
@@ -50,10 +50,10 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater->on(
-				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
-			)
-			.update(mPipeline);
+			gvk::swapchain_resized_event(gvk::context().main_window()),
+			gvk::shader_files_changed_event(mPipeline)
+		)
+		.update(mPipeline);
 	}
 
 	void update() override
@@ -83,7 +83,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		cmdBfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), &pushConstants);
 		
 		// first invokee needs to clear up the backbuffer image: main window render pass clears on load
-		cmdBfr->begin_render_pass_for_framebuffer(firstInvokeeInChain ? gvk::context().main_window()->get_renderpass() : const_referenced(mRenderPass.value()), gvk::context().main_window()->current_backbuffer());
+		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderPass), gvk::context().main_window()->current_backbuffer());
 		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
 		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
 		cmdBfr->end_render_pass();
@@ -104,7 +104,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 private: // v== Member variables ==v
 
 	unsigned int mTrianglePart = 0;
-	std::optional<avk::renderpass> mRenderPass;
+	avk::renderpass mRenderPass;
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
 	

@@ -107,8 +107,6 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		.then_submit_to(mQueue)
 		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output);
 
-		gvk::current_composition()->element_by_type<gvk::imgui_manager>()->render_into_command_buffer()
-		
 		// Take care of the command buffer's lifetime -- let the window handle it
 		// based on its associated swap chain's number of concurrent images:
 		mainWnd->handle_lifetime(avk::owned(cmdBfr));
