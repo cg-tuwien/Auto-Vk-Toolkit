@@ -45,6 +45,7 @@ public:
 	};
 
 	enum class skinning_mode {
+		static_mesh,
 		linear_blend_skinning,
 		dual_quaternion_skinning,
 		optimized_centers_of_rotation_skinning

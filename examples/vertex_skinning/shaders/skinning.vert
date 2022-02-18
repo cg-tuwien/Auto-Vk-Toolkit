@@ -43,15 +43,15 @@ layout (location = 3) flat out int materialIndex;
 	}
 }*/
 
-void main() {
+mat4 skin() {
 	mat4 skinning_matrix = mat4(0.0);
-	if (pushConstants.mSkinningMode == 0) {
+	if (pushConstants.mSkinningMode == 1) {
 		// LBS
 		skinning_matrix = boneMatrices.mat[inBoneIndices.x] * inBoneWeights.x
-						+ boneMatrices.mat[inBoneIndices.y] * inBoneWeights.y
-						+ boneMatrices.mat[inBoneIndices.z] * inBoneWeights.z
-						+ boneMatrices.mat[inBoneIndices.w] * inBoneWeights.w;
-	} else if (pushConstants.mSkinningMode == 1) {
+		+ boneMatrices.mat[inBoneIndices.y] * inBoneWeights.y
+		+ boneMatrices.mat[inBoneIndices.z] * inBoneWeights.z
+		+ boneMatrices.mat[inBoneIndices.w] * inBoneWeights.w;
+	} else if (pushConstants.mSkinningMode == 2) {
 		// DQS
 		DualQuaternion dqResult = DualQuaternion(vec4(0,0,0,0), vec4(0));
 		for (int i = 0; i < 4; ++i) {
@@ -63,7 +63,7 @@ void main() {
 		skinning_matrix = mat4(quat_toRotationMatrix(c.real));
 		skinning_matrix[3] = translation;
 		//debugMsg(77);
-	} else if (pushConstants.mSkinningMode == 2) {
+	} else if (pushConstants.mSkinningMode == 3) {
 		// COR
 		vec4 quatRotation = vec4(0);
 		mat4 lbs = mat4(0);
@@ -81,10 +81,20 @@ void main() {
 		skinning_matrix = mat4(quatRotationMatrix);
 		skinning_matrix[3] = translation;
 	}
+	return skinning_matrix;
+}
 
+void main() {
 	// debugPrintfEXT("debug text vong shader wuhu");
 
-	mat4 totalMatrix = pushConstants.mModelMatrix * skinning_matrix;
+	mat4 totalMatrix;
+	if (pushConstants.mSkinningMode == 0) {
+		// Static meshes should not be multiplied by an empty skinning_matrix, or they get 0 everywhere.
+		totalMatrix = pushConstants.mModelMatrix;
+	} else {
+		totalMatrix = pushConstants.mModelMatrix * skin();
+	}
+
 	vec4 posWS = totalMatrix * vec4(inPosition.xyz, 1.0);
 	positionWS = posWS.xyz;
 	gl_Position = ct.mViewProjMatrix * posWS;

@@ -166,6 +166,17 @@ void animated_model::initialize(
 			avk::memory_usage::host_coherent, {},
 			avk::storage_buffer_meta::create_from_size(total_num_bone_matrices * sizeof(dual_quaternion::dual_quaternion_struct))
 		);
+	} else {
+		// Allow to render meshes which have no animation
+		mBoneData.mBoneMatricesBuffer = gvk::context().create_buffer(
+			avk::memory_usage::host_coherent, {},
+			avk::storage_buffer_meta::create_from_size(sizeof(glm::mat4))
+		);
+
+		mBoneData.mDualQuaternionsBuffer = gvk::context().create_buffer(
+			avk::memory_usage::host_coherent, {},
+			avk::storage_buffer_meta::create_from_size(sizeof(dual_quaternion::dual_quaternion_struct))
+		);
 	}
 
 	auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
@@ -216,6 +227,17 @@ void animated_model::initialize(
 				md.mBoneIndices.data(), 0,
 				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
+		} else {
+			// Initialize empty bones buffer for shader.
+			md.mBoneWeights = std::vector<glm::vec4>(1);
+			md.mBoneWeightsBuffer = gvk::context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(md.mBoneWeights));
+
+			md.mBoneIndices = std::vector<glm::uvec4>(1);
+			md.mBoneIndexBuffer = gvk::context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(md.mBoneIndices));
 		}
 	}
 
@@ -226,16 +248,17 @@ void animated_model::initialize(
 		std::cout << "USING Optimized Centers Of Rotation Skinning." << std::endl;
 		load_or_compute_centers_of_rotations(gvkModel);
 	} else {
-		// Initialize empty centers of rotation buffer for shader.
-		mMeshDataAndBuffers[0].mCentersOfRotation = std::vector<glm::vec3>(mMeshDataAndBuffers[0].mIndices.size());
-		mMeshDataAndBuffers[0].mCentersOfRotationBuffer = gvk::context().create_buffer(
-			avk::memory_usage::device, {},
-			avk::vertex_buffer_meta::create_from_data(mMeshDataAndBuffers[0].mCentersOfRotation)
-		);
-		mMeshDataAndBuffers[0].mCentersOfRotationBuffer->fill(
-			mMeshDataAndBuffers[0].mCentersOfRotation.data(), 0,
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-		);
+		for (int meshIndex = 0; meshIndex < gvkModel->num_meshes(); ++meshIndex) {
+			// Initialize empty centers of rotation buffer for shader.
+			mMeshDataAndBuffers[meshIndex].mCentersOfRotation =
+				std::vector<glm::vec3>(mMeshDataAndBuffers[meshIndex].mIndices.size());
+			mMeshDataAndBuffers[meshIndex].mCentersOfRotationBuffer = gvk::context().create_buffer(
+				avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(mMeshDataAndBuffers[meshIndex].mCentersOfRotation));
+			mMeshDataAndBuffers[meshIndex].mCentersOfRotationBuffer->fill(
+				mMeshDataAndBuffers[meshIndex].mCentersOfRotation.data(), 0,
+				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler()));
+		}
 	}
 
 	update();
