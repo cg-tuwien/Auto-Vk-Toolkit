@@ -4,11 +4,16 @@
 namespace gvk
 {
 
-	avk::owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags)
+	avk::owning_resource<model_t> model_t::load_from_file(const std::string& aPath, aiProcessFlagsType aAssimpFlags, bool removeNormals)
 	{
 		model_t result;
 		result.mModelPath = avk::clean_up_path(aPath);
 		result.mImporter = std::make_unique<Assimp::Importer>();
+		if (removeNormals) {
+			// See https://github.com/assimp/assimp/issues/407#issuecomment-61445211
+			result.mImporter->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, aiComponent_NORMALS);
+			aAssimpFlags |= aiProcess_RemoveComponent | aiProcess_GenNormals;
+		}
 		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
 			throw gvk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));

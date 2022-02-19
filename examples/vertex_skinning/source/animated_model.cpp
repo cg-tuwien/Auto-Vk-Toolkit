@@ -15,7 +15,7 @@ void animated_model::initialize(
 	mSkinningMode = skinningMode;
 
 	// NOTE: aiProcess_PreTransformVertices removes bones
-	auto gvkModel = gvk::model_t::load_from_file(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
+	auto gvkModel = gvk::model_t::load_from_file(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices, true);
 
 	// check if model has bones
 	mAnyMeshHasBones = false;
