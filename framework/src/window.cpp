@@ -306,12 +306,21 @@ namespace gvk
 		mOutdatedSwapChainResources.erase(eraseBegin, eraseEnd);
 	}
 
-	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, frame_id_t aFrameId) const
+	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::SemaphoreSubmitInfoKHR>& aSemaphoreSubmitInfo, vk::PipelineStageFlags2KHR aDefaultStage, frame_id_t aFrameId) const
 	{
-		for (const auto& [frameId, sem] : mPresentSemaphoreDependencies) {
+		for (const auto& [frameId, srcStage, sem] : mPresentSemaphoreDependencies) {
 			if (frameId == aFrameId) {
-				aSemaphores.push_back(sem->handle());
-				aWaitStages.push_back(sem->semaphore_wait_stage());
+				auto& info = aSemaphoreSubmitInfo.emplace_back(sem->handle());
+
+				if (std::holds_alternative<vk::PipelineStageFlags2KHR>(srcStage.mFlags)) {
+					info.setStageMask(std::get<vk::PipelineStageFlags2KHR>(srcStage.mFlags));
+				}
+				else if (std::holds_alternative<avk::stage::auto_stage_t>(srcStage.mFlags)) {
+					info.setStageMask(aDefaultStage);
+				}
+				else {
+					info.setStageMask(vk::PipelineStageFlagBits2KHR::eNone);
+				}
 			}
 		}
 	}
@@ -355,12 +364,13 @@ namespace gvk
 				// Workaround for binary semaphores:
 				// Since the semaphore is in a wait state right now, we'll have to wait for it until we can use it again.
 				auto fen = context().create_fence();
+				vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
 				mPresentQueue->handle().submit({ // TODO: This works, but is arguably not the greatest of all solutions... => Can it be done better with Timeline Semaphores? (Test on AMD!)
 					vk::SubmitInfo{}
 						.setCommandBufferCount(0u)
 						.setWaitSemaphoreCount(1u)
 						.setPWaitSemaphores(imgAvailableSem->handle_addr())
-						.setPWaitDstStageMask(imgAvailableSem->semaphore_wait_stage_addr())
+						.setPWaitDstStageMask(&waitStage)
 				}, fen->handle());
 				fen->wait_until_signalled();
 
@@ -387,7 +397,10 @@ namespace gvk
 		}
 
 		// Set the image available semaphore to be consumed:
-		mCurrentFrameImageAvailableSemaphore = std::ref(imgAvailableSem);
+		mCurrentFrameImageAvailableSemaphore = imgAvailableSem;
+
+		// Set the fence to be used:
+		mCurrentFrameFinishedFence = fence_for_frame();
 	}
 
 	void window::sync_before_render()
@@ -423,16 +436,19 @@ namespace gvk
 		const auto& cf = *mFramesInFlightFences[fenceIndex];
 
 		// EXTERN -> WAIT
-		std::vector<vk::Semaphore> renderFinishedSemaphores;
-		std::vector<vk::PipelineStageFlags> renderFinishedSemaphoreStages;
-		fill_in_present_semaphore_dependencies_for_frame(renderFinishedSemaphores, renderFinishedSemaphoreStages, current_frame());
+		std::vector<vk::SemaphoreSubmitInfoKHR> waitSem;
+		fill_in_present_semaphore_dependencies_for_frame(
+			waitSem, 
+			vk::PipelineStageFlagBits2KHR::eAllCommands, // TODO: Can we narrow it down to something else than ALL_COMMANDS here?
+			current_frame()
+		);
 
 		if (!has_consumed_current_image_available_semaphore()) {
 			// Being in this branch indicates that image available semaphore has not been consumed yet
 			// meaning that no render calls were (correctly) executed  (hint: check if all invokess are possibly disabled).
 			auto imgAvailable = consume_current_image_available_semaphore();
-			renderFinishedSemaphores.push_back(imgAvailable->handle());
-			renderFinishedSemaphoreStages.push_back(imgAvailable->semaphore_wait_stage());
+			waitSem.emplace_back(imgAvailable->handle())
+				.setStageMask(vk::PipelineStageFlagBits2KHR::eAllCommands);
 		}
 
 		// TODO: What if the user has not submitted any renderFinishedSemaphores?
@@ -440,16 +456,27 @@ namespace gvk
 		// WAIT -> SIGNAL
 		auto signalSemaphore = current_initiate_present_semaphore();
 
-		auto submitInfo = vk::SubmitInfo()
-			.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
-			.setPWaitSemaphores(renderFinishedSemaphores.data())
-			.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
-			.setCommandBufferCount(0u) // Submit ZERO command buffers :O
-			.setSignalSemaphoreCount(1u)
-			.setPSignalSemaphores(signalSemaphore->handle_addr());
-		// SIGNAL + FENCE, actually:
-		assert(mPresentQueue);
-		mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
+		//auto submitInfo = vk::SubmitInfo()
+		//	.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
+		//	.setPWaitSemaphores(renderFinishedSemaphores.data())
+		//	.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
+		//	.setCommandBufferCount(0u) // Submit ZERO command buffers :O
+		//	.setSignalSemaphoreCount(1u)
+		//	.setPSignalSemaphores(signalSemaphore->handle_addr());
+		//// SIGNAL + FENCE, actually:
+		//assert(mPresentQueue);
+		//mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
+
+		vk::SemaphoreSubmitInfoKHR signalInfo{ signalSemaphore->handle() };
+
+		auto submitInfo = vk::SubmitInfo2KHR{}
+			.setWaitSemaphoreInfoCount(static_cast<uint32_t>(waitSem.size()))
+			.setPWaitSemaphoreInfos(waitSem.data())
+			.setCommandBufferInfoCount(0u) // Submit ZERO command buffers :O
+			.setSignalSemaphoreInfoCount(1u)
+			.setPSignalSemaphoreInfos(&signalInfo);
+
+		mPresentQueue->handle().submit2KHR(1u, &submitInfo, cf.handle(), gvk::context().dispatch_loader_ext());
 
 		try
 		{

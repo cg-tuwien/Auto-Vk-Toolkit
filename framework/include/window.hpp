@@ -33,6 +33,7 @@ namespace gvk
 		window& operator =(const window&) = delete;
 		~window()
 		{
+			mCurrentFrameFinishedFence.reset();
 			mCurrentFrameImageAvailableSemaphore.reset();
 			mLifetimeHandledCommandBuffers.clear();
 			mPresentSemaphoreDependencies.clear();
@@ -262,16 +263,16 @@ namespace gvk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		void add_render_finished_semaphore_for_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
-			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphore.own());
+		void add_render_finished_semaphore_for_frame(avk::semaphore_wait_info_owning aSemaphoreWaitInfo, std::optional<frame_id_t> aFrameId = {}) {
+			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphoreWaitInfo.mDstStage, aSemaphoreWaitInfo.mWaitSemaphore.own());
 		}
 		/** Adds the given semaphore as an additional present-dependency to the current frame.
 		 *	That means, before an image is handed over to the presentation engine, the given semaphore must be signaled.
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
 		 */
-		void add_render_finished_semaphore_for_current_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore) {
-			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphore.own());
+		void add_render_finished_semaphore_for_current_frame(avk::semaphore_wait_info_owning aSemaphoreWaitInfo) {
+			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphoreWaitInfo.mDstStage, aSemaphoreWaitInfo.mWaitSemaphore.own());
 		}
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
@@ -344,20 +345,45 @@ namespace gvk
 		/** Set the queue that shall handle presenting. You MUST set it if you want to show any rendered images in this window! */
 		void set_present_queue(avk::queue& aPresentQueue);
 
-		/** Returns whether or not the current frame's image available semaphore has already been consumed. */
+		/** Returns whether or not the current frame's image available semaphore has already been consumed (by user code),
+		 *	which must happen once in every frame!
+		 */
 		bool has_consumed_current_image_available_semaphore() const {
 			return !mCurrentFrameImageAvailableSemaphore.has_value();
 		}
 
-		/** Get a reference to the image available semaphore of the current frame. */
+		/** Get a reference to the image available semaphore of the current frame.
+		 *	It must be used by user code for a semaphore-wait operation, at a useful location, 
+		 *	where the swapchain image must have become available for being rendered into.
+		 */
 		avk::resource_reference<avk::semaphore_t> consume_current_image_available_semaphore() {
 			if (!mCurrentFrameImageAvailableSemaphore.has_value()) {
-				throw gvk::runtime_error("Current frame's image available semaphore has already been consumed. Must be used EXACTLY once. Do not try to get it multiple times!");
+				throw gvk::runtime_error("Current frame's image available semaphore has already been consumed. Must be consumed EXACTLY once. Do not try to get it multiple times!");
 			}
 			auto ref = mCurrentFrameImageAvailableSemaphore.value();
 			mCurrentFrameImageAvailableSemaphore.reset();
 			return ref;
 		}
+
+		/** Returns whether or not the current frame's render finished fence has already been retrieved (by user code)
+		 *	for being used in a fence-signal operation, which must happen once in every frame!
+		 */
+		bool has_used_current_frame_finished_fence() const {
+			return !mCurrentFrameFinishedFence.has_value();
+		}
+
+		/** Get a reference to the current frame's render finished fence. 
+		 *	It must be used by user code for a fence-signal operation, indicating when a frame has been rendered completely.
+		 */
+		avk::resource_reference<avk::fence_t> use_current_frame_finished_fence() {
+			if (!mCurrentFrameFinishedFence.has_value()) {
+				throw gvk::runtime_error("Current frame's frame finished fence has already been used. Must be used EXACTLY once. Do not try to get it multiple times!");
+			}
+			auto ref = mCurrentFrameFinishedFence.value();
+			mCurrentFrameFinishedFence.reset();
+			return ref;
+		}
+
 
 		/**
 		 * create or update the swap chain (along with auxiliary resources) for this window depending on
@@ -400,7 +426,7 @@ namespace gvk
 		void acquire_next_swap_chain_image_and_prepare_semaphores();
 
 		// Helper method that fills the given 2 vectors with the present semaphore dependencies for the given frame-id
-		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, std::vector<vk::PipelineStageFlags>& aWaitStages, frame_id_t aFrameId) const;
+		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::SemaphoreSubmitInfoKHR>& aSemaphoreSubmitInfo, vk::PipelineStageFlags2KHR aDefaultStage, frame_id_t aFrameId) const;
 
 
 
@@ -465,7 +491,7 @@ namespace gvk
 		// Semaphores to be waited on before presenting the image PER FRAME.
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
-		std::vector<std::tuple<frame_id_t, avk::semaphore>> mPresentSemaphoreDependencies;
+		std::vector<std::tuple<frame_id_t, avk::stage::pipeline_stage_flags, avk::semaphore>> mPresentSemaphoreDependencies;
 #pragma endregion
 
 		// The renderpass used for the back buffers

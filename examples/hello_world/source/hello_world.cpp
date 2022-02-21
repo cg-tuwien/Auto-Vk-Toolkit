@@ -89,7 +89,6 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-		imageAvailableSemaphore->set_semaphore_wait_stage(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);

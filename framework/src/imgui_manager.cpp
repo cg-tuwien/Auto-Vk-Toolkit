@@ -328,7 +328,8 @@ namespace gvk
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		const auto ifi = mainWnd->current_in_flight_index();
 		auto& cmdBfr = mCommandBuffers[ifi];
-		cmdBfr->handle().reset();
+
+		cmdBfr->reset();
 
 		cmdBfr->begin_recording();
 		render_into_command_buffer(cmdBfr);
@@ -347,7 +348,8 @@ namespace gvk
 
 		submission.submit();
 
-		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
+		//                        As far as ImGui is concerned, the next frame using the same target image must wait before color attachment output:
+		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]) >> avk::stage::color_attachment_output);
 		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
 
@@ -376,7 +378,8 @@ namespace gvk
 			.signaling_upon_completion(avk::stage::transfer >> semaph);
 
 		semaph->handle_lifetime_of(std::move(cmdBfr));
-		context().main_window()->add_render_finished_semaphore_for_current_frame(avk::owned(semaph));
+		//                                                            Only ImGui needs this texture => ImGui will not access it before the fragment shader stage:
+		context().main_window()->add_render_finished_semaphore_for_current_frame(avk::owned(semaph) >> avk::stage::fragment_shader);
 	}
 
 	void imgui_manager::construct_render_pass()
