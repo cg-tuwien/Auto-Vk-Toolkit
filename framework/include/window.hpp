@@ -492,8 +492,11 @@ namespace gvk
 		// Previous frame's image index
 		uint32_t mPreviousFrameImageIndex;
 
-		// Must be consumed EXACTLY ONCE per frame
+		// Must be consumed EXACTLY ONCE per frame:
 		std::optional<avk::resource_reference<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
+
+		// Must be used EXACTLY ONCE per frame:
+		std::optional<avk::resource_reference<avk::fence_t>> mCurrentFrameFinishedFence;
 
 #pragma region recreation management
 		struct recreation_determinator

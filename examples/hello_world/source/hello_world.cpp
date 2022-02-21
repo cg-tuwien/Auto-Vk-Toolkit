@@ -105,7 +105,8 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		})
 		.into_command_buffer(cmdBfr)
 		.then_submit_to(mQueue)
-		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output);
+		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+		.submit();
 
 		// Take care of the command buffer's lifetime -- let the window handle it
 		// based on its associated swap chain's number of concurrent images:
@@ -144,6 +145,7 @@ int main() // <== Starting point ==
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
 			},
 			mainWnd,
 			app,

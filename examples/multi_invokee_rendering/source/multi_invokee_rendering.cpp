@@ -9,39 +9,39 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 	{}
 
 	void initialize() override
-	{		
+	{
 		auto wnd = gvk::context().main_window();
 
-		std::vector<avk::attachment> attachments;
-		attachments.push_back(avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store)); // But not in presentable format, because ImGui (and other invokees) comes after);
-		for (auto a : wnd->get_additional_back_buffer_attachments()) {
-			a.mLoadOperation = avk::on_load::dont_care;
-			a.mStoreOperation = avk::on_store::dont_care;
-			attachments.push_back(a);
-		}
-		mRenderPass = gvk::context().create_renderpass(
-			attachments, {
-				avk::subpass_dependency(
-					avk::subpass::external >> avk::subpass::index(0),
-					avk::stage::none >> avk::stage::color_attachment_output,
-					avk::access::none >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
-				),
-				avk::subpass_dependency(
-					avk::subpass::index(0) >> avk::subpass::external,
-					avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
-					avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
-				)
-			}
-		);
-		mRenderPass.enable_shared_ownership();
+		auto subpassDependencies = std::vector{
+			avk::subpass_dependency(
+				avk::subpass::external >> avk::subpass::index(0),
+				avk::stage::none >> avk::stage::color_attachment_output,
+				avk::access::none >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
+			),
+			avk::subpass_dependency(
+				avk::subpass::index(0) >> avk::subpass::external,
+				avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+				avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
+			)
+		};
 
+		mClearRenderPass = gvk::context().create_renderpass(
+			{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) },
+			subpassDependencies);
+		mClearRenderPass.enable_shared_ownership();
+
+		mLoadRenderPass = gvk::context().create_renderpass(
+			{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store) },
+			subpassDependencies);
+		mLoadRenderPass.enable_shared_ownership();
+		
 		// Create a graphics pipeline:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::vertex_shader("shaders/a_triangle.vert"),
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
-			mRenderPass,
+			mClearRenderPass,
 			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(unsigned int) }
 		);
 
@@ -77,34 +77,35 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
 
-		const auto pushConstants = mTrianglePart;
-		cmdBfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), &pushConstants);
-		
-		// first invokee needs to clear up the backbuffer image: main window render pass clears on load
-		cmdBfr->begin_render_pass_for_framebuffer(const_referenced(mRenderPass), gvk::context().main_window()->current_backbuffer());
-		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
-		cmdBfr->end_render_pass();
-		cmdBfr->end_recording();
-		
-		if (!firstInvokeeInChain) {
-			mQueue->submit(cmdBfr);
-			mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		auto commands = gvk::context().record({
+			avk::command::push_constants(mPipeline, mTrianglePart, vk::ShaderStageFlagBits::eVertex),
+			avk::command::render_pass(firstInvokeeInChain ? mClearRenderPass : mLoadRenderPass, gvk::context().main_window()->current_backbuffer(), {
+				avk::command::bind(mPipeline),
+				avk::command::draw(3u, 1u, 0u, 0u)
+			})
+		});
+
+		if (firstInvokeeInChain) {
+			commands
+				.into_command_buffer(cmdBfr)
+				.then_submit_to(mQueue)
+				.waiting_for(mainWnd->consume_current_image_available_semaphore() >> avk::stage::color_attachment_output);
 		}
-		else
-		{
-			auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-			mQueue->submit(cmdBfr, imageAvailableSemaphore);
-			mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		else {
+			commands
+				.into_command_buffer(cmdBfr)
+				.then_submit_to(mQueue);
 		}
+		
+		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 	}
 	
 private: // v== Member variables ==v
 
 	unsigned int mTrianglePart = 0;
-	avk::renderpass mRenderPass;
+	avk::renderpass mClearRenderPass;
+	avk::renderpass mLoadRenderPass;
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
 	

@@ -106,15 +106,18 @@ namespace gvk
 
 		avk::queue* mQueue;
 		avk::descriptor_pool mDescriptorPool;
-		avk::command_pool mCommandPool;
-		std::optional<avk::renderpass> mRenderpass;
+		avk::command_pool_t* mCommandPool; // TODO: This should probably be an avk::resoruce_reference<avk::command_pool_t>
+		std::vector<avk::command_buffer> mCommandBuffers; // <-- one for each concurrent frame
+		std::vector<avk::semaphore> mRenderFinishedSemaphores; // <-- one for each concurrent frame
+
+		avk::renderpass mRenderpass;
 
 		// Descriptor cache for imgui texture
 		avk::descriptor_cache mImTextureDescriptorCache;
 
 		// this render pass is used to reset the attachment if no invokee has previously written on it
 		// TODO is there a better solution(?)
-		std::optional<avk::renderpass> mClearRenderpass;
+		avk::renderpass mClearRenderpass;
 		std::vector<avk::unique_function<void()>> mCallback;
 		int mExecutionOrder;
 		int mMouseCursorPreviousValue;

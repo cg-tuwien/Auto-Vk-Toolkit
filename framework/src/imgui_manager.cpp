@@ -63,7 +63,12 @@ namespace gvk
 	    init_info.DescriptorPool = mDescriptorPool.handle();
 	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
-		mCommandPool = gvk::context().create_command_pool(mQueue->family_index(), vk::CommandPoolCreateFlagBits::eTransient);   // TODO: Support other queues!
+		mCommandPool = &gvk::context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
+		mCommandBuffers = mCommandPool->alloc_command_buffers(static_cast<uint32_t>(wnd->number_of_frames_in_flight()));
+		for (gvk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
+			mRenderFinishedSemaphores.push_back(gvk::context().create_semaphore());
+			mRenderFinishedSemaphores.back().enable_shared_ownership();
+		}
 
 		// MinImageCount and ImageCount are related to the swapchain images. These are not Dear ImGui specific properties and your
 		// engine should expose them. ImageCount lets Dear ImGui know how many framebuffers and resources in general it should
@@ -83,9 +88,19 @@ namespace gvk
 			ImGui_ImplVulkan_InitInfo new_init_info = init_info; // can't be temp
 			mDescriptorPool.reset();
 			new_init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images())); // opportunity to update image count
-			ImGui_ImplVulkan_Init(&new_init_info, this->mRenderpass.value()->handle()); // restart imgui
+			ImGui_ImplVulkan_Init(&new_init_info, this->mRenderpass->handle()); // restart imgui
 			// Have to upload fonts just like the first time:
 			upload_fonts();
+
+			// Re-create all the command buffers because the number of concurrent frames could have changed:
+			mCommandBuffers = mCommandPool->alloc_command_buffers(static_cast<uint32_t>(wnd->number_of_frames_in_flight()));
+
+			// Re-create all the semaphores because the number of concurrent frames could have changed:
+			mRenderFinishedSemaphores.clear();
+			for (gvk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
+				mRenderFinishedSemaphores.push_back(gvk::context().create_semaphore());
+				mRenderFinishedSemaphores.back().enable_shared_ownership();
+			}
 		};
 
 		// set up an updater
@@ -109,7 +124,7 @@ namespace gvk
 		});
 
 		// Init it:
-	    ImGui_ImplVulkan_Init(&init_info, mRenderpass.value()->handle());
+	    ImGui_ImplVulkan_Init(&init_info, mRenderpass->handle());
 
 		// Setup back-end capabilities flags
 	    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
@@ -285,15 +300,16 @@ namespace gvk
 		auto& cmdBfr = aCommandBuffer.get();
 
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass.value()), referenced(mainWnd->current_backbuffer()));
+			cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass), referenced(mainWnd->current_backbuffer()));
 			cmdBfr.end_render_pass();
 		}
 
 		assert(mRenderpass.has_value());
-		cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mRenderpass.value()), referenced(mainWnd->current_backbuffer()));
+		cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mRenderpass), referenced(mainWnd->current_backbuffer()));
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
@@ -310,21 +326,29 @@ namespace gvk
 		}
 		
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
-		auto cmdBfr = mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		const auto ifi = mainWnd->current_in_flight_index();
+		auto& cmdBfr = mCommandBuffers[ifi];
+		cmdBfr->handle().reset();
+
 		cmdBfr->begin_recording();
 		render_into_command_buffer(cmdBfr);
 		cmdBfr->end_recording();
 
+		auto submission = mQueue->submit(avk::referenced(cmdBfr))
+			.signaling_upon_completion(avk::stage::color_attachment_output >> mRenderFinishedSemaphores[ifi])
+			.store_for_now();
+
 		// if this is the first render call (other invokees are disabled or only ImGui renders),
 		// then consume imageAvailableSemaphore.
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-			mQueue->submit(cmdBfr, imageAvailableSemaphore);
-			mainWnd->handle_lifetime(avk::owned(cmdBfr));
+			submission
+				.waiting_for(mainWnd->consume_current_image_available_semaphore() >> avk::stage::color_attachment_output);
 		}
-		else {
-			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mQueue->submit_and_handle_with_semaphore(avk::owned(cmdBfr))));
-		}
+
+		submission.submit();
+
+		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
+		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
 
 	void imgui_manager::finalize()
@@ -341,13 +365,17 @@ namespace gvk
 
 	void imgui_manager::upload_fonts()
 	{
-		auto cmdBfr = this->mCommandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		auto cmdBfr = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue)->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
-		auto semaph = mQueue->submit_and_handle_with_semaphore(owned(cmdBfr)); // TODO: Support other queues, maybe? Or: Why should it be the graphics queue?
-		// TODO: Sync by semaphore is probably fine; especially if other queues are supported (not only graphics). Anyways, this is a backbuffer-dependency.
+
+		auto semaph = gvk::context().create_semaphore();
+		mQueue->submit(cmdBfr)
+			.signaling_upon_completion(avk::stage::transfer >> semaph);
+
+		semaph->handle_lifetime_of(std::move(cmdBfr));
 		context().main_window()->add_render_finished_semaphore_for_current_frame(avk::owned(semaph));
 	}
 

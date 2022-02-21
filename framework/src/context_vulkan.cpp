@@ -189,7 +189,7 @@ namespace gvk
 		// If the user has not created any queue, create at least one
 		if (mQueues.empty()) {
 			auto familyIndex = avk::queue::select_queue_family_index(mPhysicalDevice, {}, avk::queue_selection_preference::versatile_queue, nullptr != surface ? *surface : std::optional<vk::SurfaceKHR>{});
-			mQueues.emplace_back(avk::queue::prepare(physical_device(), dispatch_loader_core(), familyIndex, 0));
+			mQueues.emplace_back(avk::queue::prepare(this, familyIndex, 0));
 		}
 		
 		LOG_DEBUG_VERBOSE("Running vulkan create_and_assign_logical_device event handler");
@@ -456,7 +456,7 @@ namespace gvk
 			}
 #endif
 			
-			nuQu = avk::queue::prepare(context().physical_device(), context().dispatch_loader_core(), queueFamily, static_cast<uint32_t>(num), aQueuePriority);
+			nuQu = avk::queue::prepare(this, queueFamily, static_cast<uint32_t>(num), aQueuePriority);
 
 			return true;
 		});
@@ -464,7 +464,7 @@ namespace gvk
 		context().add_event_handler(context_state::device_created, [&nuQu, aPresentSupportForWindow, this]() -> bool {
 			LOG_DEBUG_VERBOSE("Assigning queue handles handler.");
 
-			nuQu.assign_handle(device());
+			nuQu.assign_handle();
 
 			return true;
 		});
