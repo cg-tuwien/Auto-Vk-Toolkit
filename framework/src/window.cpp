@@ -372,6 +372,7 @@ namespace gvk
 						.setPWaitSemaphores(imgAvailableSem->handle_addr())
 						.setPWaitDstStageMask(&waitStage)
 				}, fen->handle());
+				LOG_DEBUG_VERBOSE("waiting on temporary fen");
 				fen->wait_until_signalled();
 
 				acquire_next_swap_chain_image_and_prepare_semaphores();
@@ -400,7 +401,8 @@ namespace gvk
 		mCurrentFrameImageAvailableSemaphore = imgAvailableSem;
 
 		// Set the fence to be used:
-		mCurrentFrameFinishedFence = fence_for_frame();
+		LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Setting fence #{} as current frame finished fence.", current_frame(), current_in_flight_index()));
+		mCurrentFrameFinishedFence = current_fence();
 	}
 
 	void window::sync_before_render()
@@ -409,6 +411,7 @@ namespace gvk
 		const auto ci = current_in_flight_index();
 		auto cf = current_fence();
 		assert(cf->handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
+		LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Waiting for fence image[{}] being signaled, in flight index[{}]", current_frame(), current_in_flight_index(), ci));
 		cf->wait_until_signalled();
 		cf->reset();
 
@@ -433,63 +436,52 @@ namespace gvk
 	void window::render_frame()
 	{
 		const auto fenceIndex = static_cast<int>(current_in_flight_index());
-		const auto& cf = *mFramesInFlightFences[fenceIndex];
 
 		// EXTERN -> WAIT
-		std::vector<vk::SemaphoreSubmitInfoKHR> waitSem;
+		std::vector<vk::SemaphoreSubmitInfoKHR> waitSemInfos;
 		fill_in_present_semaphore_dependencies_for_frame(
-			waitSem, 
+			waitSemInfos, 
 			vk::PipelineStageFlagBits2KHR::eAllCommands, // TODO: Can we narrow it down to something else than ALL_COMMANDS here?
 			current_frame()
 		);
+		std::vector<vk::Semaphore> waitSemHandles(waitSemInfos.size());
+		std::transform(std::begin(waitSemInfos), std::end(waitSemInfos), std::begin(waitSemHandles), [](const auto& info) { return info.semaphore; });
 
 		if (!has_consumed_current_image_available_semaphore()) {
 			// Being in this branch indicates that image available semaphore has not been consumed yet
 			// meaning that no render calls were (correctly) executed  (hint: check if all invokess are possibly disabled).
 			auto imgAvailable = consume_current_image_available_semaphore();
-			waitSem.emplace_back(imgAvailable->handle())
+			waitSemInfos.emplace_back(imgAvailable->handle())
 				.setStageMask(vk::PipelineStageFlagBits2KHR::eAllCommands);
 		}
+		
+		if (!has_used_current_frame_finished_fence()) {
+			// Need an additional submission to signal the fence.
+			auto fence = use_current_frame_finished_fence();
+			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Using current frame finished fence -> being signaled", current_frame()));
+			assert(fence->handle() == mFramesInFlightFences[fenceIndex]->handle());
 
-		// TODO: What if the user has not submitted any renderFinishedSemaphores?
-
-		// WAIT -> SIGNAL
-		auto signalSemaphore = current_initiate_present_semaphore();
-
-		//auto submitInfo = vk::SubmitInfo()
-		//	.setWaitSemaphoreCount(static_cast<uint32_t>(renderFinishedSemaphores.size()))
-		//	.setPWaitSemaphores(renderFinishedSemaphores.data())
-		//	.setPWaitDstStageMask(renderFinishedSemaphoreStages.data())
-		//	.setCommandBufferCount(0u) // Submit ZERO command buffers :O
-		//	.setSignalSemaphoreCount(1u)
-		//	.setPSignalSemaphores(signalSemaphore->handle_addr());
-		//// SIGNAL + FENCE, actually:
-		//assert(mPresentQueue);
-		//mPresentQueue->handle().submit(1u, &submitInfo, cf.handle());
-
-		vk::SemaphoreSubmitInfoKHR signalInfo{ signalSemaphore->handle() };
-
-		auto submitInfo = vk::SubmitInfo2KHR{}
-			.setWaitSemaphoreInfoCount(static_cast<uint32_t>(waitSem.size()))
-			.setPWaitSemaphoreInfos(waitSem.data())
-			.setCommandBufferInfoCount(0u) // Submit ZERO command buffers :O
-			.setSignalSemaphoreInfoCount(1u)
-			.setPSignalSemaphoreInfos(&signalInfo);
-
-		mPresentQueue->handle().submit2KHR(1u, &submitInfo, cf.handle(), gvk::context().dispatch_loader_ext());
+			// Waiting on the same semaphores here and during vkPresentKHR should be fine: (TODO: is it?)
+			auto submitInfo = vk::SubmitInfo2KHR{}
+				.setWaitSemaphoreInfoCount(static_cast<uint32_t>(waitSemInfos.size()))
+				.setPWaitSemaphoreInfos(waitSemInfos.data())
+				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
+				.setSignalSemaphoreInfoCount(0u); // Nothing to signal :O
+			mPresentQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), gvk::context().dispatch_loader_ext());
+		}
 
 		try
 		{
 			// SIGNAL -> PRESENT
 			auto presentInfo = vk::PresentInfoKHR()
-				.setWaitSemaphoreCount(1u)
-				.setPWaitSemaphores(signalSemaphore->handle_addr())
+				.setWaitSemaphoreCount(waitSemHandles.size())
+				.setPWaitSemaphores(waitSemHandles.data())
 				.setSwapchainCount(1u)
 				.setPSwapchains(&swap_chain())
 				.setPImageIndices(&mCurrentFrameImageIndex)
 				.setPResults(nullptr);
 			auto result = mPresentQueue->handle().presentKHR(presentInfo);
-
+			
 			// Submitted => store the image index for extra reuse-safety:
 			mImagesInFlightFenceIndices[mCurrentFrameImageIndex] = fenceIndex;
 
@@ -507,6 +499,7 @@ namespace gvk
 		}
 
 		// increment frame counter
+		LOG_DEBUG_VERBOSE(fmt::format("Increasing frame id from #{} -> #{}", mCurrentFrame, mCurrentFrame + 1));
 		++mCurrentFrame;
 	}
 
@@ -554,14 +547,11 @@ namespace gvk
 
 		mFramesInFlightFences.clear();
 		mImageAvailableSemaphores.clear();
-		mInitiatePresentSemaphores.clear();
 		mFramesInFlightFences.reserve(framesInFlight);
 		mImageAvailableSemaphores.reserve(framesInFlight);
-		mInitiatePresentSemaphores.reserve(framesInFlight);
 		for (uint32_t i = 0; i < framesInFlight; ++i) {
 			mFramesInFlightFences.push_back(context().create_fence(true)); // true => Create the fences in signalled state, so that `cgb::context().logical_device().waitForFences` at the beginning of `window::render_frame` is not blocking forever, but can continue immediately.
 			mImageAvailableSemaphores.push_back(context().create_semaphore());
-			mInitiatePresentSemaphores.push_back(context().create_semaphore());
 		}
 
 		auto imagesInFlight = get_config_number_of_presentable_images();

@@ -629,7 +629,7 @@ namespace gvk
 
 		if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_ERROR__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_ERROR___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber, 
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -637,7 +637,7 @@ namespace gvk
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_WARNING__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_WARNING___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -646,13 +646,13 @@ namespace gvk
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			assert(pCallbackData);
 			if (std::string("Loader Message") == pCallbackData->pMessageIdName) {
-				LOG_VERBOSE__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+				LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
 			}
 			else {
-				LOG_INFO__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+				LOG_INFO___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
@@ -661,7 +661,7 @@ namespace gvk
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_VERBOSE__(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -725,27 +725,27 @@ namespace gvk
 		void* pUserData)
 	{
 		if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0) {
-			LOG_ERROR__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_ERROR___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) != 0) {
-			LOG_WARNING__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_WARNING___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) != 0) {
-			LOG_DEBUG__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_DEBUG___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
-		LOG_INFO__(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+		LOG_INFO___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 			to_string(vk::DebugReportFlagsEXT{ flags }),
 			to_string(vk::DebugReportObjectTypeEXT(objectType)),
 			pMessage));

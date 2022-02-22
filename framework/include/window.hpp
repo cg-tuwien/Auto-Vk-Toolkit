@@ -37,7 +37,6 @@ namespace gvk
 			mCurrentFrameImageAvailableSemaphore.reset();
 			mLifetimeHandledCommandBuffers.clear();
 			mPresentSemaphoreDependencies.clear();
-			mInitiatePresentSemaphores.clear();
 			mImageAvailableSemaphores.clear();
 			mFramesInFlightFences.clear();
 			mSwapChainImageViews.clear();
@@ -241,18 +240,6 @@ namespace gvk
 		/** Returns the "image available"-semaphore for the current frame. */
 		avk::resource_reference<avk::semaphore_t> current_image_available_semaphore() {
 			return avk::referenced(mImageAvailableSemaphores[current_in_flight_index()]);
-		}
-
-		/** Returns the "initiate present"-semaphore for the requested frame, which depends on the frame's "in flight index".
-		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
-		 *						If not set, refers to the current frame, i.e. `current_frame()`.
-		 */
-		avk::resource_reference<avk::semaphore_t> initiate_present_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
-			return avk::referenced(mInitiatePresentSemaphores[in_flight_index_for_frame(aFrameId)]);
-		}
-		/** Returns the "initiate present"-semaphore for the current frame. */
-		avk::resource_reference<avk::semaphore_t> current_initiate_present_semaphore() {
-			return avk::referenced(mInitiatePresentSemaphores[current_in_flight_index()]);
 		}
 
 		/** Adds the given semaphore as an additional present-dependency to the given frame-id.
@@ -483,8 +470,6 @@ namespace gvk
 		std::vector<avk::fence> mFramesInFlightFences;
 		// Semaphores to wait for an image to become available
 		std::vector<avk::semaphore> mImageAvailableSemaphores;
-		// Semaphores to signal when the current frame may be presented
-		std::vector<avk::semaphore> mInitiatePresentSemaphores;
 		// Fences to make sure that no two images are written into concurrently
 		std::vector<int> mImagesInFlightFenceIndices;
 

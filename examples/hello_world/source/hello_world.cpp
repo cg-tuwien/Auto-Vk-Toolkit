@@ -126,8 +126,9 @@ int main() // <== Starting point ==
 		auto mainWnd = gvk::context().create_window("Hello World");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->enable_resizing(true);
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(gvk::presentation_mode::fifo);
 		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->set_number_of_presentable_images(4u);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
@@ -144,7 +145,7 @@ int main() // <== Starting point ==
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
+				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
 			},
 			mainWnd,
 			app,
