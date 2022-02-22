@@ -463,6 +463,7 @@ namespace gvk
 
 			// Using a temporary semaphore for the signal operation:
 			auto sigSem = gvk::context().create_semaphore();
+			vk::SemaphoreSubmitInfoKHR sigSemInfo{ sigSem->handle() };
 			
 			// Waiting on the same semaphores here and during vkPresentKHR should be fine: (TODO: is it?)
 			auto submitInfo = vk::SubmitInfo2KHR{}
@@ -470,8 +471,14 @@ namespace gvk
 				.setPWaitSemaphoreInfos(waitSemInfos.data())
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
-				.set(sigSem->handle_ptr());
+				.setPSignalSemaphoreInfos(&sigSemInfo);
 			mPresentQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), gvk::context().dispatch_loader_ext());
+
+			// Consequently, the present call must wait on the temporary semaphore only:
+			waitSemHandles.clear();
+			waitSemHandles.emplace_back(sigSem->handle());
+			// Add it as dependency to the current frame, so that it gets properly lifetime-handled:
+			add_render_finished_semaphore_for_current_frame(avk::owned(sigSem) >> avk::stage::none);
 		}
 
 		try

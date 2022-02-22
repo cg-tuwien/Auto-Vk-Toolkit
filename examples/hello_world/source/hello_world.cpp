@@ -126,7 +126,7 @@ int main() // <== Starting point ==
 		auto mainWnd = gvk::context().create_window("Hello World");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->enable_resizing(true);
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::fifo);
+		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->set_number_of_presentable_images(3u);
 		mainWnd->open();
