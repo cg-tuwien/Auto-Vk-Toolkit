@@ -461,12 +461,16 @@ namespace gvk
 			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Using current frame finished fence -> being signaled", current_frame()));
 			assert(fence->handle() == mFramesInFlightFences[fenceIndex]->handle());
 
+			// Using a temporary semaphore for the signal operation:
+			auto sigSem = gvk::context().create_semaphore();
+			
 			// Waiting on the same semaphores here and during vkPresentKHR should be fine: (TODO: is it?)
 			auto submitInfo = vk::SubmitInfo2KHR{}
 				.setWaitSemaphoreInfoCount(static_cast<uint32_t>(waitSemInfos.size()))
 				.setPWaitSemaphoreInfos(waitSemInfos.data())
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
-				.setSignalSemaphoreInfoCount(0u); // Nothing to signal :O
+				.setSignalSemaphoreInfoCount(1u)
+				.set(sigSem->handle_ptr());
 			mPresentQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), gvk::context().dispatch_loader_ext());
 		}
 

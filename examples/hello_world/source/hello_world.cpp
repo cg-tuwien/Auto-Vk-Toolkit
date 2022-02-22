@@ -128,7 +128,7 @@ int main() // <== Starting point ==
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::fifo);
 		mainWnd->set_number_of_concurrent_frames(3u);
-		mainWnd->set_number_of_presentable_images(4u);
+		mainWnd->set_number_of_presentable_images(3u);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
