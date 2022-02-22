@@ -372,7 +372,6 @@ namespace gvk
 						.setPWaitSemaphores(imgAvailableSem->handle_addr())
 						.setPWaitDstStageMask(&waitStage)
 				}, fen->handle());
-				LOG_DEBUG_VERBOSE("waiting on temporary fen");
 				fen->wait_until_signalled();
 
 				acquire_next_swap_chain_image_and_prepare_semaphores();
@@ -401,7 +400,6 @@ namespace gvk
 		mCurrentFrameImageAvailableSemaphore = imgAvailableSem;
 
 		// Set the fence to be used:
-		LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Setting fence #{} as current frame finished fence.", current_frame(), current_in_flight_index()));
 		mCurrentFrameFinishedFence = current_fence();
 	}
 
@@ -411,7 +409,6 @@ namespace gvk
 		const auto ci = current_in_flight_index();
 		auto cf = current_fence();
 		assert(cf->handle() == mFramesInFlightFences[current_in_flight_index()]->handle());
-		LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Waiting for fence image[{}] being signaled, in flight index[{}]", current_frame(), current_in_flight_index(), ci));
 		cf->wait_until_signalled();
 		cf->reset();
 
@@ -458,7 +455,6 @@ namespace gvk
 		if (!has_used_current_frame_finished_fence()) {
 			// Need an additional submission to signal the fence.
 			auto fence = use_current_frame_finished_fence();
-			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Using current frame finished fence -> being signaled", current_frame()));
 			assert(fence->handle() == mFramesInFlightFences[fenceIndex]->handle());
 
 			// Using a temporary semaphore for the signal operation:
@@ -510,7 +506,6 @@ namespace gvk
 		}
 
 		// increment frame counter
-		LOG_DEBUG_VERBOSE(fmt::format("Increasing frame id from #{} -> #{}", mCurrentFrame, mCurrentFrame + 1));
 		++mCurrentFrame;
 	}
 

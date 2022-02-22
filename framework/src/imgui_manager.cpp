@@ -339,17 +339,35 @@ namespace gvk
 			.signaling_upon_completion(avk::stage::color_attachment_output >> mRenderFinishedSemaphores[ifi])
 			.store_for_now();
 
-		// if this is the first render call (other invokees are disabled or only ImGui renders),
+		// If this is the first render call (other invokees are disabled or only ImGui renders),
 		// then consume imageAvailableSemaphore.
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
 			submission
 				.waiting_for(mainWnd->consume_current_image_available_semaphore() >> avk::stage::color_attachment_output);
 		}
 
-		submission.submit();
+		// This is usually the last call, so someone needs to use the fence:
+		// TODO: How to check if we have another invokee after this one?!
+		if (!mainWnd->has_used_current_frame_finished_fence()) {
+			submission
+				.signaling_upon_completion(mainWnd->use_current_frame_finished_fence());
+		}
+
+		if (mInternalFontsSemaphoreDependency.has_value()) {
+			submission
+				.waiting_for(mInternalFontsSemaphoreDependency.value() >> avk::stage::fragment_shader)
+				.submit();
+
+			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mInternalFontsSemaphoreDependency.value()) >> avk::stage::fragment_shader);
+			mInternalFontsSemaphoreDependency.reset();
+		}
+		else {
+			submission.submit();
+		}
 
 		//                        As far as ImGui is concerned, the next frame using the same target image must wait before color attachment output:
 		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]) >> avk::stage::color_attachment_output);
+
 		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
 
@@ -373,13 +391,16 @@ namespace gvk
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
 
-		auto semaph = gvk::context().create_semaphore();
-		mQueue->submit(cmdBfr)
-			.signaling_upon_completion(avk::stage::transfer >> semaph);
+		if (mInternalFontsSemaphoreDependency.has_value()) {
+			throw gvk::runtime_error("mInternalFontsSemaphoreDependency should not contain a value at this point => imgui_manager-internal bug");
+		}
 
-		semaph->handle_lifetime_of(std::move(cmdBfr));
-		//                                                            Only ImGui needs this texture => ImGui will not access it before the fragment shader stage:
-		context().main_window()->add_render_finished_semaphore_for_current_frame(avk::owned(semaph) >> avk::stage::fragment_shader);
+		mInternalFontsSemaphoreDependency = gvk::context().create_semaphore();
+		mQueue->submit(cmdBfr)
+			.signaling_upon_completion(avk::stage::transfer >> mInternalFontsSemaphoreDependency.value());
+
+		mInternalFontsSemaphoreDependency.value()->handle_lifetime_of(std::move(cmdBfr));
+		
 	}
 
 	void imgui_manager::construct_render_pass()

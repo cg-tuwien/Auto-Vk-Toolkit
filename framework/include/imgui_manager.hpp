@@ -112,6 +112,8 @@ namespace gvk
 
 		avk::renderpass mRenderpass;
 
+		std::optional<avk::semaphore> mInternalFontsSemaphoreDependency;
+
 		// Descriptor cache for imgui texture
 		avk::descriptor_cache mImTextureDescriptorCache;
 
