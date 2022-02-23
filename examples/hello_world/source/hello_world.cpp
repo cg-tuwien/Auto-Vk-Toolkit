@@ -95,7 +95,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-
+		
 		gvk::context().record({
 			avk::command::render_pass(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer(), {
 				avk::command::bind(mPipeline),
@@ -145,7 +145,6 @@ int main() // <== Starting point ==
 			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
 			},
 			mainWnd,
 			app,

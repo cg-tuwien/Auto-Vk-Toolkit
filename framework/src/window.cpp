@@ -306,21 +306,11 @@ namespace gvk
 		mOutdatedSwapChainResources.erase(eraseBegin, eraseEnd);
 	}
 
-	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::SemaphoreSubmitInfoKHR>& aSemaphoreSubmitInfo, vk::PipelineStageFlags2KHR aDefaultStage, frame_id_t aFrameId) const
+	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, frame_id_t aFrameId) const
 	{
-		for (const auto& [frameId, srcStage, sem] : mPresentSemaphoreDependencies) {
+		for (const auto& [frameId, sem] : mPresentSemaphoreDependencies) {
 			if (frameId == aFrameId) {
-				auto& info = aSemaphoreSubmitInfo.emplace_back(sem->handle());
-
-				if (std::holds_alternative<vk::PipelineStageFlags2KHR>(srcStage.mFlags)) {
-					info.setStageMask(std::get<vk::PipelineStageFlags2KHR>(srcStage.mFlags));
-				}
-				else if (std::holds_alternative<avk::stage::auto_stage_t>(srcStage.mFlags)) {
-					info.setStageMask(aDefaultStage);
-				}
-				else {
-					info.setStageMask(vk::PipelineStageFlagBits2KHR::eNone);
-				}
+				auto& info = aSemaphores.emplace_back(sem->handle());
 			}
 		}
 	}
@@ -435,14 +425,12 @@ namespace gvk
 		const auto fenceIndex = static_cast<int>(current_in_flight_index());
 
 		// EXTERN -> WAIT
-		std::vector<vk::SemaphoreSubmitInfoKHR> waitSemInfos;
-		fill_in_present_semaphore_dependencies_for_frame(
-			waitSemInfos, 
-			vk::PipelineStageFlagBits2KHR::eAllCommands, // TODO: Can we narrow it down to something else than ALL_COMMANDS here?
-			current_frame()
-		);
-		std::vector<vk::Semaphore> waitSemHandles(waitSemInfos.size());
-		std::transform(std::begin(waitSemInfos), std::end(waitSemInfos), std::begin(waitSemHandles), [](const auto& info) { return info.semaphore; });
+		std::vector<vk::Semaphore> waitSemHandles;
+		fill_in_present_semaphore_dependencies_for_frame(waitSemHandles, current_frame());
+		std::vector<vk::SemaphoreSubmitInfoKHR> waitSemInfos(waitSemHandles.size());
+		std::ranges::transform(std::begin(waitSemHandles), std::end(waitSemHandles), std::begin(waitSemInfos), [](const auto& semHandle){
+			return vk::SemaphoreSubmitInfoKHR{ semHandle, 0, vk::PipelineStageFlagBits2KHR::eAllCommands }; // TODO: Really ALL_COMMANDS or could we also use NONE?
+		});
 
 		if (!has_consumed_current_image_available_semaphore()) {
 			// Being in this branch indicates that image available semaphore has not been consumed yet
@@ -474,7 +462,7 @@ namespace gvk
 			waitSemHandles.clear();
 			waitSemHandles.emplace_back(sigSem->handle());
 			// Add it as dependency to the current frame, so that it gets properly lifetime-handled:
-			add_render_finished_semaphore_for_current_frame(avk::owned(sigSem) >> avk::stage::none);
+			add_render_finished_semaphore_for_current_frame(avk::owned(sigSem));
 		}
 
 		try

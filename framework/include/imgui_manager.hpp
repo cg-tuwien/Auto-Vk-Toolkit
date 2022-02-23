@@ -100,6 +100,14 @@ namespace gvk
 			};
 		}
 
+		void set_use_fence_for_font_upload() {
+			mUsingSemaphoreInsteadOfFenceForFontUpload = false;
+		}
+
+		void set_use_semaphore_for_font_upload() {
+			mUsingSemaphoreInsteadOfFenceForFontUpload = true;
+		}
+
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -111,9 +119,7 @@ namespace gvk
 		std::vector<avk::semaphore> mRenderFinishedSemaphores; // <-- one for each concurrent frame
 
 		avk::renderpass mRenderpass;
-
-		std::optional<avk::semaphore> mInternalFontsSemaphoreDependency;
-
+		
 		// Descriptor cache for imgui texture
 		avk::descriptor_cache mImTextureDescriptorCache;
 
@@ -125,6 +131,7 @@ namespace gvk
 		int mMouseCursorPreviousValue;
 		bool mUserInteractionEnabled;
 		bool mAlreadyRendered;
+		bool mUsingSemaphoreInsteadOfFenceForFontUpload;
 	};
 
 }

@@ -316,6 +316,8 @@ namespace gvk
 
 		cmdBfr.end_render_pass();
 
+
+
 		mAlreadyRendered = true;
 	}
 
@@ -353,20 +355,10 @@ namespace gvk
 				.signaling_upon_completion(mainWnd->use_current_frame_finished_fence());
 		}
 
-		if (mInternalFontsSemaphoreDependency.has_value()) {
-			submission
-				.waiting_for(mInternalFontsSemaphoreDependency.value() >> avk::stage::fragment_shader)
-				.submit();
-
-			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(mInternalFontsSemaphoreDependency.value()) >> avk::stage::fragment_shader);
-			mInternalFontsSemaphoreDependency.reset();
-		}
-		else {
-			submission.submit();
-		}
+		submission.submit();
 
 		//                        As far as ImGui is concerned, the next frame using the same target image must wait before color attachment output:
-		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]) >> avk::stage::color_attachment_output);
+		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
 
 		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
@@ -391,16 +383,23 @@ namespace gvk
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
 
-		if (mInternalFontsSemaphoreDependency.has_value()) {
-			throw gvk::runtime_error("mInternalFontsSemaphoreDependency should not contain a value at this point => imgui_manager-internal bug");
+		if (mUsingSemaphoreInsteadOfFenceForFontUpload) {
+			auto semaphore = gvk::context().create_semaphore();
+			mQueue->submit(cmdBfr)
+				.signaling_upon_completion(avk::stage::transfer >> semaphore);
+
+			// The following is not totally correct, i.e., living on the edge:
+			auto* mainWnd = gvk::context().main_window();
+			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(semaphore));
 		}
+		else {
+			auto fen = gvk::context().create_fence();
+			mQueue->submit(cmdBfr)
+				.signaling_upon_completion(fen);
 
-		mInternalFontsSemaphoreDependency = gvk::context().create_semaphore();
-		mQueue->submit(cmdBfr)
-			.signaling_upon_completion(avk::stage::transfer >> mInternalFontsSemaphoreDependency.value());
-
-		mInternalFontsSemaphoreDependency.value()->handle_lifetime_of(std::move(cmdBfr));
-		
+			// This is totally correct, but incurs a fence wait:
+			fen->wait_until_signalled();
+		}
 	}
 
 	void imgui_manager::construct_render_pass()

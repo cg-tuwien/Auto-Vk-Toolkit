@@ -250,16 +250,16 @@ namespace gvk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		void add_render_finished_semaphore_for_frame(avk::semaphore_wait_info_owning aSemaphoreWaitInfo, std::optional<frame_id_t> aFrameId = {}) {
-			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphoreWaitInfo.mDstStage, aSemaphoreWaitInfo.mWaitSemaphore.own());
+		void add_render_finished_semaphore_for_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
+			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphore.own());
 		}
 		/** Adds the given semaphore as an additional present-dependency to the current frame.
 		 *	That means, before an image is handed over to the presentation engine, the given semaphore must be signaled.
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
 		 */
-		void add_render_finished_semaphore_for_current_frame(avk::semaphore_wait_info_owning aSemaphoreWaitInfo) {
-			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphoreWaitInfo.mDstStage, aSemaphoreWaitInfo.mWaitSemaphore.own());
+		void add_render_finished_semaphore_for_current_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore) {
+			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphore.own());
 		}
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
@@ -413,8 +413,7 @@ namespace gvk
 		void acquire_next_swap_chain_image_and_prepare_semaphores();
 
 		// Helper method that fills the given 2 vectors with the present semaphore dependencies for the given frame-id
-		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::SemaphoreSubmitInfoKHR>& aSemaphoreSubmitInfo, vk::PipelineStageFlags2KHR aDefaultStage, frame_id_t aFrameId) const;
-
+		void fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, frame_id_t aFrameId) const;
 
 
 #pragma region configuration properties
@@ -476,7 +475,7 @@ namespace gvk
 		// Semaphores to be waited on before presenting the image PER FRAME.
 		// The first element in the tuple refers to the frame id which is affected.
 		// The second element in the is the semaphore to wait on.
-		std::vector<std::tuple<frame_id_t, avk::stage::pipeline_stage_flags, avk::semaphore>> mPresentSemaphoreDependencies;
+		std::vector<std::tuple<frame_id_t, avk::semaphore>> mPresentSemaphoreDependencies;
 #pragma endregion
 
 		// The renderpass used for the back buffers
