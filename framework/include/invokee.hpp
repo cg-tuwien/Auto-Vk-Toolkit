@@ -46,7 +46,7 @@ namespace gvk
 		 *  @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
 		invokee(std::string aName, bool aIsEnabled = true, int aExecutionOrder = 0) 
-			: mName{ aName }
+			: mName{ std::move(aName) }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
