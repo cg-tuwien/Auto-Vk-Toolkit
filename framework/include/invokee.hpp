@@ -67,7 +67,7 @@ namespace gvk
 		const std::string& name() const { return mName; }
 
 		/** Sets the name of this invokee */
-		void set_name(const std::string aName) { mName = aName; }
+		void set_name(std::string aName) { mName = std::move(aName); }
 
 		/** Returns the desired execution order of this invokee w.r.t. the default time 0.
 		 *	invokees with negative execution orders will get their initialize-, update-,
