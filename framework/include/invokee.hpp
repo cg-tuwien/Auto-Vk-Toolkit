@@ -46,7 +46,7 @@ namespace gvk
 		 *  @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
 		invokee(std::string aName, bool aIsEnabled = true, int aExecutionOrder = 0) 
-			: mName{ aName }
+			: mName{ std::move(aName) }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
@@ -65,6 +65,9 @@ namespace gvk
 
 		/** Returns the name of this invokee */
 		const std::string& name() const { return mName; }
+
+		/** Sets the name of this invokee */
+		void set_name(std::string aName) { mName = std::move(aName); }
 
 		/** Returns the desired execution order of this invokee w.r.t. the default time 0.
 		 *	invokees with negative execution orders will get their initialize-, update-,
