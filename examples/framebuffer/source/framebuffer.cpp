@@ -50,7 +50,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto colorAttachmentDescription = avk::attachment::declare_for(colorAttachment, avk::on_load::clear, avk::color(0),        avk::on_store::store);
 		auto depthAttachmentDescription = avk::attachment::declare_for(depthAttachment, avk::on_load::clear, avk::depth_stencil(), avk::on_store::store);
 		mOneFramebuffer = gvk::context().create_framebuffer(
-			{ colorAttachmentDescription, depthAttachmentDescription },		// Attachment declarations can just be copied => use initializer_list.
+			{ colorAttachmentDescription, depthAttachmentDescription }, // Attachment declarations can just be copied => use initializer_list.
 			avk::make_vector( // Transfer ownership of both attachments into the vector and into create_framebuffer:
 				avk::owned(colorAttachment), 
 				avk::owned(depthAttachment)
@@ -61,8 +61,8 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos)   -> to_location(0),	// Describe the position vertex attribute
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::color) -> to_location(1), // Describe the color vertex attribute
-			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
-			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
+			avk::vertex_shader("shaders/passthrough.vert"),                                   // Add a vertex shader
+			avk::fragment_shader("shaders/color.frag"),                                       // Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),	// Align viewport with main window's resolution
 			colorAttachmentDescription,
@@ -85,14 +85,15 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		// Create index buffer. Upload data already since we won't change it ever
 		// (hence the usage of avk::create_and_fill instead of just avk::create)
 		mIndexBuffer = gvk::context().create_buffer(
-			avk::memory_usage::device, {},										// Also this buffer should "live" in GPU memory
-			avk::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
+			avk::memory_usage::device, {},                    // Also this buffer should "live" in GPU memory
+			avk::index_buffer_meta::create_from_data(mIndices)  // Pass/create meta data about the indices
 		);
-		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
-		mIndexBuffer->fill(			
-			mIndices.data(), 0,													// Since we also want to upload the data => pass a data pointer
-			avk::sync::wait_idle()												// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
-		);
+
+		// Fill it with data already here, in initialize(), because this buffer will stay constant forever.
+
+		// Use a convenience method to record commands, submit to a queue, and getting a fence back:
+		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mQueue);
+		fence->wait_until_signalled();
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
@@ -153,71 +154,110 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
-		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
-		//		 in sync --- it can make a difference.
+		//		 However, when using a fixed_update_timer, where update() and render() might not be called
+		//		 in sync, it can make a difference.
 		//		 Since the buffer-updates here are solely rendering-relevant and do not depend on other aspects
 		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
 		//		 will ensure correct and smooth rendering regardless of the timer used.
 
-		// For the right vertex buffer, ...
+		// For the current frame's vertex buffer, ...
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
-		// ... update its vertex data:
-		mVertexBuffers[inFlightIndex]->fill(
-			vertexDataCurrentFrame.data(), 0,
-			// Sync this fill-operation with pipeline memory barriers:
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			// ^ This handler is a convenience method which hands over the (internally created, but externally
-			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
-			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
-			//   avk::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
+		// ... update its vertex data:		// Also this time, we're using a convenience function to record and submit the commands, but now signaling a semaphore:
+		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({ 
+				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
+			}, 
+			mQueue,
+			// TODO: avk::stage::auto_stage fails
+			avk::stage::transfer // Let the framework determine the (source) stage after which the semaphore can be signaled
 		);
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// Create a command buffer and render into the *current* swap chain image:
-		
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
-		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), mOneFramebuffer);
-		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]));
-		cmdBfr->end_render_pass();
-		cmdBfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-		
-		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(avk::owned(cmdBfr));
 
+		// Record and submit the draw call to the queue:
+		gvk::context().record({
+				avk::command::render_pass(mPipeline->get_renderpass(), mOneFramebuffer, {
+					avk::command::bind(mPipeline),
+					avk::command::draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]))
+				})
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(mQueue)
+			.waiting_for(vertexBufferFillSemaphore >> avk::stage::vertex_attribute_input)
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
+		
+		// Have the lifetime of the created resources handled,
+		// namely attach the semaphore to the command buffer,
+		// and have both handled by the window:
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
+		mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		     
 		if (0 == mUseCopyOrBlit) {
 			// Copy:
-			auto transferCmdBuffer = avk::copy_image_to_another(
-				mOneFramebuffer->image_at(mSelectedAttachmentToCopy), 
-				mainWnd->current_backbuffer()->image_at(0), 
-				avk::sync::with_barriers_by_return()
-			);
-			assert(transferCmdBuffer.has_value());
-			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(transferCmdBuffer.value(), std::optional<avk::resource_reference<avk::semaphore_t>>{});
-			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
+			gvk::context().record_and_submit_with_fence({
+				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+					avk::stage::color_attachment_output >> avk::stage::copy,
+					avk::access::color_attachment_write >> avk::access::transfer_read
+				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
+				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+					avk::stage::none  >> avk::stage::copy,
+					avk::access::none >> avk::access::transfer_write
+				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
+
+				avk::copy_image_to_another(
+					mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::image_layout::transfer_src,
+					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
+				),
+
+				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+					avk::stage::copy            >> avk::stage::none,
+					avk::access::transfer_read  >> avk::access::none
+				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
+				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+					avk::stage::copy            >> avk::stage::color_attachment_output,
+					avk::access::transfer_write >> avk::access::color_attachment_write
+				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
+
+			}, mQueue)
+			->wait_until_signalled();
 		}
 		else {
-			// Blit:
-			auto transferCmdBuffer = avk::blit_image(
-				mOneFramebuffer->image_at(mSelectedAttachmentToCopy), 
-				mainWnd->current_backbuffer()->image_at(0), 
-				avk::sync::with_barriers_by_return()
-			);
-			assert(transferCmdBuffer.has_value());
-			// TODO: Add barriers to the command buffer to sync before and after
-			mQueue->submit(transferCmdBuffer.value(), std::optional<avk::resource_reference<avk::semaphore_t>>{});
-			mainWnd->handle_lifetime(avk::owned(transferCmdBuffer.value()));
+			gvk::context().record_and_submit_with_fence({ 
+				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+					avk::stage::color_attachment_output >> avk::stage::copy,
+					avk::access::color_attachment_write >> avk::access::transfer_read
+				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
+				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+					avk::stage::none  >> avk::stage::copy,
+					avk::access::none >> avk::access::transfer_write
+				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
+
+				avk::blit_image(
+					mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::image_layout::transfer_src,
+					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
+				),
+
+				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+					avk::stage::copy >> avk::stage::none,
+					avk::access::transfer_read >> avk::access::none
+				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
+				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+					avk::stage::copy >> avk::stage::color_attachment_output,
+					avk::access::transfer_write >> avk::access::color_attachment_write
+				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
+
+			}, mQueue)
+			->wait_until_signalled();
 		}
 	}
 

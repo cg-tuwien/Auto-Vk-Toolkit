@@ -3,21 +3,22 @@
 
 namespace gvk
 {
-	static avk::image create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
+	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{avk::memory_access::transfer_read_access});
-
 		auto stagingBuffer = context().create_buffer(
 			AVK_STAGING_BUFFER_MEMORY_USAGE,
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(sizeof(aColor))
 		);
 		if (!aSerializer) {
-			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
+			auto nop = stagingBuffer->fill(aColor.data(), 0);
+			assert(!nop.mBeginFun);
+			assert(!nop.mEndFun);
 		}
 		else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
-			stagingBuffer->fill(aColor.data(), 0, avk::sync::not_required());
+			auto nop = stagingBuffer->fill(aColor.data(), 0);
+			assert(!nop.mBeginFun);
+			assert(!nop.mEndFun);
 			aSerializer->get().archive_memory(aColor.data(), sizeof(aColor));
 		}
 		else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
@@ -25,50 +26,40 @@ namespace gvk
 		}
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
-		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 
-		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
+		avk::syncxxx::barrier_data layoutTransitionBefore {
+			avk::syncxxx::image_memory_barrier(img,
+				avk::stage::none  >> avk::stage::copy,
+				avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
+			).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst)
+		};
 
-		// 2. Copy buffer to image
-		copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-																									   // TODO: Verify the above ^ comment
-		commandBuffer.set_custom_deleter([lOwnedStagingBuffer=std::move(stagingBuffer)](){});
+		auto copyIntoImage = copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::image_layout::transfer_dst);
 
-		// 3. Generate MIP-maps/transition to target layout:
-		if (img->create_info().mipLevels > 1u) {
-			// generat_mip_maps will perform the final layout transitiion
-			img->set_target_layout(finalTargetLayout);
-			img->generate_mip_maps(avk::sync::auxiliary_with_barriers(aSyncHandler,
-				// We have to sync copy_buffer_to_image with generate_mip_maps:
-				[&img](avk::command_buffer_t& cb, avk::pipeline_stage dstStage, std::optional<avk::read_memory_access> dstAccess){
-					cb.establish_image_memory_barrier_rw(img.get(),
-						avk::pipeline_stage::transfer, /* transfer -> transfer */ dstStage,
-						avk::write_memory_access{ avk::memory_access::transfer_write_access }, /* -> */ dstAccess
-					);
-				},
-				avk::sync::steal_after_handler_immediately) // We know for sure that generate_mip_maps will invoke establish_barrier_after_the_operation => let's delegate that
-			);
-		}
-		else {
-			img->transition_to_layout(finalTargetLayout, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-			aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{avk::memory_access::transfer_write_access});
-		}
+		avk::syncxxx::barrier_data layoutTransitionAfter{
+			avk::syncxxx::image_memory_barrier(img,
+				avk::stage::copy             >> avk::stage::transfer,
+				avk::access::transfer_write >> avk::access::transfer_read // TODO: This is not cool, actually, because we do not know what comes after. Should be handled in a different manner!
+			).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() }) // TODO: Not cool either
+		};
 
-		auto result = aSyncHandler.submit_and_sync();
-		assert (!result.has_value());
-
-		return img;
+		auto result = std::make_tuple(std::move(img), avk::recorded_commands{ &context(), {
+			std::move(layoutTransitionBefore),
+			std::move(copyIntoImage),
+			std::move(layoutTransitionAfter)
+		} });
+		std::get<1>(result).handle_lifetime_of(std::move(stagingBuffer));
+		return result;
 	}
 
-	static avk::image create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage);
 	}
 
-	static avk::image create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image_data from texture file
@@ -446,7 +437,8 @@ namespace gvk
 		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
 
 		// Copy host visible staging buffer to device buffer
-		avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize, avk::sync::with_barriers_into_existing_command_buffer(commandBuffer, {}, {}));
+		auto actionTypeCmd = avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize);
+		actionTypeCmd.mBeginFun(avk::referenced(commandBuffer));
 
 		// Sync after
 		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });

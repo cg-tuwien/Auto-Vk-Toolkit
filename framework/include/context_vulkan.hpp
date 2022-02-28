@@ -164,6 +164,10 @@ namespace gvk
 		/** Used to signal the context about the end of a frame */
 		void end_frame();
 
+		avk::semaphore record_and_submit_with_semaphore(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+		avk::fence record_and_submit_with_fence(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
 	public: // TODO: private
 		/** Queries the instance layer properties for validation layers 
 		 *  and returns true if a layer with the given name could be found.

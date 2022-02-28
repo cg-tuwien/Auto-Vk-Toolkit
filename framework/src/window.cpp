@@ -706,7 +706,7 @@ namespace gvk
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store)
+			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store_in_presentable_format)
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 

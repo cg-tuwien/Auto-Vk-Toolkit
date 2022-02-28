@@ -416,6 +416,38 @@ namespace gvk
 		});
 	}
 
+	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
+	{
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
+		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
+		auto sem = create_semaphore();
+
+		record(std::move(aRecordedCommandsAndSyncInstructions))
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(aQueue)
+			.signaling_upon_completion(aSrcSignalStage >> sem)
+			.submit();
+
+		sem->handle_lifetime_of(std::move(cmdBfr));
+		return sem;
+	}
+
+	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags)
+	{
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
+		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
+		auto fen = create_fence();
+
+		record(std::move(aRecordedCommandsAndSyncInstructions))
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(aQueue)
+			.signaling_upon_completion(fen)
+			.submit();
+
+		fen->handle_lifetime_of(std::move(cmdBfr));
+		return fen;
+	}
+
 	avk::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, avk::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
 	{
 		assert(are_we_on_the_main_thread());

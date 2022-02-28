@@ -158,10 +158,12 @@ namespace gvk
 				));
 
 				if (!aSerializer) {
-					sb->fill(texData, 0, avk::sync::not_required());
+					// TODO: THIS IS BROKEN FOR NOW:
+					//sb->fill(texData, 0, avk::sync::not_required());
 				}
 				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
-					sb->fill(texData, 0, avk::sync::not_required());
+					// TODO: THIS IS BROKEN FOR NOW:
+					//sb->fill(texData, 0, avk::sync::not_required());
 					aSerializer->get().archive_memory(texData, texSize);
 				}
 				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
@@ -170,7 +172,8 @@ namespace gvk
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
-				avk::copy_buffer_to_image_layer_mip_level(avk::const_referenced(sb), avk::referenced(img), face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				// TODO: THIS IS BROKEN FOR NOW:
+				//avk::copy_buffer_to_image_layer_mip_level(avk::const_referenced(sb), avk::referenced(img), face, level, {}, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 				// TODO: Verify the above ^ comment
 			}

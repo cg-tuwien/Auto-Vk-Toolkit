@@ -97,15 +97,15 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
 		gvk::context().record({
-			avk::command::render_pass(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer(), {
-				avk::command::bind(mPipeline),
-				avk::command::draw(3u, 1u, 0u, 0u)
+				avk::command::render_pass(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer(), {
+					avk::command::bind(mPipeline),
+					avk::command::draw(3u, 1u, 0u, 0u)
+				})
 			})
-		})
-		.into_command_buffer(cmdBfr)
-		.then_submit_to(mQueue)
-		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
-		.submit();
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(mQueue)
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
 
 		// Take care of the command buffer's lifetime -- let the window handle it
 		// based on its associated swap chain's number of concurrent images:
