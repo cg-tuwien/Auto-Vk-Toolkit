@@ -112,7 +112,7 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		);
 		mMaterialBuffer->fill(
 			gpuMaterials.data(), 0,
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+			avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		// Add an "ImGui Manager" which handles the UI specific to the requirements of this invokee:

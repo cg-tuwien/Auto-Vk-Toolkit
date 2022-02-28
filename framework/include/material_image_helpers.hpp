@@ -27,8 +27,8 @@ namespace gvk
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 
-		avk::syncxxx::barrier_data layoutTransitionBefore {
-			avk::syncxxx::image_memory_barrier(img,
+		avk::sync::barrier_data layoutTransitionBefore {
+			avk::sync::image_memory_barrier(img,
 				avk::stage::none  >> avk::stage::copy,
 				avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
 			).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst)
@@ -36,8 +36,8 @@ namespace gvk
 
 		auto copyIntoImage = copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::image_layout::transfer_dst);
 
-		avk::syncxxx::barrier_data layoutTransitionAfter{
-			avk::syncxxx::image_memory_barrier(img,
+		avk::sync::barrier_data layoutTransitionAfter{
+			avk::sync::image_memory_barrier(img,
 				avk::stage::copy             >> avk::stage::transfer,
 				avk::access::transfer_write >> avk::access::transfer_read // TODO: This is not cool, actually, because we do not know what comes after. Should be handled in a different manner!
 			).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() }) // TODO: Not cool either
@@ -103,7 +103,7 @@ namespace gvk
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
 	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
@@ -114,7 +114,7 @@ namespace gvk
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
 	static avk::image create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device, 
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
@@ -127,7 +127,7 @@ namespace gvk
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
 	static avk::image create_cubemap_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
@@ -146,7 +146,7 @@ namespace gvk
 	*/
 	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -162,7 +162,7 @@ namespace gvk
 	*/
 	static avk::image create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
@@ -180,7 +180,7 @@ namespace gvk
 	*/
 	static avk::image create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
@@ -199,7 +199,7 @@ namespace gvk
 	*/
 	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from six individual files, with caching
 	* Loads image data from files or the serializer cache.
@@ -213,7 +213,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
@@ -229,7 +229,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
@@ -243,7 +243,7 @@ namespace gvk
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
 	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
@@ -254,7 +254,7 @@ namespace gvk
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
 	static avk::image create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
@@ -267,7 +267,7 @@ namespace gvk
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
 	static avk::image create_image_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
@@ -284,7 +284,7 @@ namespace gvk
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -298,7 +298,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
 	}
@@ -314,7 +314,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::sync aSyncHandler = avk::sync::wait_idle())
+	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
 	}
@@ -419,7 +419,7 @@ namespace gvk
 	 *	@param	aTotalSize		Size of the staging buffer
 	 *	@para	aSyncHandler	Synchronization handler
 	 */
-	static inline void fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::sync& aSyncHandler)
+	static inline void fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::old_sync& aSyncHandler)
 	{
 		assert(aSerializer.mode() == gvk::serializer::mode::deserialize);
 		
@@ -553,7 +553,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
 
@@ -568,7 +568,7 @@ namespace gvk
 			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
 			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
-		positionsBuffer->fill(positionsData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		positionsBuffer->fill(positionsData.data(), 0, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
@@ -577,7 +577,7 @@ namespace gvk
 			avk::index_buffer_meta::create_from_data(indicesData),
 			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
-		indexBuffer->fill(indicesData.data(), 0, avk::sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		indexBuffer->fill(indicesData.data(), 0, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
 		// It is fine to let indicesData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
@@ -603,7 +603,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags, std::move(aSyncHandler));
 	}
@@ -621,7 +621,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		size_t numPositions = 0;
 		size_t totalPositionsSize = 0;
@@ -685,7 +685,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -704,7 +704,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
@@ -729,7 +729,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		size_t numBufferEntries = 0;
 		size_t bufferTotalSize = 0;
@@ -786,7 +786,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -802,7 +802,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec3> normalsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -836,7 +836,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -852,7 +852,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec3> tangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -886,7 +886,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -902,7 +902,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec3> bitangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -938,7 +938,7 @@ namespace gvk
 		 *	@return	A buffer in device memory which contains the given input data.
 		 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -954,7 +954,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec4> colorsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -991,7 +991,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1008,7 +1008,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec4> boneWeightsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1086,7 +1086,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1103,7 +1103,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1123,7 +1123,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1140,7 +1140,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1161,7 +1161,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1179,7 +1179,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1250,7 +1250,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1267,7 +1267,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1287,7 +1287,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1304,7 +1304,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1324,7 +1324,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
 	}
@@ -1341,7 +1341,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::sync aSyncHandler = avk::sync::wait_idle())
+	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		std::vector<glm::vec3> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1384,7 +1384,7 @@ namespace gvk
 		bool aFlipTextures,
 		avk::image_usage aImageUsage,
 		avk::filter_mode aTextureFilterMode,
-		avk::sync aSyncHandler,
+		avk::old_sync aSyncHandler,
 		std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
@@ -1619,10 +1619,10 @@ namespace gvk
 		std::vector<avk::image_sampler> imageSamplers;
 		imageSamplers.reserve(numSamplers);
 
-		auto getSync = [numImageViews, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::sync {
+		auto getSync = [numImageViews, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::old_sync {
 			++lSyncCount;
 			if (lSyncCount < numImageViews) {
-				return avk::sync::auxiliary_with_barriers(aSyncHandler, avk::sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
+				return avk::old_sync::auxiliary_with_barriers(aSyncHandler, avk::old_sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
 			}
 			assert(lSyncCount == numImageViews);
 			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
@@ -1795,7 +1795,7 @@ namespace gvk
 		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
 		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return convert_for_gpu_usage_cached<T>(
 			aMaterialConfigs,
@@ -1856,7 +1856,7 @@ namespace gvk
 		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
 		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::sync aSyncHandler = avk::sync::wait_idle())
+		avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
 	{
 		return convert_for_gpu_usage_cached<T>(
 			aMaterialConfigs,

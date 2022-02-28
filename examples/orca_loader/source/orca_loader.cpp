@@ -81,7 +81,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
 					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {},
-					avk::sync::wait_idle()
+					avk::old_sync::wait_idle()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
@@ -119,7 +119,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 	allMatConfigs, false, false,
 	avk::image_usage::general_texture,
 	avk::filter_mode::anisotropic_16x,
-	avk::sync::wait_idle()
+	avk::old_sync::wait_idle()
 );
 
 		endPart = gvk::context().get_time();
@@ -140,7 +140,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		);
 		mMaterialBuffer->fill(
 			gpuMaterials.data(), 0,
-			avk::sync::not_required()
+			avk::old_sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
 
@@ -255,7 +255,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
 				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(
-					serializer, modelAndMeshes, {}, avk::sync::wait_idle()
+					serializer, modelAndMeshes, {}, avk::old_sync::wait_idle()
 				);
 				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
@@ -310,7 +310,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::anisotropic_16x,
-			avk::sync::wait_idle()
+			avk::old_sync::wait_idle()
 		);
 
 		endPart = gvk::context().get_time();
@@ -331,7 +331,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		);
 		mMaterialBuffer->fill(
 			gpuMaterials.data(), 0,
-			avk::sync::not_required()
+			avk::old_sync::not_required()
 		);
 		mImageSamplers = std::move(imageSamplers);
 
@@ -474,7 +474,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		}
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
+		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::old_sync::not_required());
 		
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);

@@ -76,7 +76,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
 		mIndexBuffer->fill(			
 			mIndices.data(), 0,													// Since we also want to upload the data => pass a data pointer
-			avk::sync::wait_idle()												// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
+			avk::old_sync::wait_idle()												// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
 		);
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
@@ -144,11 +144,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mVertexBuffers[inFlightIndex]->fill(
 			vertexDataCurrentFrame.data(), 0,
 			// Sync this fill-operation with pipeline memory barriers:
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+			avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			// ^ This handler is a convenience method which hands over the (internally created, but externally
 			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
 			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
-			//   avk::sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
+			//   avk::old_sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
 		);
 
 		// Get a command pool to allocate command buffers from:

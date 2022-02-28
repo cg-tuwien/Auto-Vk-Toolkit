@@ -222,12 +222,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			0.0f
 		};
 
-		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::sync::not_required());
+		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::old_sync::not_required());
 
 		// scale skybox, mirror x axis, cancel out translation
 		viewProjMat.mModelViewMatrix = gvk::cancel_translation_from_matrix(mirroredViewMatrix * mModelMatrixSkybox);
 
-		mViewProjBufferSkybox->fill(&viewProjMat, 0, avk::sync::not_required());
+		mViewProjBufferSkybox->fill(&viewProjMat, 0, avk::old_sync::not_required());
 	}
 
 	void render() override

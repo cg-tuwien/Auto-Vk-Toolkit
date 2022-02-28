@@ -70,7 +70,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::vertex_buffer_meta::create_from_data(mPyramidVertices).describe_member(&Vertex::mPosition, avk::content_description::position),
 			avk::read_only_input_to_acceleration_structure_builds_buffer_meta::create_from_data(mPyramidVertices)
 		));
-		vtxBfr->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
+		vtxBfr->fill(mPyramidVertices.data(), 0, avk::old_sync::wait_idle());
 		
 		auto& idxBfr = mPyramidIndexBuffers.emplace_back( gvk::context().create_buffer(
 			avk::memory_usage::host_visible, 
@@ -82,7 +82,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::index_buffer_meta::create_from_data(mPyramidIndices),
 			avk::read_only_input_to_acceleration_structure_builds_buffer_meta::create_from_data(mPyramidIndices)
 		));
-		idxBfr->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
+		idxBfr->fill(mPyramidIndices.data(), 0, avk::old_sync::wait_idle());
 	}
 
 	void initialize() override
@@ -151,7 +151,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
 				)
 			);
-			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+			mOffscreenImageViews.back()->get_image().transition_to_layout({}, avk::old_sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 			assert((mOffscreenImageViews.back()->create_info().subresourceRange.aspectMask & vk::ImageAspectFlagBits::eColor) == vk::ImageAspectFlagBits::eColor);
 		}
 
@@ -243,14 +243,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 			for (size_t i=0; i < mBLAS[inFlightIndex].size(); ++i) {
 				if (i < 3) { // 3 AABBs
-					mBLAS[inFlightIndex][i]->build({ mAabbs[i] }, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+					mBLAS[inFlightIndex][i]->build({ mAabbs[i] }, {}, avk::old_sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 				}
 				else { // 1 triangle mesh
 					for (int i=3; i < mPyramidVertices.size(); i+=3) {
 						mPyramidVertices[i].mPosition = mPyramidVertices[0].mPosition;
 					}
-					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0, avk::sync::wait_idle());
-					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0, avk::sync::wait_idle());
+					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0, avk::old_sync::wait_idle());
+					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0, avk::old_sync::wait_idle());
 					mBLAS[inFlightIndex][i]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[inFlightIndex], mPyramidIndexBuffers[inFlightIndex] } });
 					//                         ^  switch to update() once the (annoying) validation layer error message is fixed
 				}
@@ -264,7 +264,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				mGeometryInstances[i].mTransform.matrix[1][3] = mTranslations[i][1];
 				mGeometryInstances[i].mTransform.matrix[2][3] = mTranslations[i][2];
 			}
-			mTLAS[inFlightIndex]->build(mGeometryInstances, {}, avk::sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
+			mTLAS[inFlightIndex]->build(mGeometryInstances, {}, avk::old_sync::with_barriers(mainWnd->command_buffer_lifetime_handler()));
 			//                      ^  switch to update() once the (annoying) validation layer error message is fixed
 		}
 
@@ -328,7 +328,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		avk::copy_image_to_another(
 			mOffscreenImageViews[inFlightIndex]->get_image(), 
 			mainWnd->current_backbuffer()->image_at(0), 
-			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+			avk::old_sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 		);
 		
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):

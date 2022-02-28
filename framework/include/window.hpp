@@ -311,13 +311,13 @@ namespace gvk
 		 */
 		[[nodiscard]] avk::resource_reference<const avk::renderpass_t> get_renderpass() const { return avk::const_referenced(mBackBufferRenderpass); }
 
-		/**	This is intended to be used as a command buffer lifetime handler for `cgb::sync::with_barriers`.
+		/**	This is intended to be used as a command buffer lifetime handler for `cgb::old_sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
 		 *	(be it by the means of pipeline barriers, semaphores, or fences) and hence, it will be destroyed
 		 *	either number_of_in_flight_frames() or number_of_swapchain_images() frames later.
 		 *
 		 *	Example usage:
-		 *	cgb::sync::with_barriers(cgb::context().main_window().handle_command_buffer_lifetime());
+		 *	cgb::old_sync::with_barriers(cgb::context().main_window().handle_command_buffer_lifetime());
 		 */
 		auto command_buffer_lifetime_handler(std::optional<frame_id_t> aFrameId = {})
 		{

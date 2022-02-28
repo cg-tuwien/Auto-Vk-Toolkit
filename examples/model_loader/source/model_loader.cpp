@@ -79,7 +79,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 			newElement.mPositionsBuffer->fill(
 				newElement.mPositions.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+				avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.2 Texture Coordinates:
 			newElement.mTexCoordsBuffer = gvk::context().create_buffer(
@@ -88,7 +88,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 			newElement.mTexCoordsBuffer->fill(
 				newElement.mTexCoords.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+				avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.3 Normals:
 			newElement.mNormalsBuffer = gvk::context().create_buffer(
@@ -97,7 +97,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 			newElement.mNormalsBuffer->fill(
 				newElement.mNormals.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+				avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 			// 2.4 Indices:
 			newElement.mIndexBuffer = gvk::context().create_buffer(
@@ -106,7 +106,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 			newElement.mIndexBuffer->fill(
 				newElement.mIndices.data(), 0,
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+				avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
 
@@ -118,7 +118,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			allMatConfigs, false, true,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear,
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+			avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 		);
 
 		mViewProjBuffer = gvk::context().create_buffer(
@@ -132,7 +132,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		mMaterialBuffer->fill(
 			gpuMaterials.data(), 0,
-			avk::sync::not_required()
+			avk::old_sync::not_required()
 		);
 
 		mImageSamplers = std::move(imageSamplers);
@@ -232,7 +232,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
+		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::old_sync::not_required());
 
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);

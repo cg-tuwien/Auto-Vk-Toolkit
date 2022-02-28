@@ -88,7 +88,7 @@ namespace gvk
 				// ImGui's color attachment write must still wait for preceding color attachment writes because
 				// the user interface shall be drawn on top of the rest.
 				// 
-				avk::syncxxx::sync_hint {
+				avk::sync::sync_hint {
 					vk::PipelineStageFlagBits2KHR::eFragmentShader | vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
 					vk::AccessFlagBits2KHR::eShaderSampledRead     | vk::AccessFlagBits2KHR::eColorAttachmentWrite,
 					vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,

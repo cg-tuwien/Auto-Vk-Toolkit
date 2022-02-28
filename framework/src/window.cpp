@@ -760,7 +760,7 @@ namespace gvk
 			const auto n = bb->image_views().size();
 			assert(n == get_renderpass()->number_of_attachment_descriptions());
 			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass()->attachment_descriptions()[i].finalLayout, avk::sync::wait_idle(true));
+				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass()->attachment_descriptions()[i].finalLayout, avk::old_sync::wait_idle(true));
 			}
 		}
 	}

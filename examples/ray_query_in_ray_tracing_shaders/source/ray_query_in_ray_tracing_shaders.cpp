@@ -192,7 +192,7 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 				mTlas->build(                // We're not updating existing geometry, but we are changing the geometry => therefore, we need to perform a full rebuild.
 					activeGeometryInstances, // Build only with the active geometry instances
 					{},                      // Let top_level_acceleration_structure_t::build handle the staging buffer internally 
-					avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+					avk::old_sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 				);
 
 				// ...and we need to ensure that the TLAS update-build has completed (also in terms of memory
@@ -291,7 +291,7 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		avk::copy_image_to_another(
 			mOffscreenImageView->get_image(),
 			mainWnd->current_backbuffer()->image_at(0),
-			avk::sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
+			avk::old_sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
 		);
 
 		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):

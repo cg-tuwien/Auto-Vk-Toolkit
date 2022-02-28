@@ -45,8 +45,8 @@ namespace gvk
 		mContextState = gvk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
 
-		avk::sync::sPoolToAllocCommandBuffersFrom = avk::command_pool{};
-		avk::sync::sQueueToUse = nullptr;
+		avk::old_sync::sPoolToAllocCommandBuffersFrom = avk::command_pool{};
+		avk::old_sync::sQueueToUse = nullptr;
 
 		mLogicalDevice.waitIdle();
 
@@ -316,9 +316,9 @@ namespace gvk
 			context().mDistinctQueues.push_back(tpl);
 		}
 
-		// TODO: Remove sync
-		avk::sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
-		avk::sync::sQueueToUse = &mQueues.front();
+		// TODO: Remove old_sync
+		avk::old_sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
+		avk::old_sync::sQueueToUse = &mQueues.front();
 
 #if defined(AVK_USE_VMA)
 		// With everything in place, create the memory allocator:

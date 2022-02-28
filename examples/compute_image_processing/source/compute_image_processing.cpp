@@ -54,7 +54,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		mVertexBuffer->fill(
 			mVertexData.data(), 0,
-			avk::sync::wait_idle()
+			avk::old_sync::wait_idle()
 		);
 
 		// Create and upload incides for drawing the quad
@@ -64,7 +64,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		mIndexBuffer->fill(
 			mIndices.data(), 0,
-			avk::sync::wait_idle()
+			avk::old_sync::wait_idle()
 		);
 
 		// Create a host-coherent buffer for the matrices
@@ -99,7 +99,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		avk::copy_image_to_another(
 			mInputImageAndSampler->get_image(), 
 			mTargetImageAndSampler->get_image(), 
-			avk::sync::wait_idle()
+			avk::old_sync::wait_idle()
 		);
 
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -185,7 +185,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::copy_image_to_another(
 				mInputImageAndSampler->get_image(), 
 				mTargetImageAndSampler->get_image(),
-				avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+				avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 		}
 
@@ -250,7 +250,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Update the buffer:
 		const auto ifi = mainWnd->current_in_flight_index();
-		mUbo[ifi]->fill(&uboVS, 0, avk::sync::not_required());
+		mUbo[ifi]->fill(&uboVS, 0, avk::old_sync::not_required());
 		
 		const auto imgIndex = mainWnd->current_image_index();
 

@@ -100,11 +100,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 #endif
 
-			drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0, avk::sync::wait_idle(true));
-			drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0, avk::sync::wait_idle(true));
-			drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0, avk::sync::wait_idle(true));
+			drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0, avk::old_sync::wait_idle(true));
+			drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0, avk::old_sync::wait_idle(true));
+			drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0, avk::old_sync::wait_idle(true));
 #if USE_REDIRECTED_GPU_DATA
-			drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::sync::wait_idle(true));
+			drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0, avk::old_sync::wait_idle(true));
 #endif
 
 			// add them to the texel buffers
@@ -215,7 +215,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_usage::device, {},
 			avk::storage_buffer_meta::create_from_data(meshletsGeometry)
 		);
-		mMeshletsBuffer->fill(meshletsGeometry.data(), 0, avk::sync::wait_idle(true));
+		mMeshletsBuffer->fill(meshletsGeometry.data(), 0, avk::old_sync::wait_idle(true));
 		mNumMeshletWorkgroups = meshletsGeometry.size();
 
 		// For all the different materials, transfer them in structs which are well
@@ -226,7 +226,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			allMatConfigs, false, true,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear,
-			avk::sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
+			avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
 			);
 
 		mViewProjBuffer = gvk::context().create_buffer(
@@ -240,7 +240,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		mMaterialBuffer->fill(
 			gpuMaterials.data(), 0,
-			avk::sync::not_required()
+			avk::old_sync::not_required()
 		);
 
 		mImageSamplers = std::move(imageSamplers);
@@ -325,7 +325,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::sync::not_required());
+		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::old_sync::not_required());
 
 		auto pushConstants = push_constants{ mHighlightMeshlets };
 

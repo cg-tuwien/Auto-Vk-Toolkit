@@ -205,11 +205,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		if (0 == mUseCopyOrBlit) {
 			// Copy:
 			gvk::context().record_and_submit_with_fence({
-				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					avk::stage::color_attachment_output >> avk::stage::copy,
 					avk::access::color_attachment_write >> avk::access::transfer_read
 				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
-				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::none  >> avk::stage::copy,
 					avk::access::none >> avk::access::transfer_write
 				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
@@ -219,11 +219,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
 				),
 
-				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					avk::stage::copy            >> avk::stage::none,
 					avk::access::transfer_read  >> avk::access::none
 				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
-				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::copy            >> avk::stage::color_attachment_output,
 					avk::access::transfer_write >> avk::access::color_attachment_write
 				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
@@ -233,11 +233,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		}
 		else {
 			gvk::context().record_and_submit_with_fence({ 
-				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					avk::stage::color_attachment_output >> avk::stage::copy,
 					avk::access::color_attachment_write >> avk::access::transfer_read
 				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
-				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::none  >> avk::stage::copy,
 					avk::access::none >> avk::access::transfer_write
 				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
@@ -247,11 +247,11 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
 				),
 
-				avk::syncxxx::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					avk::stage::copy >> avk::stage::none,
 					avk::access::transfer_read >> avk::access::none
 				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
-				avk::syncxxx::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::copy >> avk::stage::color_attachment_output,
 					avk::access::transfer_write >> avk::access::color_attachment_write
 				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
