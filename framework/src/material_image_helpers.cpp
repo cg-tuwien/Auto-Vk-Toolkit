@@ -2,31 +2,31 @@
 
 namespace gvk
 {
-	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::old_sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cube map
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
 
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::old_sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::old_sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
+		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::old_sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -92,10 +92,7 @@ namespace gvk
 			aSerializer->get().archive(maxLevels);
 			aSerializer->get().archive(maxFaces);
 		}
-
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
+		
 		// TODO: if image resource does not have a full mipmap pyramid, create image with fewer levels
 		auto img = context().create_image(width, height, format, numLayers, aMemoryUsage, aImageUsage, [&](avk::image_t& image) {
 			if (avk::is_block_compressed_format(format)) {
@@ -106,11 +103,7 @@ namespace gvk
 			}
 		});
 		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
-
-		// 1. Transition image layout to eTransferDstOptimal
-		img->transition_to_layout(vk::ImageLayout::eTransferDstOptimal, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {})); // no need for additional sync
-		// TODO: The original implementation transitioned into cgb::image_format(_Format) format here, not to eTransferDstOptimal => Does it still work? If so, eTransferDstOptimal is fine.
-
+		
 		// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
 		assert(maxLevels == 1 || maxLevels == img->create_info().mipLevels);
 
@@ -158,12 +151,14 @@ namespace gvk
 				));
 
 				if (!aSerializer) {
-					// TODO: THIS IS BROKEN FOR NOW:
-					//sb->fill(texData, 0, avk::old_sync::not_required());
+					auto nop = sb->fill(texData, 0);
+					assert(!nop.mBeginFun);
+					assert(!nop.mEndFun);
 				}
 				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::serialize) {
-					// TODO: THIS IS BROKEN FOR NOW:
-					//sb->fill(texData, 0, avk::old_sync::not_required());
+					auto nop = sb->fill(texData, 0);
+					assert(!nop.mBeginFun);
+					assert(!nop.mEndFun);
 					aSerializer->get().archive_memory(texData, texSize);
 				}
 				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
@@ -172,8 +167,24 @@ namespace gvk
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
-				// TODO: THIS IS BROKEN FOR NOW:
-				//avk::copy_buffer_to_image_layer_mip_level(avk::const_referenced(sb), avk::referenced(img), face, level, {}, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+				auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+						avk::sync::image_memory_barrier(img,
+							avk::stage::none  >> avk::stage::copy,
+							avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
+						).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst),
+					
+						avk::copy_buffer_to_image_layer_mip_level(
+							avk::const_referenced(sb), avk::referenced(img),
+							face, level,
+							avk::image_layout::transfer_dst
+						),
+
+						avk::sync::image_memory_barrier(img,
+							avk::stage::copy            >> avk::stage::none,
+							avk::access::transfer_write >> avk::access::none
+						).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() })
+					});
+				fence->wait_until_signalled();
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 				// TODO: Verify the above ^ comment
 			}
@@ -181,29 +192,23 @@ namespace gvk
 
 		if (maxLevels == 1 && img->create_info().mipLevels > 1)
 		{
+			auto aSyncHandler = avk::old_sync::wait_idle();
 			// can't create MIP-maps for compressed formats
 			assert(!avk::is_block_compressed_format(format));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
 			img->generate_mip_maps(avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			aSyncHandler.submit_and_sync();
 		}
-
-		commandBuffer.set_custom_deleter([lOwnedStagingBuffers = std::move(stagingBuffers)](){});
-
-		// 3. Transition image layout to its target layout and handle lifetime of things via sync
-		img->transition_to_layout(finalTargetLayout, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-
-		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
-		auto result = aSyncHandler.submit_and_sync();
-		assert(!result.has_value());
-		return img;
+		
+		return std::make_tuple(std::move(img), avk::command::action_type_command{});
 	}
 
-	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, avk::old_sync aSyncHandler, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto imageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_image_from_image_data_cached(imageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return gvk::create_image_from_image_data_cached(imageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)

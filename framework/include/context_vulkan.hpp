@@ -167,6 +167,8 @@ namespace gvk
 		avk::semaphore record_and_submit_with_semaphore(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		avk::fence record_and_submit_with_fence(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+		avk::fence record_and_submit_with_fence_old_sync_replacement(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions);
 		
 	public: // TODO: private
 		/** Queries the instance layer properties for validation layers 

@@ -448,6 +448,12 @@ namespace gvk
 		return fen;
 	}
 
+	avk::fence context_vulkan::record_and_submit_with_fence_old_sync_replacement(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions)
+	{
+		auto* anyQueue = &mQueues.front();
+		return record_and_submit_with_fence(std::move(aRecordedCommandsAndSyncInstructions), anyQueue, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+	}
+
 	avk::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, avk::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)
 	{
 		assert(are_we_on_the_main_thread());

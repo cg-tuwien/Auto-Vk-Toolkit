@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		auto stagingBuffer = context().create_buffer(
 			AVK_STAGING_BUFFER_MEMORY_USAGE,
@@ -27,37 +27,37 @@ namespace gvk
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 
-		avk::sync::barrier_data layoutTransitionBefore {
-			avk::sync::image_memory_barrier(img,
-				avk::stage::none  >> avk::stage::copy,
-				avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
-			).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst)
-		};
+		auto result = std::make_tuple(std::move(img), avk::command::action_type_command {
+			avk::sync::sync_hint{
+				vk::PipelineStageFlagBits2KHR::eTransfer, vk::AccessFlagBits2KHR::eTransferWrite | vk::AccessFlagBits2KHR::eTransferRead,
+				vk::PipelineStageFlagBits2KHR::eTransfer,   vk::AccessFlagBits2KHR::eTransferWrite
+			},
+			{}, // No mBeginFun, only nested commands:
+			{
+				avk::sync::image_memory_barrier(img,
+					avk::stage::transfer >> avk::stage::copy,
+					avk::access::none    >> avk::access::transfer_read | avk::access::transfer_write
+				).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst),
 
-		auto copyIntoImage = copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::image_layout::transfer_dst);
+				copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::image_layout::transfer_dst),
 
-		avk::sync::barrier_data layoutTransitionAfter{
-			avk::sync::image_memory_barrier(img,
-				avk::stage::copy             >> avk::stage::transfer,
-				avk::access::transfer_write >> avk::access::transfer_read // TODO: This is not cool, actually, because we do not know what comes after. Should be handled in a different manner!
-			).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() }) // TODO: Not cool either
-		};
-
-		auto result = std::make_tuple(std::move(img), avk::recorded_commands{ &context(), {
-			std::move(layoutTransitionBefore),
-			std::move(copyIntoImage),
-			std::move(layoutTransitionAfter)
-		} });
+				avk::sync::image_memory_barrier(img,
+					avk::stage::copy             >> avk::stage::transfer,
+					avk::access::transfer_write  >> avk::access::none 
+				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() })
+			}
+		});
+		stagingBuffer.enable_shared_ownership(); // TODO: WHAAAAAIIII can't it be moved?
 		std::get<1>(result).handle_lifetime_of(std::move(stagingBuffer));
 		return result;
 	}
 
-	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage);
 	}
 
-	static std::tuple<avk::image, avk::recorded_commands> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, aSerializer);
 	}
@@ -99,11 +99,10 @@ namespace gvk
 	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
-	avk::image create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
@@ -111,12 +110,11 @@ namespace gvk
 	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device, 
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from image_data
@@ -124,12 +122,11 @@ namespace gvk
 	* @param aImageData		a valid instance of image_data containing cube map image data.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create cube map from a single file, with optional caching
@@ -141,12 +138,11 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	avk::image create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -158,13 +154,12 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from a single file
@@ -176,13 +171,12 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create cube map from six individual files, with optional caching
@@ -194,12 +188,11 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
-	avk::image create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
 		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from six individual files, with caching
 	* Loads image data from files or the serializer cache.
@@ -211,11 +204,10 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from six individual files
@@ -227,11 +219,10 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create image from image_data, with optional caching
@@ -239,11 +230,10 @@ namespace gvk
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	avk::image create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
@@ -251,12 +241,11 @@ namespace gvk
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image from image_data
@@ -264,12 +253,11 @@ namespace gvk
 	* @param aImageData		the image data to create the image from.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
-		avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create image from a single file, with optional caching
@@ -281,10 +269,9 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	avk::image create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle(), std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -296,11 +283,10 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler), aSerializer);
+		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image from a single file
@@ -312,11 +298,10 @@ namespace gvk
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
-	* @param aSyncHandler	the sync handler to use creating the image resource.
 	*/
-	static avk::image create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, std::move(aSyncHandler));
+		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
 	}
 
 	template <typename... Rest>
@@ -417,9 +402,8 @@ namespace gvk
 	 *	@param	aSerializer		The serializer in gvk::serializer::mode::deserialize
 	 *	@param	aDevicebuffer	The target buffer
 	 *	@param	aTotalSize		Size of the staging buffer
-	 *	@para	aSyncHandler	Synchronization handler
 	 */
-	static inline void fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize, avk::old_sync& aSyncHandler)
+	static inline avk::command::action_type_command fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize)
 	{
 		assert(aSerializer.mode() == gvk::serializer::mode::deserialize);
 		
@@ -431,25 +415,13 @@ namespace gvk
 		);
 		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
+		
+		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+				avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize)
+			});
+		fence->wait_until_signalled();
+		return avk::command::action_type_command{};
 
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-		// Sync before
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
-		// Copy host visible staging buffer to device buffer
-		auto actionTypeCmd = avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize);
-		actionTypeCmd.mBeginFun(avk::referenced(commandBuffer));
-
-		// Sync after
-		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
-
-		// Take care of the lifetime handling of the stagingBuffer, it might still be in use
-		commandBuffer.set_custom_deleter([
-			lOwnedStagingBuffer{ std::move(sb) }
-		]() { /* Nothing to do here, the buffers' destructors will do the cleanup, the lambda is just storing it. */ });
-
-		// Finish him
-		aSyncHandler.submit_and_sync();
 	}
 
 	/**	Get a tuple of <0>:vertices and <1>:indices from the given selection of models and associated mesh indices.
@@ -544,7 +516,6 @@ namespace gvk
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
 	 *	@param	aVerticesAndIndices			A tuple containing vertex positions data in the first element, and index data in the second element.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
@@ -553,14 +524,8 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		auto& commandBuffer = aSyncHandler.get_or_create_command_buffer();
-
-		// Sync before: 
-		// TODO: This is actually not necessary, because the command submission makes the data available => remove this barrier, actually?!?!!
-		aSyncHandler.establish_barrier_before_the_operation(avk::pipeline_stage::transfer, avk::read_memory_access{ avk::memory_access::transfer_read_access });
-
 		const auto& [positionsData, indicesData] = aVerticesAndIndices;
 
 		auto positionsBuffer = context().create_buffer(
@@ -568,7 +533,12 @@ namespace gvk
 			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
 			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
-		positionsBuffer->fill(positionsData.data(), 0, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+		
+		auto fence1 = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+				positionsBuffer->fill(positionsData.data(), 0)
+			});
+		fence1->wait_until_signalled();
+
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
@@ -577,15 +547,11 @@ namespace gvk
 			avk::index_buffer_meta::create_from_data(indicesData),
 			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
-		indexBuffer->fill(indicesData.data(), 0, avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
-		// It is fine to let indicesData go out of scope, since its data has been copied to a
-		// staging buffer within fill, which is lifetime-handled by the command buffer.
 
-		// Sync after:
-		aSyncHandler.establish_barrier_after_the_operation(avk::pipeline_stage::transfer, avk::write_memory_access{ avk::memory_access::transfer_write_access });
-
-		// Finish him:
-		aSyncHandler.submit_and_sync(); // Return command buffer is not supported here.
+		auto fence2 = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+				indexBuffer->fill(indicesData.data(), 0)
+			});
+		fence2->wait_until_signalled();
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 	}
@@ -594,7 +560,6 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
@@ -603,16 +568,15 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags, std::move(aSyncHandler));
+		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags);
 	}
 	
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
 	 *	@param	aVerticesAndIndices			A tuple containing vertex positions data in the first element, and index data in the second element.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
@@ -621,7 +585,7 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		size_t numPositions = 0;
 		size_t totalPositionsSize = 0;
@@ -643,7 +607,7 @@ namespace gvk
 			aSerializer.archive_memory(positionsData.data(), totalPositionsSize);
 			aSerializer.archive_memory(indicesData.data(), totalIndicesSize);
 
-			return create_vertex_and_index_buffers<Metas...>(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags, std::move(aSyncHandler));
+			return create_vertex_and_index_buffers<Metas...>(std::make_tuple(std::move(positionsData), std::move(indicesData)), aUsageFlags);
 		}
 		else {
 			aSerializer.archive(numPositions);
@@ -657,7 +621,7 @@ namespace gvk
 				set_up_meta_from_total_size_for_vertex_buffer<Metas, std::remove_reference_t<decltype(positionsData)>::value_type>(totalPositionsSize, numPositions)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize, aSyncHandler);
+			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize);
 
 			auto indexBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
@@ -665,7 +629,7 @@ namespace gvk
 				set_up_meta_from_total_size_for_index_buffer<Metas>(totalIndicesSize, numIndices)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize, aSyncHandler);
+			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize);
 
 			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
 		}
@@ -676,7 +640,6 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of each buffer besides their obligatory
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
@@ -685,33 +648,37 @@ namespace gvk
 	 *			<1>: buffer containing indices
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			verticesAndIndicesData = get_vertices_and_indices(aModelsAndSelectedMeshes);
 		}
-		return create_vertex_and_index_buffers_cached<Metas...>(aSerializer, verticesAndIndicesData, aUsageFlags, std::move(aSyncHandler));
+		return create_vertex_and_index_buffers_cached<Metas...>(aSerializer, verticesAndIndicesData, aUsageFlags);
 	}
 
 	/**	Create a device buffer that contains the given input data
 	 *	@param	aBufferData					Data to be stored in the buffer
 	 *	@param	aContentDescription			Description of the buffer's content
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::generic_buffer_meta::create_from_data(aBufferData),
 			Metas::create_from_data(aBufferData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 		);
-		buffer->fill(aBufferData.data(), 0, std::move(aSyncHandler));
+
+		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+			buffer->fill(aBufferData.data(), 0)
+		});
+		fence->wait_until_signalled();
+
 		// It is fine to let aBufferData go out of scope, since its data has been copied to a
 		// staging buffer within create_buffer, which is lifetime-handled by the command buffer.
 
@@ -723,13 +690,12 @@ namespace gvk
 	 *	@param	aBufferData					Data to be stored in the buffer
 	 *	@param	aContentDescription			Description of the buffer's content
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		size_t numBufferEntries = 0;
 		size_t bufferTotalSize = 0;
@@ -743,7 +709,7 @@ namespace gvk
 
 			aSerializer.archive_memory(aBufferData.data(), bufferTotalSize);
 
-			return create_buffer<T, Metas...>(aBufferData, aContentDescription, aUsageFlags, std::move(aSyncHandler));
+			return create_buffer<T, Metas...>(aBufferData, aContentDescription, aUsageFlags);
 		}
 		else {
 			aSerializer.archive(numBufferEntries);
@@ -755,7 +721,7 @@ namespace gvk
 				Metas::create_from_total_size(bufferTotalSize, numBufferEntries).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize, aSyncHandler);
+			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize);
 
 			return buffer;
 		}
@@ -780,15 +746,14 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags);
 	}
 
 	/** Get a buffer containing normals from the given input data.
@@ -796,19 +761,18 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> normalsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			normalsData = get_normals(aModelsAndSelectedMeshes);
 		}
-		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, normalsData, avk::content_description::normal, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, normalsData, avk::content_description::normal, aUsageFlags);
 	}
 
 	/**	Get tangents from the given selection of models and associated mesh indices.
@@ -830,15 +794,14 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags);
 	}
 
 	/** Get a buffer containing tangents from the given input data.
@@ -846,19 +809,18 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> tangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			tangentsData = get_tangents(aModelsAndSelectedMeshes);
 		}
-		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, tangentsData, avk::content_description::tangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, tangentsData, avk::content_description::tangent, aUsageFlags);
 	}
 	
 	/**	Get bitangents from the given selection of models and associated mesh indices.
@@ -880,15 +842,14 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags);
 	}
 
 	/** Get a buffer containing bitangents from the given input data.
@@ -896,19 +857,18 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> bitangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			bitangentsData = get_bitangents(aModelsAndSelectedMeshes);
 		}
-		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, bitangentsData, avk::content_description::bitangent, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, bitangentsData, avk::content_description::bitangent, aUsageFlags);
 	}
 
 	/**	Get colors from the given selection of models and associated mesh indices.
@@ -932,15 +892,14 @@ namespace gvk
 		 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 		 *										All the data they refer to is combined into a a common result. Their order is maintained.
 		 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-		 *	@param	aSyncHandler				A synchronization handler.
 		 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 		 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 		 *	@return	A buffer in device memory which contains the given input data.
 		 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags);
 	}
 
 	/** Get a buffer containing colors from the given input data.
@@ -948,19 +907,18 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> colorsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			colorsData = get_colors(aModelsAndSelectedMeshes, aColorsSet);
 		}
-		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, colorsData, avk::content_description::color, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, colorsData, avk::content_description::color, aUsageFlags);
 	}
 
 	/**	Get bone weights from the given selection of models and associated mesh indices.
@@ -984,16 +942,15 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags);
 	}
 
 	/** Get a buffer containing bone weights from the given input data.
@@ -1001,20 +958,19 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> boneWeightsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			boneWeightsData = get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights);
 		}
-		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, boneWeightsData, avk::content_description::bone_weight, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec4>, Metas...>(aSerializer, boneWeightsData, avk::content_description::bone_weight, aUsageFlags);
 	}
 
 	/**	Get bone indices from the given selection of models and associated mesh indices.
@@ -1079,16 +1035,15 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1096,36 +1051,34 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			boneIndicesData = get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset);
 		}
-		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/**	Get a buffer containing bone indices from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1133,27 +1086,25 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			boneIndicesData = get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset);
 		}
-		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/**	Get a buffer containing bone indices from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
 	 *										of all previous #bone-matrices in the set before the mesh with the given index.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
@@ -1161,9 +1112,9 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/** Get a buffer containing bone indices from the given input data.
@@ -1171,7 +1122,6 @@ namespace gvk
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@param	aReferenceMeshIndices		The correct offset for the given mesh index is determined based on this set. I.e. the offset will be the accumulated value
 	 *										of all previous #bone-matrices in the set before the mesh with the given index.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
@@ -1179,13 +1129,13 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			boneIndicesData = get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices);
 		}
-		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::uvec4>, Metas...>(aSerializer, boneIndicesData, avk::content_description::bone_index, aUsageFlags);
 	}
 
 	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices.
@@ -1244,15 +1194,14 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
 
 	/** Get a buffer containing 2D texture coordinates from the given input data.
@@ -1261,19 +1210,18 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			textureCoordinatesData = get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		}
-		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags);
 	}
 
 	/**	Get a buffer containing 2D texture coordinates from the given input data, with their y-coordinates flipped.
@@ -1281,15 +1229,14 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
 
 	/** Get a buffer containing 2D texture coordinates from the given input data, with their y-coordinates flipped.
@@ -1298,19 +1245,18 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			textureCoordinatesData = get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet);
 		}
-		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec2>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags);
 	}
 
 	/**	Get a buffer containing 3D texture coordinates from the given input data.
@@ -1318,15 +1264,14 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
-		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
 
 	/** Get a buffer containing 3D texture coordinates from the given input data.
@@ -1335,19 +1280,18 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {}, avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
 			textureCoordinatesData = get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet);
 		}
-		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags, std::move(aSyncHandler));
+		return create_buffer_cached<std::vector<glm::vec3>, Metas...>(aSerializer, textureCoordinatesData, avk::content_description::texture_coordinate, aUsageFlags);
 	}
 	
 	/**	Create a new sampler with the given configuration parameters
@@ -1384,7 +1328,6 @@ namespace gvk
 		bool aFlipTextures,
 		avk::image_usage aImageUsage,
 		avk::filter_mode aTextureFilterMode,
-		avk::old_sync aSyncHandler,
 		std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
@@ -1619,18 +1562,11 @@ namespace gvk
 		std::vector<avk::image_sampler> imageSamplers;
 		imageSamplers.reserve(numSamplers);
 
-		auto getSync = [numImageViews, &aSyncHandler, lSyncCount = size_t{ 0 }]() mutable->avk::old_sync {
-			++lSyncCount;
-			if (lSyncCount < numImageViews) {
-				return avk::old_sync::auxiliary_with_barriers(aSyncHandler, avk::old_sync::steal_before_handler_on_demand, {}); // Invoke external sync exactly once (if there is something to sync)
-			}
-			assert(lSyncCount == numImageViews);
-			return std::move(aSyncHandler); // For the last image, pass the main sync => this will also have the after-handler invoked.
-		};
-
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
-			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
+			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
 			{
@@ -1654,7 +1590,9 @@ namespace gvk
 
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
 		if (numStraightUpNormalTexUsages > 0) {
-			auto imgView = gvk::context().create_image_view(create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
+			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
 			{
@@ -1686,7 +1624,9 @@ namespace gvk
 
 				// create_image_from_file_cached takes the serializer as an optional,
 				// therefore the call is safe with and without one
-				auto imgView = context().create_image_view(create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, aSerializer);
+				//gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
+				auto imgView = context().create_image_view(std::move(tex));
 				assert(!pair.second.empty());
 
 				// It is now possible that an image can be referenced from different samplers, which adds support for different
@@ -1737,7 +1677,9 @@ namespace gvk
 				const std::string pathDontCare = "";
 
 				// Read an image from cache
-				auto imgView = context().create_image_view(create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, getSync(), aSerializer));
+				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, aSerializer);
+				// gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
+				auto imgView = context().create_image_view(std::move(tex));
 
 				// Read the number of samplers from cache
 				int numDifferentSamplers;
@@ -1782,7 +1724,6 @@ namespace gvk
 	 *	@param	aFlipTextures				Set to true to y-flip images			
 	 *	@param	aImageUsage					How this image is going to be used. Can be a combination of different avk::image_usage values
 	 *	@param	aTextureFilterMode			Texture filtering mode for all the textures. Trilinear or anisotropic filtering modes will trigger MIP-maps to be generated.
-	 *	@param	aSyncHandler				A synchronization handler.
 	 *	@reutrn	A tuple with two elements:
 	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
 	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
@@ -1794,8 +1735,7 @@ namespace gvk
 		bool aLoadTexturesInSrgb = false,
 		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
-		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear)
 	{
 		return convert_for_gpu_usage_cached<T>(
 			aMaterialConfigs,
@@ -1803,7 +1743,6 @@ namespace gvk
 			aFlipTextures,
 			aImageUsage,
 			aTextureFilterMode,
-			std::move(aSyncHandler),
 			aSerializer);
 	}
 
@@ -1841,7 +1780,6 @@ namespace gvk
 	 *	@param	aImageUsage				Image usage for all the textures that are loaded.
 	 *	@param	aTextureFilterMode		Texture filter mode for all the textures that are loaded.
 	 *	@param	aBorderHandlingMode		Border handling mode for all the textures that are loaded.
-	 *	@param	aSyncHandler			How to synchronize the GPU-upload of texture memory.
 	 *	@return	A tuple of two elements: The first element contains a vector of gvk::material_gpu_data
 	 *			entries, which are gvk::material_config entries converted into a format suitable to be
 	 *			used in UBOs or SSBOs, and the second element contains a vector of avk::image_samplers,
@@ -1855,15 +1793,13 @@ namespace gvk
 		bool aLoadTexturesInSrgb = false,
 		bool aFlipTextures = false,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture,
-		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear,
-		avk::old_sync aSyncHandler = avk::old_sync::wait_idle())
+		avk::filter_mode aTextureFilterMode = avk::filter_mode::trilinear)
 	{
 		return convert_for_gpu_usage_cached<T>(
 			aMaterialConfigs,
 			aLoadTexturesInSrgb,
 			aFlipTextures,
 			aImageUsage,
-			aTextureFilterMode,
-			std::move(aSyncHandler));
+			aTextureFilterMode);
 	}
 }
