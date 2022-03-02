@@ -358,7 +358,7 @@ namespace gvk
 		submission.submit();
 
 		//                        As far as ImGui is concerned, the next frame using the same target image must wait before color attachment output:
-		mainWnd->add_render_finished_semaphore_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
+		mainWnd->add_present_dependency_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
 
 		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
@@ -390,7 +390,7 @@ namespace gvk
 
 			// The following is not totally correct, i.e., living on the edge:
 			auto* mainWnd = gvk::context().main_window();
-			mainWnd->add_render_finished_semaphore_for_current_frame(avk::owned(semaphore));
+			mainWnd->add_present_dependency_for_current_frame(avk::owned(semaphore));
 		}
 		else {
 			auto fen = gvk::context().create_fence();

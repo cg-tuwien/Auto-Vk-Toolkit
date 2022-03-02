@@ -462,7 +462,7 @@ namespace gvk
 			waitSemHandles.clear();
 			waitSemHandles.emplace_back(sigSem->handle());
 			// Add it as dependency to the current frame, so that it gets properly lifetime-handled:
-			add_render_finished_semaphore_for_current_frame(avk::owned(sigSem));
+			add_present_dependency_for_current_frame(avk::owned(sigSem));
 		}
 
 		try

@@ -250,7 +250,7 @@ namespace gvk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		void add_render_finished_semaphore_for_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
+		void add_present_dependency_for_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
 			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphore.own());
 		}
 		/** Adds the given semaphore as an additional present-dependency to the current frame.
@@ -258,7 +258,7 @@ namespace gvk
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
 		 */
-		void add_render_finished_semaphore_for_current_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore) {
+		void add_present_dependency_for_current_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore) {
 			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphore.own());
 		}
 
