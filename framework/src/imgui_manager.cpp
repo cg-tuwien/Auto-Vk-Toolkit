@@ -236,15 +236,13 @@ namespace gvk
 			io.AddKeyEvent(ImGuiKey_Z, input().key_down(key_code::z));
 
 			// Modifiers are not reliable across systems
-			if (input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) {
-				io.AddKeyModsEvent(ImGuiKeyModFlags_Ctrl);
-			}
-			if (input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift)) {
-				io.AddKeyModsEvent(ImGuiKeyModFlags_Shift);
-			}
-			if (input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
-				io.AddKeyModsEvent(ImGuiKeyModFlags_Alt);
-			}
+			bool ctrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
+			bool shift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
+			bool alt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
+			bool super = input().key_down(key_code::left_super) || input().key_down(key_code::right_super);
+			ImGuiKeyModFlags mods = (ctrl ? ImGuiKeyModFlags_Ctrl : 0) | (shift ? ImGuiKeyModFlags_Shift : 0) | (alt ? ImGuiKeyModFlags_Alt : 0) | (super ? ImGuiKeyModFlags_Super : 0);
+			io.AddKeyModsEvent(mods);
+
 
 			// Characters:
 			for (auto c : input().entered_characters()) {
