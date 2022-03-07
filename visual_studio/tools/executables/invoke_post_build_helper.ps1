@@ -18,7 +18,7 @@ if ((-Not (Test-Path $postBuildExePath)) -or $anyDllMissing)
 			$msbuildPath = Join-Path -Path $args[1] -ChildPath "MSBuild.exe" 
 			$nugetPath = Join-Path -Path $PSScriptRoot -ChildPath "nuget.exe"
 			$postBuildSlnPath = Join-Path -Path $PSScriptRoot -ChildPath "..\sources\post_build_helper\post_build_helper.sln"
-			Write-Output "$exeName or $taskbarDllName not found => going to build Post Build Helper it from $postBuildSlnPath ..."
+			Write-Output "$exeName or one of its required DLLs not found => going to build Post Build Helper from $postBuildSlnPath ..."
 			Write-Output ""
 			Write-Output "Note 1: If the build takes too long (more than 10 sec.), please cancel it (Build -> Cancel) and build again."
 			Write-Output "Note 2: If the build fails, please open '$postBuildSlnPath' and build the C# project manually (just select the 'Release' configuration and build)."
