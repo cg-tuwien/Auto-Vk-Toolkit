@@ -408,6 +408,16 @@ namespace gvk
 		std::vector<attachment> attachments;
 		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, color(0), on_store::store_in_presentable_format));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {
+			// Well... who would have guessed the following (and, who understands??):
+			//
+			// Load and store operations often cause synchronization errors
+			//  - LOAD_OP_DONT_CARE generates WRITE accesses to your attachments
+			//
+			// I mean... yeah! Sure... :|
+			// Source: https://www.lunarg.com/wp-content/uploads/2021/08/Vulkan-Synchronization-SIGGRAPH-2021.pdf
+			//
+			// Therefore ...
+			// 
 			a.mLoadOperation = on_load::dont_care;
 			a.mStoreOperation = on_store::dont_care;
 			attachments.push_back(a);
@@ -416,14 +426,15 @@ namespace gvk
 			attachments,
 			{
 				subpass_dependency(
-					subpass::external >> subpass::index(0), 
-					stage::color_attachment_output >> stage::color_attachment_output,
-					access::color_attachment_write >> access::color_attachment_read
+					subpass::external >> subpass::index(0),
+					// ... we have to synchronize all these stages with color+dept_stencil write access:
+					stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests  >>  stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests,
+					access::color_attachment_write | access::depth_stencil_attachment_write                    >>  access::color_attachment_read | access::depth_stencil_attachment_write
 				),
 				subpass_dependency(
 					subpass::index(0) >> subpass::external,
-					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
-					access::color_attachment_write >> access::none
+					stage::color_attachment_output   >>   stage::none, // assume semaphore afterwards
+					access::color_attachment_write   >>   access::none
 				)
 			}
 		);
