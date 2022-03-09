@@ -163,7 +163,7 @@ namespace gvk
 				}
 				else if (aSerializer && aSerializer->get().mode() == gvk::serializer::mode::deserialize) {
 					aSerializer->get().archive_buffer(sb);
-					LOG_INFO_EM("Buffer loaded from cache");
+					LOG_INFO(fmt::format("Buffer of size {} loaded from cache", sb->meta_at_index<avk::buffer_meta>(0).total_size()));
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
