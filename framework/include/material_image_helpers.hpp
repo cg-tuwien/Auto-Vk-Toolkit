@@ -659,6 +659,33 @@ namespace gvk
 
 	/**	Create a device buffer that contains the given input data
 	 *	@param	aBufferData					Data to be stored in the buffer
+	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A buffer in device memory which contains the given input data.
+	 */
+	template <typename T, typename... Metas>
+	avk::buffer create_buffer(const T& aBufferData, vk::BufferUsageFlags aUsageFlags = {})
+	{
+		auto buffer = context().create_buffer(
+			avk::memory_usage::device, aUsageFlags,
+			avk::generic_buffer_meta::create_from_data(aBufferData),
+			Metas::create_from_data(aBufferData)...
+		);
+
+		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+			buffer->fill(aBufferData.data(), 0)
+			});
+		fence->wait_until_signalled();
+
+		// It is fine to let aBufferData go out of scope, since its data has been copied to a
+		// staging buffer within create_buffer, which is lifetime-handled by the command buffer.
+
+		return buffer;
+	}
+
+	/**	Create a device buffer that contains the given input data
+	 *	@param	aBufferData					Data to be stored in the buffer
 	 *	@param	aContentDescription			Description of the buffer's content
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
