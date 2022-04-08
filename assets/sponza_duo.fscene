@@ -131,7 +131,7 @@
             ]
         },
         {
-            "file": "1st_party/models/sponza_debris.obj",
+            "file": "3rd_party/models/terrain_and_debris/sponza_debris_textured.dae",
             "name": "sponza_debris",
             "instances": [
                 {
