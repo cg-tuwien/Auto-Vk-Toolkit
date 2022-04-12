@@ -588,8 +588,8 @@ namespace gvk
 			}
 		}
 		else {
-			mImageUsage = avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::presentable;
-			const vk::ImageUsageFlags swapChainImageUsageVk = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
+			mImageUsage = avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::transfer_source | avk::image_usage::presentable;
+			const vk::ImageUsageFlags swapChainImageUsageVk = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
 			mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 				.setImageType(vk::ImageType::e2D)
 				.setFormat(surfaceFormat.format)
