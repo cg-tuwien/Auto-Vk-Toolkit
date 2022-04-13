@@ -52,15 +52,12 @@ namespace gvk
 			}
 		});
 		newImage.enable_shared_ownership();
-		newImage->transition_to_layout(); // Wait idle... what else could we do?
 		std::swap(*newImage, *u);
 		mUpdateeToCleanUp = std::move(newImage);
 	}
 
 	void update_operations_data::operator()(avk::image_view& u)
 	{
-		auto currentLayout = u->get_image().current_layout();
-
 		auto newImageView = gvk::context().create_image_view_from_template(const_referenced(u), [&ed = mEventData](avk::image_t& aPreparedImage) {
 			if (aPreparedImage.depth() == 1u) {
 				const auto newExtent = ed.get_extent_for_old_extent(vk::Extent2D{ aPreparedImage.width(), aPreparedImage.height() });
@@ -74,8 +71,6 @@ namespace gvk
 			// Nothing to do here
 		});
 		newImageView.enable_shared_ownership();
-
-		newImageView->get_image().transition_to_layout(currentLayout); // Wait idle... what else could we do?
 
 		std::swap(*newImageView, *u);
 		mUpdateeToCleanUp = std::move(newImageView);

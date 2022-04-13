@@ -706,7 +706,7 @@ namespace gvk
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::color(0), avk::on_store::store_in_presentable_format)
+			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear(), avk::color(0), avk::on_store::store().in_layout(avk::image_layout::present_src))
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 
@@ -754,14 +754,5 @@ namespace gvk
 		}
 
 		avk::assign_and_lifetime_handle_previous(mBackBuffers, std::move(newBuffers), lifetimeHandlerLambda);
-
-		// Transfer the backbuffer images into a at least somewhat useful layout for a start:
-		for (auto& bb : mBackBuffers) {
-			const auto n = bb->image_views().size();
-			assert(n == get_renderpass()->number_of_attachment_descriptions());
-			for (size_t i = 0; i < n; ++i) {
-				bb->image_view_at(i)->get_image().transition_to_layout(get_renderpass()->attachment_descriptions()[i].finalLayout, avk::old_sync::wait_idle(true));
-			}
-		}
 	}
 }

@@ -62,10 +62,11 @@ namespace gvk
 		 *	
 		 *  This function creates and caches or returns an already cached DescriptorSet for the provided `avk::image_sampler`
 		 *
-		 *	@param[in] aImageSampler		An image sampler, that shall be rendered with ImGui
-		 *  @param[out] ImTextureID			A DescriptorSet as ImGui identifier for textures
+		 *	@param	aImageSampler		An image sampler, that shall be rendered with ImGui
+		 *	@param	aImageLayout		The image layout that the image is expected to be given in
+		 *  @return ImTextureID			A DescriptorSet as ImGui identifier for textures
 		 */
-		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler);
+		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::image_layout::image_layout aImageLayout);
 
 		operator avk::command::action_type_command()
 		{

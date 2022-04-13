@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		auto stagingBuffer = context().create_buffer(
 			AVK_STAGING_BUFFER_MEMORY_USAGE,
@@ -44,7 +44,7 @@ namespace gvk
 				avk::sync::image_memory_barrier(img,
 					avk::stage::copy             >> avk::stage::transfer,
 					avk::access::transfer_write  >> avk::access::none 
-				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() })
+				).with_layout_transition(avk::image_layout::transfer_dst >> aImageLayout)
 			}
 		});
 		stagingBuffer.enable_shared_ownership(); // TODO: WHAAAAAIIII can't it be moved?
@@ -52,14 +52,14 @@ namespace gvk
 		return result;
 	}
 
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage);
+		return create_1px_texture_cached(aColor, aImageLayout, aFormat, aMemoryUsage, aImageUsage);
 	}
 
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_1px_texture_cached(aColor, aFormat, aMemoryUsage, aImageUsage, aSerializer);
+		return create_1px_texture_cached(aColor, aImageLayout, aFormat, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image_data from texture file
@@ -97,36 +97,39 @@ namespace gvk
 	/** Create cube map from image_data, with optional caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aImageData		a valid instance of image_data containing cube map image data.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	* @param aImageData		a valid instance of image_data containing cube map image data.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
+		return create_cubemap_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from image_data
 	* Loads image data from an image_data object.
 	* @param aImageData		a valid instance of image_data containing cube map image data.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage);
+		return create_cubemap_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create cube map from a single file, with optional caching
@@ -136,12 +139,13 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
 	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from a single file, with caching
@@ -152,14 +156,15 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
 	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
+		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from a single file
@@ -169,14 +174,15 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
 	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
+		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create cube map from six individual files, with optional caching
@@ -186,12 +192,13 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
 	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from six individual files, with caching
@@ -202,12 +209,13 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
+		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create cube map from six individual files
@@ -217,47 +225,51 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
-		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
+		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create image from image_data, with optional caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aImageData		the image data to create the image from.
+	* @param aImageLayout	the image layout which the resulting image shall be tranformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from image_data, with caching
 	* Loads image data from an image_data object or the serializer cache.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	* @param aImageData		the image data to create the image from.
+	* @param aImageLayout	the image layout which the resulting image shall be tranformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
+		return create_image_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image from image_data
 	* Loads image data from an image_data object.
 	* @param aImageData		the image data to create the image from.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data(image_data& aImageData, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage);
+		return create_image_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage);
 	}
 
 	/** Create image from a single file, with optional caching
@@ -267,11 +279,12 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -281,12 +294,13 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage, aSerializer);
+		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	/** Create image from a single file
@@ -296,12 +310,13 @@ namespace gvk
 	* @param aLoadSrgbIfApplicable	load the texture as sRGB color-corrected data, if supported by the image loading library. If set to true, the image data may be returned in an sRGB format even if the texture file does not contain sRGB data. If set to false, the image data may be returned in a plain RGB format even if the texture contains sRGB data. It is therefore advised to set this parameter according to the color space of the texture file.
 	* @param aFlip					flip the image vertically (upside-down) if set to true. This may be needed if the layout of the image data in the texture file does not match the texture coordinates with which it is used. This parameter may not be supported for all image loaders and texture formats, in particular for some compressed textures.
 	* @param aPreferredNumberOfTextureComponents	defines the number of color channels in the returned image_data. The default of 4 corresponds to RGBA texture components. A value of 1 and 2 denote grey value and grey value with alpha, respectively. If the texture file does not contain an alpha channel, the result will be fully opaque. Note that many Vulkan implementations only support textures with RGBA components. This parameter may be ignored by the image loader.
+	* @param aImageLayout	the image layout that the image shall be transformed into
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
-		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aMemoryUsage, aImageUsage);
+		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
 	}
 
 	template <typename... Rest>
@@ -1591,7 +1606,7 @@ namespace gvk
 
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
-			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::image_layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
@@ -1617,7 +1632,7 @@ namespace gvk
 
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
 		if (numStraightUpNormalTexUsages > 0) {
-			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, avk::image_layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
@@ -1651,7 +1666,7 @@ namespace gvk
 
 				// create_image_from_file_cached takes the serializer as an optional,
 				// therefore the call is safe with and without one
-				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, aSerializer);
+				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::image_layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
 				//gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
 				auto imgView = context().create_image_view(std::move(tex));
 				assert(!pair.second.empty());
@@ -1704,7 +1719,7 @@ namespace gvk
 				const std::string pathDontCare = "";
 
 				// Read an image from cache
-				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::memory_usage::device, aImageUsage, aSerializer);
+				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::image_layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
 				// gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
 				auto imgView = context().create_image_view(std::move(tex));
 

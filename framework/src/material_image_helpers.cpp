@@ -2,31 +2,31 @@
 
 namespace gvk
 {
-	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cube map
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
 
-		return create_image_from_image_data_cached(aImageData, aMemoryUsage, aImageUsage, aSerializer);
+		return create_image_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+		int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+		int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return create_cubemap_from_image_data_cached(cubemapImageData, aMemoryUsage, aImageUsage, aSerializer);
+		return create_cubemap_from_image_data_cached(cubemapImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -102,7 +102,6 @@ namespace gvk
 				image.create_info().mipLevels = maxLevels;
 			}
 		});
-		auto finalTargetLayout = img->target_layout(); // save for later, because first, we need to transfer something into it
 		
 		// TODO: handle the case where some but not all mipmap levels are loaded from image resource?
 		assert(maxLevels == 1 || maxLevels == img->create_info().mipLevels);
@@ -182,7 +181,7 @@ namespace gvk
 						avk::sync::image_memory_barrier(img,
 							avk::stage::copy            >> avk::stage::none,
 							avk::access::transfer_write >> avk::access::none
-						).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::image_layout{ img->target_layout() })
+						).with_layout_transition(avk::image_layout::transfer_dst >> aImageLayout)
 					});
 				fence->wait_until_signalled();
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
@@ -197,18 +196,18 @@ namespace gvk
 			assert(!avk::is_block_compressed_format(format));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
-			img->generate_mip_maps(avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}));
+			img->generate_mip_maps(avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}), aImageLayout.mLayout, aImageLayout.mLayout);
 			aSyncHandler.submit_and_sync();
 		}
 		
 		return std::make_tuple(std::move(img), avk::command::action_type_command{});
 	}
 
-	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto imageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
-		return gvk::create_image_from_image_data_cached(imageData, aMemoryUsage, aImageUsage, aSerializer);
+		return gvk::create_image_from_image_data_cached(imageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
 	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
