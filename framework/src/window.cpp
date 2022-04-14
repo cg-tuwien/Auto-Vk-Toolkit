@@ -577,6 +577,22 @@ namespace gvk
 		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
 	}
 
+	std::vector<avk::recorded_commands_and_sync_instructions_t> window::layout_transitions_for_all_backbuffer_images()
+	{
+		std::vector<avk::recorded_commands_and_sync_instructions_t> result;
+		for (auto& bb : mBackBuffers) {
+			const auto n = bb->image_views().size();
+			assert(n == get_renderpass()->number_of_attachment_descriptions());
+			for (size_t i = 0; i < n; ++i) {
+				result.push_back(
+					avk::sync::image_memory_barrier(bb->image_view_at(i)->get_image(), avk::stage::none >> avk::stage::none)
+					.with_layout_transition(avk::image_layout::undefined >> avk::image_layout::image_layout{ get_renderpass()->attachment_descriptions()[i].finalLayout })
+				);
+			}
+		}
+		return result;
+	}
+
 	void window::construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode) {
 		auto srfCaps = context().physical_device().getSurfaceCapabilitiesKHR(surface());
 		auto extent = context().get_resolution_for_window(this);

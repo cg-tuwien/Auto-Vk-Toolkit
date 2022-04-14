@@ -386,6 +386,12 @@ namespace gvk
 		 */
 		void update_resolution_and_recreate_swap_chain();
 
+		/**	Returns a vector of commands containing layout transitions for each one of the attachments of each of the backbuffer framebuffers into their respective final layouts.
+		 *	For color attachments, this will most likely result in a layout transition from undefined >> color_attachment_optimal.
+		 *	For depth/stencil attachments, this will most likely result in a layout transition from undefined >> depth_stencil_optimal.
+		 */
+		std::vector<avk::recorded_commands_and_sync_instructions_t> layout_transitions_for_all_backbuffer_images();
+
 	private:
 		/**
 		 * constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is
@@ -507,7 +513,7 @@ namespace gvk
 
 		// Must be used EXACTLY ONCE per frame:
 		std::optional<avk::resource_reference<avk::fence_t>> mCurrentFrameFinishedFence;
-
+		
 #pragma region recreation management
 		struct recreation_determinator
 		{
