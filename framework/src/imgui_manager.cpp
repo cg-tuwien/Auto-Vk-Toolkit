@@ -406,7 +406,7 @@ namespace gvk
 
 		auto* wnd = gvk::context().main_window();
 		std::vector<attachment> attachments;
-		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load(), color(0), on_store::store().in_layout(image_layout::present_src)));
+		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, usage::color(0), on_store::store.in_layout(layout::present_src)));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {
 			// Well... who would have guessed the following (and, who understands??):
 			//
@@ -418,8 +418,8 @@ namespace gvk
 			//
 			// Therefore ...
 			// 
-			a.mLoadOperation = on_load::dont_care();
-			a.mStoreOperation = on_store::dont_care();
+			a.mLoadOperation  = on_load::dont_care;
+			a.mStoreOperation = on_store::dont_care;
 			attachments.push_back(a);
 		}
 		auto newRenderpass = context().create_renderpass(
@@ -440,7 +440,7 @@ namespace gvk
 		);
 
 		// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
-		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), avk::on_load::clear(), avk::color(0), avk::on_store::store());
+		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), on_load::clear, usage::color(0), on_store::store);
 		auto newClearRenderpass = context().create_renderpass(
 			attachments
 			//, {
@@ -462,7 +462,7 @@ namespace gvk
 		avk::assign_and_lifetime_handle_previous(mClearRenderpass, std::move(newClearRenderpass), lifetimeHandlerLambda);
 	}
 
-	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::image_layout::image_layout aImageLayout)
+	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::layout::image_layout aImageLayout)
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache.get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler->as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)

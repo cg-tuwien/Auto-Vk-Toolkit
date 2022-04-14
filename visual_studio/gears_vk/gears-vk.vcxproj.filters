@@ -429,10 +429,10 @@
     <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\usage_desc.hpp">
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usages.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\usage_type.hpp">
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usage_type.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp">
@@ -525,7 +525,7 @@
     <ClInclude Include="..\..\framework\include\meshlet_helpers.hpp">
       <Filter>gears-vk_include\data</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\image_layout.hpp">
+    <ClInclude Include="..\..\auto_vk\include\avk\layout.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp">

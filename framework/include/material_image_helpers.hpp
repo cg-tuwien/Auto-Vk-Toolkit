@@ -3,7 +3,7 @@
 
 namespace gvk
 {
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(std::array<uint8_t, 4> aColor, avk::layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
 		auto stagingBuffer = context().create_buffer(
 			AVK_STAGING_BUFFER_MEMORY_USAGE,
@@ -37,14 +37,14 @@ namespace gvk
 				avk::sync::image_memory_barrier(img,
 					avk::stage::transfer >> avk::stage::copy,
 					avk::access::none    >> avk::access::transfer_read | avk::access::transfer_write
-				).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst),
+				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
-				copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::image_layout::transfer_dst),
+				copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::layout::transfer_dst),
 
 				avk::sync::image_memory_barrier(img,
 					avk::stage::copy             >> avk::stage::transfer,
 					avk::access::transfer_write  >> avk::access::none 
-				).with_layout_transition(avk::image_layout::transfer_dst >> aImageLayout)
+				).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
 			}
 		});
 		stagingBuffer.enable_shared_ownership(); // TODO: WHAAAAAIIII can't it be moved?
@@ -52,12 +52,12 @@ namespace gvk
 		return result;
 	}
 
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, avk::layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_1px_texture_cached(aColor, aImageLayout, aFormat, aMemoryUsage, aImageUsage);
 	}
 
-	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, avk::image_layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture_cached(gvk::serializer& aSerializer, std::array<uint8_t, 4> aColor, avk::layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_1px_texture_cached(aColor, aImageLayout, aFormat, aMemoryUsage, aImageUsage, aSerializer);
 	}
@@ -102,7 +102,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from image_data, with caching
@@ -113,7 +113,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
@@ -126,7 +126,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data(image_data& aImageData, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage);
@@ -145,7 +145,7 @@ namespace gvk
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
 	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from a single file, with caching
@@ -161,7 +161,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
 	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
@@ -179,7 +179,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
 	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
@@ -198,7 +198,7 @@ namespace gvk
 	* @param aSerializer	a serializer to use for caching data loaded from disk. 
 	*/
 	extern std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true,
-		int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+		int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create cube map from six individual files, with caching
@@ -213,7 +213,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(gvk::serializer& aSerializer, const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
@@ -229,7 +229,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_cube_map_texture)
 	{
 		return create_cubemap_from_file_cached(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
 	}
@@ -242,7 +242,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from image_data, with caching
@@ -253,7 +253,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(gvk::serializer& aSerializer, image_data& aImageData, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_image_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
@@ -266,7 +266,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data(image_data& aImageData, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data(image_data& aImageData, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device,
 		avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_image_from_image_data_cached(aImageData, aImageLayout, aMemoryUsage, aImageUsage);
@@ -284,7 +284,7 @@ namespace gvk
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	* @param aSerializer	a serializer to use for caching data loaded from disk.
 	*/
-	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
+	extern std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {});
 
 	/** Create image from a single file, with caching
 	* Loads image data from a file or the serializer cache.
@@ -298,7 +298,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(gvk::serializer& aSerializer, const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
@@ -314,7 +314,7 @@ namespace gvk
 	* @param aMemoryUsage	the intended memory usage of the returned image resource.
 	* @param aImageUsage	the intended image usage of the returned image resource.
 	*/
-	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::image_layout::image_layout aImageLayout = avk::image_layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
+	static std::tuple<avk::image, avk::command::action_type_command> create_image_from_file(const std::string& aPath, bool aLoadHdrIfPossible = true, bool aLoadSrgbIfApplicable = true, bool aFlip = true, int aPreferredNumberOfTextureComponents = 4, avk::layout::image_layout aImageLayout = avk::layout::general, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
 	{
 		return create_image_from_file_cached(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents, aImageLayout, aMemoryUsage, aImageUsage);
 	}
@@ -1606,7 +1606,7 @@ namespace gvk
 
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
-			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::image_layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
@@ -1632,7 +1632,7 @@ namespace gvk
 
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
 		if (numStraightUpNormalTexUsages > 0) {
-			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, avk::image_layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
+			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
@@ -1666,7 +1666,7 @@ namespace gvk
 
 				// create_image_from_file_cached takes the serializer as an optional,
 				// therefore the call is safe with and without one
-				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::image_layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
+				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
 				//gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
 				auto imgView = context().create_image_view(std::move(tex));
 				assert(!pair.second.empty());
@@ -1719,7 +1719,7 @@ namespace gvk
 				const std::string pathDontCare = "";
 
 				// Read an image from cache
-				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::image_layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
+				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
 				// gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
 				auto imgView = context().create_image_view(std::move(tex));
 

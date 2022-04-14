@@ -586,7 +586,7 @@ namespace gvk
 			for (size_t i = 0; i < n; ++i) {
 				result.push_back(
 					avk::sync::image_memory_barrier(bb->image_view_at(i)->get_image(), avk::stage::none >> avk::stage::none)
-					.with_layout_transition(avk::image_layout::undefined >> avk::image_layout::image_layout{ get_renderpass()->attachment_descriptions()[i].finalLayout })
+					.with_layout_transition(avk::layout::undefined >> avk::layout::image_layout{ get_renderpass()->attachment_descriptions()[i].finalLayout })
 				);
 			}
 		}
@@ -722,7 +722,7 @@ namespace gvk
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear(), avk::color(0), avk::on_store::store().in_layout(avk::image_layout::present_src))
+			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::present_src))
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 

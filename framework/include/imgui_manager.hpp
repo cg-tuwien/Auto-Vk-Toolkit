@@ -66,7 +66,7 @@ namespace gvk
 		 *	@param	aImageLayout		The image layout that the image is expected to be given in
 		 *  @return ImTextureID			A DescriptorSet as ImGui identifier for textures
 		 */
-		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::image_layout::image_layout aImageLayout);
+		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::layout::image_layout aImageLayout);
 
 		operator avk::command::action_type_command()
 		{

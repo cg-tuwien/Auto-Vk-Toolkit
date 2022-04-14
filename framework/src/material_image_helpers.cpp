@@ -2,7 +2,7 @@
 
 namespace gvk
 {
-	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_image_data_cached(image_data& aImageData, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		// image must have flag set to be used for cube map
 		assert((static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0);
@@ -11,7 +11,7 @@ namespace gvk
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+		int aPreferredNumberOfTextureComponents, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
@@ -19,14 +19,14 @@ namespace gvk
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_cubemap_from_file_cached(const std::vector<std::string>& aPaths, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip,
-		int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+		int aPreferredNumberOfTextureComponents, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto cubemapImageData = get_image_data(aPaths, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 
 		return create_cubemap_from_image_data_cached(cubemapImageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -170,18 +170,18 @@ namespace gvk
 						avk::sync::image_memory_barrier(img,
 							avk::stage::none  >> avk::stage::copy,
 							avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
-						).with_layout_transition(avk::image_layout::undefined >> avk::image_layout::transfer_dst),
+						).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 					
 						avk::copy_buffer_to_image_layer_mip_level(
 							avk::const_referenced(sb), avk::referenced(img),
 							face, level,
-							avk::image_layout::transfer_dst
+							avk::layout::transfer_dst
 						),
 
 						avk::sync::image_memory_barrier(img,
 							avk::stage::copy            >> avk::stage::none,
 							avk::access::transfer_write >> avk::access::none
-						).with_layout_transition(avk::image_layout::transfer_dst >> aImageLayout)
+						).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
 					});
 				fence->wait_until_signalled();
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
@@ -203,7 +203,7 @@ namespace gvk
 		return std::make_tuple(std::move(img), avk::command::action_type_command{});
 	}
 
-	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::image_layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
+	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto imageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
 

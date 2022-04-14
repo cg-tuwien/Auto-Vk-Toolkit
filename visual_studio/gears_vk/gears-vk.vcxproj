@@ -106,7 +106,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\image.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\avk\image_layout.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\layout.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp" />
@@ -136,8 +136,8 @@
     <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\old_sync.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\avk\usage_desc.hpp" />
-    <ClInclude Include="..\..\auto_vk\include\avk\usage_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usages.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usage_type.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp" />
