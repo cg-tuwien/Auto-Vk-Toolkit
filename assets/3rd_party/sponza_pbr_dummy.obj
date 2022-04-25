@@ -1,0 +1,7 @@
+# This file (and the .mtl) is just for easier deployment of the textures with the PBH tool
+mtllib sponza_pbr_dummy.mtl
+o dummy.001
+v 0 0 0
+v 1 0 0
+v 1 1 0
+f 1 2 3
