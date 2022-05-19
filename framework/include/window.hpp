@@ -390,7 +390,7 @@ namespace gvk
 		 *	For color attachments, this will most likely result in a layout transition from undefined >> color_attachment_optimal.
 		 *	For depth/stencil attachments, this will most likely result in a layout transition from undefined >> depth_stencil_optimal.
 		 */
-		std::vector<avk::recorded_commands_and_sync_instructions_t> layout_transitions_for_all_backbuffer_images();
+		std::vector<avk::recorded_commands_t> layout_transitions_for_all_backbuffer_images();
 
 	private:
 		/**

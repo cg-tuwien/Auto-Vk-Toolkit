@@ -577,9 +577,9 @@ namespace gvk
 		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
 	}
 
-	std::vector<avk::recorded_commands_and_sync_instructions_t> window::layout_transitions_for_all_backbuffer_images()
+	std::vector<avk::recorded_commands_t> window::layout_transitions_for_all_backbuffer_images()
 	{
-		std::vector<avk::recorded_commands_and_sync_instructions_t> result;
+		std::vector<avk::recorded_commands_t> result;
 		for (auto& bb : mBackBuffers) {
 			const auto n = bb->image_views().size();
 			assert(n == get_renderpass()->number_of_attachment_descriptions());

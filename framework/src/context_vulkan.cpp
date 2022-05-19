@@ -416,7 +416,7 @@ namespace gvk
 		});
 	}
 
-	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
+	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
 	{
 		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
@@ -432,7 +432,7 @@ namespace gvk
 		return sem;
 	}
 
-	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags)
+	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags)
 	{
 		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
@@ -448,7 +448,7 @@ namespace gvk
 		return fen;
 	}
 
-	avk::fence context_vulkan::record_and_submit_with_fence_old_sync_replacement(std::vector<avk::recorded_commands_and_sync_instructions_t> aRecordedCommandsAndSyncInstructions)
+	avk::fence context_vulkan::record_and_submit_with_fence_old_sync_replacement(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions)
 	{
 		auto* anyQueue = &mQueues.front();
 		return record_and_submit_with_fence(std::move(aRecordedCommandsAndSyncInstructions), anyQueue, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
