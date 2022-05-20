@@ -464,7 +464,7 @@ namespace gvk
 
 	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::layout::image_layout aImageLayout)
 	{
-		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache.get_or_create_descriptor_sets({
+		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache->get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler->as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
 		});
 
