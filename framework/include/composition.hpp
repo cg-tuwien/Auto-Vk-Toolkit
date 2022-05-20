@@ -330,8 +330,7 @@ namespace gvk
 			composition_interface::set_current(this);
 
 			// 1. initialize
-			for (auto& o : mElements)
-			{
+			for (auto& o : mElements) {
 				o->initialize();
 			}
 
@@ -341,8 +340,7 @@ namespace gvk
 
 			// Enable receiving input
 			auto windows_for_input = context().find_windows([](auto * w) { return w->is_input_enabled(); });
-			for (auto* w : windows_for_input)
-			{
+			for (auto* w : windows_for_input) {
 				w->set_is_in_use(true);
 				// Write into the buffer at mInputBufferUpdateIndex,
 				// let client-objects read from the buffer at mInputBufferConsumerIndex
@@ -415,8 +413,7 @@ namespace gvk
 			mIsRunning = false;
 
 			// Stop the input
-			for (auto* w : mWindows)
-			{
+			for (auto* w : mWindows) {
 				context().stop_receiving_input_from_window(*w);
 				w->set_is_in_use(false);
 			}
@@ -424,16 +421,15 @@ namespace gvk
 			// Signal context before finalization
 			context().end_composition(); // Performs a waitIdle
 
-			for (auto* w : mWindows)
-			{
+			for (auto* w : mWindows) {
 				w->clean_up_command_buffers_for_frame(std::numeric_limits<window::frame_id_t>().max());
 				w->remove_all_present_semaphore_dependencies_for_frame(std::numeric_limits<window::frame_id_t>().max());
 			}
 			mWindows.clear();
 			
-			// 9. finalize
-			for (auto& o : mElements)
-			{
+			// 9. finalize in reverse order
+			const auto elementsReverseView = std::ranges::reverse_view{ mElements };
+			for (const auto& o : elementsReverseView) {
 				o->finalize();
 			}
 			
