@@ -157,6 +157,20 @@ namespace gvk
 	}
 #endif
 
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageSeverityFlagsEXT&)> fu, Args&... args)
+	{
+		fu(s.mEnabledDebugUtilsMessageSeverities);
+		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
+	}
+
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, timer_interface*& t, invoker_interface*& i, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)> fu, Args&... args)
+	{
+		fu(s.mEnabledDebugUtilsMessageTypes);
+		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, t, i, e, w, args...);
+	}
+
 	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
 	 *
 	 *	You may pass the following configuration parameters:
@@ -176,6 +190,8 @@ namespace gvk
 	 *	- std::function<void(vk::PhysicalDeviceAccelerationStructureFeaturesKHR&)>	  ... A function which can be used to modify the vk::PhysicalDeviceRayTracingFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingFeaturesKHR directly!
 	 *	- std::function<void(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR&)>	      ... A function which can be used to modify the vk::PhysicalDeviceRayTracingPipelineFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayTracingPipelineFeaturesKHR directly!
 	 *	- std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)>	              ... A function which can be used to modify the vk::PhysicalDeviceRayQueryFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayQueryFeaturesKHR directly!
+	 *	- std::function<void(vk::DebugUtilsMessageSeverityFlagsEXT&)>                 ... A function which can be used to modify the vk::DebugUtilsMessageSeverityFlagsEXT flags which will be enabled for the debug utils.
+	 *	- std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)>                     ... A function which can be used to modify the vk::DebugUtilsMessageTypeFlagsEXT flags which will be enabled for the debug utils.
 	 */
 	template <typename... Args>
 	static void start(Args&&... args)

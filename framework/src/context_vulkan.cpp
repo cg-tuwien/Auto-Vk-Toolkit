@@ -719,17 +719,26 @@ namespace gvk
 
 		VkDebugUtilsMessengerCreateInfoEXT msgCreateInfo = {};
 		msgCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		msgCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		msgCreateInfo.messageSeverity = 0;
+		if (avk::has_flag(mSettings.mEnabledDebugUtilsMessageSeverities, vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)) {
+			msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		}
 #if LOG_LEVEL > 1
-		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		if (avk::has_flag(mSettings.mEnabledDebugUtilsMessageSeverities, vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)) {
+			msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		}
 #if LOG_LEVEL > 2
-		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+		if (avk::has_flag(mSettings.mEnabledDebugUtilsMessageSeverities, vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)) {
+			msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+		}
 #if LOG_LEVEL > 3
-		msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+		if (avk::has_flag(mSettings.mEnabledDebugUtilsMessageSeverities, vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose)) {
+			msgCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+		}
 #endif
 #endif
 #endif
-		msgCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+		msgCreateInfo.messageType = static_cast<VkDebugUtilsMessageTypeFlagsEXT>(mSettings.mEnabledDebugUtilsMessageTypes);
 		msgCreateInfo.pfnUserCallback = context_vulkan::vk_debug_utils_callback;
 
 		// Hook in

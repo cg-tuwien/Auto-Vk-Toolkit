@@ -204,5 +204,7 @@ namespace gvk
 		required_instance_extensions mRequiredInstanceExtensions;
 		validation_layers mValidationLayers;
 		required_device_extensions mRequiredDeviceExtensions;
+		vk::DebugUtilsMessageSeverityFlagsEXT mEnabledDebugUtilsMessageSeverities = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
+		vk::DebugUtilsMessageTypeFlagsEXT mEnabledDebugUtilsMessageTypes = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 	};
 }
