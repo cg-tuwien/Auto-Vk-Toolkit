@@ -13,7 +13,7 @@ namespace gvk
 	class quake_camera : public camera, public invokee
 	{
 	public:
-		quake_camera(std::string aName = "quake_camera", bool aIsEnabled = true, int aExecutionOrder = 0);
+		quake_camera(std::string aName = "quake_camera", bool aIsEnabled = true);
 		quake_camera(quake_camera&&) noexcept = default;
 		quake_camera(const quake_camera&) noexcept = default;
 		quake_camera& operator=(quake_camera&&) noexcept = default;

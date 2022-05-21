@@ -2,8 +2,8 @@
 
 namespace gvk
 {
-	quake_camera::quake_camera(std::string aName, bool aIsEnabled, int aExecutionOrder)
-		: invokee(std::move(aName), aIsEnabled, aExecutionOrder)
+	quake_camera::quake_camera(std::string aName, bool aIsEnabled)
+		: invokee(std::move(aName), aIsEnabled)
 		, mRotationSpeed(0.001f)
 		, mMoveSpeed(4.5f) // 4.5 m/s
 		, mFastMultiplier(6.0f) // 27 m/s

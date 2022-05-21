@@ -31,9 +31,8 @@ namespace gvk
 		 * @brief Constructor which automatically generates a name for this object
 		 * @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee(int aExecutionOrder = 0)
+		invokee()
 			: mName{ "invokee #" + std::to_string(sGeneratedNameId++) }
-			, mExecutionOrder{ aExecutionOrder }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
@@ -45,13 +44,12 @@ namespace gvk
 		 *	@param aIsEnabled Enabled means that this object will receive the method invocations during the loop
 		 *  @param aExecutionOrder sets the desired execution order of this invokee (default = 0)
 		 */
-		invokee(std::string aName, bool aIsEnabled = true, int aExecutionOrder = 0) 
+		invokee(std::string aName, bool aIsEnabled = true) 
 			: mName{ std::move(aName) }
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
 			, mRenderGizmosEnabled{ true }
-			, mExecutionOrder { aExecutionOrder }
 		{ }
 
 		virtual ~invokee()
@@ -74,7 +72,7 @@ namespace gvk
 		 *	render-, etc. methods invoked earlier; invokees with positive execution orders
 		 *	will be invoked later.
 		 */
-		virtual int execution_order() const { return mExecutionOrder; }
+		virtual int execution_order() const { return 0; }
 
 		/**	@brief Initialize this invokee
 		 *
@@ -288,7 +286,6 @@ namespace gvk
 	private:
 		inline static int32_t sGeneratedNameId = 0;
 		std::string mName;
-		int  mExecutionOrder = 0;
 		bool mWasEnabledLastFrame;
 		bool mEnabled;
 		bool mRenderEnabled;
