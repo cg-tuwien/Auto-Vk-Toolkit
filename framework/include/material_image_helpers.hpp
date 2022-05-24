@@ -527,6 +527,34 @@ namespace gvk
 	{
 		return Meta::create_from_total_size(aTotalSize, aNumElements);
 	}
+	
+	// Helper which creates meta data for a given data + content description, but only if the Meta type in question has a describe_member member:
+	template <typename T, typename Meta>
+	auto set_up_meta_for_data_with_or_without_describe_member(const T& aData, avk::content_description aContentDescription) requires has_describe_member<Meta>
+	{
+		return Meta::create_from_data(aData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aData)>::value_type>(), aContentDescription);
+	}
+
+	// Helper which creates meta data for a given data + content description, but only if the Meta type in question has a describe_member member:
+	template <typename T, typename Meta>
+	auto set_up_meta_for_data_with_or_without_describe_member(const T& aData, avk::content_description aContentDescription) requires (!has_describe_member<Meta>)
+	{
+		return Meta::create_from_data(aData);
+	}
+
+	// Helper which creates meta data for a given data + size specifications, but only if the Meta type in question has a describe_member member:
+	template <typename T, typename Meta>
+	auto set_up_meta_from_total_size_with_or_without_describe_member(const T& aData, size_t bufferTotalSize, size_t numBufferEntries, avk::content_description aContentDescription) requires has_describe_member<Meta>
+	{
+		return Meta::create_from_total_size(bufferTotalSize, numBufferEntries).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aData)>::value_type>(), aContentDescription);
+	}
+
+	// Helper which creates meta data for a given data + size specifications, but only if the Meta type in question has a describe_member member:
+	template <typename T, typename Meta>
+	auto set_up_meta_from_total_size_with_or_without_describe_member(const T& aData, size_t bufferTotalSize, size_t numBufferEntries, avk::content_description aContentDescription) requires (!has_describe_member<Meta>)
+	{
+		return Meta::create_from_total_size(bufferTotalSize, numBufferEntries);
+	}
 
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
 	 *	@param	aVerticesAndIndices			A tuple containing vertex positions data in the first element, and index data in the second element.
@@ -713,7 +741,7 @@ namespace gvk
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
 			avk::generic_buffer_meta::create_from_data(aBufferData),
-			Metas::create_from_data(aBufferData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
+			set_up_meta_for_data_with_or_without_describe_member<T, Metas>(aBufferData, aContentDescription)...
 		);
 
 		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
@@ -760,7 +788,7 @@ namespace gvk
 			auto buffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
 				avk::generic_buffer_meta::create_from_size(bufferTotalSize),
-				Metas::create_from_total_size(bufferTotalSize, numBufferEntries).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(aBufferData)>::value_type>(), aContentDescription)...
+				set_up_meta_from_total_size_with_or_without_describe_member<T, Metas>(aBufferData, bufferTotalSize, numBufferEntries, aContentDescription)...
 			);
 
 			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize);
