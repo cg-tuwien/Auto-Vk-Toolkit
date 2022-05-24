@@ -1363,8 +1363,20 @@ namespace gvk
 	 */
 	avk::sampler create_sampler_cached(gvk::serializer& aSerializer, avk::filter_mode aFilterMode, avk::border_handling_mode aBorderHandlingMode, float aMipMapMaxLod = VK_LOD_CLAMP_NONE, std::function<void(avk::sampler_t&)> aAlterConfigBeforeCreation = {});
 
+	/**	Convert the given material config into a format that is usable with a GPU buffer for the materials (i.e. properly vec4-aligned),
+	 *	and a set of images and samplers, which are already created on and uploaded to the GPU.
+	 *	@param	aMaterialConfigs			The material config in CPU format
+	 *	@param	aLoadTexturesInSrgb			Set to true to load the images in sRGB format if applicable
+	 *	@param	aFlipTextures				Set to true to y-flip images
+	 *	@param	aImageUsage					How this image is going to be used. Can be a combination of different avk::image_usage values
+	 *	@param	aTextureFilterMode			Texture filtering mode for all the textures. Trilinear or anisotropic filtering modes will trigger MIP-maps to be generated.
+	 *	@return	A tuple of three elements:
+	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
+	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
+	 *			<2>: Zero, one, or multiple commands that need to be executed to complete the operation. This can include operations like uploading image data, or creating mip maps.
+	 */
 	template <typename T>
-	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>, avk::command::action_type_command> convert_for_gpu_usage_cached(
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb,
 		bool aFlipTextures,
@@ -1372,6 +1384,8 @@ namespace gvk
 		avk::filter_mode aTextureFilterMode,
 		std::optional<std::reference_wrapper<gvk::serializer>> aSerializer = {})
 	{
+		avk::command::action_type_command commandsToReturn{};
+
 		// These are the texture names loaded from file -> mapped to vector of usage-pointers
 		std::unordered_map<std::string, std::vector<std::tuple<std::array<avk::border_handling_mode, 2>, std::vector<int*>>>> texNamesToBorderHandlingToUsages;
 
@@ -1667,7 +1681,7 @@ namespace gvk
 				// create_image_from_file_cached takes the serializer as an optional,
 				// therefore the call is safe with and without one
 				auto [tex, cmds] = create_image_from_file_cached(pair.first, true, potentiallySrgb, aFlipTextures, 4, avk::layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
-				//gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
+				commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
 				auto imgView = context().create_image_view(std::move(tex));
 				assert(!pair.second.empty());
 
@@ -1720,7 +1734,7 @@ namespace gvk
 
 				// Read an image from cache
 				auto [tex, cmds] = create_image_from_file_cached(pathDontCare, true, potentiallySrgbDontCare, aFlipTextures, 4, avk::layout::shader_read_only_optimal, avk::memory_usage::device, aImageUsage, aSerializer);
-				// gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled(); // TODO: cmds is currently always empty
+				commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
 				auto imgView = context().create_image_view(std::move(tex));
 
 				// Read the number of samplers from cache
@@ -1754,7 +1768,7 @@ namespace gvk
 		}
 
 		// Hand over ownership to the caller
-		return std::make_tuple(std::move(result), std::move(imageSamplers));
+		return std::make_tuple(std::move(result), std::move(imageSamplers), std::move(commandsToReturn));
 	}
 
 	
@@ -1766,12 +1780,13 @@ namespace gvk
 	 *	@param	aFlipTextures				Set to true to y-flip images			
 	 *	@param	aImageUsage					How this image is going to be used. Can be a combination of different avk::image_usage values
 	 *	@param	aTextureFilterMode			Texture filtering mode for all the textures. Trilinear or anisotropic filtering modes will trigger MIP-maps to be generated.
-	 *	@reutrn	A tuple with two elements:
+	 *	@return	A tuple of three elements:
 	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
 	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
+	 *			<2>: Zero, one, or multiple commands that need to be executed to complete the operation. This can include operations like uploading image data, or creating mip maps.
 	 */
 	template <typename T>
-	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage_cached(
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>, avk::command::action_type_command> convert_for_gpu_usage_cached(
 		gvk::serializer& aSerializer,
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb = false,
@@ -1822,15 +1837,13 @@ namespace gvk
 	 *	@param	aImageUsage				Image usage for all the textures that are loaded.
 	 *	@param	aTextureFilterMode		Texture filter mode for all the textures that are loaded.
 	 *	@param	aBorderHandlingMode		Border handling mode for all the textures that are loaded.
-	 *	@return	A tuple of two elements: The first element contains a vector of gvk::material_gpu_data
-	 *			entries, which are gvk::material_config entries converted into a format suitable to be
-	 *			used in UBOs or SSBOs, and the second element contains a vector of avk::image_samplers,
-	 *			containing all the "combined image samplers" for all the textures which are referenced
-	 *			from the gvk::material_gpu_data entries from the first tuple element. Also the second
-	 *			tuple element is suitable to be bound and used in GPU shaders as is.
+	 *	@return	A tuple of three elements:
+	 *			<0>: A collection of structs that contains material data converted to a GPU-suitable format. Image indices refer to the indices of the second tuple element:
+	 *			<1>: A list of image samplers that were loaded from the referenced images in aMaterialConfigs, i.e. these are already actual GPU resources.
+	 *			<2>: Zero, one, or multiple commands that need to be executed to complete the operation. This can include operations like uploading image data, or creating mip maps.
 	 */
 	template <typename T>
-	std::tuple<std::vector<T>, std::vector<avk::image_sampler>> convert_for_gpu_usage(
+	std::tuple<std::vector<T>, std::vector<avk::image_sampler>, avk::command::action_type_command> convert_for_gpu_usage(
 		const std::vector<gvk::material_config>& aMaterialConfigs,
 		bool aLoadTexturesInSrgb = false,
 		bool aFlipTextures = false,

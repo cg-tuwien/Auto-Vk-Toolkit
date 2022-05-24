@@ -110,6 +110,7 @@ namespace gvk
 		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
 
 		std::vector<avk::buffer> stagingBuffers;
+		avk::command::action_type_command aCommandToReturn{};
 
 		// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
 		for (uint32_t level = 0; level < maxLevels; ++level)
@@ -188,25 +189,22 @@ namespace gvk
 				// TODO: Verify the above ^ comment
 			}
 		}
-
+		
 		if (maxLevels == 1 && img->create_info().mipLevels > 1)
 		{
-			auto aSyncHandler = avk::old_sync::wait_idle();
 			// can't create MIP-maps for compressed formats
 			assert(!avk::is_block_compressed_format(format));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
-			img->generate_mip_maps(avk::old_sync::auxiliary_with_barriers(aSyncHandler, {}, {}), aImageLayout.mLayout, aImageLayout.mLayout);
-			aSyncHandler.submit_and_sync();
+			aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(img->generate_mip_maps(aImageLayout >> aImageLayout)); // Keep the layout the same
 		}
 		
-		return std::make_tuple(std::move(img), avk::command::action_type_command{});
+		return std::make_tuple(std::move(img), std::move(aCommandToReturn));
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
 		auto imageData = get_image_data(aPath, aLoadHdrIfPossible, aLoadSrgbIfApplicable, aFlip, aPreferredNumberOfTextureComponents);
-
 		return gvk::create_image_from_image_data_cached(imageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
