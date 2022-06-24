@@ -98,7 +98,11 @@ namespace gvk
 	void context_vulkan::check_vk_result(VkResult err)
 	{
 		const auto& inst = context().vulkan_instance();
+#if VK_HEADER_VERSION >= 198
+		vk::createResultValueType(static_cast<vk::Result>(err), "check_vk_result");
+#else
 		createResultValue(static_cast<vk::Result>(err), inst, "check_vk_result");
+#endif
 	}
 
 	void context_vulkan::initialize(
