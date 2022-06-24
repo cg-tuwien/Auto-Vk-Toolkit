@@ -729,13 +729,23 @@ namespace gvk
 		//recreate render pass only if really necessary, otherwise keep using the old one
 		if (aCreationMode == swapchain_creation_mode::create_new_swapchain || imageFormatChanged || additionalAttachmentsChanged)
 		{
-			auto newRenderPass = context().create_renderpass(renderpassAttachments);
+			auto newRenderPass = context().create_renderpass(renderpassAttachments, {
+				// We only create one subpass here => create default dependencies as per specification chapter 8.1) Render Pass Creation:
+				avk::subpass_dependency{avk::subpass::external >> avk::subpass::index(0),
+					avk::stage::none  >> avk::stage::all_commands,
+					avk::access::none >> avk::access::input_attachment_read | avk::access::color_attachment_read | avk::access::color_attachment_write | avk::access::depth_stencil_attachment_read | avk::access::depth_stencil_attachment_write
+				},
+				avk::subpass_dependency{avk::subpass::index(0) >> avk::subpass::external,
+					avk::stage::all_commands                                                          >> avk::stage::none,
+					avk::access::color_attachment_write | avk::access::depth_stencil_attachment_write >> avk::access::none
+				}
+			});
 			if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {
 				newRenderPass.enable_shared_ownership();
 			}
 			avk::assign_and_lifetime_handle_previous(mBackBufferRenderpass, std::move(newRenderPass), lifetimeHandlerLambda);
 		}
-
+		
 		std::vector<avk::framebuffer> newBuffers;
 		newBuffers.reserve(imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
