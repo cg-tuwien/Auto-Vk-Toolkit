@@ -131,7 +131,7 @@ namespace gvk
 					aSerializer->get().archive(texSize);
 					aSerializer->get().archive(levelExtent);
 				}
-#if _DEBUG
+#ifdef _DEBUG
 				{
 					auto imgExtent = img->create_info().extent;
 					auto levelDivisor = 1u << level;
@@ -167,7 +167,7 @@ namespace gvk
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
-				auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+				auto fence = gvk::context().record_and_submit_with_fence({
 						avk::sync::image_memory_barrier(img,
 							avk::stage::none  >> avk::stage::copy,
 							avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
@@ -183,7 +183,8 @@ namespace gvk
 							avk::stage::copy            >> avk::stage::none,
 							avk::access::transfer_write >> avk::access::none
 						).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
-					});
+					},
+					aQueue);
 				fence->wait_until_signalled();
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 				// TODO: Verify the above ^ comment

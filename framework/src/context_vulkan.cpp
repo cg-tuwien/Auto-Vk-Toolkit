@@ -44,10 +44,7 @@ namespace gvk
 	{
 		mContextState = gvk::context_state::about_to_finalize;
 		context().work_off_event_handlers();
-
-		avk::old_sync::sPoolToAllocCommandBuffersFrom = avk::command_pool{};
-		avk::old_sync::sQueueToUse = nullptr;
-
+		
 		mLogicalDevice.waitIdle();
 
 #if defined(AVK_USE_VMA)
@@ -320,10 +317,6 @@ namespace gvk
 			context().mDistinctQueues.push_back(tpl);
 		}
 
-		// TODO: Remove old_sync
-		avk::old_sync::sPoolToAllocCommandBuffersFrom = gvk::context().create_command_pool(mQueues.front().family_index(), {});
-		avk::old_sync::sQueueToUse = &mQueues.front();
-
 #if defined(AVK_USE_VMA)
 		// With everything in place, create the memory allocator:
 		VmaAllocatorCreateInfo allocatorInfo = {};
@@ -450,12 +443,6 @@ namespace gvk
 
 		fen->handle_lifetime_of(std::move(cmdBfr));
 		return fen;
-	}
-
-	avk::fence context_vulkan::record_and_submit_with_fence_old_sync_replacement(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions)
-	{
-		auto* anyQueue = &mQueues.front();
-		return record_and_submit_with_fence(std::move(aRecordedCommandsAndSyncInstructions), anyQueue, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	}
 
 	avk::queue& context_vulkan::create_queue(vk::QueueFlags aRequiredFlags, avk::queue_selection_preference aQueueSelectionPreference, window* aPresentSupportForWindow, float aQueuePriority)

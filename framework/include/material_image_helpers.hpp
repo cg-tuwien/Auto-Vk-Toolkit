@@ -415,7 +415,8 @@ namespace gvk
 
 	/** Helper function to fill a given device buffer with a staging buffer whose contents are loaded from a cache file.
 	 *	@param	aSerializer		The serializer in gvk::serializer::mode::deserialize
-	 *	@param	aDevicebuffer	The target buffer
+	 *	@param  aQueue			The queue to submit the commands to
+	 *	@param	aDeviceBuffer	The target buffer
 	 *	@param	aTotalSize		Size of the staging buffer
 	 */
 	static inline avk::command::action_type_command fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize)
@@ -431,9 +432,11 @@ namespace gvk
 		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
 		
-		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
+		auto fence = gvk::context().record_and_submit_with_fence({
 				avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize)
-			});
+			},
+			aQueue
+		);
 		fence->wait_until_signalled();
 		return avk::command::action_type_command{};
 
@@ -1649,7 +1652,7 @@ namespace gvk
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
 			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
-			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
+			gvk::context().record_and_submit_with_fence({ std::move(cmds) }, aQueue)->wait_until_signalled();
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)

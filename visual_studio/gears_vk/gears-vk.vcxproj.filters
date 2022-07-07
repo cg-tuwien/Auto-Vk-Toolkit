@@ -85,9 +85,6 @@
     <ClCompile Include="..\..\framework\src\composition.cpp">
       <Filter>gears-vk_src\base</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vk\src\sync.cpp">
-      <Filter>auto-vk_src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp">
       <Filter>auto-vk_src</Filter>
     </ClCompile>

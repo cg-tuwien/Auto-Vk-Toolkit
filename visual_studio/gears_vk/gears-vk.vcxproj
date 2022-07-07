@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
-    <ClCompile Include="..\..\auto_vk\src\sync.cpp" />
     <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
