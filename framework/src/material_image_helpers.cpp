@@ -167,25 +167,25 @@ namespace gvk
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
-				auto fence = gvk::context().record_and_submit_with_fence({
-						avk::sync::image_memory_barrier(img,
-							avk::stage::none  >> avk::stage::copy,
-							avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
-						).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
-					
-						avk::copy_buffer_to_image_layer_mip_level(
-							avk::const_referenced(sb), avk::referenced(img),
-							face, level,
-							avk::layout::transfer_dst
-						),
-
-						avk::sync::image_memory_barrier(img,
-							avk::stage::copy            >> avk::stage::none,
-							avk::access::transfer_write >> avk::access::none
-						).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
-					},
-					aQueue);
-				fence->wait_until_signalled();
+				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+					avk::sync::image_memory_barrier(img,
+						avk::stage::none  >> avk::stage::copy,
+						avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
+					).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst)
+				);
+				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+					avk::copy_buffer_to_image_layer_mip_level(
+						avk::const_referenced(sb), avk::referenced(img),
+						face, level,
+						avk::layout::transfer_dst
+					)
+				);
+				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+					avk::sync::image_memory_barrier(img,
+						avk::stage::copy            >> avk::stage::none ,
+						avk::access::transfer_write >> avk::access::none
+					).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
+				);
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 				// TODO: Verify the above ^ comment
 			}

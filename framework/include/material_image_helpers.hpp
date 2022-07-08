@@ -429,17 +429,13 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(aTotalSize)
 		);
+		sb.enable_shared_ownership();
 		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
 		
-		auto fence = gvk::context().record_and_submit_with_fence({
-				avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize)
-			},
-			aQueue
-		);
-		fence->wait_until_signalled();
-		return avk::command::action_type_command{};
-
+		auto actionTypeCommand = avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize);
+		actionTypeCommand.handle_lifetime_of(std::move(sb)); // TODO: Lifetime handling should go into the command buffer
+		return actionTypeCommand;
 	}
 
 	/**	Get a tuple of <0>:vertices and <1>:indices from the given selection of models and associated mesh indices.
@@ -566,13 +562,15 @@ namespace gvk
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
 	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the returned tuple's elements refer to:
-	 *			<0>: buffer containing vertex positions
-	 *			<1>: buffer containing indices
+	 *			<0>: Buffer containing vertex positions. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<1>: Buffer containing indices.          Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<2>: Commands that need to be executed on a queue to complete the operation.
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers(const std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		const auto& [positionsData, indicesData] = aVerticesAndIndices;
+		avk::command::action_type_command actionTypeCommand{};
 
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
@@ -580,10 +578,9 @@ namespace gvk
 			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
 		
-		auto fence1 = gvk::context().record_and_submit_with_fence_old_sync_replacement({
-				positionsBuffer->fill(positionsData.data(), 0)
-			});
-		fence1->wait_until_signalled();
+		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(positionsBuffer->fill(positionsData.data(), 0));
+		positionsBuffer.enable_shared_ownership();
+		actionTypeCommand.handle_lifetime_of(positionsBuffer); // TODO: Actually, the command buffer should handle its lifetime.
 
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
@@ -594,12 +591,9 @@ namespace gvk
 			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
 
-		auto fence2 = gvk::context().record_and_submit_with_fence_old_sync_replacement({
-				indexBuffer->fill(indicesData.data(), 0)
-			});
-		fence2->wait_until_signalled();
+		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(indexBuffer->fill(indicesData.data(), 0), 0);
 
-		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer), std::move(actionTypeCommand));
 	}
 	
 	/**	Get a tuple of two buffers, containing vertex positions and index positions, respectively, from the given input data.
@@ -612,9 +606,10 @@ namespace gvk
 	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the returned tuple's elements refer to:
 	 *			<0>: buffer containing vertex positions
 	 *			<1>: buffer containing indices
+	 *			<2>: commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags);
 	}
@@ -627,11 +622,12 @@ namespace gvk
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
 	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the tuple elements refer to:
-	 *			<0>: buffer containing vertex positions
-	 *			<1>: buffer containing indices
+	 *			<0>: Buffer containing vertex positions. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<1>: Buffer containing indices.          Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<2>: Commands that need to be executed on a queue to complete the operation.
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>>& aVerticesAndIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		size_t numPositions = 0;
 		size_t totalPositionsSize = 0;
@@ -675,9 +671,9 @@ namespace gvk
 				set_up_meta_from_total_size_for_index_buffer<Metas>(totalIndicesSize, numIndices)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize);
+			auto actionTypeCommand = fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize);
 
-			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer));
+			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer), std::move(actionTypeCommand));
 		}
 	}
 
@@ -690,11 +686,12 @@ namespace gvk
 	 *										avk::vertex_buffer_meta, and avk::index_buffer_meta, as appropriate for the two buffers.
 	 *										The additional meta data declarations will always refer to the whole data in the buffers; specifying subranges is not supported.
 	 *	@return	A tuple of two buffers in device memory which contain the given input data, where the tuple elements refer to:
-	 *			<0>: buffer containing vertex positions
-	 *			<1>: buffer containing indices
+	 *			<0>: Buffer containing vertex positions. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<1>: Buffer containing indices.          Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <2>) have completed execution.
+	 *			<2>: Commands that need to be executed on a queue to complete the operation.
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -708,10 +705,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer(const T& aBufferData, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_buffer(const T& aBufferData, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
@@ -719,15 +718,8 @@ namespace gvk
 			Metas::create_from_data(aBufferData)...
 		);
 
-		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
-			buffer->fill(aBufferData.data(), 0)
-			});
-		fence->wait_until_signalled();
-
-		// It is fine to let aBufferData go out of scope, since its data has been copied to a
-		// staging buffer within create_buffer, which is lifetime-handled by the command buffer.
-
-		return buffer;
+		auto actionTypeCommand = buffer->fill(aBufferData.data(), 0);
+		return std::make_tuple(std::move(buffer), std::move(actionTypeCommand));
 	}
 
 	/**	Create a device buffer that contains the given input data
@@ -736,10 +728,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_buffer(const T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		auto buffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
@@ -747,15 +741,9 @@ namespace gvk
 			set_up_meta_for_data_with_or_without_describe_member<T, Metas>(aBufferData, aContentDescription)...
 		);
 
-		auto fence = gvk::context().record_and_submit_with_fence_old_sync_replacement({
-			buffer->fill(aBufferData.data(), 0)
-		});
-		fence->wait_until_signalled();
+		auto actionTypeCommand = buffer->fill(aBufferData.data(), 0);
+		return std::make_tuple(std::move(buffer), std::move(actionTypeCommand));
 
-		// It is fine to let aBufferData go out of scope, since its data has been copied to a
-		// staging buffer within create_buffer, which is lifetime-handled by the command buffer.
-
-		return buffer;
 	}
 
 	/** Create a device buffer that contains the given input data
@@ -765,10 +753,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename T, typename... Metas>
-	avk::buffer create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_buffer_cached(gvk::serializer& aSerializer, T& aBufferData, avk::content_description aContentDescription, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		size_t numBufferEntries = 0;
 		size_t bufferTotalSize = 0;
@@ -794,9 +784,8 @@ namespace gvk
 				set_up_meta_from_total_size_with_or_without_describe_member<T, Metas>(aBufferData, bufferTotalSize, numBufferEntries, aContentDescription)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize);
-
-			return buffer;
+			auto actionTypeCommand = fill_device_buffer_from_cache(aSerializer, buffer, bufferTotalSize);
+			return std::make_tuple(std::move(buffer), std::move(actionTypeCommand));
 		}
 	}
 	
@@ -821,10 +810,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the normals. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags);
 	}
@@ -836,10 +827,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the normals. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> normalsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -869,10 +862,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the tangents. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags);
 	}
@@ -884,10 +879,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the tangents. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> tangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -917,10 +914,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the bitangents. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags);
 	}
@@ -932,10 +931,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> bitangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -962,15 +963,17 @@ namespace gvk
 	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
 	
 	/**	Get a buffer containing colors from the given input data.
-		 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
-		 *										All the data they refer to is combined into a a common result. Their order is maintained.
-		 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
-		 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
-		 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-		 *	@return	A buffer in device memory which contains the given input data.
-		 */
+	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
+	 *										All the data they refer to is combined into a a common result. Their order is maintained.
+	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
+	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
+	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
+	 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags);
 	}
@@ -982,10 +985,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the colors. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> colorsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1018,10 +1023,12 @@ namespace gvk
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the bone weights. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags);
 	}
@@ -1034,10 +1041,12 @@ namespace gvk
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> boneWeightsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1111,10 +1120,12 @@ namespace gvk
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the bone indices. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags);
 	}
@@ -1127,10 +1138,12 @@ namespace gvk
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given input data. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1269,10 +1282,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1285,10 +1300,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1304,10 +1321,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1320,10 +1339,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1339,10 +1360,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffer is created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer(const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1355,10 +1378,12 @@ namespace gvk
 	 *	@param	aUsageFlags					Additional usage flags that the buffers are created with.
 	 *	@tparam	Metas						A list of buffer meta data types which shall be added to the creation of the buffer.
 	 *										The additional meta data declarations will always refer to the whole data in the buffer; specifying subranges is not supported.
-	 *	@return	A buffer in device memory which contains the given input data.
+	 *	@return	A tuple containing the following values:
+	 *			<0>: A buffer in device memory which will contain the given texture coordinates. Attention: The user of this function must ensure that it is not destroyed before the returned commands (at tuple index <1>) have completed execution.
+	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	avk::buffer create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1652,7 +1677,7 @@ namespace gvk
 		// Create the white texture and assign its index to all usages
 		if (numWhiteTexUsages > 0) {
 			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
-			gvk::context().record_and_submit_with_fence({ std::move(cmds) }, aQueue)->wait_until_signalled();
+			commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
@@ -1678,7 +1703,7 @@ namespace gvk
 		// Create the normal texture, containing a normal pointing straight up, and assign to all usages
 		if (numStraightUpNormalTexUsages > 0) {
 			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
-			gvk::context().record_and_submit_with_fence_old_sync_replacement({ std::move(cmds) })->wait_until_signalled();
+			commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
 			auto imgView = gvk::context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
