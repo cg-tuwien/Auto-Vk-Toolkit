@@ -10,6 +10,7 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(sizeof(aColor))
 		);
+
 		if (!aSerializer) {
 			auto nop = stagingBuffer->fill(aColor.data(), 0);
 			assert(!nop.mBeginFun);
@@ -27,7 +28,7 @@ namespace gvk
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 
-		auto result = std::make_tuple(std::move(img), avk::command::action_type_command {
+		auto actionTypeCommand = avk::command::action_type_command{
 			avk::sync::sync_hint{
 				vk::PipelineStageFlagBits2KHR::eTransfer, vk::AccessFlagBits2KHR::eTransferWrite | vk::AccessFlagBits2KHR::eTransferRead,
 				vk::PipelineStageFlagBits2KHR::eTransfer,   vk::AccessFlagBits2KHR::eTransferWrite
@@ -36,20 +37,19 @@ namespace gvk
 			{
 				avk::sync::image_memory_barrier(img,
 					avk::stage::transfer >> avk::stage::copy,
-					avk::access::none    >> avk::access::transfer_read | avk::access::transfer_write
+					avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
-				copy_buffer_to_image(avk::const_referenced(stagingBuffer), avk::referenced(img), avk::layout::transfer_dst),
+				copy_buffer_to_image(stagingBuffer, img.as_reference(), avk::layout::transfer_dst),
 
 				avk::sync::image_memory_barrier(img,
-					avk::stage::copy             >> avk::stage::transfer,
-					avk::access::transfer_write  >> avk::access::none 
+					avk::stage::copy >> avk::stage::transfer,
+					avk::access::transfer_write >> avk::access::none
 				).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
 			}
-		});
-		stagingBuffer.enable_shared_ownership(); // TODO: WHAAAAAIIII can't it be moved?
-		std::get<1>(result).handle_lifetime_of(std::move(stagingBuffer));
-		return result;
+		};
+
+		return std::make_tuple(std::move(img), std::move(actionTypeCommand));
 	}
 
 	static std::tuple<avk::image, avk::command::action_type_command> create_1px_texture(std::array<uint8_t, 4> aColor, avk::layout::image_layout aImageLayout, vk::Format aFormat = vk::Format::eR8G8B8A8Unorm, avk::memory_usage aMemoryUsage = avk::memory_usage::device, avk::image_usage aImageUsage = avk::image_usage::general_texture)
@@ -429,7 +429,7 @@ namespace gvk
 			vk::BufferUsageFlagBits::eTransferSrc,
 			avk::generic_buffer_meta::create_from_size(aTotalSize)
 		);
-		sb.enable_shared_ownership();
+
 		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
 		
@@ -579,8 +579,7 @@ namespace gvk
 		);
 		
 		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(positionsBuffer->fill(positionsData.data(), 0));
-		positionsBuffer.enable_shared_ownership();
-		actionTypeCommand.handle_lifetime_of(positionsBuffer); // TODO: Actually, the command buffer should handle its lifetime.
+		actionTypeCommand.handle_lifetime_of(std::move(positionsBuffer)); 
 
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
@@ -592,6 +591,7 @@ namespace gvk
 		);
 
 		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(indexBuffer->fill(indicesData.data(), 0), 0);
+		actionTypeCommand.handle_lifetime_of(std::move(indexBuffer));
 
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer), std::move(actionTypeCommand));
 	}

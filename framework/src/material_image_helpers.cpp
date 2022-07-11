@@ -109,8 +109,7 @@ namespace gvk
 		// 2. Copy buffer to image
 		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
 
-		std::vector<avk::buffer> stagingBuffers;
-		avk::command::action_type_command aCommandToReturn{};
+		avk::command::action_type_command actionTypeCommand{};
 
 		// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
 		for (uint32_t level = 0; level < maxLevels; ++level)
@@ -144,11 +143,11 @@ namespace gvk
 				}
 #endif
 
-				auto& sb = stagingBuffers.emplace_back(context().create_buffer(
+				auto sb = context().create_buffer(
 					AVK_STAGING_BUFFER_MEMORY_USAGE,
 					vk::BufferUsageFlagBits::eTransferSrc,
 					avk::generic_buffer_meta::create_from_size(texSize)
-				));
+				);
 
 				if (!aSerializer) {
 					auto nop = sb->fill(texData, 0);
@@ -167,20 +166,20 @@ namespace gvk
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.
-				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+				actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(
 					avk::sync::image_memory_barrier(img,
 						avk::stage::none  >> avk::stage::copy,
 						avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
 					).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst)
 				);
-				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+				actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(
 					avk::copy_buffer_to_image_layer_mip_level(
-						avk::const_referenced(sb), avk::referenced(img),
+						sb, img.as_reference(),
 						face, level,
 						avk::layout::transfer_dst
 					)
 				);
-				aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(
+				actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(
 					avk::sync::image_memory_barrier(img,
 						avk::stage::copy            >> avk::stage::none ,
 						avk::access::transfer_write >> avk::access::none
@@ -188,6 +187,8 @@ namespace gvk
 				);
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
 				// TODO: Verify the above ^ comment
+
+				actionTypeCommand.handle_lifetime_of(std::move(sb));
 			}
 		}
 		
@@ -197,10 +198,10 @@ namespace gvk
 			assert(!avk::is_block_compressed_format(format));
 
 			// For uncompressed formats, create MIP-maps via BLIT:
-			aCommandToReturn.mNestedCommandsAndSyncInstructions.push_back(img->generate_mip_maps(aImageLayout >> aImageLayout)); // Keep the layout the same
+			actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(img->generate_mip_maps(aImageLayout >> aImageLayout)); // Keep the layout the same
 		}
-		
-		return std::make_tuple(std::move(img), std::move(aCommandToReturn));
+
+		return std::make_tuple(std::move(img), std::move(actionTypeCommand));
 	}
 
 	std::tuple<avk::image, avk::command::action_type_command> create_image_from_file_cached(const std::string& aPath, bool aLoadHdrIfPossible, bool aLoadSrgbIfApplicable, bool aFlip, int aPreferredNumberOfTextureComponents, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)

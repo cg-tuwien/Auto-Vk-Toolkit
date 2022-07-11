@@ -752,9 +752,9 @@ namespace gvk
 			auto& imView = mSwapChainImageViews[i];
 			auto imExtent = imView->get_image().create_info().extent;
 			// Create one image view per attachment
-			std::vector<avk::resource_ownership<avk::image_view_t>> imageViews;
+			std::vector<avk::image_view> imageViews;
 			imageViews.reserve(renderpassAttachments.size());
-			imageViews.push_back(avk::shared(imView)); // The color attachment is added in any case
+			imageViews.push_back(imView); // The color attachment is added in any case
 			// reuse image views if updating, however not if there are new additional attachments
 			// if the number of presentation images is now higher than the previous creation, we need new image views on top of previous ones
 			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain && !additionalAttachmentsChanged && i < mBackBuffers.size()) {
@@ -767,11 +767,11 @@ namespace gvk
 				for (auto& aa : additionalAttachments) {
 					if (aa.is_used_as_depth_stencil_attachment()) {
 						imageViews.emplace_back(context().create_depth_image_view(
-							avk::owned(context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment)))); // TODO: read_only_* or better general_*?
+							context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::read_only_depth_stencil_attachment))); // TODO: read_only_* or better general_*?
 					}
 					else {
 						imageViews.emplace_back(context().create_image_view(
-							avk::owned(context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment))));
+							context().create_image(imExtent.width, imExtent.height, aa.format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment)));
 					}
 				}
 			}
