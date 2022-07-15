@@ -132,6 +132,7 @@
     <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\stage_and_access.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\old_sync.hpp" />
     <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp" />

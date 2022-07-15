@@ -87,11 +87,16 @@ namespace gvk
 				// the user interface shall be drawn on top of the rest.
 				// 
 				avk::sync::sync_hint {
-					vk::PipelineStageFlagBits2KHR::eFragmentShader | vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
-					vk::AccessFlagBits2KHR::eShaderSampledRead     | vk::AccessFlagBits2KHR::eColorAttachmentWrite,
-					vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
-					vk::AccessFlagBits2KHR::eColorAttachmentWrite
+					{{ // What previous commands must synchronize with:
+						vk::PipelineStageFlagBits2KHR::eFragmentShader | vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
+						vk::AccessFlagBits2KHR::eShaderSampledRead     | vk::AccessFlagBits2KHR::eColorAttachmentWrite
+					}},
+					{{ // What subsequent commands must synchronize with:
+						vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
+						vk::AccessFlagBits2KHR::eColorAttachmentWrite
+					}}
 				},
+				{}, // No resource-specific hints (possible?)
 				[this] (avk::resource_reference<avk::command_buffer_t> cb) {
 					this->render_into_command_buffer(cb);
 				}

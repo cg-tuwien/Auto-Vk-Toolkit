@@ -528,6 +528,9 @@
     <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\stage_and_access.hpp">
+      <Filter>auto-vk_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="precompiled_headers">

@@ -28,26 +28,33 @@ namespace gvk
 
 		auto img = context().create_image(1u, 1u, aFormat, 1, aMemoryUsage, aImageUsage);
 
+		using namespace avk;
 		auto actionTypeCommand = avk::command::action_type_command{
-			avk::sync::sync_hint{
-				vk::PipelineStageFlagBits2KHR::eTransfer, vk::AccessFlagBits2KHR::eTransferWrite | vk::AccessFlagBits2KHR::eTransferRead,
-				vk::PipelineStageFlagBits2KHR::eTransfer,   vk::AccessFlagBits2KHR::eTransferWrite
+			{},
+			{ // Resource-specific sync-hints (will be accumulated later into mSyncHint):
+				// No need for a sync hint for the staging buffer; it is in host-visible memory. Nothing must be waited on before we can start to fill it.
+				std::make_tuple(img->handle(), avk::sync::sync_hint{ // But create a sync hint for the image:
+					avk::stage::none     + avk::access::none,          // No need for any dependencies to previous commands. The host-visible data is made available on the queue submit.
+					avk::stage::transfer + avk::access::transfer_write // Dependency chain with the last image_memory_barrier
+				})
 			},
 			{}, // No mBeginFun, only nested commands:
 			{
 				avk::sync::image_memory_barrier(img,
-					avk::stage::transfer >> avk::stage::copy,
-					avk::access::none >> avk::access::transfer_read | avk::access::transfer_write
+					avk::stage::none  >> avk::stage::copy,
+					avk::access::none >> avk::access::transfer_write
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
 				copy_buffer_to_image(stagingBuffer, img.as_reference(), avk::layout::transfer_dst),
 
 				avk::sync::image_memory_barrier(img,
-					avk::stage::copy >> avk::stage::transfer,
+					avk::stage::copy            >> avk::stage::transfer,
 					avk::access::transfer_write >> avk::access::none
 				).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
 			}
 		};
+
+		actionTypeCommand.infer_sync_hint_from_resource_sync_hints();
 
 		return std::make_tuple(std::move(img), std::move(actionTypeCommand));
 	}
