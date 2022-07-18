@@ -40,9 +40,9 @@ namespace gvk
 			},
 			{}, // No mBeginFun, only nested commands:
 			{
-				avk::sync::image_memory_barrier(img,
+				avk::sync::image_memory_barrier(img, // No need to wait on the staging buffer since it is in host-visible memory
 					avk::stage::none  >> avk::stage::copy,
-					avk::access::none >> avk::access::transfer_write
+					avk::access::none >> avk::access::transfer_read | avk::access::transfer_write // Just wait on the image layout transition
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
 				copy_buffer_to_image(stagingBuffer, img.as_reference(), avk::layout::transfer_dst),
@@ -426,7 +426,7 @@ namespace gvk
 	 *	@param	aDeviceBuffer	The target buffer
 	 *	@param	aTotalSize		Size of the staging buffer
 	 */
-	static inline avk::command::action_type_command fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::buffer& aDeviceBuffer, size_t aTotalSize)
+	static inline avk::command::action_type_command fill_device_buffer_from_cache(gvk::serializer& aSerializer, avk::resource_argument<avk::buffer_t> aDeviceBuffer, size_t aTotalSize)
 	{
 		assert(aSerializer.mode() == gvk::serializer::mode::deserialize);
 		
@@ -440,8 +440,7 @@ namespace gvk
 		// Let the serializer map and fill the buffer
 		aSerializer.archive_buffer(sb);
 		
-		auto actionTypeCommand = avk::copy_buffer_to_another(avk::referenced(sb), avk::referenced(aDeviceBuffer), 0, 0, aTotalSize);
-		actionTypeCommand.handle_lifetime_of(std::move(sb)); // TODO: Lifetime handling should go into the command buffer
+		auto actionTypeCommand = avk::copy_buffer_to_another(std::move(sb), std::move(aDeviceBuffer), 0, 0, aTotalSize);
 		return actionTypeCommand;
 	}
 

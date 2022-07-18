@@ -28,6 +28,8 @@ namespace gvk
 
 	std::tuple<avk::image, avk::command::action_type_command> create_image_from_image_data_cached(image_data& aImageData, avk::layout::image_layout aImageLayout, avk::memory_usage aMemoryUsage, avk::image_usage aImageUsage, std::optional<std::reference_wrapper<gvk::serializer>> aSerializer)
 	{
+		using namespace avk;
+
 		uint32_t width = 0;
 		uint32_t height = 0;
 		vk::Format format = vk::Format::eUndefined;
@@ -109,7 +111,16 @@ namespace gvk
 		// 2. Copy buffer to image
 		// Load all Mipmap levels from file, or load only the base level and generate other levels from that
 
-		avk::command::action_type_command actionTypeCommand{};
+		auto actionTypeCommand = avk::command::action_type_command{
+			{},
+			{ // Resource-specific sync-hints (will be accumulated later into mSyncHint):
+				// No need for a sync hint for the staging buffer; it is in host-visible memory. Nothing must be waited on before we can start to fill it.
+				std::make_tuple(img->handle(), avk::sync::sync_hint{ // But create a sync hint for the image:
+					avk::stage::none     + avk::access::none,          // No need for any dependencies to previous commands. The host-visible data is made available on the queue submit.
+					avk::stage::transfer + avk::access::transfer_write // Dependency chain with the last image_memory_barrier
+				})
+			}
+		};
 
 		// TODO: Do we have to account for gliTex.base_level() and gliTex.max_level()?
 		for (uint32_t level = 0; level < maxLevels; ++level)
@@ -200,6 +211,8 @@ namespace gvk
 			// For uncompressed formats, create MIP-maps via BLIT:
 			actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(img->generate_mip_maps(aImageLayout >> aImageLayout)); // Keep the layout the same
 		}
+
+		actionTypeCommand.infer_sync_hint_from_resource_sync_hints();
 
 		return std::make_tuple(std::move(img), std::move(actionTypeCommand));
 	}
