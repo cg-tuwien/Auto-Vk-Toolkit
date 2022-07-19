@@ -116,41 +116,41 @@ namespace gvk
 			return mSwapChainExtent;
 		}
 		/** Gets this window's swap chain's image at the specified index. */
-		avk::resource_reference<avk::image_t> swap_chain_image_at_index(size_t aIdx) {
-			return avk::referenced(mSwapChainImageViews[aIdx]->get_image()); // TODO: Would it be better to include the owning_resource in the resource_reference?
+		avk::image_t& swap_chain_image_at_index(size_t aIdx) {
+			return mSwapChainImageViews[aIdx]->get_image(); // TODO: Would it be better to include the owning_resource in the resource_reference?
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
-		std::vector<avk::resource_reference<avk::image_t>> swap_chain_image_views() 	{
-			std::vector<avk::resource_reference<avk::image_t>> allImageViews;
+		std::vector<std::reference_wrapper<avk::image_t>> swap_chain_image_views() 	{
+			std::vector<std::reference_wrapper<avk::image_t>> allImageViews;
 			allImageViews.reserve(mSwapChainImageViews.size());
 			for (auto& imView : mSwapChainImageViews) {
-				allImageViews.push_back(avk::referenced(imView->get_image())); // TODO: Would it be better to include the owning_resource in the resource_reference?
+				allImageViews.push_back(std::ref(imView->get_image())); // TODO: Would it be better to include the owning_resource in the resource_reference?
 			}
 			return allImageViews;
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		avk::resource_reference<avk::image_view_t> swap_chain_image_view_at_index(size_t aIdx) {
-			return avk::referenced(mSwapChainImageViews[aIdx]);
+		avk::image_view swap_chain_image_view_at_index(size_t aIdx) {
+			return mSwapChainImageViews[aIdx];
 		}
 
 		/** Gets a collection containing all this window's back buffers. */
-		std::vector<avk::resource_reference<avk::framebuffer_t>> backbuffers() {
-			std::vector<avk::resource_reference<avk::framebuffer_t>> allFramebuffers;
+		std::vector<avk::framebuffer> backbuffers() {
+			std::vector<avk::framebuffer> allFramebuffers;
 			allFramebuffers.reserve(mBackBuffers.size());
 			for (auto& fb : mBackBuffers) {
-				allFramebuffers.push_back(avk::referenced(fb));
+				allFramebuffers.push_back(fb);
 			}
 			return allFramebuffers;
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		avk::resource_reference<const avk::framebuffer_t> backbuffer_at_index(size_t aIdx) const {
-			return avk::const_referenced(mBackBuffers[aIdx]);
+		const avk::framebuffer_t& backbuffer_at_index(size_t aIdx) const {
+			return *mBackBuffers[aIdx];
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		avk::resource_reference<avk::framebuffer_t> backbuffer_at_index(size_t aIdx) {
-			return avk::referenced(mBackBuffers[aIdx]);
+		avk::framebuffer_t& backbuffer_at_index(size_t aIdx) {
+			return *mBackBuffers[aIdx];
 		}
 
 		/** Gets the number of how many frames are (potentially) concurrently rendered into,
@@ -192,12 +192,12 @@ namespace gvk
 		}
 
 		/** Returns the backbuffer for the current frame */
-		avk::resource_reference<avk::framebuffer_t> current_backbuffer() {
-			return avk::referenced(mBackBuffers[current_image_index()]);
+		avk::framebuffer current_backbuffer() const {
+			return mBackBuffers[current_image_index()];
 		}
 		/** Returns the backbuffer for the previous frame */
-		avk::resource_reference<avk::framebuffer_t> previous_backbuffer() {
-			return avk::referenced(mBackBuffers[previous_image_index()]);
+		avk::framebuffer previous_backbuffer() const {
+			return mBackBuffers[previous_image_index()];
 		}
 
 		/** Returns the swap chain image for the current frame. */
@@ -210,36 +210,36 @@ namespace gvk
 		}
 
 		/** Returns the swap chain image view for the current frame. */
-		avk::resource_reference<avk::image_view_t> current_image_view() {
-			return avk::referenced(mSwapChainImageViews[current_image_index()]);
+		avk::image_view current_image_view() {
+			return mSwapChainImageViews[current_image_index()];
 		}
 		/** Returns the swap chain image view for the previous frame. */
-		avk::resource_reference<avk::image_view_t> previous_image_view() {
-			return avk::referenced(mSwapChainImageViews[previous_image_index()]);
+		avk::image_view previous_image_view() {
+			return mSwapChainImageViews[previous_image_index()];
 		}
 
 		/** Returns the fence for the requested frame, which depends on the frame's "in flight index".
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		avk::resource_reference<avk::fence_t> fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
-			return avk::referenced(mFramesInFlightFences[in_flight_index_for_frame(aFrameId)]);
+		avk::fence fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+			return mFramesInFlightFences[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the fence for the current frame. */
-		avk::resource_reference<avk::fence_t> current_fence() {
-			return avk::referenced(mFramesInFlightFences[current_in_flight_index()]);
+		avk::fence current_fence() {
+			return mFramesInFlightFences[current_in_flight_index()];
 		}
 
 		/** Returns the "image available"-semaphore for the requested frame, which depends on the frame's "in flight index".
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		avk::resource_reference<avk::semaphore_t> image_available_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
-			return avk::referenced(mImageAvailableSemaphores[in_flight_index_for_frame(aFrameId)]);
+		avk::semaphore image_available_semaphore_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+			return mImageAvailableSemaphores[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the "image available"-semaphore for the current frame. */
-		avk::resource_reference<avk::semaphore_t> current_image_available_semaphore() {
-			return avk::referenced(mImageAvailableSemaphores[current_in_flight_index()]);
+		avk::semaphore current_image_available_semaphore() {
+			return mImageAvailableSemaphores[current_in_flight_index()];
 		}
 
 		/** Adds the given semaphore as an additional present-dependency to the given frame-id.
@@ -250,16 +250,16 @@ namespace gvk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		void add_present_dependency_for_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
-			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), aSemaphore.own());
+		void add_present_dependency_for_frame(avk::semaphore aSemaphore, std::optional<frame_id_t> aFrameId = {}) {
+			mPresentSemaphoreDependencies.emplace_back(aFrameId.value_or(current_frame()), std::move(aSemaphore));
 		}
 		/** Adds the given semaphore as an additional present-dependency to the current frame.
 		 *	That means, before an image is handed over to the presentation engine, the given semaphore must be signaled.
 		 *	You can add multiple render finished semaphores, but there should (must!) be at least one per frame.
 		 *	Important: It is the responsibility of the CALLER to ensure that the semaphore will be signaled.
 		 */
-		void add_present_dependency_for_current_frame(avk::resource_ownership<avk::semaphore_t> aSemaphore) {
-			mPresentSemaphoreDependencies.emplace_back(current_frame(), aSemaphore.own());
+		void add_present_dependency_for_current_frame(avk::semaphore aSemaphore) {
+			mPresentSemaphoreDependencies.emplace_back(current_frame(), std::move(aSemaphore));
 		}
 
 		/**	Pass a "single use" command buffer for the given frame and have its lifetime handled.
@@ -269,7 +269,7 @@ namespace gvk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void handle_lifetime(avk::resource_ownership<avk::command_buffer_t> aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
+		void handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
 
 		/** Pass the resources of an outdated swap chain and have its lifetime automatically handled.
 		 *	@param aOutdatedSwapchain	Resources to be moved into this function and to be lifetime-handled
@@ -309,7 +309,7 @@ namespace gvk
 
 		/** Gets a const reference to the backbuffer's render pass
 		 */
-		[[nodiscard]] avk::resource_reference<const avk::renderpass_t> get_renderpass() const { return avk::const_referenced(mBackBufferRenderpass); }
+		[[nodiscard]] avk::renderpass get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::old_sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -322,7 +322,7 @@ namespace gvk
 		auto command_buffer_lifetime_handler(std::optional<frame_id_t> aFrameId = {})
 		{
 			return [this, aFrameId](avk::command_buffer aCommandBufferToLifetimeHandle){
-				handle_lifetime(avk::owned(aCommandBufferToLifetimeHandle), aFrameId);
+				handle_lifetime(std::move(aCommandBufferToLifetimeHandle), aFrameId);
 			};
 		}
 
@@ -343,13 +343,13 @@ namespace gvk
 		 *	It must be used by user code for a semaphore-wait operation, at a useful location, 
 		 *	where the swapchain image must have become available for being rendered into.
 		 */
-		avk::resource_reference<avk::semaphore_t> consume_current_image_available_semaphore() {
+		avk::semaphore consume_current_image_available_semaphore() {
 			if (!mCurrentFrameImageAvailableSemaphore.has_value()) {
 				throw gvk::runtime_error("Current frame's image available semaphore has already been consumed. Must be consumed EXACTLY once. Do not try to get it multiple times!");
 			}
-			auto ref = mCurrentFrameImageAvailableSemaphore.value();
+			auto instance = std::move(mCurrentFrameImageAvailableSemaphore.value());
 			mCurrentFrameImageAvailableSemaphore.reset();
-			return ref;
+			return instance;
 		}
 
 		/** Returns whether or not the current frame's render finished fence has already been retrieved (by user code)
@@ -362,13 +362,13 @@ namespace gvk
 		/** Get a reference to the current frame's render finished fence. 
 		 *	It must be used by user code for a fence-signal operation, indicating when a frame has been rendered completely.
 		 */
-		avk::resource_reference<avk::fence_t> use_current_frame_finished_fence() {
+		avk::fence use_current_frame_finished_fence() {
 			if (!mCurrentFrameFinishedFence.has_value()) {
 				throw gvk::runtime_error("Current frame's frame finished fence has already been used. Must be used EXACTLY once. Do not try to get it multiple times!");
 			}
-			auto ref = mCurrentFrameFinishedFence.value();
+			auto instance = std::move(mCurrentFrameFinishedFence.value());
 			mCurrentFrameFinishedFence.reset();
-			return ref;
+			return instance;
 		}
 
 
@@ -509,10 +509,10 @@ namespace gvk
 		uint32_t mPreviousFrameImageIndex;
 
 		// Must be consumed EXACTLY ONCE per frame:
-		std::optional<avk::resource_reference<avk::semaphore_t>> mCurrentFrameImageAvailableSemaphore;
+		std::optional<avk::semaphore> mCurrentFrameImageAvailableSemaphore;
 
 		// Must be used EXACTLY ONCE per frame:
-		std::optional<avk::resource_reference<avk::fence_t>> mCurrentFrameFinishedFence;
+		std::optional<avk::fence> mCurrentFrameFinishedFence;
 		
 #pragma region recreation management
 		struct recreation_determinator

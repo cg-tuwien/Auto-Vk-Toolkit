@@ -289,24 +289,24 @@ namespace gvk
 		ImGui::NewFrame();
 	}
 
-	void imgui_manager::render_into_command_buffer(avk::resource_reference<avk::command_buffer_t> aCommandBuffer)
+	void imgui_manager::render_into_command_buffer(avk::command_buffer_t& aCommandBuffer)
 	{
 		for (auto& cb : mCallback) {
 			cb();
 		}
 
-		auto& cmdBfr = aCommandBuffer.get();
+		auto& cmdBfr = aCommandBuffer;
 
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr.record(avk::command::render_pass(const_referenced(mClearRenderpass), referenced(mainWnd->current_backbuffer()))); // Begin and end without nested commands
+			cmdBfr.record(avk::command::render_pass(*mClearRenderpass, *mainWnd->current_backbuffer())); // Begin and end without nested commands
 		}
 
 		assert(mRenderpass.has_value());
-		cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(const_referenced(mRenderpass), referenced(mainWnd->current_backbuffer())));
+		cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(*mRenderpass, *mainWnd->current_backbuffer()));
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
@@ -329,10 +329,10 @@ namespace gvk
 		cmdBfr->reset();
 
 		cmdBfr->begin_recording();
-		render_into_command_buffer(cmdBfr);
+		render_into_command_buffer(cmdBfr.as_reference());
 		cmdBfr->end_recording();
 
-		auto submission = mQueue->submit(avk::referenced(cmdBfr))
+		auto submission = mQueue->submit(cmdBfr.as_reference())
 			.signaling_upon_completion(avk::stage::color_attachment_output >> mRenderFinishedSemaphores[ifi])
 			.store_for_now();
 
@@ -353,7 +353,7 @@ namespace gvk
 		submission.submit();
 
 		//                        As far as ImGui is concerned, the next frame using the same target image must wait before color attachment output:
-		mainWnd->add_present_dependency_for_current_frame(avk::shared(mRenderFinishedSemaphores[ifi]));
+		mainWnd->add_present_dependency_for_current_frame(mRenderFinishedSemaphores[ifi]);
 
 		// Just let submission go out of scope => will submit in destructor, that's fine.
 	}
@@ -380,16 +380,16 @@ namespace gvk
 
 		if (mUsingSemaphoreInsteadOfFenceForFontUpload) {
 			auto semaphore = gvk::context().create_semaphore();
-			mQueue->submit(cmdBfr)
+			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(avk::stage::transfer >> semaphore);
 
 			// The following is not totally correct, i.e., living on the edge:
 			auto* mainWnd = gvk::context().main_window();
-			mainWnd->add_present_dependency_for_current_frame(avk::owned(semaphore));
+			mainWnd->add_present_dependency_for_current_frame(std::move(semaphore));
 		}
 		else {
 			auto fen = gvk::context().create_fence();
-			mQueue->submit(cmdBfr)
+			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(fen);
 
 			// This is totally correct, but incurs a fence wait:
@@ -459,10 +459,10 @@ namespace gvk
 		avk::assign_and_lifetime_handle_previous(mClearRenderpass, std::move(newClearRenderpass), lifetimeHandlerLambda);
 	}
 
-	ImTextureID imgui_manager::get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::layout::image_layout aImageLayout)
+	ImTextureID imgui_manager::get_or_create_texture_descriptor(const avk::image_sampler_t& aImageSampler, avk::layout::image_layout aImageLayout)
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache->get_or_create_descriptor_sets({
-			avk::descriptor_binding(0, 0, aImageSampler->as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
+			avk::descriptor_binding(0, 0, aImageSampler.as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
 		});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler

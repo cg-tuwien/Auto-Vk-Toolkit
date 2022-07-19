@@ -40,7 +40,7 @@ namespace gvk
 		 *	The flag mAlreadyRendered is set in ::update and evaluated in ::render to determine if ::render
 		 *	shall create a new command buffer and render into it and submit it to the queue.
 		 */
-		void render_into_command_buffer(avk::resource_reference<avk::command_buffer_t> aCommandBuffer);
+		void render_into_command_buffer(avk::command_buffer_t& aCommandBuffer);
 
 		void render() override;
 
@@ -63,7 +63,7 @@ namespace gvk
 		 *	@param	aImageLayout		The image layout that the image is expected to be given in
 		 *  @return ImTextureID			A DescriptorSet as ImGui identifier for textures
 		 */
-		ImTextureID get_or_create_texture_descriptor(avk::resource_reference<avk::image_sampler_t> aImageSampler, avk::layout::image_layout aImageLayout);
+		ImTextureID get_or_create_texture_descriptor(const avk::image_sampler_t& aImageSampler, avk::layout::image_layout aImageLayout);
 
 		operator avk::command::action_type_command()
 		{
@@ -97,7 +97,7 @@ namespace gvk
 					}}
 				},
 				{}, // No resource-specific hints (possible?)
-				[this] (avk::resource_reference<avk::command_buffer_t> cb) {
+				[this] (avk::command_buffer_t& cb) {
 					this->render_into_command_buffer(cb);
 				}
 			};

@@ -3,7 +3,7 @@
 namespace gvk
 {
 
-	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<avk::resource_ownership<model_t>, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices,
+	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices,
 		const bool aCombineSubmeshes, const uint32_t aMaxVertices, const uint32_t aMaxIndices)
 	{
 		return divide_into_meshlets(aModelsAndMeshletIndices, basic_meshlets_divider, aCombineSubmeshes, aMaxVertices, aMaxIndices);

@@ -193,13 +193,13 @@ namespace gvk {
 		 *
 		 *  @param[in] aValue A pointer to the block of memory to serialize or to fill from file
 		 */
-		inline void archive_buffer(avk::resource_reference<avk::buffer_t> aValue)
+		inline void archive_buffer(avk::buffer_t& aValue)
 		{
-			size_t size = aValue.get().create_info().size;
+			size_t size = aValue.create_info().size;
 			auto mapping =
 				(mode() == mode::serialize) ?
-				aValue->map_memory(avk::mapping_access::read) :
-				aValue->map_memory(avk::mapping_access::write);
+				aValue.map_memory(avk::mapping_access::read) :
+				aValue.map_memory(avk::mapping_access::write);
 			archive_memory(mapping.get(), size);
 		}
 

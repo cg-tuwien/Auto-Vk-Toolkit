@@ -212,7 +212,7 @@ namespace gvk
 		}
 	}
 
-	void window::handle_lifetime(avk::resource_ownership<avk::command_buffer_t> aCommandBuffer, std::optional<frame_id_t> aFrameId)
+	void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
 	{
 		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
 		if (!aFrameId.has_value()) {
@@ -221,7 +221,7 @@ namespace gvk
 
 		aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
 
-		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), aCommandBuffer.own());
+		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
 		// ^ Prefer code duplication over recursive_mutex
 	}
 
@@ -462,7 +462,7 @@ namespace gvk
 			waitSemHandles.clear();
 			waitSemHandles.emplace_back(sigSem->handle());
 			// Add it as dependency to the current frame, so that it gets properly lifetime-handled:
-			add_present_dependency_for_current_frame(avk::owned(sigSem));
+			add_present_dependency_for_current_frame(std::move(sigSem));
 		}
 
 		try
@@ -722,7 +722,7 @@ namespace gvk
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(const_referenced(mSwapChainImageViews[0]), avk::on_load::clear, avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::present_src))
+			avk::attachment::declare_for(*mSwapChainImageViews[0], avk::on_load::clear, avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::present_src))
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 
@@ -760,7 +760,7 @@ namespace gvk
 			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain && !additionalAttachmentsChanged && i < mBackBuffers.size()) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
 				for (int j = 1; j < backBufferImageViews.size(); j++) {
-					imageViews.emplace_back(gvk::context().create_image_view_from_template(backBufferImageViews[j], imageResize));
+					imageViews.emplace_back(gvk::context().create_image_view_from_template(*backBufferImageViews[j], imageResize));
 				}
 			}
 			else {
@@ -775,7 +775,7 @@ namespace gvk
 					}
 				}
 			}
-			auto& ref = newBuffers.emplace_back(gvk::context().create_framebuffer(avk::shared(mBackBufferRenderpass), std::move(imageViews), extent.x, extent.y));
+			auto& ref = newBuffers.emplace_back(gvk::context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), extent.x, extent.y));
 			ref.enable_shared_ownership();
 		}
 

@@ -130,20 +130,19 @@ namespace gvk
 	std::vector<meshlet> divide_indexed_geometry_into_meshlets(
 		const std::vector<glm::vec3>& aVertices,
 		const std::vector<uint32_t>& aIndices,
-		avk::resource_ownership<gvk::model_t> aModel,
+		gvk::model aModel,
 		const std::optional<mesh_index_t> aMeshIndex,
 		const uint32_t aMaxVertices, const uint32_t aMaxIndices,
 		F aMeshletDivision)
 	{
 		std::vector<meshlet> generatedMeshlets;
-		auto ownedModel = aModel.own();
-		ownedModel.enable_shared_ownership();
+		aModel.enable_shared_ownership();
 
 		if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<uint32_t>& tIndices, const model_t& tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
-			generatedMeshlets = aMeshletDivision(aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+			generatedMeshlets = aMeshletDivision(aIndices, aModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
 		}
 		else if constexpr (std::is_assignable_v<std::function<std::vector<meshlet>(const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& tIndices, const model_t& tModel, std::optional<mesh_index_t> tMeshIndex, uint32_t tMaxVertices, uint32_t tMaxIndices)>, decltype(aMeshletDivision)>) {
-			generatedMeshlets = aMeshletDivision(aVertices, aIndices, ownedModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
+			generatedMeshlets = aMeshletDivision(aVertices, aIndices, aModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
 		}
 		else {
 #if defined(_MSC_VER) && defined(__cplusplus)
@@ -156,7 +155,7 @@ namespace gvk
 
 		for (auto& meshlet : generatedMeshlets)
 		{
-			meshlet.mModel = ownedModel;
+			meshlet.mModel = aModel;
 		}
 
 		return generatedMeshlets;
@@ -168,7 +167,7 @@ namespace gvk
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 */
-	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices,
+	std::vector<meshlet> divide_into_meshlets(std::vector<gvk::model, std::vector<mesh_index_t>>& aModelsAndMeshletIndices,
 		const bool aCombineSubmeshes = true, const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378);
 
 	/** Divides the given models into meshlets using the given callback function.
@@ -201,16 +200,18 @@ namespace gvk
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet. This value is just passed on to aMeshletDivision.
 	 */
 	template <typename F>
-	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<avk::resource_ownership<gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices, F aMeshletDivision,
+	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices, F aMeshletDivision,
 		const bool aCombineSubmeshes = true, const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378)
 	{
 		std::vector<meshlet> meshlets;
 		for (auto& pair : aModelsAndMeshletIndices) {
-			auto& model = std::get<avk::resource_ownership<model_t>>(pair);
+			auto& model = std::get<gvk::model>(pair);
 			auto& meshIndices = std::get<std::vector<mesh_index_t>>(pair);
 
 			if (aCombineSubmeshes) {
-				auto [vertices, indices] = get_vertices_and_indices(std::vector({ std::make_tuple(avk::const_referenced(model.get()), meshIndices) }));
+				std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>> selection; // TODO: This is somehow stupid. There should be a nicer way to handle this
+				selection.emplace_back(std::cref(model.get()), meshIndices);
+				auto [vertices, indices] = get_vertices_and_indices(selection);
 				std::vector<meshlet> tmpMeshlets = divide_indexed_geometry_into_meshlets(vertices, indices, std::move(model), std::nullopt, aMaxVertices, aMaxIndices, std::move(aMeshletDivision));
 				// append to meshlets
 				meshlets.insert(std::end(meshlets), std::make_move_iterator(std::begin(tmpMeshlets)), std::make_move_iterator(std::end(tmpMeshlets)));
