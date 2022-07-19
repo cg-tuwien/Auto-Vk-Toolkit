@@ -396,9 +396,6 @@
     <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\auto_vk\include\avk\renderpass_sync.hpp">
-      <Filter>auto-vk_include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp">
       <Filter>auto-vk_include</Filter>
     </ClInclude>

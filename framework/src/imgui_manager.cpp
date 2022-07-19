@@ -302,19 +302,16 @@ namespace gvk
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mClearRenderpass), referenced(mainWnd->current_backbuffer()));
-			cmdBfr.end_render_pass();
+			cmdBfr.record(avk::command::render_pass(const_referenced(mClearRenderpass), referenced(mainWnd->current_backbuffer()))); // Begin and end without nested commands
 		}
 
 		assert(mRenderpass.has_value());
-		cmdBfr.begin_render_pass_for_framebuffer(const_referenced(mRenderpass), referenced(mainWnd->current_backbuffer()));
+		cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(const_referenced(mRenderpass), referenced(mainWnd->current_backbuffer())));
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
 
-		cmdBfr.end_render_pass();
-
-
+		cmdBfr.record(avk::command::end_render_pass());
 
 		mAlreadyRendered = true;
 	}
