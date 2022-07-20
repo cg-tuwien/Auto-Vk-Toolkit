@@ -8,12 +8,12 @@ namespace gvk
 	enum struct timer_frame_type
 	{
 		none	= 0x00,
-		/** Fixed timestep, "simulation timestep" */
-		fixed	= 0x01,
-		/** varying timestep, "render timestep" */
-		varying = 0x02,
+		/** Update timestep, "simulation timestep" */
+		update	= 0x01,
+		/** Render timestep, "render timestep" */
+		render	= 0x02,
 		/** any sort of timestep */
-		any		= fixed | varying
+		any		= update | render
 	};
 
 	inline timer_frame_type operator| (timer_frame_type a, timer_frame_type b)

@@ -15,14 +15,11 @@ namespace gvk
 	 *	  1. initialize
 	 *	  loop:
 	 *	    2. check and possibly issue on_enable event handlers
-	 *	    3. fixed_update 
-	 *	       possibly continue; // depending on the timer_interface used
-	 *	    4. update
-	 *	    5. render
-	 *	    6. render_gizmos
-	 *	    7. check and possibly issue on_disable event handlers
+	 *	    3. update
+	 *	    4. render
+	 *	    5. check and possibly issue on_disable event handlers
 	 *	  loop-end
-	 *	  8. finalize
+	 *	  6. finalize
 	 */
 	class invokee
 	{
@@ -36,7 +33,6 @@ namespace gvk
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ true }
 			, mRenderEnabled{ true }
-			, mRenderGizmosEnabled{ true }
 		{ }
 
 		/**	@brief Constructor
@@ -49,7 +45,6 @@ namespace gvk
 			, mWasEnabledLastFrame{ false }
 			, mEnabled{ aIsEnabled }
 			, mRenderEnabled{ true }
-			, mRenderGizmosEnabled{ true }
 		{ }
 
 		virtual ~invokee()
@@ -82,22 +77,9 @@ namespace gvk
 		 */
 		virtual void initialize() {}
 
-		/**	@brief Update this invokee at fixed intervals
+		/**	@brief Update this invokee before rendering with fixed or varying delta time
 		 *
-		 *	This method is called at fixed intervals with a fixed 
-		 *	delta time. Please note that this only applies to timers
-		 *	which support fixed update intervals. For all other timers,
-		 *	this method will simply be called each frame before the 
-		 *	regular @ref update is called.
-		 */
-		virtual void fixed_update() {}
-
-		/**	@brief Update this invokee before rendering with varying delta time
-		 *
-		 *	This method is called at varying intervals. Query the
-		 *	timer_interface's delta time to get the time which has passed since
-		 *	the last frame. This method will always be called after
-		 *	@ref fixed_update and before @ref render.
+		 *	This method is called either at fixed or at varying intervals, depending on the timer used. 
 		 */
 		virtual void update() {}
 
@@ -147,7 +129,6 @@ namespace gvk
 			mEnabled = true; 
 			if (pAlsoEnableRendering) {
 				mRenderEnabled = true;
-				mRenderGizmosEnabled = true;
 			}
 		}
 
@@ -179,7 +160,6 @@ namespace gvk
 			mEnabled = false; 
 			if (pAlsoDisableRendering) {
 				mRenderEnabled = false;
-				mRenderGizmosEnabled = false;
 			}
 		}
 
@@ -241,16 +221,8 @@ namespace gvk
 		 */
 		void set_render_enabled(bool pValue) { mRenderEnabled = pValue; }
 
-		/** @brief Enable or disable rendering of this element's gizmos
-		 *	@param pValue true to enable, false to disable
-		 */
-		void set_render_gizmos_enabled(bool pValue) { mRenderGizmosEnabled = pValue; }
-
 		/** @brief Returns whether rendering of this element is enabled or not. */
 		bool is_render_enabled() const { return mRenderEnabled; }
-
-		/** @brief Returns whether rendering this element's gizmos is enabled or not. */
-		bool is_render_gizmos_enabled() const { return mRenderGizmosEnabled; }
 
 		/** @brief applies the changes required by the updater, if one is created for this invokee.	*/
 		void apply_recreation_updates()
@@ -289,6 +261,5 @@ namespace gvk
 		bool mWasEnabledLastFrame;
 		bool mEnabled;
 		bool mRenderEnabled;
-		bool mRenderGizmosEnabled;
 	};
 }

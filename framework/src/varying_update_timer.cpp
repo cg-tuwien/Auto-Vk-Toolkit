@@ -18,7 +18,7 @@ namespace gvk
 		mTimeSinceStart = mAbsTime - mStartTime;
 		mDeltaTime = mTimeSinceStart - mLastTime;
 		mLastTime = mTimeSinceStart;
-		return timer_frame_type::any;
+		return timer_frame_type::any; // ALWAYS both, update and render
 	}
 
 	float varying_update_timer::absolute_time() const
@@ -70,5 +70,4 @@ namespace gvk
 	{
 		return 1.0;
 	}
-
 }

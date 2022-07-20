@@ -28,13 +28,13 @@ namespace gvk
 		{
 			mLastFixedTick = mNextFixedTick;
 			mNextFixedTick += mFixedDeltaTime;
-			return timer_frame_type::fixed; // simulate only
+			return timer_frame_type::update; // update/simulation only
 		}
 
 		mDeltaTime = dt;
 		mLastTime = mTimeSinceStart;
 		mCurrentRenderHz = 1.0 / mDeltaTime;
-		return timer_frame_type::varying; // render only
+		return timer_frame_type::render; // render only
 	}
 
 	void fixed_update_timer::set_max_render_delta_time(double pMaxRenderDt)

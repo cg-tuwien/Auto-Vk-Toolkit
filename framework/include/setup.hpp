@@ -194,13 +194,13 @@ namespace gvk
 	 *	- std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)>                     ... A function which can be used to modify the vk::DebugUtilsMessageTypeFlagsEXT flags which will be enabled for the debug utils.
 	 */
 	template <typename... Args>
-	static void start(Args&&... args)
+	static gvk::composition configure_and_compose(Args&&... args)
 	{
-		varying_update_timer defaultTimer;
-		sequential_invoker defaultInvoker;
-		
+		//varying_update_timer defaultTimer;
+		//sequential_invoker defaultInvoker;
+
 		settings s{};
-		
+
 		vk::PhysicalDeviceFeatures phdf = vk::PhysicalDeviceFeatures{}
 			.setGeometryShader(VK_TRUE)
 			.setTessellationShader(VK_TRUE)
@@ -227,28 +227,25 @@ namespace gvk
 		auto rquFtrs = vk::PhysicalDeviceRayQueryFeaturesKHR{}.setRayQuery(VK_FALSE);
 #else
 		vk::PhysicalDeviceRayTracingFeaturesKHR rtf = vk::PhysicalDeviceRayTracingFeaturesKHR{}
-			.setRayTracing(VK_FALSE);
+		.setRayTracing(VK_FALSE);
 #endif
-		
-		timer_interface* t = &defaultTimer;
-		invoker_interface* i = &defaultInvoker;
+
+		timer_interface* t;
+		invoker_interface* i;
 		std::vector<invokee*> e;
 		std::vector<window*> w;
-		add_config(s, phdf, v11f, v12f, 
+		add_config(s, phdf, v11f, v12f,
 #if VK_HEADER_VERSION >= 162
 			acsFtrs, rtpFtrs, rquFtrs,
 #else
 			rtf,
 #endif
-			t, i, e, w, args...);
+			t, i, e, w, args...
+		);
 
 		context().initialize(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS);
-		{
-			composition c(t, i, w, e);
-			c.start();
-		}
+		return gvk::composition{ w, e };
 		// Context goes out of scope later, all good
 	}
-	
-	
 }
+

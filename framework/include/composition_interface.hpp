@@ -24,9 +24,6 @@ namespace gvk
 		 */
 		static composition_interface* current() { return sCurrentComposition; }
 
-		/** Interface to the current game time */
-		virtual timer_interface& time() = 0;
-
 		/** Access to the current frame's input */
 		virtual input_buffer& input() = 0;
 
@@ -59,8 +56,8 @@ namespace gvk
 
 		/** @brief	Add an element to this composition which becomes active in the next frame
 		 *	This element will be added to the collection of elements at the end of the current frame.
-		 *  I.e. the first repeating method call on the element will be a call to @ref invokee::fixed_update()
-		 *  Before the @ref invokee::fixed_update() call, however, @ref invokee::initialize() will be 
+		 *  I.e. the first repeating method call on the element will be a call to @ref invokee::update()
+		 *  Before the @ref invokee::update() call, however, @ref invokee::initialize() will be 
 		 *  called at the beginning of the next frame.
 		 *  @param	pElement	Reference to the element to add to the composition
 		 */
@@ -95,12 +92,8 @@ namespace gvk
 		virtual void remove_element_immediately(invokee& pElement, bool pIsBeingDestructed = false) = 0;
 
 		/** @brief Start a game/rendering-loop for this composition_interface
-		 *
-		 *	Attention: In subclasses of @ref composition_interface, do not forget to call
-		 *	@ref set_current no later than at the very beginning of this methods's
-		 *	implementation!
 		 */
-		virtual void start() = 0;
+		//virtual void start_render_loop(void(*aUpdateCallback)(const std::vector<invokee*>&), void(*aRenderCallback)(const std::vector<invokee*>&)) = 0;
 
 		/** Stop a currently running game/rendering-loop for this composition_interface */
 		virtual void stop() = 0;

@@ -20,15 +20,6 @@ namespace gvk
 			}
 		}
 
-		void execute_fixed_updates(const std::vector<invokee*>& elements) override
-		{
-			for (auto& e : elements) {
-				if (e->is_enabled()) {
-					e->fixed_update();
-				}
-			}
-		}
-
 		void execute_updates(const std::vector<invokee*>& elements) override
 		{
 			for (auto& e : elements) {
@@ -50,15 +41,6 @@ namespace gvk
 				}
 				if (e->is_render_enabled()) {
 					e->render();
-				}
-			}
-		}
-
-		void execute_render_gizmos(const std::vector<invokee*>& elements) override
-		{
-			for (auto& e : elements) {
-				if (e->is_render_gizmos_enabled()) {
-					e->render_gizmos();
 				}
 			}
 		}

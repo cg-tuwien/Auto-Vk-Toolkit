@@ -34,7 +34,7 @@ namespace gvk
 			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
 		);
-		
+
 		vk::Instance& vulkan_instance()                                         { return mInstance;        }
 		vk::PhysicalDevice& physical_device() override                          { return mPhysicalDevice;  }
 		vk::Device& device() override                                           { return mLogicalDevice;   }
@@ -287,6 +287,8 @@ namespace gvk
 		vk::PhysicalDeviceVulkan12Features mRequestedVulkan12DeviceFeatures;
 
 		std::deque<avk::queue> mQueues;
+
+
 	};
 
 }

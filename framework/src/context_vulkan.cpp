@@ -1028,4 +1028,11 @@ namespace gvk
 
 		return extent;
 	}
+
+	// Defalt to a varying_update_timer if no other has been set:
+	void set_default_timer()
+	{
+		static varying_update_timer sDefaultTimer;
+		timer_reference() = &sDefaultTimer;
+	}
 }

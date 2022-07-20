@@ -27,10 +27,8 @@ namespace gvk
 	class composition : public composition_interface
 	{
 	public:
-		composition(timer_interface* aTimer, invoker_interface* aInvoker, std::vector<window*> aWindows, std::vector<invokee*> aElements)
-			: mTimer{ aTimer }
-			, mInvoker{ aInvoker }
-			, mWindows{ aWindows }
+		composition(std::vector<window*> aWindows, std::vector<invokee*> aElements)
+			: mWindows{ aWindows }
 			, mInputBuffers()
 			, mInputBufferForegroundIndex(0)
 			, mInputBufferBackgroundIndex(1)
@@ -42,12 +40,6 @@ namespace gvk
 				auto it = std::lower_bound(std::begin(mElements), std::end(mElements), el, [](const invokee* left, const invokee* right) { return left->execution_order() < right->execution_order(); });
 				mElements.insert(it, el);
 			}
-		}
-
-		/** Provides access to the timer which is used by this composition */
-		timer_interface& time() override
-		{
-			return *mTimer;
 		}
 
 		/** Provides to the currently active input buffer, which contains the
@@ -198,10 +190,13 @@ namespace gvk
 		}
 
 		/** Rendering thread's main function */
-		static void render_thread(composition* thiz)
+		template <typename UC, typename RC>
+		static void render_thread(composition* thiz, UC aUpdateCallback, RC aRenderCallback)
 		{
 			// Used to distinguish between "simulation" and "render"-frames
 			auto frameType = timer_frame_type::none;
+
+			sequential_invoker seqInvoker;
 
 #if !SINGLE_THREADED
 			while (!thiz->mShouldStop)
@@ -213,60 +208,40 @@ namespace gvk
 				context().begin_frame();
 				awake_main_thread(); // Let the main thread do some work in the meantime
 
-				frameType = thiz->mTimer->tick();
+				frameType = time().tick();
 
 				wait_for_input_buffers_swapped(thiz);
 
 				// 2. check and possibly issue on_enable event handlers
-				thiz->mInvoker->execute_handle_enablings(thiz->mElements);
+				seqInvoker.execute_handle_enablings(thiz->mElements); // TODO: Possibly make this generic (or not?)
 
-				// 3. fixed_update
-				if ((frameType & timer_frame_type::fixed) == timer_frame_type::fixed)
+				// 3. update
+				if ((frameType & timer_frame_type::update) == timer_frame_type::update)
 				{
-					thiz->mInvoker->execute_fixed_updates(thiz->mElements);
-				}
+					aUpdateCallback(static_cast<const std::vector<invokee*>&>(thiz->mElements));
 
-				if ((frameType & timer_frame_type::varying) == timer_frame_type::varying)
-				{
-					// 4. update
-					thiz->mInvoker->execute_updates(thiz->mElements);
-
-					// signal context
+					// signal context:
 					context().update_stage_done();
 					awake_main_thread(); // Let the main thread work concurrently
+				}
 
+				if ((frameType & timer_frame_type::render) == timer_frame_type::render)
+				{
 					// Tell the main thread that we'd like to have the new input buffers from A) here:
 					please_swap_input_buffers(thiz);
 
-					// Sync (wait for fences and so) per window BEFORE executing render callbacks
-					gvk::context().execute_for_each_window([](window* wnd){
-						wnd->sync_before_render();
-					});
-
-					// 5. render
-					thiz->mInvoker->execute_renders(thiz->mElements);
-
-					// 6. render_gizmos
-					thiz->mInvoker->execute_render_gizmos(thiz->mElements);
-					
-					// Render per window
-					gvk::context().execute_for_each_window([](window* wnd){
-						wnd->render_frame();
-					});
+					// 4. render:
+					aRenderCallback(static_cast<const std::vector<invokee*>&>(thiz->mElements));
 				}
 				else
 				{
-					// signal context
-					context().update_stage_done();
-					awake_main_thread(); // Let the main thread work concurrently
-
 					// If not performed from inside the positive if-branch, tell the main thread of our 
 					// input buffer update desire here:
 					please_swap_input_buffers(thiz);
 				}
 
-				// 8. check and possibly issue on_disable event handlers
-				thiz->mInvoker->execute_handle_disablings(thiz->mElements);
+				// 5. check and possibly issue on_disable event handlers
+				seqInvoker.execute_handle_disablings(thiz->mElements); // TODO: Possibly make this generic (or not?)
 
 				// signal context
 				context().end_frame();
@@ -308,7 +283,7 @@ namespace gvk
 			std::scoped_lock<std::mutex> guard(sCompMutex); // For parallel invokers, this is neccessary!
 			if (!pIsBeingDestructed) {
 				assert(std::find(std::begin(mElements), std::end(mElements), &pElement) != mElements.end());
-				// 9. finalize
+				// 6. finalize
 				pElement.finalize();
 				// Remove from the actual elements-container
 				mElements.erase(std::remove(std::begin(mElements), std::end(mElements), &pElement), std::end(mElements));
@@ -322,7 +297,8 @@ namespace gvk
 			}
 		}
 
-		void start() override
+		template <typename UC, typename RC>
+		void start_render_loop(UC aUpdateCallback, RC aRenderCallback)
 		{
 			context().work_off_event_handlers();
 
@@ -353,7 +329,7 @@ namespace gvk
 
 #if !SINGLE_THREADED
 			// off it goes
-			std::thread renderThread(render_thread, this);
+			std::thread renderThread(render_thread, this, std::move(aUpdateCallback), std::move(aRenderCallback));
 #endif
 			
 			while (!mShouldStop)
@@ -364,7 +340,7 @@ namespace gvk
 #if !SINGLE_THREADED
 				std::unique_lock<std::mutex> lk(sCompMutex);
 #else
-				render_thread(this);
+				render_thread(this, std::move(aUpdateCallback), std::move(aRenderCallback));
 #endif
 				if (mInputBufferSwapPending) {
 					auto* windowForCursorActions = context().window_in_focus();
@@ -457,8 +433,6 @@ namespace gvk
 
 		bool mIsRunning;
 
-		timer_interface* mTimer;
-		invoker_interface* mInvoker;
 		std::vector<window*> mWindows;
 		std::vector<invokee*> mElements;
 		std::vector<invokee*> mElementsToBeAdded;
