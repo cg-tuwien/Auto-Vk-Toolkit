@@ -45,7 +45,7 @@ namespace gvk
 					avk::access::none >> avk::access::transfer_read | avk::access::transfer_write // Just wait on the image layout transition
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
-				copy_buffer_to_image(stagingBuffer, img.as_reference(), avk::layout::transfer_dst),
+				copy_buffer_to_image(stagingBuffer, img.get(), avk::layout::transfer_dst),
 
 				avk::sync::image_memory_barrier(*img,
 					avk::stage::copy            >> avk::stage::transfer,
@@ -327,27 +327,42 @@ namespace gvk
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aResult)
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult)
 	{ }
 
+	// Forward-declare some overloads:
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aResult, const model& aModel, const Rest&... rest)
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const model& aModel, const Rest&... rest);
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const gvk::mesh_index_t& aMeshIndex, const Rest&... rest);
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const std::vector<gvk::mesh_index_t>& aMeshIndices, const Rest&... rest);
+
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const model_t& aModel, const Rest&... rest)
 	{
-		aResult.emplace_back(std::cref(*aModel), std::vector<size_t>{});
+		aResult.push_back(std::forward_as_tuple(aModel, std::vector<gvk::mesh_index_t>{}));
 		add_tuple_or_indices(aResult, rest...);
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aResult, size_t aMeshIndex, const Rest&... rest)
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const model& aModel, const Rest&... rest)
 	{
-		std::get<std::vector<size_t>>(aResult.back()).emplace_back(aMeshIndex);
+		// Convenience overload to also support owning_resource references:
+		add_tuple_or_indices(aResult, aModel.get(), rest...);
+	}
+
+	template <typename... Rest>
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const gvk::mesh_index_t& aMeshIndex, const Rest&... rest)
+	{
+		std::get<std::vector<gvk::mesh_index_t>>(aResult.back()).emplace_back(aMeshIndex);
 		add_tuple_or_indices(aResult, rest...);
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices(std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aResult, std::vector<size_t> aMeshIndices, const Rest&... rest)
+	void add_tuple_or_indices(std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aResult, const std::vector<gvk::mesh_index_t>& aMeshIndices, const Rest&... rest)
 	{
-		auto& idxes = std::get<std::vector<size_t>>(aResult.back());
+		auto& idxes = std::get<std::vector<gvk::mesh_index_t>>(aResult.back());
 		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
 		add_tuple_or_indices(aResult, rest...);
 	}
@@ -357,18 +372,18 @@ namespace gvk
 	 *
 	 *	Model parameters must be bindable by const model&.
 	 *	Mesh index parameters are supported in the forms:
-	 *	 - size_t
-	 *	 - std::vector<size_t>
+	 *	 - gvk::mesh_index_t
+	 *	 - std::vector<gvk::mesh_index_t>
 	 *
 	 *	Examples of valid parameters:
-	 *	 - make_models_and_meshes_selection(myModel, 1, 2, 3); // => a model and 3x size_t
-	 *	 - make_models_and_meshes_selection(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
-	 *	 - make_models_and_meshes_selection(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
+	 *	 - make_models_and_meshes_selection(myModel, 1, 2, 3); // => a model and 3x gvk::mesh_index_t
+	 *	 - make_models_and_meshes_selection(myModel, 1, std::vector<gvk::mesh_index_t>{ 2, 3 }); // => a model and then 1x gvk::mesh_index_t, and 1x vector of gvk::mesh_index_t (containing two indices)
+	 *	 - make_models_and_meshes_selection(myModel, 1, myOtherModel, std::vector<gvk::mesh_index_t>{ 0, 1 }); // => a model and then 1x gvk::mesh_index_t; another model and 1x vector of gvk::mesh_index_t (containing two indices)
 	 */
 	template <typename... Args>
-	std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>> make_models_and_meshes_selection(const Args&... args)
+	std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>> make_model_references_and_mesh_indices_selection(const Args&... args)
 	{
-		std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>> result;
+		std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>> result;
 		add_tuple_or_indices(result, args...);
 		return result;
 	}
@@ -377,24 +392,30 @@ namespace gvk
 	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult)
 	{ }
 
+	// Forward-declare some of the overloads:
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, gvk::mesh_index_t& aMeshIndex, Rest&... rest);
+	template <typename... Rest>
+	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, std::vector<gvk::mesh_index_t>& aMeshIndices, Rest&... rest);
+
 	template <typename... Rest>
 	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, model& aModel, Rest&... rest)
 	{
-		aResult.emplace_back(aModel, std::vector<size_t>{});
+		aResult.push_back(std::forward_as_tuple(aModel, std::vector<gvk::mesh_index_t>{}));
 		add_tuple_or_indices_shared(aResult, rest...);
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, size_t aMeshIndex, Rest&... rest)
+	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, gvk::mesh_index_t& aMeshIndex, Rest&... rest)
 	{
-		std::get<std::vector<size_t>>(aResult.back()).emplace_back(aMeshIndex);
+		std::get<std::vector<gvk::mesh_index_t>>(aResult.back()).emplace_back(aMeshIndex);
 		add_tuple_or_indices_shared(aResult, rest...);
 	}
 
 	template <typename... Rest>
-	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, std::vector<size_t>& aMeshIndices, Rest&... rest)
+	void add_tuple_or_indices_shared(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aResult, std::vector<gvk::mesh_index_t>& aMeshIndices, Rest&... rest)
 	{
-		auto& idxes = std::get<std::vector<size_t>>(aResult.back());
+		auto& idxes = std::get<std::vector<gvk::mesh_index_t>>(aResult.back());
 		idxes.insert(std::end(idxes), std::begin(aMeshIndices), std::end(aMeshIndices));
 		add_tuple_or_indices_shared(aResult, rest...);
 	}
@@ -404,16 +425,16 @@ namespace gvk
 	 *
 	 *	Shared ownership will be enabled on the models.
 	 *	Mesh index parameters are supported in the forms:
-	 *	 - size_t
-	 *	 - std::vector<size_t>
+	 *	 - gvk::mesh_index_t
+	 *	 - std::vector<gvk::mesh_index_t>
 	 *
 	 *	Examples of valid parameters:
-	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, 2, 3); // => a model and 3x size_t
-	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, std::vector<size_t>{ 2, 3 }); // => a model and then 1x size_t, and 1x vector of size_t (containing two indices)
-	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, myOtherModel, std::vector<size_t>{ 0, 1 }); // => a model and then 1x size_t; another model and 1x vector of size_t (containing two indices)
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, 2, 3); // => a model and 3x gvk::mesh_index_t
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, std::vector<gvk::mesh_index_t>{ 2, 3 }); // => a model and then 1x gvk::mesh_index_t, and 1x vector of gvk::mesh_index_t (containing two indices)
+	 *	 - make_selection_of_shared_models_and_mesh_indices(myModel, 1, myOtherModel, std::vector<gvk::mesh_index_t>{ 0, 1 }); // => a model and then 1x gvk::mesh_index_t; another model and 1x vector of gvk::mesh_index_t (containing two indices)
 	 */
 	template <typename... Args>
-	std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>> make_selection_of_shared_models_and_mesh_indices(Args&... args)
+	std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>> make_models_and_mesh_indices_selection(Args&... args)
 	{
 		std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>> result;
 		add_tuple_or_indices_shared(result, args...);
@@ -451,7 +472,7 @@ namespace gvk
 	 *			<0>: vertex positions
 	 *			<1>: indices
 	 */
-	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get a tuple of <0>:vertices and <1>:indices from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -461,7 +482,7 @@ namespace gvk
 	 *			<0>: vertex positions
 	 *			<1>: indices
 	 */
-	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	// A concept which requires a type to have a .describe_member(size_t aOffset, content_description aContent)
 	template <typename T>
@@ -615,7 +636,7 @@ namespace gvk
 	 *			<2>: commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_vertex_and_index_buffers<Metas...>(get_vertices_and_indices(aModelsAndSelectedMeshes), aUsageFlags);
 	}
@@ -697,7 +718,7 @@ namespace gvk
 	 *			<2>: Commands that need to be executed on a queue to complete the operation.
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::buffer, avk::command::action_type_command> create_vertex_and_index_buffers_cached(gvk::serializer& aSerializer, std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -800,7 +821,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@return	Combined normals data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_normals(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get normals from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -808,7 +829,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. The order is maintained.
 	 *	@return	Combined normals data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get a buffer containing normals from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -821,7 +842,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_normals(aModelsAndSelectedMeshes), avk::content_description::normal, aUsageFlags);
 	}
@@ -838,7 +859,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_normals_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> normalsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -852,7 +873,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@return	Combined tangents data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get tangents from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -860,7 +881,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. The order is maintained.
 	 *	@return	Combined tangents data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 	
 	/**	Get a buffer containing tangents from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -873,7 +894,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_tangents(aModelsAndSelectedMeshes), avk::content_description::tangent, aUsageFlags);
 	}
@@ -890,7 +911,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_tangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> tangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -904,7 +925,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. Their order is maintained.
 	 *	@return	Combined bitangents data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get bitangents from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -912,7 +933,7 @@ namespace gvk
 	 *										All the data they refer to is combined into a a common result. The order is maintained.
 	 *	@return	Combined bitangents data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes);
+	extern std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes);
 
 	/**	Get a buffer containing bitangents from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -925,7 +946,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_bitangents(aModelsAndSelectedMeshes), avk::content_description::bitangent, aUsageFlags);
 	}
@@ -942,7 +963,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bitangents_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> bitangentsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -957,7 +978,7 @@ namespace gvk
 	 *	@param	aColorsSet					The zero-based set of vertex colors to get
 	 *	@return	Combined colors data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
+	extern std::vector<glm::vec4> get_colors(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
 
 	/**	Get colors from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -966,7 +987,7 @@ namespace gvk
 	 *	@param	aColorsSet					The zero-based set of vertex colors to get
 	 *	@return	Combined colors data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
+	extern std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0);
 	
 	/**	Get a buffer containing colors from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -979,7 +1000,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_colors(aModelsAndSelectedMeshes, aColorsSet), avk::content_description::color, aUsageFlags);
 	}
@@ -996,7 +1017,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_colors_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> colorsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1011,7 +1032,7 @@ namespace gvk
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@return	Combined normals data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
+	extern std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
 
 	/**	Get bone weights from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1020,7 +1041,7 @@ namespace gvk
 	 *	@param	aNormalizeBoneWeights		Set to true to apply normalization to the bone weights, s.t. their sum equals 1.
 	 *	@return	Combined normals data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
+	extern std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false);
 
 	/**	Get a buffer containing bone weights from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -1034,7 +1055,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec4>, Metas...>(get_bone_weights(aModelsAndSelectedMeshes, aNormalizeBoneWeights), avk::content_description::bone_weight, aUsageFlags);
 	}
@@ -1052,7 +1073,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_weights_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights = false, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec4> boneWeightsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1067,7 +1088,7 @@ namespace gvk
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
+	extern std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
 	
 	/**	Get bone indices from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1076,7 +1097,7 @@ namespace gvk
 	 *	@param	aBoneIndexOffset			Offset to be added to the bone indices.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
+	extern std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u);
 
 	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
 	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
@@ -1085,7 +1106,7 @@ namespace gvk
 	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
 
 	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
 	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
@@ -1095,7 +1116,7 @@ namespace gvk
 	 *	@param	aInitialBoneIndexOffset		Offset to be added to the bone indices.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u);
 
 	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
 	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
@@ -1105,7 +1126,7 @@ namespace gvk
 	 *										of all previous #bone-matrices in the set before the mesh with the given index.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
 
 	/**	Get bone indices from the given selection of models and associated mesh indices for an animation which writes bones in the "single target buffer" mode, which
 	 *	means that all given meshes (as specified by their mesh indices in aModelsAndSelectedMeshes) will get their bone matrices stored in a single target buffer.
@@ -1116,7 +1137,7 @@ namespace gvk
 	 *										of all previous #bone-matrices in the set before the mesh with the given index.
 	 *	@return	Combined bone indices data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
+	extern std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices);
 	// TODO ^ function definition not found
 	
 	/**	Get a buffer containing bone indices from the given input data.
@@ -1131,7 +1152,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices(aModelsAndSelectedMeshes, aBoneIndexOffset), avk::content_description::bone_index, aUsageFlags);
 	}
@@ -1149,7 +1170,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_bone_indices_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1168,7 +1189,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aInitialBoneIndexOffset), avk::content_description::bone_index, aUsageFlags);
 	}
@@ -1184,7 +1205,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset = 0u, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1204,7 +1225,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::uvec4>, Metas...>(get_bone_indices_for_single_target_buffer(aModelsAndSelectedMeshes, aReferenceMeshIndices), avk::content_description::bone_index, aUsageFlags);
 	}
@@ -1221,7 +1242,7 @@ namespace gvk
 	 *	@return	A buffer in device memory which contains the given input data.
 	 */
 	template <typename... Metas>
-	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
+	avk::buffer create_bone_indices_for_single_target_buffer_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1236,7 +1257,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 
 	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1245,7 +1266,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 	
 	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices, with their y-coordinates flipped.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -1253,7 +1274,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 	
 	/**	Get 2D texture coordinates from the given selection of models and associated mesh indices, with their y-coordinates flipped.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1262,7 +1283,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 2D texture coordinates data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 	
 	/**	Get 3D texture coordinates from the given selection of models and associated mesh indices.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -1270,7 +1291,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 3D texture coordinates data of all specified model + mesh-indices.
 	 */
-	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 	
 	/**	Get 3D texture coordinates from the given selection of models and associated mesh indices.
 	 *	@param	aSerializer					The serializer used to store the data to or load the data from a cache file, depending on its mode.
@@ -1279,7 +1300,7 @@ namespace gvk
 	 *	@param	aTexCoordSet				The zero-based set of texture coordinates to load.
 	 *	@return	Combined 3D texture coordinates data of all specified model + mesh-indices tuples.
 	 */
-	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
+	extern std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0);
 
 	/**	Get a buffer containing 2D texture coordinates from the given input data.
 	 *	@param	aModelsAndSelectedMeshes	A collection where every entry consists of a model-reference + associated mesh indices.
@@ -1293,7 +1314,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1311,7 +1332,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1332,7 +1353,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec2>, Metas...>(get_2d_texture_coordinates_flipped(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1350,7 +1371,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_2d_texture_coordinates_flipped_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec2> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -1371,7 +1392,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		return create_buffer<std::vector<glm::vec3>, Metas...>(get_3d_texture_coordinates(aModelsAndSelectedMeshes, aTexCoordSet), avk::content_description::texture_coordinate, aUsageFlags);
 	}
@@ -1389,7 +1410,7 @@ namespace gvk
 	 *			<1>: Commands that need to be executed on a queue to complete the operation
 	 */
 	template <typename... Metas>
-	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
+	std::tuple<avk::buffer, avk::command::action_type_command> create_3d_texture_coordinates_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet = 0, vk::BufferUsageFlags aUsageFlags = {})
 	{
 		std::vector<glm::vec3> textureCoordinatesData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {

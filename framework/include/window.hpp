@@ -115,13 +115,14 @@ namespace gvk
 		auto swap_chain_extent() const {
 			return mSwapChainExtent;
 		}
+
 		/** Gets this window's swap chain's image at the specified index. */
-		avk::image_t& swap_chain_image_at_index(size_t aIdx) {
-			return mSwapChainImageViews[aIdx]->get_image(); // TODO: Would it be better to include the owning_resource in the resource_reference?
+		[[nodiscard]] const avk::image_t& swap_chain_image_reference_at_index(size_t aIdx) const {
+			return mSwapChainImageViews[aIdx]->get_image();
 		}
 		/** Gets a collection containing all this window's swap chain image views. */
-		std::vector<std::reference_wrapper<avk::image_t>> swap_chain_image_views() 	{
-			std::vector<std::reference_wrapper<avk::image_t>> allImageViews;
+		[[nodiscard]] std::vector<std::reference_wrapper<const avk::image_t>> swap_chain_image_views() const {
+			std::vector<std::reference_wrapper<const avk::image_t>> allImageViews;
 			allImageViews.reserve(mSwapChainImageViews.size());
 			for (auto& imView : mSwapChainImageViews) {
 				allImageViews.push_back(std::ref(imView->get_image())); // TODO: Would it be better to include the owning_resource in the resource_reference?
@@ -129,12 +130,16 @@ namespace gvk
 			return allImageViews;
 		}
 		/** Gets this window's swap chain's image view at the specified index. */
-		avk::image_view swap_chain_image_view_at_index(size_t aIdx) {
+		[[nodiscard]] avk::image_view swap_chain_image_view_at_index(size_t aIdx) const {
 			return mSwapChainImageViews[aIdx];
+		}
+		/** Gets reference to the window's swap chain's image view at the specified index. */
+		[[nodiscard]] const avk::image_view_t& swap_chain_image_view_reference_at_index(size_t aIdx) const {
+			return mSwapChainImageViews[aIdx].get();
 		}
 
 		/** Gets a collection containing all this window's back buffers. */
-		std::vector<avk::framebuffer> backbuffers() {
+		[[nodiscard]] std::vector<avk::framebuffer> backbuffers() {
 			std::vector<avk::framebuffer> allFramebuffers;
 			allFramebuffers.reserve(mBackBuffers.size());
 			for (auto& fb : mBackBuffers) {
@@ -144,29 +149,29 @@ namespace gvk
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		const avk::framebuffer_t& backbuffer_at_index(size_t aIdx) const {
+		[[nodiscard]] const avk::framebuffer_t& backbuffer_reference_at_index(size_t aIdx) const {
 			return *mBackBuffers[aIdx];
 		}
 
 		/** Gets this window's back buffer at the specified index. */
-		avk::framebuffer_t& backbuffer_at_index(size_t aIdx) {
-			return *mBackBuffers[aIdx];
+		[[nodiscard]] avk::framebuffer backbuffer_at_index(size_t aIdx) {
+			return mBackBuffers[aIdx];
 		}
 
 		/** Gets the number of how many frames are (potentially) concurrently rendered into,
 		 *	or put differently: How many frames are (potentially) "in flight" at the same time.
 		 */
-		frame_id_t number_of_frames_in_flight() const {
+		[[nodiscard]] frame_id_t number_of_frames_in_flight() const {
 			return static_cast<frame_id_t>(mFramesInFlightFences.size());
 		}
 
 		/** Gets the number of images there are in the swap chain */
-		size_t number_of_swapchain_images() const {
+		[[nodiscard]] size_t number_of_swapchain_images() const {
 			return mSwapChainImageViews.size();
 		}
 
 		/** Gets the current frame index. */
-		frame_id_t current_frame() const {
+		[[nodiscard]] frame_id_t current_frame() const {
 			return mCurrentFrame;
 		}
 
@@ -174,59 +179,77 @@ namespace gvk
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		frame_id_t in_flight_index_for_frame(std::optional<frame_id_t> aFrameId = {}) const {
+		[[nodiscard]] frame_id_t in_flight_index_for_frame(std::optional<frame_id_t> aFrameId = {}) const {
 			return aFrameId.value_or(current_frame()) % number_of_frames_in_flight();
 		}
 		/** Returns the "in flight index" for the requested frame. */
-		frame_id_t current_in_flight_index() const {
+		[[nodiscard]] frame_id_t current_in_flight_index() const {
 			return current_frame() % number_of_frames_in_flight();
 		}
 
 		/** Returns the "swapchain image index" for the current frame.  */
-		auto current_image_index() const {
+		[[nodiscard]] auto current_image_index() const {
 			return mCurrentFrameImageIndex;
 		}
 		/** Returns the "swapchain image index" for the previous frame.  */
-		auto previous_image_index() const {
+		[[nodiscard]] auto previous_image_index() const {
 			return mPreviousFrameImageIndex;
 		}
 
 		/** Returns the backbuffer for the current frame */
-		avk::framebuffer current_backbuffer() const {
+		[[nodiscard]] avk::framebuffer current_backbuffer() const {
 			return mBackBuffers[current_image_index()];
 		}
 		/** Returns the backbuffer for the previous frame */
-		avk::framebuffer previous_backbuffer() const {
+		[[nodiscard]] avk::framebuffer previous_backbuffer() const {
 			return mBackBuffers[previous_image_index()];
 		}
 
+		/** Returns the backbuffer for the current frame */
+		[[nodiscard]] const avk::framebuffer_t& current_backbuffer_reference() const {
+			return mBackBuffers[current_image_index()].get();
+		}
+		/** Returns the backbuffer for the previous frame */
+		[[nodiscard]] const avk::framebuffer_t& previous_backbuffer_reference() const {
+			return mBackBuffers[previous_image_index()].get();
+		}
+
 		/** Returns the swap chain image for the current frame. */
-		auto current_image() {
-			return swap_chain_image_at_index(current_image_index());
+		[[nodiscard]] const avk::image_t& current_image_reference() const {
+			return swap_chain_image_reference_at_index(current_image_index());
 		}
 		/** Returns the swap chain image for the previous frame. */
-		auto previous_image() {
-			return swap_chain_image_at_index(previous_image_index());
+		[[nodiscard]] const avk::image_t& previous_image_reference() const {
+			return swap_chain_image_reference_at_index(previous_image_index());
 		}
 
 		/** Returns the swap chain image view for the current frame. */
-		avk::image_view current_image_view() {
+		[[nodiscard]] avk::image_view current_image_view() {
 			return mSwapChainImageViews[current_image_index()];
 		}
 		/** Returns the swap chain image view for the previous frame. */
-		avk::image_view previous_image_view() {
+		[[nodiscard]] avk::image_view previous_image_view() {
 			return mSwapChainImageViews[previous_image_index()];
+		}
+
+		/** Returns the swap chain image view for the current frame. */
+		[[nodiscard]] const avk::image_view_t& current_image_view_reference() {
+			return mSwapChainImageViews[current_image_index()].get();
+		}
+		/** Returns the swap chain image view for the previous frame. */
+		[[nodiscard]] const avk::image_view_t& previous_image_view_reference() {
+			return mSwapChainImageViews[previous_image_index()].get();
 		}
 
 		/** Returns the fence for the requested frame, which depends on the frame's "in flight index".
 		 *	@param aFrameId		If set, refers to the absolute frame-id of a specific frame.
 		 *						If not set, refers to the current frame, i.e. `current_frame()`.
 		 */
-		avk::fence fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
+		[[nodiscard]] avk::fence fence_for_frame(std::optional<frame_id_t> aFrameId = {}) {
 			return mFramesInFlightFences[in_flight_index_for_frame(aFrameId)];
 		}
 		/** Returns the fence for the current frame. */
-		avk::fence current_fence() {
+		[[nodiscard]] avk::fence current_fence() {
 			return mFramesInFlightFences[current_in_flight_index()];
 		}
 

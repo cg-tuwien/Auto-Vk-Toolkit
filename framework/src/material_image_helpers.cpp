@@ -223,17 +223,17 @@ namespace gvk
 		return gvk::create_image_from_image_data_cached(imageData, aImageLayout, aMemoryUsage, aImageUsage, aSerializer);
 	}
 
-	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> positionsData;
 		std::vector<uint32_t> indicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
 				gvk::append_indices_and_vertex_data(
-					gvk::additional_index_data(	indicesData,	[&]() { return modelRef.get().indices_for_mesh<uint32_t>(meshIndex);	} ),
-					gvk::additional_vertex_data(positionsData,	[&]() { return modelRef.get().positions_for_mesh(meshIndex);			} )
+					gvk::additional_index_data(	indicesData,	[&]() { return modelRef.indices_for_mesh<uint32_t>(meshIndex);	} ),
+					gvk::additional_vertex_data(positionsData,	[&]() { return modelRef.positions_for_mesh(meshIndex);			} )
 				);
 			}
 		}
@@ -241,7 +241,7 @@ namespace gvk
 		return std::make_tuple( std::move(positionsData), std::move(indicesData) );
 	}
 
-	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> get_vertices_and_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::tuple<std::vector<glm::vec3>, std::vector<uint32_t>> verticesAndIndices;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -251,21 +251,21 @@ namespace gvk
 		return verticesAndIndices;
 	}
 
-	std::vector<glm::vec3> get_normals(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_normals(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> normalsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(normalsData, modelRef.get().normals_for_mesh(meshIndex));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(normalsData, modelRef.normals_for_mesh(meshIndex));
 			}
 		}
 
 		return normalsData;
 	}
 
-	std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_normals_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> normalsData;
 		if (aSerializer.mode() == gvk::serializer::mode::serialize) {
@@ -276,21 +276,21 @@ namespace gvk
 		return normalsData;
 	}
 
-	std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_tangents(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> tangentsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(tangentsData, modelRef.get().tangents_for_mesh(meshIndex));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(tangentsData, modelRef.tangents_for_mesh(meshIndex));
 			}
 		}
 
 		return tangentsData;
 	}
 
-	std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_tangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> tangentsData;
 
@@ -303,21 +303,21 @@ namespace gvk
 	}
 	
 
-	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_bitangents(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> bitangentsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(bitangentsData, modelRef.get().bitangents_for_mesh(meshIndex));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(bitangentsData, modelRef.bitangents_for_mesh(meshIndex));
 			}
 		}
 
 		return bitangentsData;
 	}
 
-	std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes)
+	std::vector<glm::vec3> get_bitangents_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes)
 	{
 		std::vector<glm::vec3> bitangentsData;
 
@@ -329,21 +329,21 @@ namespace gvk
 		return bitangentsData;
 	}
 
-	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
+	std::vector<glm::vec4> get_colors(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(colorsData, modelRef.get().colors_for_mesh(meshIndex, aColorsSet));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(colorsData, modelRef.colors_for_mesh(meshIndex, aColorsSet));
 			}
 		}
 
 		return colorsData;
 	}
 
-	std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
+	std::vector<glm::vec4> get_colors_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aColorsSet)
 	{
 		std::vector<glm::vec4> colorsData;
 
@@ -356,21 +356,21 @@ namespace gvk
 	}
 
 
-	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
+	std::vector<glm::vec4> get_bone_weights(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
 	{
 		std::vector<glm::vec4> boneWeightsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(boneWeightsData, modelRef.get().bone_weights_for_mesh(meshIndex, aNormalizeBoneWeights));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(boneWeightsData, modelRef.bone_weights_for_mesh(meshIndex, aNormalizeBoneWeights));
 			}
 		}
 
 		return boneWeightsData;
 	}
 
-	std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
+	std::vector<glm::vec4> get_bone_weights_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, bool aNormalizeBoneWeights)
 	{
 		std::vector<glm::vec4> boneWeightsData;
 
@@ -382,21 +382,21 @@ namespace gvk
 		return boneWeightsData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset)
+	std::vector<glm::uvec4> get_bone_indices(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(boneIndicesData, modelRef.get().bone_indices_for_mesh(meshIndex, aBoneIndexOffset));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(boneIndicesData, modelRef.bone_indices_for_mesh(meshIndex, aBoneIndexOffset));
 			}
 		}
 
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset)
+	std::vector<glm::uvec4> get_bone_indices_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aBoneIndexOffset)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
@@ -408,19 +408,19 @@ namespace gvk
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
+	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			insert_into(boneIndicesData, modelRef.get().bone_indices_for_meshes_for_single_target_buffer(std::get<std::vector<mesh_index_t>>(pair), aInitialBoneIndexOffset));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			insert_into(boneIndicesData, modelRef.bone_indices_for_meshes_for_single_target_buffer(std::get<std::vector<gvk::mesh_index_t>>(pair), aInitialBoneIndexOffset));
 		}
 
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
+	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, uint32_t aInitialBoneIndexOffset)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
@@ -432,21 +432,21 @@ namespace gvk
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices)
+	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(boneIndicesData, modelRef.get().bone_indices_for_mesh_for_single_target_buffer(meshIndex, aReferenceMeshIndices));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(boneIndicesData, modelRef.bone_indices_for_mesh_for_single_target_buffer(meshIndex, aReferenceMeshIndices));
 			}
 		}
 
 		return boneIndicesData;
 	}
 
-	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices)
+	std::vector<glm::uvec4> get_bone_indices_for_single_target_buffer_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, const std::vector<mesh_index_t>& aReferenceMeshIndices)
 	{
 		std::vector<glm::uvec4> boneIndicesData;
 
@@ -458,21 +458,21 @@ namespace gvk
 		return boneIndicesData;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec2>(meshIndex, aTexCoordSet));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>(meshIndex, aTexCoordSet));
 			}
 		}
 
 		return texCoordsData;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
@@ -484,21 +484,21 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates_flipped(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec2>([](const glm::vec2& aValue){ return glm::vec2{aValue.x, 1.0f - aValue.y}; }, meshIndex, aTexCoordSet));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec2>([](const glm::vec2& aValue){ return glm::vec2{aValue.x, 1.0f - aValue.y}; }, meshIndex, aTexCoordSet));
 			}
 		}
 
 		return texCoordsData;
 	}
 
-	std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec2> get_2d_texture_coordinates_flipped_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec2> texCoordsData;
 
@@ -510,21 +510,21 @@ namespace gvk
 		return texCoordsData;
 	}
 
-	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec3> get_3d_texture_coordinates(const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 
 		for (auto& pair : aModelsAndSelectedMeshes) {
-			const auto& modelRef = std::get<std::reference_wrapper<const gvk::model_t>>(pair);
-			for (auto meshIndex : std::get<std::vector<mesh_index_t>>(pair)) {
-				insert_into(texCoordsData, modelRef.get().texture_coordinates_for_mesh<glm::vec3>(meshIndex, aTexCoordSet));
+			const auto& modelRef = std::get<const gvk::model_t&>(pair);
+			for (auto meshIndex : std::get<std::vector<gvk::mesh_index_t>>(pair)) {
+				insert_into(texCoordsData, modelRef.texture_coordinates_for_mesh<glm::vec3>(meshIndex, aTexCoordSet));
 			}
 		}
 
 		return texCoordsData;
 	}
 
-	std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
+	std::vector<glm::vec3> get_3d_texture_coordinates_cached(gvk::serializer& aSerializer, const std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>>& aModelsAndSelectedMeshes, int aTexCoordSet)
 	{
 		std::vector<glm::vec3> texCoordsData;
 

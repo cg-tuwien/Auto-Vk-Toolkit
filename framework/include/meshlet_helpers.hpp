@@ -200,7 +200,7 @@ namespace gvk
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet. This value is just passed on to aMeshletDivision.
 	 */
 	template <typename F>
-	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices, F aMeshletDivision,
+	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<gvk::model, std::vector<gvk::mesh_index_t>>>& aModelsAndMeshletIndices, F aMeshletDivision,
 		const bool aCombineSubmeshes = true, const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378)
 	{
 		std::vector<meshlet> meshlets;
@@ -209,9 +209,7 @@ namespace gvk
 			auto& meshIndices = std::get<std::vector<mesh_index_t>>(pair);
 
 			if (aCombineSubmeshes) {
-				std::vector<std::tuple<std::reference_wrapper<const gvk::model_t>, std::vector<mesh_index_t>>> selection; // TODO: This is somehow stupid. There should be a nicer way to handle this
-				selection.emplace_back(std::cref(model.get()), meshIndices);
-				auto [vertices, indices] = get_vertices_and_indices(selection);
+				auto [vertices, indices] = get_vertices_and_indices(make_model_references_and_mesh_indices_selection(model, meshIndices));
 				std::vector<meshlet> tmpMeshlets = divide_indexed_geometry_into_meshlets(vertices, indices, std::move(model), std::nullopt, aMaxVertices, aMaxIndices, std::move(aMeshletDivision));
 				// append to meshlets
 				meshlets.insert(std::end(meshlets), std::make_move_iterator(std::begin(tmpMeshlets)), std::make_move_iterator(std::end(tmpMeshlets)));
