@@ -4,8 +4,8 @@
 class multi_invokee_rendering_app : public gvk::invokee
 {
 public: // v== cgb::invokee overrides which will be invoked by the framework ==v
-	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder = 0)
-		: gvk::invokee(aExecutionOrder), mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }
+	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder)
+		: mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }, mCustomExecutionOrder(aExecutionOrder)
 	{}
 
 	void initialize() override
@@ -15,8 +15,8 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto subpassDependencies = std::vector{
 			avk::subpass_dependency(
 				avk::subpass::external >> avk::subpass::index(0),
-				avk::stage::none >> avk::stage::color_attachment_output,
-				avk::access::none >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
+				avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+				avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
 			),
 			avk::subpass_dependency(
 				avk::subpass::index(0) >> avk::subpass::external,
@@ -25,22 +25,26 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			)
 		};
 
-		mClearRenderPass = gvk::context().create_renderpass(
-			{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) },
-			subpassDependencies);
-		mClearRenderPass.enable_shared_ownership();
+		mClearRenderPass = gvk::context().create_renderpass({ 
+				avk::attachment::declare(
+					gvk::format_from_window_color_buffer(gvk::context().main_window()), 
+					avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store
+				) 
+			}, subpassDependencies);
 
-		mLoadRenderPass = gvk::context().create_renderpass(
-			{ avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store) },
-			subpassDependencies);
-		mLoadRenderPass.enable_shared_ownership();
+		mLoadRenderPass = gvk::context().create_renderpass({
+				avk::attachment::declare(
+					gvk::format_from_window_color_buffer(gvk::context().main_window()),
+					avk::on_load::load                                             , avk::usage::color(0), avk::on_store::store
+				)
+			}, subpassDependencies);
 		
 		// Create a graphics pipeline:
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::vertex_shader("shaders/a_triangle.vert"),
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
 			mClearRenderPass,
 			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(unsigned int) }
 		);
@@ -51,7 +55,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater->on(
 			gvk::swapchain_resized_event(gvk::context().main_window()),
-			gvk::shader_files_changed_event(mPipeline)
+			gvk::shader_files_changed_event(mPipeline.as_reference())
 		)
 		.update(mPipeline);
 	}
@@ -79,11 +83,14 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		auto commands = gvk::context().record({
-			avk::command::push_constants(mPipeline, mTrianglePart, vk::ShaderStageFlagBits::eVertex),
-			avk::command::render_pass(firstInvokeeInChain ? mClearRenderPass : mLoadRenderPass, gvk::context().main_window()->current_backbuffer(), {
-				avk::command::bind(mPipeline),
-				avk::command::draw(3u, 1u, 0u, 0u)
-			})
+			avk::command::push_constants(mPipeline->layout(), mTrianglePart, avk::shader_type::vertex),
+			avk::command::render_pass(
+				firstInvokeeInChain ? mClearRenderPass.as_reference() : mLoadRenderPass.as_reference(), 
+				gvk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::draw(3u, 1u, 0u, 0u)
+				}
+			)
 		});
 
 		if (firstInvokeeInChain) {
@@ -98,15 +105,16 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 				.then_submit_to(mQueue);
 		}
 		
-		mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 	
 private: // v== Member variables ==v
 
+	avk::queue* mQueue;
 	unsigned int mTrianglePart = 0;
+	int mCustomExecutionOrder;
 	avk::renderpass mClearRenderPass;
 	avk::renderpass mLoadRenderPass;
-	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
 	
 
@@ -114,6 +122,7 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Hello Multi-Invokee World");
@@ -143,8 +152,7 @@ int main() // <== Starting point ==
 			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 
-			for (auto* app : apps)
-			{
+			for (auto* app : apps) {
 				bool isEnabled = app->is_enabled();
 				std::string name = fmt::format("Disable/Enable Invokee [{}]", app->name());
 				ImGui::Checkbox(name.c_str(), &isEnabled);
@@ -165,24 +173,54 @@ int main() // <== Starting point ==
 		});
 		
 
-		// GO:
-		gvk::start(
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
 			gvk::application_name("Hello, multiple invokees!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
+				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
 			},
+			// Pass windows:
 			mainWnd,
-			app1,
-			app2,
-			app3,
-			ui
-		);			
+			// Pass invokees:
+			app1, app2, app3, ui
+		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;		
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }
 
 

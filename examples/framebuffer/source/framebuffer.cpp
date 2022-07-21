@@ -47,14 +47,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		const auto r = gvk::context().main_window()->resolution();
 		auto colorAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eR8G8B8A8Unorm, 1, avk::memory_usage::device, avk::image_usage::general_color_attachment));
 		auto depthAttachment = gvk::context().create_image_view(gvk::context().create_image(r.x, r.y, vk::Format::eD32Sfloat, 1, avk::memory_usage::device, avk::image_usage::general_depth_stencil_attachment));
-		auto colorAttachmentDescription = avk::attachment::declare_for(colorAttachment, avk::on_load::clear, avk::color(0),        avk::on_store::store);
-		auto depthAttachmentDescription = avk::attachment::declare_for(depthAttachment, avk::on_load::clear, avk::depth_stencil(), avk::on_store::store);
+		auto colorAttachmentDescription = avk::attachment::declare_for(colorAttachment.as_reference(), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store);
+		auto depthAttachmentDescription = avk::attachment::declare_for(depthAttachment.as_reference(), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::store);
+
 		mOneFramebuffer = gvk::context().create_framebuffer(
 			{ colorAttachmentDescription, depthAttachmentDescription }, // Attachment declarations can just be copied => use initializer_list.
-			avk::make_vector( // Transfer ownership of both attachments into the vector and into create_framebuffer:
-				avk::owned(colorAttachment), 
-				avk::owned(depthAttachment)
-			)
+			avk::make_vector( colorAttachment, depthAttachment )
 		);
 		
 		// Create graphics pipeline for rasterization with the required configuration:
@@ -64,7 +62,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 			avk::vertex_shader("shaders/passthrough.vert"),                                   // Add a vertex shader
 			avk::fragment_shader("shaders/color.frag"),                                       // Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),	// Align viewport with main window's resolution
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),	// Align viewport with main window's resolution
 			colorAttachmentDescription,
 			depthAttachmentDescription
 		);
@@ -164,101 +162,105 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
-		// ... update its vertex data:		// Also this time, we're using a convenience function to record and submit the commands, but now signaling a semaphore:
-		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({ 
+		// ... update its vertex data, then get a semaphore which signals as soon as the operation has completed:
+		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
 			}, 
 			mQueue,
-			// TODO: avk::stage::auto_stage fails
-			avk::stage::transfer // Let the framework determine the (source) stage after which the semaphore can be signaled
+			avk::stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
 		);
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
-		// Create a command buffer and render into the *current* swap chain image:
-		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Create two command buffer:
+		auto cmdBfrs = commandPool->alloc_command_buffers(2u, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
+		// Create a new semaphore to establish a dependency between different batches of work:
+		auto renderCompleteSemaphore = gvk::context().create_semaphore();
 
-		// Record and submit the draw call to the queue:
 		gvk::context().record({
-				avk::command::render_pass(mPipeline->get_renderpass(), mOneFramebuffer, {
-					avk::command::bind(mPipeline),
-					avk::command::draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]))
+				// Begin and end one renderpass:
+				avk::command::render_pass(mPipeline->renderpass_reference(), mOneFramebuffer.as_reference(), {
+					// And within, bind a pipeline and draw three vertices:
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
 				})
 			})
-			.into_command_buffer(cmdBfr)
+			.into_command_buffer(cmdBfrs[0])
 			.then_submit_to(mQueue)
-			.waiting_for(vertexBufferFillSemaphore >> avk::stage::vertex_attribute_input)
+			// Do not start to render before the image has become available:
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			// Also wait for the data transfer into the vertex buffer has completed:
+			.waiting_for(vertexBufferFillSemaphore >> avk::stage::vertex_attribute_input)
+			// Signal the following semaphore upon completion, only to wait on it in the next submitted batch of work (see below)
+			.signaling_upon_completion(avk::stage::color_attachment_output >> renderCompleteSemaphore)
 			.submit();
-		
-		// Have the lifetime of the created resources handled,
-		// namely attach the semaphore to the command buffer,
-		// and have both handled by the window:
-		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
-		mainWnd->handle_lifetime(avk::owned(cmdBfr));
-		     
-		if (0 == mUseCopyOrBlit) {
-			// Copy:
-			gvk::context().record_and_submit_with_fence({
-				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
-					avk::stage::color_attachment_output >> avk::stage::copy,
-					avk::access::color_attachment_write >> avk::access::transfer_read
-				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
-				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
-					avk::stage::none  >> avk::stage::copy,
-					avk::access::none >> avk::access::transfer_write
-				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
 
-				avk::copy_image_to_another(
-					mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::image_layout::transfer_src,
-					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
+		// Let the command buffer handle the semaphore lifetimes:
+		cmdBfrs[0]->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
+
+		// Note: Using a semaphore here is okay, but it is a bit heavy-weight.
+		//       A more low-weight alternative would be to use a memory barrier.
+
+		gvk::context().record(avk::command::gather( // Use command::gather here instead of passing a std::vector here.
+			                                        // This allows us to use command::conditional further down.
+
+				// Transition the layouts before performing the transfer operation:
+				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
+					// None here, because we're synchronizing with a semaphore
+					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
+					avk::access::none >> avk::access::transfer_read
+				).with_layout_transition(avk::layout::color_attachment_optimal >> avk::layout::transfer_src),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
+					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
+					avk::access::none >> avk::access::transfer_write
+				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
+
+				// Perform the transfer operation:
+				avk::command::conditional(
+					[&]() { return 0 == mUseCopyOrBlit;  },
+					[&]() {
+						return avk::copy_image_to_another(
+							mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::layout::transfer_src,
+							mainWnd->current_backbuffer()->image_at(0), avk::layout::transfer_dst
+						);
+					},
+					[&]() { 
+						return avk::blit_image(
+							mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::layout::transfer_src,
+							mainWnd->current_backbuffer()->image_at(0), avk::layout::transfer_dst
+						);
+					}
 				),
 
+				// Transition the layouts back:
 				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
-					avk::stage::copy            >> avk::stage::none,
-					avk::access::transfer_read  >> avk::access::none
-				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
+					avk::stage::copy | avk::stage::blit            >> avk::stage::none,
+					avk::access::transfer_read                     >> avk::access::none
+				).with_layout_transition(avk::layout::transfer_src >> avk::layout::color_attachment_optimal),
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
-					avk::stage::copy            >> avk::stage::color_attachment_output,
-					avk::access::transfer_write >> avk::access::color_attachment_write
-				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
+					avk::stage::copy | avk::stage::blit            >> avk::stage::color_attachment_output,
+					avk::access::transfer_write                    >> avk::access::color_attachment_write
+				).with_layout_transition(avk::layout::transfer_dst >> avk::layout::color_attachment_optimal)
 
-			}, mQueue)
-			->wait_until_signalled();
-		}
-		else {
-			gvk::context().record_and_submit_with_fence({ 
-				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
-					avk::stage::color_attachment_output >> avk::stage::copy,
-					avk::access::color_attachment_write >> avk::access::transfer_read
-				).with_layout_transition(avk::image_layout::shader_read_only_optimal >> avk::image_layout::transfer_src),
-				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
-					avk::stage::none  >> avk::stage::copy,
-					avk::access::none >> avk::access::transfer_write
-				).with_layout_transition(avk::image_layout::present_src >> avk::image_layout::transfer_dst),
+			))
+			.into_command_buffer(cmdBfrs[1])
+			.then_submit_to(mQueue)
+			.waiting_for(renderCompleteSemaphore >> (avk::stage::copy | avk::stage::blit))
+			.submit();
 
-				avk::blit_image(
-					mOneFramebuffer->image_at(mSelectedAttachmentToCopy), avk::image_layout::transfer_src,
-					mainWnd->current_backbuffer()->image_at(0),           avk::image_layout::transfer_dst
-				),
+		// Let the latter command buffer handle the former batch's renderCompleteSemaphore lifetime:
+		cmdBfrs[1]->handle_lifetime_of(std::move(renderCompleteSemaphore));
 
-				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
-					avk::stage::copy >> avk::stage::none,
-					avk::access::transfer_read >> avk::access::none
-				).with_layout_transition(avk::image_layout::transfer_src >> avk::image_layout::color_attachment_optimal),
-				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
-					avk::stage::copy >> avk::stage::color_attachment_output,
-					avk::access::transfer_write >> avk::access::color_attachment_write
-				).with_layout_transition(avk::image_layout::transfer_dst >> avk::image_layout::color_attachment_optimal),
-
-			}, mQueue)
-			->wait_until_signalled();
-		}
+		// Use a convenience function of gvk::window to take care of the command buffers lifetimes:
+		// They will get deleted in the future after #concurrent-frames have passed by.
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrs[0]));
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrs[1]));
 	}
 
 
@@ -278,6 +280,7 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Framebuffers");
@@ -290,21 +293,56 @@ int main() // <== Starting point ==
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
 		
-		// Create an instance of our main avk::element which contains all the functionality:
+		// Create an instance of our main "invokee" which contains all the functionality:
 		auto app = framebuffer_app(singleQueue);
-		// Create another element for drawing the UI with ImGui
+		// Create another invokee for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
-		// GO:
-		gvk::start(
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Framebuffers"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
+			// Pass windows:
 			mainWnd,
-			app,
-			ui
-		);		
+			// Pass invokees:
+			app, ui
+		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;		
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }

@@ -437,7 +437,7 @@ namespace gvk
 		);
 
 		// setup render pass for the case where the invokee does not write anything on the backbuffer (and clean it)
-		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), on_load::clear, usage::color(0), on_store::store);
+		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), on_load::clear.from_previous_layout(avk::layout::undefined), usage::color(0), on_store::store);
 		auto newClearRenderpass = context().create_renderpass(
 			attachments
 			//, {

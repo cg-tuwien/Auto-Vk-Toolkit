@@ -50,8 +50,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)), // Align viewport with main window's resolution
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store) // But NOT in presentable format, because ImGui comes after
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
+			avk::attachment::declare(
+				// Copy the format from the main window's swap chain images:
+				gvk::format_from_window_color_buffer(gvk::context().main_window()),
+				// Load => use as color attachment => store (for imgui_manager which renders into this image too)
+				avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store
+				//                                                      ^^^ don't care about the previous layout, hence undefined
+			)
 		);
 
 		// Create vertex buffers --- namely one for each frame in flight.
@@ -73,11 +79,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_usage::device, {},										// Also this buffer should "live" in GPU memory
 			avk::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
 		);
+
 		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
-		mIndexBuffer->fill(			
-			mIndices.data(), 0,													// Since we also want to upload the data => pass a data pointer
-			avk::old_sync::wait_idle()												// We HAVE TO synchronize this command. The easiest way is to just wait for idle.
-		);
+		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mQueue);
+		// Wait with a fence until the data transfer has completed:
+		fence->wait_until_signalled();
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
@@ -140,37 +146,46 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
-		// ... update its vertex data:
-		mVertexBuffers[inFlightIndex]->fill(
-			vertexDataCurrentFrame.data(), 0,
-			// Sync this fill-operation with pipeline memory barriers:
-			avk::old_sync::with_barriers(gvk::context().main_window()->command_buffer_lifetime_handler())
-			// ^ This handler is a convenience method which hands over the (internally created, but externally
-			//   lifetime-handled) command buffer to the main window's swap chain. It will be deleted when it
-			//   is no longer needed (which is in current-frame + frames-in-flight-frames time).
-			//   avk::old_sync::with_barriers() offers more fine-grained control over barrier-based synchronization.
+		// ... update its vertex data, then get a semaphore which signals as soon as the operation has completed:
+		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
+				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
+			}, 
+			mQueue,
+			avk::stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
 		);
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
-		// Create a command buffer and render into the *current* swap chain image:
-		
-		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
-		cmdBfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
-		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->draw_indexed(avk::const_referenced(mIndexBuffer), avk::const_referenced(mVertexBuffers[inFlightIndex]));
-		cmdBfr->end_render_pass();
-		cmdBfr->end_recording();
-
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
-		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdBfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
+		gvk::context().record({
+				// Begin and end one renderpass:
+				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+					// And within, bind a pipeline and draw three vertices:
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
+				})
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(mQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			// Also wait for the data transfer into the vertex buffer has completed:
+			.waiting_for(vertexBufferFillSemaphore >> avk::stage::vertex_attribute_input)
+			.submit();
+
+		// Let the command buffer handle the semaphore's lifetime:
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
+
+		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// It will get deleted in the future after #concurrent-frames have passed by.
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfr));
 	}
 
 
@@ -187,6 +202,7 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("Vertex Buffers");
@@ -199,21 +215,56 @@ int main() // <== Starting point ==
 		mainWnd->add_queue_family_ownership(singleQueue);
 		mainWnd->set_present_queue(singleQueue);
 		
-		// Create an instance of our main avk::element which contains all the functionality:
+		// Create an instance of our main "invokee" which contains all the functionality:
 		auto app = vertex_buffers_app(singleQueue);
-		// Create another element for drawing the UI with ImGui
+		// Create another invokee for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
-		// GO:
-		gvk::start(
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
 			gvk::application_name("Gears-Vk + Auto-Vk Example: Vertex Buffers"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
+			// Pass windows:
 			mainWnd,
-			app,
-			ui
+			// Pass invokees:
+			app, ui
 		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }
