@@ -190,7 +190,7 @@
     <ClInclude Include="..\..\framework\include\quadratic_uniform_b_spline.hpp" />
     <ClInclude Include="..\..\framework\include\quake_camera.hpp" />
     <ClInclude Include="..\..\framework\include\settings.hpp" />
-    <ClInclude Include="..\..\framework\include\setup.hpp" />
+    <ClInclude Include="..\..\framework\include\configure_and_compose.hpp" />
     <ClInclude Include="..\..\framework\include\sequential_invoker.hpp" />
     <ClInclude Include="..\..\framework\include\swapchain_additional_attachments_changed_event.hpp" />
     <ClInclude Include="..\..\framework\include\swapchain_changed_event.hpp" />

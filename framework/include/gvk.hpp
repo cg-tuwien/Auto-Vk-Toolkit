@@ -140,7 +140,6 @@
 #include "vk_convenience_functions.hpp"
 
 #include "settings.hpp"
-#include "invoker_interface.hpp"
 #include "context_vulkan.hpp"
 
 namespace gvk
@@ -244,7 +243,7 @@ namespace gvk {
 #include "meshlet_helpers.hpp"
 
 #include "composition.hpp"
-#include "setup.hpp"
+#include "configure_and_compose.hpp"
 
 #include "imgui_manager.hpp"
 

@@ -196,8 +196,6 @@ namespace gvk
 			// Used to distinguish between "simulation" and "render"-frames
 			auto frameType = timer_frame_type::none;
 
-			sequential_invoker seqInvoker;
-
 #if !SINGLE_THREADED
 			while (!thiz->mShouldStop)
 			{
@@ -213,7 +211,9 @@ namespace gvk
 				wait_for_input_buffers_swapped(thiz);
 
 				// 2. check and possibly issue on_enable event handlers
-				seqInvoker.execute_handle_enablings(thiz->mElements); // TODO: Possibly make this generic (or not?)
+				for (auto& e : thiz->mElements) {
+					e->handle_enabling();
+				}
 
 				// 3. update
 				if ((frameType & timer_frame_type::update) == timer_frame_type::update)
@@ -241,7 +241,9 @@ namespace gvk
 				}
 
 				// 5. check and possibly issue on_disable event handlers
-				seqInvoker.execute_handle_disablings(thiz->mElements); // TODO: Possibly make this generic (or not?)
+				for (auto& e : thiz->mElements) {
+					e->handle_disabling();
+				}
 
 				// signal context
 				context().end_frame();
@@ -297,6 +299,18 @@ namespace gvk
 			}
 		}
 
+		/**	Start the render loop for the (previously configured) composition. 
+		 *	The loop will run as long as its internal mShouldStop is false, which can be changed via composition_interface::stop.
+		 *	You must pass two callback functions as parameters:
+		 *	@param	aUpdateCallback		A function which must invoke all the passed invokee's update() methods if they are enabled.
+		 *                              Hint: You could use gvk::sequential_invoker for this task.
+		 *                              Required signature of the callback: void(const std::vector<invokee*>&)
+		 *	@param	aRenderCallback		A function which must invoke all the passed invokee's render() methods if they are enabled.
+		 *                              Hint: You could use gvk::sequential_invoker for this task.
+		 *                              Furthermore, if windows are used, window::sync_before_render must be invoked for every active
+		 *                              window before the render() invokations, and window::render_frame must be invoked afterwards.
+		 *                              Required signature of the callback: void(const std::vector<invokee*>&)
+		 */
 		template <typename UC, typename RC>
 		void start_render_loop(UC aUpdateCallback, RC aRenderCallback)
 		{

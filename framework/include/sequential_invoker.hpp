@@ -4,23 +4,14 @@
 namespace gvk
 {
 	/**	@brief Handle all @ref invokee sequentially!
-	 *
-	 *	An invoker compatible with the @ref composition class.
-	 *	All @ref invokee instances which are managed by one @ref composition
-	 *	are handled through an invoker. The @ref sequential_invoker updates,
-	 *	renders, etc. all of them one after the other.
 	 */
-	class sequential_invoker : public invoker_interface
+	class sequential_invoker
 	{
 	public:
-		void execute_handle_enablings(const std::vector<invokee*>& elements) override
-		{
-			for (auto& e : elements) {
-				e->handle_enabling();
-			}
-		}
-
-		void execute_updates(const std::vector<invokee*>& elements) override
+		/** Invoke all the update() methods in a sequential fashion, 
+		 *  if the respective instance is enabled.
+		 */
+		void invoke_updates(const std::vector<invokee*>& elements)
 		{
 			for (auto& e : elements) {
 				if (e->is_enabled()) {
@@ -29,7 +20,11 @@ namespace gvk
 			}
 		}
 
-		void execute_renders(const std::vector<invokee*>& elements) override
+		/** Invoke all the render() methods in a sequential fashion,
+		 *  if the respective instance is enabled.
+		 *	Also pay attention to any pending updater actions.
+		 */
+		void invoke_renders(const std::vector<invokee*>& elements)
 		{
 			updater::prepare_for_current_frame();
 			for (auto& e : elements) {
@@ -42,13 +37,6 @@ namespace gvk
 				if (e->is_render_enabled()) {
 					e->render();
 				}
-			}
-		}
-
-		void execute_handle_disablings(const std::vector<invokee*>& elements) override
-		{
-			for (auto& e : elements) {
-				e->handle_disabling();
 			}
 		}
 	};

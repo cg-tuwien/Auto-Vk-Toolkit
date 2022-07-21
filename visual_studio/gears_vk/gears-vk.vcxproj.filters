@@ -192,7 +192,7 @@
     <ClInclude Include="..\..\framework\include\context_state.hpp">
       <Filter>gears-vk_include\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\framework\include\setup.hpp">
+    <ClInclude Include="..\..\framework\include\configure_and_compose.hpp">
       <Filter>gears-vk_include\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\framework\include\cgb_exceptions.hpp">
