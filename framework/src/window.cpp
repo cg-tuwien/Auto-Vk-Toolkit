@@ -567,12 +567,19 @@ namespace gvk
 
 	void window::update_resolution_and_recreate_swap_chain()
 	{
+		// Gotta wait until the resolution has been updated on the main thread:
 		update_resolution();
 		std::atomic_bool resolutionUpdated = false;
 		context().dispatch_to_main_thread([&resolutionUpdated]() { resolutionUpdated = true; });
 		context().signal_waiting_main_thread();
 		mPresentQueue->handle().waitIdle();
 		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }
+
+		// If the window is minimized, we've gotta wait even longer:
+		while (resolution().x * resolution().y == 0u) {
+			LOG_DEBUG(fmt::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
+			update_resolution();
+		}
 
 		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
 	}

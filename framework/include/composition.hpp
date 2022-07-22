@@ -370,12 +370,14 @@ namespace gvk
 					// reset flag:
 					mInputBufferSwapPending = false;
 
+					// TODO: This is a bit (read: a lot) stupid, that this is tied to the main_window => support multiple windows here gracefully:
 					int width = 0, height = 0;
 				    glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
 				    while (width == 0 || height == 0) {
 				        glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
 				        glfwWaitEvents();
 				    }
+					gvk::context().main_window()->update_resolution();
 					
 #if !SINGLE_THREADED
 					// resume render_thread:
