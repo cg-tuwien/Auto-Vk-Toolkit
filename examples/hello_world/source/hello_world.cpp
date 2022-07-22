@@ -19,15 +19,8 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
-			gvk::context().create_renderpass({ 
-				avk::attachment::declare(
-					// Copy the format from the main window's swap chain images:
-					gvk::format_from_window_color_buffer(gvk::context().main_window()), 
-					// Load => use as color attachment => store (for imgui_manager which renders into this image too)
-					avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store
-					//                                                      ^^^ don't care about the previous layout, hence undefined
-				) 
-			})
+			// Just use the main window's renderpass for this pipeline:
+			gvk::context().main_window()->renderpass()
 		);
 		
 		// We want to use an updater => gotta create one:

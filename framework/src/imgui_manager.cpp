@@ -440,18 +440,18 @@ namespace gvk
 		attachments[0] = avk::attachment::declare(format_from_window_color_buffer(wnd), on_load::clear.from_previous_layout(avk::layout::undefined), usage::color(0), on_store::store);
 		auto newClearRenderpass = context().create_renderpass(
 			attachments
-			//, {
-			//	subpass_dependency(
-			//		subpass::external >> subpass::index(0),
-			//		stage::color_attachment_output >> stage::color_attachment_output,
-			//		access::color_attachment_write >> access::color_attachment_read
-			//	),
-			//	subpass_dependency(
-			//		subpass::index(0) >> subpass::external,
-			//		stage::color_attachment_output >> stage::none, // assume semaphore afterwards
-			//		access::color_attachment_write >> access::none
-			//	)
-			//}
+			, {
+				subpass_dependency(
+					subpass::external >> subpass::index(0),
+					stage::none >> stage::color_attachment_output,
+					access::none >> access::color_attachment_read | access::color_attachment_write
+				),
+				subpass_dependency(
+					subpass::index(0) >> subpass::external,
+					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
+					access::color_attachment_write >> access::none
+				)
+			}
 		);
 
 		auto lifetimeHandlerLambda = [wnd](avk::renderpass&& rp) { wnd->handle_lifetime(std::move(rp)); };

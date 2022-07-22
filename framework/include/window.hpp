@@ -332,7 +332,11 @@ namespace gvk
 
 		/** Gets a const reference to the backbuffer's render pass
 		 */
-		[[nodiscard]] avk::renderpass get_renderpass() const { return mBackBufferRenderpass; }
+		[[nodiscard]] const avk::renderpass_t& renderpass_reference() const { return mBackBufferRenderpass.get(); }
+
+		/** Gets the backbuffer's render pass
+		 */
+		[[nodiscard]] avk::renderpass renderpass() const { return mBackBufferRenderpass; }
 
 		/**	This is intended to be used as a command buffer lifetime handler for `cgb::old_sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish

@@ -582,11 +582,11 @@ namespace gvk
 		std::vector<avk::recorded_commands_t> result;
 		for (auto& bb : mBackBuffers) {
 			const auto n = bb->image_views().size();
-			assert(n == get_renderpass()->number_of_attachment_descriptions());
+			assert(n == renderpass_reference().number_of_attachment_descriptions());
 			for (size_t i = 0; i < n; ++i) {
 				result.push_back(
 					avk::sync::image_memory_barrier(bb->image_view_at(i)->get_image(), avk::stage::none >> avk::stage::none)
-					.with_layout_transition(avk::layout::undefined >> avk::layout::image_layout{ get_renderpass()->attachment_descriptions()[i].finalLayout })
+					.with_layout_transition(avk::layout::undefined >> avk::layout::image_layout{ renderpass_reference().attachment_descriptions()[i].finalLayout })
 				);
 			}
 		}
@@ -722,7 +722,7 @@ namespace gvk
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers
 		std::vector<avk::attachment> renderpassAttachments = {
-			avk::attachment::declare_for(*mSwapChainImageViews[0], avk::on_load::clear, avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::present_src))
+			avk::attachment::declare_for(*mSwapChainImageViews[0], avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::color_attachment_optimal))
 		};
 		renderpassAttachments.insert(std::end(renderpassAttachments), std::begin(additionalAttachments), std::end(additionalAttachments));
 
