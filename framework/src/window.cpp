@@ -578,7 +578,16 @@ namespace gvk
 		// If the window is minimized, we've gotta wait even longer:
 		while (resolution().x * resolution().y == 0u) {
 			LOG_DEBUG(fmt::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
-			update_resolution();
+			context().dispatch_to_main_thread([&resolutionUpdated](){
+				int width = 0, height = 0;
+				glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
+				while (width == 0 || height == 0) {
+					glfwGetFramebufferSize(gvk::context().main_window()->handle()->mHandle, &width, &height);
+					glfwWaitEvents();
+				}
+				gvk::context().main_window()->update_resolution();
+			});
+			context().work_off_all_pending_main_thread_actions();
 		}
 
 		create_swap_chain(swapchain_creation_mode::update_existing_swapchain);
