@@ -598,7 +598,7 @@ namespace gvk
 		auto extent = context().get_resolution_for_window(this);
 		auto surfaceFormat = get_config_surface_format(surface());
 		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
-			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y));
+			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y, 1u));
 			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed)) {
 				mImageCreateInfoSwapChain.setFormat(surfaceFormat.format);
 			}
@@ -609,7 +609,7 @@ namespace gvk
 			mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
 				.setImageType(vk::ImageType::e2D)
 				.setFormat(surfaceFormat.format)
-				.setExtent(vk::Extent3D(extent.x, extent.y))
+				.setExtent(vk::Extent3D(extent.x, extent.y, 1u))
 				.setMipLevels(1)
 				.setArrayLayers(1)
 				.setSamples(vk::SampleCountFlagBits::e1)
