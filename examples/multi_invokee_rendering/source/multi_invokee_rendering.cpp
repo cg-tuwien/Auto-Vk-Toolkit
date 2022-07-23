@@ -3,7 +3,7 @@
 
 class multi_invokee_rendering_app : public gvk::invokee
 {
-public: // v== cgb::invokee overrides which will be invoked by the framework ==v
+public: 
 	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder)
 		: mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }, mCustomExecutionOrder(aExecutionOrder)
 	{}

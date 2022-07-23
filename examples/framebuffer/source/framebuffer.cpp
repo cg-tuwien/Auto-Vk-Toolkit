@@ -207,6 +207,10 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		// Note: Using a semaphore here is okay, but it is a bit heavy-weight.
 		//       A more low-weight alternative would be to use a memory barrier.
 
+		auto sourceImageLayout = 0 == mSelectedAttachmentToCopy
+			? avk::layout::color_attachment_optimal
+			: avk::layout::depth_attachment_optimal;
+
 		gvk::context().record(avk::command::gather( // Use command::gather here instead of passing a std::vector here.
 			                                        // This allows us to use command::conditional further down.
 
@@ -215,7 +219,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 					// None here, because we're synchronizing with a semaphore
 					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
 					avk::access::none >> avk::access::transfer_read
-				).with_layout_transition(avk::layout::color_attachment_optimal >> avk::layout::transfer_src),
+				).with_layout_transition(sourceImageLayout >> avk::layout::transfer_src),
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
 					avk::access::none >> avk::access::transfer_write
@@ -242,7 +246,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					avk::stage::copy | avk::stage::blit            >> avk::stage::none,
 					avk::access::transfer_read                     >> avk::access::none
-				).with_layout_transition(avk::layout::transfer_src >> avk::layout::color_attachment_optimal),
+				).with_layout_transition(avk::layout::transfer_src >> sourceImageLayout), // Restore layout
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
 					avk::stage::copy | avk::stage::blit            >> avk::stage::color_attachment_output,
 					avk::access::transfer_write                    >> avk::access::color_attachment_write

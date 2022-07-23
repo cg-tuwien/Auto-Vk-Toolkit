@@ -4,7 +4,8 @@
 class multiple_queues_app : public gvk::invokee
 {
 	// Define a struct for our vertex input data:
-	struct Vertex {
+	struct Vertex
+	{
 	    glm::vec3 pos;
 	    glm::vec3 color;
 	};
@@ -34,11 +35,9 @@ class multiple_queues_app : public gvk::invokee
 		 0, 1, 2,  3, 4, 5,  6, 7, 8,  9, 10, 11
 	};
 
-public: // v== avk::invokee overrides which will be invoked by the framework ==v
-	multiple_queues_app(avk::queue& aQueue)
-		: mQueue{ &aQueue }
-		, mAdditionalTranslationY{ 0.0f }
-		, mRotationSpeed{ 1.0f }
+public:
+	multiple_queues_app(std::array<avk::queue*, 3> aTransferQueues, avk::queue* aGraphicsQueue)
+		: mTransferQueues{ aTransferQueues }, mGraphicsQueue{ aGraphicsQueue }
 	{ }
 
 	void initialize() override
@@ -47,7 +46,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos)   -> to_location(0),	// Describe the position vertex attribute
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::color) -> to_location(1), // Describe the color vertex attribute
-			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
+			avk::vertex_shader("shaders/offset.vert"),											// Add a vertex shader
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
@@ -59,26 +58,32 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// However, do not upload vertices yet. we'll do that in the render() method.
 		auto numFramesInFlight = gvk::context().main_window()->number_of_frames_in_flight();
 		for (int i = 0; i < numFramesInFlight; ++i) {
-			mVertexBuffers.emplace_back(
-				gvk::context().create_buffer(
+			auto& vertexBuffersPerFrameInFlight = mVertexBuffers.emplace_back();
+			for (int j = 0; j < 3; ++j) {
+				vertexBuffersPerFrameInFlight[j] = gvk::context().create_buffer(
 					avk::memory_usage::device, {},							// Create the buffer on the device, i.e. in GPU memory, (no additional usage flags).
 					avk::vertex_buffer_meta::create_from_data(mVertexData)		// Infer meta data from the given buffer.
-				)
-			);
+				);
+			}
 		}
 		
-		// Create index buffer. Upload data already since we won't change it ever
-		// (hence the usage of avk::create_and_fill instead of just avk::create)
-		mIndexBuffer = gvk::context().create_buffer(
-			avk::memory_usage::device, {},										// Also this buffer should "live" in GPU memory
-			avk::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
-		);
-
-		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
-		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mQueue);
-		// Wait with a fence until the data transfer has completed:
-		fence->wait_until_signalled();
-
+		// Create an index buffer and upload it:
+		mIndexBuffer[0] = gvk::context().create_buffer(avk::memory_usage::device, {}, avk::index_buffer_meta::create_from_data(mIndices));
+		gvk::context().record_and_submit_with_fence({ mIndexBuffer[0]->fill(mIndices.data(), 0) }, mTransferQueues[0])->wait_until_signalled();
+		// Let's see what to do with the other tranfer queues:
+		for (int j = 1; j < 3; ++j) {
+			// If all the transfer queues are from the same queue family, they can all share the same index buffer -- if not, then they can't:
+			if (mTransferQueues[0]->family_index() == mTransferQueues[j]->family_index()) {
+				mIndexBuffer[j] = mIndexBuffer[0];
+				continue;
+			}
+			if (mTransferQueues[j-1]->family_index() == mTransferQueues[j]->family_index()) {
+				mIndexBuffer[j] = mIndexBuffer[j-1];
+			}
+			mIndexBuffer[j] = gvk::context().create_buffer(avk::memory_usage::device, {}, avk::index_buffer_meta::create_from_data(mIndices));
+			gvk::context().record_and_submit_with_fence({ mIndexBuffer[j]->fill(mIndices.data(), 0) }, mTransferQueues[j])->wait_until_signalled();
+		}
+		
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if (nullptr != imguiManager) {
@@ -87,8 +92,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-				ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
-				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
 		        ImGui::End();
 			});
 		}
@@ -96,13 +99,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		// On C pressed,
-		if (gvk::input().key_pressed(gvk::key_code::c)) {
-			// center the cursor:
-			auto resolution = gvk::context().main_window()->resolution();
-			gvk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
-		}
-
 		// On Esc pressed,
 		if (gvk::input().key_pressed(gvk::key_code::escape)) {
 			// stop the current composition:
@@ -112,44 +108,44 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void render() override
 	{
-		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
-		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start() * mRotationSpeed;
-		auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
-		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
-		auto invTranslZ = glm::inverse(translateZ);
-		auto translateY = glm::translate(glm::vec3{ 0.0f, -mAdditionalTranslationY, 0.0f });
-
-		// Store modified vertices in vertexDataCurrentFrame:
-		std::vector<Vertex> vertexDataCurrentFrame;
-		for (const Vertex& vtx : mVertexData) {
-			glm::vec4 origPos{ vtx.pos, 1.0f };
-			vertexDataCurrentFrame.push_back({
-				glm::vec3(translateY * invTranslZ * rotMatrix * translateZ * origPos),
-				vtx.color
-			});
-		}
-
-		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
-		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
-		//		 in sync --- it can make a difference.
-		//		 Since the buffer-updates here are solely rendering-relevant and do not depend on other aspects
-		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
-		//		 will ensure correct and smooth rendering regardless of the timer used.
-
 		// For the right vertex buffer, ...
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
-		// ... update its vertex data, then get a semaphore which signals as soon as the operation has completed:
-		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
-				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
-			}, 
-			mQueue,
-			avk::stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
-		);
+		// Prepare three semaphores to sync the three transfer queues with the graphics queue:
+		std::array<avk::semaphore, 3> vertexBufferFillSemaphores;
+
+		// Translate all differently and submit to different queues:
+		for (int j = 0; j < 3; ++j) {
+			// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
+			auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start() * static_cast<float>(j);
+			auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
+			auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
+			auto invTranslZ = glm::inverse(translateZ);
+			auto translateX = glm::translate(glm::vec3{ static_cast<float>(j-1), 0.0f, 0.0f });
+
+			// Compute modified vertices:
+			std::vector<Vertex> modifiedVertices;
+			for (const Vertex& vtx : mVertexData) {
+				modifiedVertices.push_back({glm::vec3(translateX * invTranslZ * rotMatrix * translateZ * glm::vec4{ vtx.pos, 1.0f }), vtx.color });
+			}
+
+			// Transfer all to different queues:
+			const auto& vertexBuffer = mVertexBuffers[inFlightIndex][j].as_reference();
+			vertexBufferFillSemaphores[j] = gvk::context().record_and_submit_with_semaphore(avk::command::gather(
+					avk::sync::buffer_memory_barrier(vertexBuffer, avk::stage::none >> avk::stage::auto_stage)
+						.with_queue_family_ownership_transfer(mGraphicsQueue->family_index(), mTransferQueues[j]->family_index()),
+					vertexBuffer.fill(modifiedVertices.data(), 0),
+					avk::sync::buffer_memory_barrier(vertexBuffer, avk::stage::none >> avk::stage::auto_stage)
+						.with_queue_family_ownership_transfer(mTransferQueues[j]->family_index(), mGraphicsQueue->family_index())
+				), mTransferQueues[j], avk::stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
+			);
+
+		}
+		
 
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mGraphicsQueue);
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
@@ -157,25 +153,31 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		
+
 		gvk::context().record({
-				// Begin and end one renderpass:
 				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
 					// And within, bind a pipeline and draw three vertices:
 					avk::command::bind_pipeline(mPipeline.as_reference()),
-					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
+					// Three draw calls with all the buffer ownerships now transferred to the graphics queue:
+					avk::command::draw_indexed(mIndexBuffer[0].as_reference(), mVertexBuffers[inFlightIndex][0].as_reference()),
+					avk::command::draw_indexed(mIndexBuffer[1].as_reference(), mVertexBuffers[inFlightIndex][1].as_reference()),
+					avk::command::draw_indexed(mIndexBuffer[2].as_reference(), mVertexBuffers[inFlightIndex][2].as_reference())
 				})
 			})
 			.into_command_buffer(cmdBfr)
-			.then_submit_to(mQueue)
+			.then_submit_to(mGraphicsQueue)
 			// Do not start to render before the image has become available:
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
 			// Also wait for the data transfer into the vertex buffer has completed:
-			.waiting_for(vertexBufferFillSemaphore >> avk::stage::vertex_attribute_input)
+			.waiting_for(vertexBufferFillSemaphores[0] >> avk::stage::vertex_attribute_input)
+			.waiting_for(vertexBufferFillSemaphores[1] >> avk::stage::vertex_attribute_input)
+			.waiting_for(vertexBufferFillSemaphores[2] >> avk::stage::vertex_attribute_input)
 			.submit();
 
-		// Let the command buffer handle the semaphore's lifetime:
-		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
+		// Let the command buffer handle the lifetimes of all the semaphores:
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphores[0]));
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphores[1]));
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphores[2]));
 
 		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
@@ -185,14 +187,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 private: // v== Member variables ==v
 	
-	avk::queue* mQueue;
-	std::vector<avk::buffer> mVertexBuffers;
-	avk::buffer mIndexBuffer;
+	std::array<avk::queue*, 3> mTransferQueues;
+	avk::queue* mGraphicsQueue;
+	std::vector<std::array<avk::buffer, 3>> mVertexBuffers;
+	std::array<avk::buffer, 3> mIndexBuffer;
 	avk::graphics_pipeline mPipeline;
-	float mAdditionalTranslationY;
-	float mRotationSpeed;
 
-}; // vertex_buffers_app
+}; // multiple_queues_app
 
 int main() // <== Starting point ==
 {
@@ -205,14 +206,21 @@ int main() // <== Starting point ==
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
-		mainWnd->set_present_queue(singleQueue);
+		// Create three transfer queues and one graphics queue:
+		std::array<avk::queue*, 3> transferQueues = {
+			&gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue),
+			&gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue),
+			&gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue)
+		};
+		avk::queue* graphicsQueue = &gvk::context().create_queue(vk::QueueFlagBits::eGraphics, avk::queue_selection_preference::specialized_queue, mainWnd);
+		// Only the graphics queue shall own the swapchain images, it is the queue which is used for the present call:
+		mainWnd->add_queue_family_ownership(*graphicsQueue);
+		mainWnd->set_present_queue(*graphicsQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
-		auto app = multiple_queues_app(singleQueue);
+		auto app = multiple_queues_app(transferQueues, graphicsQueue);
 		// Create another invokee for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto ui = gvk::imgui_manager(*graphicsQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
