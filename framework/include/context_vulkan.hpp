@@ -164,6 +164,8 @@ namespace gvk
 		/** Used to signal the context about the end of a frame */
 		void end_frame();
 
+		void record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
 		avk::semaphore record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		avk::fence record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);

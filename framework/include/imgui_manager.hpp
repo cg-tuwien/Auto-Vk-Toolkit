@@ -42,6 +42,21 @@ namespace gvk
 		 */
 		void render_into_command_buffer(avk::command_buffer_t& aCommandBuffer);
 
+		/**	This method can be used to prematurely render ImGui into the given command buffer---same as via
+		 *  render_into_command_buffer, but now handled through an avk::command.
+		 *
+		 *	If the command is executed before ::render, then ::render will NOT create a new command buffer
+		 *	and submit that to the queue.
+		 *
+		 *	A prime example for following this approach might be to streamline rendering into few command buffers,
+		 *	but it can also be helpful for validation synchronization, which is only able to perform its checks
+		 *	WITHIN command buffers---not across different command buffers.
+		 *
+		 *	The flag mAlreadyRendered is set in ::update and evaluated in ::render to determine if ::render
+		 *	shall create a new command buffer and render into it and submit it to the queue.
+		 */
+		avk::command::action_type_command render_command();
+
 		void render() override;
 
 		void finalize() override;

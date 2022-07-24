@@ -3,7 +3,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #ifdef _WIN32
-  #define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
 #include <imgui_internal.h>
@@ -31,37 +31,37 @@ namespace gvk
 		ImGui_ImplGlfw_InitForVulkan(wnd->handle()->mHandle, true); // TODO: Don't install callbacks (get rid of them during 'fixed/varying-input Umstellung DOUBLECHECK')
 
 		ImGui_ImplVulkan_InitInfo init_info = {};
-	    init_info.Instance = context().vulkan_instance();
-	    init_info.PhysicalDevice = context().physical_device();
-	    init_info.Device = context().device();
+		init_info.Instance = context().vulkan_instance();
+		init_info.PhysicalDevice = context().physical_device();
+		init_info.Device = context().device();
 		assert(mQueue);
-	    init_info.QueueFamily = mQueue->family_index();
-	    init_info.Queue = mQueue->handle();
-	    init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
+		init_info.QueueFamily = mQueue->family_index();
+		init_info.Queue = mQueue->handle();
+		init_info.PipelineCache = nullptr; // TODO: Maybe use a pipeline cache?
 
 		// This factor is set to 1000 in the imgui example code but after looking through the vulkan backend code, we never
 		// allocate more than one descriptor set, therefore setting this to 1 should be sufficient.
 		const uint32_t magicImguiFactor = 1;
 		auto allocRequest = avk::descriptor_alloc_request{};
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampler,				 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, std::max(magicImguiFactor, 32u)}); // User could alloc several of these via imgui_manager::get_or_create_texture_descriptor
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eSampledImage,		 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageImage,		 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eUniformTexelBuffer,	 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageTexelBuffer,	 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eUniformBuffer,		 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBuffer,		 magicImguiFactor});
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eUniformBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor}); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{vk::DescriptorType::eInputAttachment,		 magicImguiFactor});
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampler,				 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eCombinedImageSampler, std::max(magicImguiFactor, 32u) }); // User could alloc several of these via imgui_manager::get_or_create_texture_descriptor
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampledImage,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageImage,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformTexelBuffer,	 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageTexelBuffer,	 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBuffer,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through cgb::binding?
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,		 magicImguiFactor });
 		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
 		mDescriptorPool = gvk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 
 		// DescriptorSet chache for user textures
 		mImTextureDescriptorCache = gvk::context().create_descriptor_cache("imgui_manager's texture descriptor cache");
 
-	    init_info.DescriptorPool = mDescriptorPool.handle();
-	    init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
+		init_info.DescriptorPool = mDescriptorPool.handle();
+		init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
 		mCommandPool = &gvk::context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
 		mCommandBuffers = mCommandPool->alloc_command_buffers(static_cast<uint32_t>(wnd->number_of_frames_in_flight()));
@@ -77,9 +77,9 @@ namespace gvk
 		// ImGui has a hard-coded floor for MinImageCount which is 2.
 		// Take the max of min image count supported by the phys. device and imgui:
 		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
-	    init_info.MinImageCount = std::max(2u, surfaceCap.minImageCount);
-	    init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
-	    init_info.CheckVkResultFn = gvk::context().check_vk_result;
+		init_info.MinImageCount = std::max(2u, surfaceCap.minImageCount);
+		init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
+		init_info.CheckVkResultFn = gvk::context().check_vk_result;
 
 		// copy current state of init_info in for later use
 		// this shenanigans is necessary for ImGui to keep functioning when certain rendering properties (renderpass) are changed (and to give it new image count)
@@ -109,36 +109,36 @@ namespace gvk
 			construct_render_pass();
 
 			mUpdater->on(gvk::swapchain_format_changed_event(wnd),
-						 gvk::swapchain_additional_attachments_changed_event(wnd)
+				gvk::swapchain_additional_attachments_changed_event(wnd)
 			).invoke([this, restartImGui]() {
 				ImGui::EndFrame(); //end previous (not rendered) frame
 				construct_render_pass(); // reconstruct render pass
 				restartImGui();
 				ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
-			});
+				});
 		}
 		mUpdater->on(gvk::concurrent_frames_count_changed_event(wnd)).invoke([restartImGui]() {
 			ImGui::EndFrame(); //end previous (not rendered) frame
 			restartImGui();
 			ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
-		});
+			});
 
 		// Init it:
-	    ImGui_ImplVulkan_Init(&init_info, mRenderpass->handle());
+		ImGui_ImplVulkan_Init(&init_info, mRenderpass->handle());
 
 		// Setup back-end capabilities flags
-	    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
-	    //io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
-	    io.BackendPlatformName = "imgui_impl_glfw";
+		io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
+		//io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
+		io.BackendPlatformName = "imgui_impl_glfw";
 
-	    //io.SetClipboardTextFn = ImGui_ImplGlfw_SetClipboardText; // TODO clipboard abstraction via cgb::input()
-	    //io.GetClipboardTextFn = ImGui_ImplGlfw_GetClipboardText;
-	    //io.ClipboardUserData = g_Window;
+		//io.SetClipboardTextFn = ImGui_ImplGlfw_SetClipboardText; // TODO clipboard abstraction via cgb::input()
+		//io.GetClipboardTextFn = ImGui_ImplGlfw_GetClipboardText;
+		//io.ClipboardUserData = g_Window;
 
 #if defined(_WIN32)
-		gvk::context().dispatch_to_main_thread([](){
-		    ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
-		});
+		gvk::context().dispatch_to_main_thread([]() {
+			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(gvk::context().main_window()->handle()->mHandle);
+			});
 #endif
 
 		// Upload fonts:
@@ -151,8 +151,8 @@ namespace gvk
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 		auto wndSize = gvk::context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
-        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
-	    io.DeltaTime = gvk::time().delta_time();
+		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
+		io.DeltaTime = gvk::time().delta_time();
 
 		if (mUserInteractionEnabled) {
 			// Cursor position:
@@ -166,7 +166,7 @@ namespace gvk
 
 			// Scroll position:
 			io.AddMouseWheelEvent(static_cast<float>(input().scroll_delta().x),
-								  static_cast<float>(input().scroll_delta().y));
+				static_cast<float>(input().scroll_delta().y));
 
 			// Mouse cursor:
 			if (!input().is_cursor_disabled()) {
@@ -316,12 +316,52 @@ namespace gvk
 		mAlreadyRendered = true;
 	}
 
+	avk::command::action_type_command imgui_manager::render_command()
+	{
+		return avk::command::action_type_command{
+			avk::sync::sync_hint {
+				{{ // DESTINATION dependencies for previous commands:
+					vk::PipelineStageFlagBits2KHR::eAllGraphics,
+					vk::AccessFlagBits2KHR::eInputAttachmentRead | vk::AccessFlagBits2KHR::eColorAttachmentRead | vk::AccessFlagBits2KHR::eColorAttachmentWrite  
+				}},
+				{{ // SOURCE dependencies for subsequent commands:
+					vk::PipelineStageFlagBits2KHR::eAllGraphics,
+					vk::AccessFlagBits2KHR::eColorAttachmentWrite
+				}}
+			},
+			{}, // no resource-specific sync hints
+			[this](avk::command_buffer_t& cmdBfr) {
+				for (auto& cb : mCallback) {
+					cb();
+				}
+				
+				auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+
+				// if no invokee has written on the attachment (no previous render calls this frame),
+				// reset layout (cannot be "store_in_presentable_format").
+				if (!mainWnd->has_consumed_current_image_available_semaphore()) {
+					cmdBfr.record(avk::command::render_pass(*mClearRenderpass, *mainWnd->current_backbuffer())); // Begin and end without nested commands
+				}
+
+				assert(mRenderpass.has_value());
+				cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(*mRenderpass, *mainWnd->current_backbuffer()));
+
+				ImGui::Render();
+				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
+
+				cmdBfr.record(avk::command::end_render_pass());
+
+				mAlreadyRendered = true;
+			}
+		};
+	}
+
 	void imgui_manager::render()
 	{
 		if (mAlreadyRendered) {
 			return;
 		}
-		
+
 		auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		const auto ifi = mainWnd->current_in_flight_index();
 		auto& cmdBfr = mCommandBuffers[ifi];
@@ -361,8 +401,8 @@ namespace gvk
 	void imgui_manager::finalize()
 	{
 		ImGui_ImplVulkan_Shutdown();
-	    ImGui_ImplGlfw_Shutdown();
-	    ImGui::DestroyContext();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
 	}
 
 	void imgui_manager::enable_user_interaction(bool aEnableOrNot)
@@ -415,7 +455,7 @@ namespace gvk
 			//
 			// Therefore ...
 			// 
-			a.mLoadOperation  = on_load::dont_care;
+			a.mLoadOperation = on_load::dont_care;
 			a.mStoreOperation = on_store::dont_care;
 			attachments.push_back(a);
 		}
@@ -425,13 +465,13 @@ namespace gvk
 				subpass_dependency(
 					subpass::external >> subpass::index(0),
 					// ... we have to synchronize all these stages with color+dept_stencil write access:
-					stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests  >>  stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests,
-					access::color_attachment_write | access::depth_stencil_attachment_write                    >>  access::color_attachment_read | access::depth_stencil_attachment_write
+					stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests >> stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests,
+					access::color_attachment_write | access::depth_stencil_attachment_write >> access::color_attachment_read | access::depth_stencil_attachment_write
 				),
 				subpass_dependency(
 					subpass::index(0) >> subpass::external,
-					stage::color_attachment_output   >>   stage::none, // assume semaphore afterwards
-					access::color_attachment_write   >>   access::none
+					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
+					access::color_attachment_write >> access::none
 				)
 			}
 		);
@@ -463,7 +503,7 @@ namespace gvk
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache->get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler.as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
-		});
+			});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler
 		assert(sets.size() == 1);

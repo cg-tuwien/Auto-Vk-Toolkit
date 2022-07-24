@@ -15,7 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\examples\multiple_queues\source\multiple_queues.cpp" />
+    <ClCompile Include="..\..\..\examples\present_from_compute\source\present_from_compute.cpp" />
     <ClCompile Include="cg_stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">Create</PrecompiledHeader>
@@ -27,21 +27,21 @@
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\examples\present_from_compute\shaders\color.frag" />
+    <None Include="..\..\..\examples\present_from_compute\shaders\passthrough.vert" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
       <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\examples\multiple_queues\shaders\color.frag" />
-    <None Include="..\..\..\examples\multiple_queues\shaders\passthrough.vert" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{3CD62905-610C-4EA1-A378-E1DFE6A6871C}</ProjectGuid>
+    <ProjectGuid>{14DC267E-090F-442E-82FB-31A16759ECDC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>multiplequeues</RootNamespace>
+    <RootNamespace>presentfromcompute</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>multiple_queues</ProjectName>
+    <ProjectName>present_from_compute</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">

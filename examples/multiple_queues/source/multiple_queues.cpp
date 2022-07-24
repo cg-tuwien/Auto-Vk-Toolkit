@@ -125,7 +125,7 @@ public:
 		// For the right vertex buffer, ...
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
-
+		
 		// Prepare three semaphores to sync the three transfer queues with the graphics queue:
 		std::array<semaphore, 2> vertexBufferFillSemaphores;
 
@@ -146,7 +146,7 @@ public:
 
 			// Transfer all to different queues:
 			const auto& vertexBuffer = mVertexBuffers[inFlightIndex][j].as_reference();
-			vertexBufferFillSemaphores[j] = gvk::context().record_and_submit_with_semaphore(command::gather(
+			vertexBufferFillSemaphores[j] = gvk::context().record_and_submit_with_semaphore(command::gather( // Need semaphores for queue -> queue synchronization
 					command::conditional(
 						[frameId = gvk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
 							return frameId >= 3; // Because we have three concurrent frames
@@ -191,7 +191,7 @@ public:
 					.with_queue_family_ownership_transfer(mTransferQueues[1]->family_index(), mGraphicsQueue->family_index()),
 
 				command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
-					// And within, bind a pipeline and draw three vertices:
+					// And within, bind a pipeline and perform an indexed draw call:
 					command::bind_pipeline(mPipeline.as_reference()),
 					// Two draw calls with all the buffer ownerships now transferred to the graphics queue:
 					command::draw_indexed(mIndexBuffer[0].as_reference(), mVertexBuffers[inFlightIndex][0].as_reference()),
@@ -240,13 +240,13 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Vertex Buffers");
+		auto mainWnd = gvk::context().create_window("Multiple Queues");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		// Create three transfer queues and one graphics queue:
+		// Create two transfer queues and one graphics queue:
 		std::array<avk::queue*, 2> transferQueues = {
 			&gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue),
 			&gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue)

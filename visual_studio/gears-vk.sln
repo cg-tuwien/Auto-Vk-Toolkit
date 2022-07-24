@@ -44,6 +44,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "skinned_meshlets", "example
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiple_queues", "examples\multiple_queues\multiple_queues.vcxproj", "{3CD62905-610C-4EA1-A378-E1DFE6A6871C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "present_from_compute", "examples\present_from_compute\present_from_compute.vcxproj", "{14DC267E-090F-442E-82FB-31A16759ECDC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Vulkan|x64 = Debug_Vulkan|x64
@@ -141,6 +143,12 @@ Global
 		{3CD62905-610C-4EA1-A378-E1DFE6A6871C}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
 		{3CD62905-610C-4EA1-A378-E1DFE6A6871C}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{3CD62905-610C-4EA1-A378-E1DFE6A6871C}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{14DC267E-090F-442E-82FB-31A16759ECDC}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -165,6 +173,7 @@ Global
 		{2E2F473E-AF6A-4FC1-9D2D-B4541EAD7BEE} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{295E18F0-C25C-4864-9D61-4A7F6EE13EFB} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{3CD62905-610C-4EA1-A378-E1DFE6A6871C} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
+		{14DC267E-090F-442E-82FB-31A16759ECDC} = {E796A880-48FF-48FF-A7F0-A3A522223061}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

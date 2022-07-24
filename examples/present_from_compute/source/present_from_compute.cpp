@@ -1,7 +1,7 @@
 #include <gvk.hpp>
 #include <imgui.h>
 
-class vertex_buffers_app : public gvk::invokee
+class present_from_compute_app : public gvk::invokee
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -35,10 +35,8 @@ class vertex_buffers_app : public gvk::invokee
 	};
 
 public:
-	vertex_buffers_app(avk::queue& aQueue)
+	present_from_compute_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
-		, mAdditionalTranslationY{ 0.0f }
-		, mRotationSpeed{ 1.0f }
 	{ }
 
 	void initialize() override
@@ -60,10 +58,7 @@ public:
 		auto numFramesInFlight = gvk::context().main_window()->number_of_frames_in_flight();
 		for (int i = 0; i < numFramesInFlight; ++i) {
 			mVertexBuffers.emplace_back(
-				gvk::context().create_buffer(
-					avk::memory_usage::device, {},							// Create the buffer on the device, i.e. in GPU memory, (no additional usage flags).
-					avk::vertex_buffer_meta::create_from_data(mVertexData)		// Infer meta data from the given buffer.
-				)
+				gvk::context().create_buffer(avk::memory_usage::device, {},	avk::vertex_buffer_meta::create_from_data(mVertexData))
 			);
 		}
 		
@@ -87,8 +82,9 @@ public:
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-				ImGui::SliderFloat("Translation", &mAdditionalTranslationY, -1.0f, 1.0f);
-				ImGui::InputFloat("Rotation Speed", &mRotationSpeed, 0.1f, 1.0f);
+				ImGui::Separator();
+				ImGui::Text("Select queue to present from (shortcut to toggle: 'Q'):");
+				ImGui::Combo("Queue", &mQueueToPresentFrom, "Graphics Queue\0Compute Queue\0\0");
 		        ImGui::End();
 			});
 		}
@@ -96,6 +92,11 @@ public:
 
 	void update() override
 	{
+		// On Q pressed,
+		if (gvk::input().key_pressed(gvk::key_code::q)) {
+			mQueueToPresentFrom = 1 - mQueueToPresentFrom;
+		}
+
 		// On Esc pressed,
 		if (gvk::input().key_pressed(gvk::key_code::escape)) {
 			// stop the current composition:
@@ -105,32 +106,29 @@ public:
 
 	void render() override
 	{
+		using namespace avk;
+
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
-		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start() * mRotationSpeed;
+		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start();
 		auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
 		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
 		auto invTranslZ = glm::inverse(translateZ);
-		auto translateY = glm::translate(glm::vec3{ 0.0f, -mAdditionalTranslationY, 0.0f });
 
 		// Store modified vertices in vertexDataCurrentFrame:
 		std::vector<Vertex> vertexDataCurrentFrame;
 		for (const Vertex& vtx : mVertexData) {
-			glm::vec4 origPos{ vtx.pos, 1.0f };
-			vertexDataCurrentFrame.push_back({
-				glm::vec3(translateY * invTranslZ * rotMatrix * translateZ * origPos),
-				vtx.color
-			});
+			vertexDataCurrentFrame.push_back({ glm::vec3(invTranslZ * rotMatrix * translateZ * glm::vec4{ vtx.pos, 1.0f }), vtx.color });
 		}
-
-		// Note: Updating this data in update() would also be perfectly fine when using a varying_update_timer.
-		//		 However, when using a fixed_update_timer --- where update() and render() might not be called
-		//		 in sync --- it can make a difference.
-		//		 Since the buffer-updates here are solely rendering-relevant and do not depend on other aspects
-		//		 like e.g. input or physics simulation, it makes most sense to perform them in render(). This
-		//		 will ensure correct and smooth rendering regardless of the timer used.
 
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+
+		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
+				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
+			}, 
+			mQueue,
+			stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
+		);
 
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
@@ -141,37 +139,35 @@ public:
 		
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		
+
+		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+
 		gvk::context().record({
-				// Fill the vertex buffer that corresponds to this the current inFlightIndex:
-				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
-
-				// Install a barrier to synchronize the buffer copy with the subsequent render pass:
-				avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), 
-					avk::stage::copy				>> avk::stage::vertex_attribute_input,
-					avk::access::transfer_write		>> avk::access::vertex_attribute_read
-				),
-
-				// Note: We could also let the framework infer the stages automatically as follows:
-				// avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), avk::stage::auto_stage >> avk::stage::auto_stage, avk::access:: auto_access >> avk::access::auto_access),
-				// This ^ will lead to correct synchronization, but it might lead to suboptimal stages or access masks -- in particular if
-				// render passes are involved in automatic determination, because we don't know where exactly the buffer is first used.
-
-				// Hint: The following would lead to the same barrier as the one above:
-				// avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), avk::stage::auto_stage >> avk::stage::vertex_attribute_input, avk::access:: auto_access >> avk::access::vertex_attribute_read),
-
+		// For this inFlightIndex' corresponding vertex buffer, update its vertex data, then synchronize with a barrer before the draw call:
 				// Begin and end one renderpass:
-				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
-					// And within, bind a pipeline and perform an indexed draw call:
-					avk::command::bind_pipeline(mPipeline.as_reference()),
-					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
-				})
+				command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+					// And within, bind a pipeline and draw three vertices:
+					command::bind_pipeline(mPipeline.as_reference()),
+					command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
+				}),
+
+				// We've got to synchronize between the two draw calls. Scene drawing must have completed before ImGui
+				// may proceed to render something into the same color buffer:
+				sync::global_memory_barrier(avk::stage::auto_stage + avk::access::auto_access >> avk::stage::auto_stage + avk::access::auto_access),
+
+				// Let ImGui render now:
+				imguiManager->render_command(),
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(mQueue)
 			// Do not start to render before the image has become available:
-			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.waiting_for(imageAvailableSemaphore >> stage::color_attachment_output)
+			// Also wait for the data transfer into the vertex buffer has completed:
+			.waiting_for(vertexBufferFillSemaphore >> stage::vertex_attribute_input)
 			.submit();
+
+		// Let the command buffer handle the semaphore's lifetime:
+		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
 
 		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
@@ -185,8 +181,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer> mVertexBuffers;
 	avk::buffer mIndexBuffer;
 	avk::graphics_pipeline mPipeline;
-	float mAdditionalTranslationY;
-	float mRotationSpeed;
+	int mQueueToPresentFrom = 0;
 
 }; // vertex_buffers_app
 
@@ -195,7 +190,7 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Vertex Buffers");
+		auto mainWnd = gvk::context().create_window("Present from Compute");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
@@ -206,7 +201,7 @@ int main() // <== Starting point ==
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
-		auto app = vertex_buffers_app(singleQueue);
+		auto app = present_from_compute_app(singleQueue);
 		// Create another invokee for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
