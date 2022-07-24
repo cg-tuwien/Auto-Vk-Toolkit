@@ -413,9 +413,9 @@ namespace gvk
 		});
 	}
 
-	void context_vulkan::record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
+	void context_vulkan::record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
 	{
-		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
 
 		record(std::move(aRecordedCommandsAndSyncInstructions))
@@ -424,9 +424,9 @@ namespace gvk
 			.submit();
 	}
 
-	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
+	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
 	{
-		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
 		auto sem = create_semaphore();
 
@@ -440,9 +440,9 @@ namespace gvk
 		return sem;
 	}
 
-	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue* aQueue, vk::CommandBufferUsageFlags aUsageFlags)
+	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, vk::CommandBufferUsageFlags aUsageFlags)
 	{
-		auto& cmdPool = get_command_pool_for_single_use_command_buffers(*aQueue);
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
 		auto fen = create_fence();
 

@@ -52,7 +52,7 @@ namespace gvk
 		};
 
 		if (is_alive()) {
-			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::image_format_changed);
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed);
 		}
 	}
 
@@ -126,6 +126,27 @@ namespace gvk
 		if (is_alive()) {
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::backbuffer_attachments_changed);
 		}
+	}
+
+	void window::set_image_usage_properties(avk::image_usage aImageUsageProperties)
+	{
+		mImageUsageGetter = [lImageUsageProperties = aImageUsageProperties]() { return lImageUsageProperties; };
+
+		// If the window has already been created, the new setting can't
+		// be applied unless the swapchain is being recreated.
+		if (is_alive()) {
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed);
+		}
+	}
+
+	avk::image_usage window::get_config_image_usage_properties()
+	{
+		if (!mImageUsageGetter) {
+			// Set the default:
+			set_image_usage_properties(avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::transfer_source | avk::image_usage::presentable | avk::image_usage::tiling_optimal);
+		}
+		// Determine the image usage flags:
+		return mImageUsageGetter();
 	}
 
 	void window::open()
@@ -319,7 +340,7 @@ namespace gvk
 	{
 		if (mResourceRecreationDeterminator.is_any_recreation_necessary())	{
 			if (mResourceRecreationDeterminator.has_concurrent_frames_count_changed_only())	{ //only update framesInFlight fences/semaphores
-				mPresentQueue->handle().waitIdle(); // ensure the semaphors which we are going to potentially delete are not being used
+				mActivePresentationQueue->handle().waitIdle(); // ensure the semaphores which we are going to potentially delete are not being used
 				update_concurrent_frame_synchronization(swapchain_creation_mode::update_existing_swapchain);
 				mResourceRecreationDeterminator.reset();
 			}
@@ -327,6 +348,8 @@ namespace gvk
 				update_resolution_and_recreate_swap_chain();
 			}
 		}
+		// Update the presentation queue only after potential swap chain updates:
+		update_active_presentation_queue();
 
 		// Get the next image from the swap chain, GPU -> GPU sync from previous present to the following acquire
 		auto imgAvailableSem = image_available_semaphore_for_frame();
@@ -355,7 +378,7 @@ namespace gvk
 				// Since the semaphore is in a wait state right now, we'll have to wait for it until we can use it again.
 				auto fen = context().create_fence();
 				vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
-				mPresentQueue->handle().submit({ // TODO: This works, but is arguably not the greatest of all solutions... => Can it be done better with Timeline Semaphores? (Test on AMD!)
+				mActivePresentationQueue->handle().submit({ // TODO: This works, but is arguably not the greatest of all solutions... => Can it be done better with Timeline Semaphores? (Test on AMD!)
 					vk::SubmitInfo{}
 						.setCommandBufferCount(0u)
 						.setWaitSemaphoreCount(1u)
@@ -456,7 +479,7 @@ namespace gvk
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
 				.setPSignalSemaphoreInfos(&sigSemInfo);
-			mPresentQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), gvk::context().dispatch_loader_ext());
+			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), gvk::context().dispatch_loader_ext());
 
 			// Consequently, the present call must wait on the temporary semaphore only:
 			waitSemHandles.clear();
@@ -475,7 +498,7 @@ namespace gvk
 				.setPSwapchains(&swap_chain())
 				.setPImageIndices(&mCurrentFrameImageIndex)
 				.setPResults(nullptr);
-			auto result = mPresentQueue->handle().presentKHR(presentInfo);
+			auto result = mActivePresentationQueue->handle().presentKHR(presentInfo);
 			
 			// Submitted => store the image index for extra reuse-safety:
 			mImagesInFlightFenceIndices[mCurrentFrameImageIndex] = fenceIndex;
@@ -497,14 +520,39 @@ namespace gvk
 		++mCurrentFrame;
 	}
 
-	void window::add_queue_family_ownership(avk::queue& aQueue)
+	void window::set_queue_family_ownership(std::vector<uint32_t> aQueueFamilies)
 	{
-		mQueueFamilyIndicesGetter.emplace_back([pQueue = &aQueue](){ return pQueue->family_index(); });
+		mQueueFamilyIndicesGetter = [families = std::move(aQueueFamilies)](){ return families; };
+		
+		// If the window has already been created, the new setting can't
+		// be applied unless the swapchain is being recreated.
+		if (is_alive()) {
+			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed);
+		}
+	}
+
+	void window::set_queue_family_ownership(uint32_t aQueueFamily)
+	{
+		set_queue_family_ownership(std::vector<uint32_t>{ aQueueFamily });
 	}
 
 	void window::set_present_queue(avk::queue& aPresentQueue)
 	{
-		mPresentQueue = &aPresentQueue;
+		if (nullptr == mActivePresentationQueue) {
+			mActivePresentationQueue = &aPresentQueue;
+		}
+		else {
+			// Update it later, namely after potential swap chain updates have been executed:
+			mPresentationQueueGetter = [newPresentQueue = &aPresentQueue]() { return newPresentQueue; };
+		}
+	}
+
+	void window::update_active_presentation_queue()
+	{
+		if (mPresentationQueueGetter) {
+			mActivePresentationQueue = mPresentationQueueGetter();
+			mPresentationQueueGetter = {}; // reset
+		}
 	}
 
 	void window::create_swap_chain(swapchain_creation_mode aCreationMode)
@@ -572,7 +620,7 @@ namespace gvk
 		std::atomic_bool resolutionUpdated = false;
 		context().dispatch_to_main_thread([&resolutionUpdated]() { resolutionUpdated = true; });
 		context().signal_waiting_main_thread();
-		mPresentQueue->handle().waitIdle();
+		mActivePresentationQueue->handle().waitIdle();
 		while(!resolutionUpdated) { LOG_DEBUG("Waiting for main thread..."); }
 
 		// If the window is minimized, we've gotta wait even longer:
@@ -610,42 +658,15 @@ namespace gvk
 	}
 
 	void window::construct_swap_chain_creation_info(swapchain_creation_mode aCreationMode) {
-		auto srfCaps = context().physical_device().getSurfaceCapabilitiesKHR(surface());
-		auto extent = context().get_resolution_for_window(this);
-		auto surfaceFormat = get_config_surface_format(surface());
-		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
-			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y, 1u));
-			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed)) {
-				mImageCreateInfoSwapChain.setFormat(surfaceFormat.format);
-			}
-		}
-		else {
-			mImageUsage = avk::image_usage::color_attachment | avk::image_usage::transfer_destination | avk::image_usage::transfer_source | avk::image_usage::presentable;
-			const vk::ImageUsageFlags swapChainImageUsageVk = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
-			mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
-				.setImageType(vk::ImageType::e2D)
-				.setFormat(surfaceFormat.format)
-				.setExtent(vk::Extent3D(extent.x, extent.y, 1u))
-				.setMipLevels(1)
-				.setArrayLayers(1)
-				.setSamples(vk::SampleCountFlagBits::e1)
-				.setTiling(vk::ImageTiling::eOptimal)
-				.setUsage(swapChainImageUsageVk)
-				.setInitialLayout(vk::ImageLayout::eUndefined);
 
+		auto setOwnership = [this]() {
 			// Handle queue family ownership:
 
-			std::vector<uint32_t> queueFamilyIndices;
-			for (auto& getter : mQueueFamilyIndicesGetter) {
-				auto familyIndex = getter();
-				if (std::end(queueFamilyIndices) == std::find(std::begin(queueFamilyIndices), std::end(queueFamilyIndices), familyIndex)) {
-					queueFamilyIndices.push_back(familyIndex);
-				}
-			}
+			const std::vector<uint32_t> queueFamilyIndices = mQueueFamilyIndicesGetter();
 
 			switch (queueFamilyIndices.size()) {
 			case 0:
-				throw gvk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use add_queue_family_ownership().", title()));
+				throw gvk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use window::set_queue_family_ownership.", title()));
 			case 1:
 				mImageCreateInfoSwapChain
 					.setSharingMode(vk::SharingMode::eExclusive)
@@ -661,6 +682,41 @@ namespace gvk
 					.setPQueueFamilyIndices(queueFamilyIndices.data());
 				break;
 			}
+		};
+
+		auto srfCaps = context().physical_device().getSurfaceCapabilitiesKHR(surface());
+		auto extent = context().get_resolution_for_window(this);
+		auto surfaceFormat = get_config_surface_format(surface());
+		if (aCreationMode == swapchain_creation_mode::update_existing_swapchain) {
+			mImageCreateInfoSwapChain.setExtent(vk::Extent3D(extent.x, extent.y, 1u));
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed)) {
+				auto imageUsageProperties = get_config_image_usage_properties();
+				auto [imageUsage, imageTiling, createFlags] = avk::to_vk_image_properties(imageUsageProperties);
+				mImageCreateInfoSwapChain
+					.setFormat(surfaceFormat.format)
+					.setUsage(imageUsage)
+					.setTiling(imageTiling)
+					.setFlags(createFlags);
+				setOwnership();
+			}
+		}
+		else {
+			auto imageUsageProperties = get_config_image_usage_properties();
+			auto [imageUsage, imageTiling, createFlags] = avk::to_vk_image_properties(imageUsageProperties);
+
+			mImageCreateInfoSwapChain = vk::ImageCreateInfo{}
+				.setImageType(vk::ImageType::e2D)
+				.setFormat(surfaceFormat.format)
+				.setExtent(vk::Extent3D(extent.x, extent.y, 1u))
+				.setMipLevels(1)
+				.setArrayLayers(1)
+				.setSamples(vk::SampleCountFlagBits::e1)
+				.setTiling(imageTiling)
+				.setUsage(imageUsage)
+				.setInitialLayout(vk::ImageLayout::eUndefined)
+				.setFlags(createFlags);
+
+			setOwnership();
 		}
 
 		// With all settings gathered, construct/update swap chain creation info.
@@ -674,9 +730,15 @@ namespace gvk
 			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::presentable_images_count_changed)) {
 				mSwapChainCreateInfo.setMinImageCount(get_config_number_of_presentable_images());
 			}
-			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed)) {
-				mSwapChainCreateInfo.setImageColorSpace(surfaceFormat.colorSpace);
-				mSwapChainCreateInfo.setImageFormat(mImageCreateInfoSwapChain.format);
+			if (mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed)) {
+				mSwapChainCreateInfo
+					.setImageColorSpace(surfaceFormat.colorSpace)
+					.setImageFormat(mImageCreateInfoSwapChain.format)
+					.setImageUsage(mImageCreateInfoSwapChain.usage)
+					.setImageSharingMode(mImageCreateInfoSwapChain.sharingMode)
+					.setQueueFamilyIndexCount(mImageCreateInfoSwapChain.queueFamilyIndexCount)
+					.setPQueueFamilyIndices(mImageCreateInfoSwapChain.pQueueFamilyIndices);
+
 				mSwapChainImageFormat = surfaceFormat.format;
 			}
 		}
@@ -726,14 +788,14 @@ namespace gvk
 		std::vector<avk::image_view> newImageViews;
 		newImageViews.reserve(imagesInFlight);
 		for (size_t i = 0; i < imagesInFlight; ++i) {
-			auto& ref = newImageViews.emplace_back(context().create_image_view(context().wrap_image(swapChainImages[i], mImageCreateInfoSwapChain, mImageUsage, vk::ImageAspectFlagBits::eColor)));
+			auto& ref = newImageViews.emplace_back(context().create_image_view(context().wrap_image(swapChainImages[i], mImageCreateInfoSwapChain, get_config_image_usage_properties(), vk::ImageAspectFlagBits::eColor)));
 			ref.enable_shared_ownership();
 		}
 
 		avk::assign_and_lifetime_handle_previous(mSwapChainImageViews, std::move(newImageViews), lifetimeHandlerLambda);
 
 		bool additionalAttachmentsChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::backbuffer_attachments_changed);
-		bool imageFormatChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_changed);
+		bool imageFormatChanged = mResourceRecreationDeterminator.is_recreation_required_for(recreation_determinator::reason::image_format_or_properties_changed);
 
 		auto additionalAttachments = get_additional_back_buffer_attachments();
 		// Create a renderpass for the back buffers

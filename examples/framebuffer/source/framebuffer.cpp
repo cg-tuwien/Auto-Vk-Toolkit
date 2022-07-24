@@ -90,7 +90,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		// Fill it with data already here, in initialize(), because this buffer will stay constant forever.
 
 		// Use a convenience method to record commands, submit to a queue, and getting a fence back:
-		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mQueue);
+		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, *mQueue);
 		fence->wait_until_signalled();
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
@@ -166,7 +166,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
 			}, 
-			mQueue,
+			*mQueue,
 			avk::stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
 		);
 
@@ -192,7 +192,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				})
 			})
 			.into_command_buffer(cmdBfrs[0])
-			.then_submit_to(mQueue)
+			.then_submit_to(*mQueue)
 			// Do not start to render before the image has become available:
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
 			// Also wait for the data transfer into the vertex buffer has completed:
@@ -254,7 +254,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 			))
 			.into_command_buffer(cmdBfrs[1])
-			.then_submit_to(mQueue)
+			.then_submit_to(*mQueue)
 			.waiting_for(renderCompleteSemaphore >> (avk::stage::copy | avk::stage::blit))
 			.submit();
 
@@ -294,7 +294,7 @@ int main() // <== Starting point ==
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
@@ -304,7 +304,7 @@ int main() // <== Starting point ==
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Framebuffers"),
+			gvk::application_name("Auto-Vk-Toolkit Example: Framebuffers"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},

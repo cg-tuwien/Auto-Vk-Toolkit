@@ -289,7 +289,7 @@ namespace gvk
 		ImGui::NewFrame();
 	}
 
-	void imgui_manager::render_into_command_buffer(avk::command_buffer_t& aCommandBuffer)
+	void imgui_manager::render_into_command_buffer(avk::command_buffer_t& aCommandBuffer, std::optional<std::reference_wrapper<const avk::framebuffer_t>> aTargetFramebuffer)
 	{
 		for (auto& cb : mCallback) {
 			cb();
@@ -302,11 +302,11 @@ namespace gvk
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
 		if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-			cmdBfr.record(avk::command::render_pass(*mClearRenderpass, *mainWnd->current_backbuffer())); // Begin and end without nested commands
+			cmdBfr.record(avk::command::render_pass(*mClearRenderpass, aTargetFramebuffer.value_or(std::ref(mainWnd->current_backbuffer_reference())).get())); // Begin and end without nested commands
 		}
 
 		assert(mRenderpass.has_value());
-		cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(*mRenderpass, *mainWnd->current_backbuffer()));
+		cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(*mRenderpass, aTargetFramebuffer.value_or(std::cref(mainWnd->current_backbuffer_reference())).get()));
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
@@ -316,35 +316,61 @@ namespace gvk
 		mAlreadyRendered = true;
 	}
 
-	avk::command::action_type_command imgui_manager::render_command()
+	avk::command::action_type_command imgui_manager::render_command(std::optional<avk::resource_argument<avk::framebuffer_t>> aTargetFramebuffer)
 	{
-		return avk::command::action_type_command{
+		auto actionTypeCommand = avk::command::action_type_command{
+			// According to imgui_impl_vulkan.cpp, the code of the relevant fragment shader is:
+			//
+			// #version 450 core
+			// layout(location = 0) out vec4 fColor;
+			// layout(set = 0, binding = 0) uniform sampler2D sTexture;
+			// layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+			// void main()
+			// {
+			// 	fColor = In.Color * texture(sTexture, In.UV.st);
+			// }
+			//
+			// Therefore, sync with sampled reads in fragment shaders.
+			// 
+			// ImGui seems to not use any depth testing/writing.
+			// 
+			// ImGui's color attachment write must still wait for preceding color attachment writes because
+			// the user interface shall be drawn on top of the rest.
+			//
+			// I'm just not sure about the vertex attribute input. But I think the buffers are in host-visible
+			// memory region, get updated on the host, and transfered to the GPU every frame.
+			// IF ^ this is true, then the sync hint should be fine. Otherwise it fails to synchronize with previous data transfer.
+			// 
 			avk::sync::sync_hint {
-				{{ // DESTINATION dependencies for previous commands:
-					vk::PipelineStageFlagBits2KHR::eAllGraphics,
-					vk::AccessFlagBits2KHR::eInputAttachmentRead | vk::AccessFlagBits2KHR::eColorAttachmentRead | vk::AccessFlagBits2KHR::eColorAttachmentWrite  
+				{{ // What previous commands must synchronize with:
+					vk::PipelineStageFlagBits2KHR::eFragmentShader | vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
+					vk::AccessFlagBits2KHR::eShaderSampledRead | vk::AccessFlagBits2KHR::eColorAttachmentWrite
 				}},
-				{{ // SOURCE dependencies for subsequent commands:
-					vk::PipelineStageFlagBits2KHR::eAllGraphics,
+				{{ // What subsequent commands must synchronize with:
+					vk::PipelineStageFlagBits2KHR::eColorAttachmentOutput,
 					vk::AccessFlagBits2KHR::eColorAttachmentWrite
 				}}
 			},
 			{}, // no resource-specific sync hints
-			[this](avk::command_buffer_t& cmdBfr) {
+			[
+				this,
+				lMainWnd = gvk::context().main_window(), // TODO: ImGui shall not only support main_mindow, but all windows!
+				lFramebufferPtr = aTargetFramebuffer.has_value()
+					? &aTargetFramebuffer.value().get_const_reference()
+					: &gvk::context().main_window()->current_backbuffer_reference()
+			](avk::command_buffer_t& cmdBfr) {
 				for (auto& cb : mCallback) {
 					cb();
 				}
 				
-				auto mainWnd = gvk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
-
 				// if no invokee has written on the attachment (no previous render calls this frame),
 				// reset layout (cannot be "store_in_presentable_format").
-				if (!mainWnd->has_consumed_current_image_available_semaphore()) {
-					cmdBfr.record(avk::command::render_pass(*mClearRenderpass, *mainWnd->current_backbuffer())); // Begin and end without nested commands
+				if (!lMainWnd->has_consumed_current_image_available_semaphore()) {
+					cmdBfr.record(avk::command::render_pass(mClearRenderpass.as_reference(), *lFramebufferPtr)); // Begin and end without nested commands
 				}
 
 				assert(mRenderpass.has_value());
-				cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(*mRenderpass, *mainWnd->current_backbuffer()));
+				cmdBfr.record(avk::command::begin_render_pass_for_framebuffer(mRenderpass.as_reference(), *lFramebufferPtr));
 
 				ImGui::Render();
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBfr.handle());
@@ -354,6 +380,16 @@ namespace gvk
 				mAlreadyRendered = true;
 			}
 		};
+
+		if (aTargetFramebuffer.has_value() && aTargetFramebuffer->is_ownership()) {
+			actionTypeCommand.mEndFun = [
+				lFramebuffer = aTargetFramebuffer->move_ownership_or_get_empty()
+			](avk::command_buffer_t& cb) mutable {
+				let_it_handle_lifetime_of(cb, lFramebuffer);
+			};
+		}
+
+		return actionTypeCommand;
 	}
 
 	void imgui_manager::render()

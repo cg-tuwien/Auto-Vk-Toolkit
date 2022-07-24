@@ -35,14 +35,16 @@ class present_from_compute_app : public gvk::invokee
 	};
 
 public:
-	present_from_compute_app(avk::queue& aQueue)
-		: mQueue{ &aQueue }
+	present_from_compute_app(avk::queue& aTransferQueue, avk::queue& aGraphicsQueue, avk::queue& aComputeQueue)
+		: mTransferQueue{ aTransferQueue }
+		, mGraphicsQueue{ aGraphicsQueue }
+		, mComputeQueue { aComputeQueue  }
 	{ }
 
 	void initialize() override
 	{
-		// Create graphics pipeline for rasterization with the required configuration:
-		mPipeline = gvk::context().create_graphics_pipeline_for(
+		// Create graphics pipeline:
+		mGraphicsPipeline = gvk::context().create_graphics_pipeline_for(
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos)   -> to_location(0),	// Describe the position vertex attribute
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::color) -> to_location(1), // Describe the color vertex attribute
 			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
@@ -52,12 +54,36 @@ public:
 			gvk::context().main_window()->renderpass()
 		);
 
-		// Create vertex buffers --- namely one for each frame in flight.
-		// We create multiple vertex buffers because we'll update the data every frame and frames run concurrently.
-		// However, do not upload vertices yet. we'll do that in the render() method.
+		// Create compute pipeline:
+		mComputePipeline = gvk::context().create_compute_pipeline_for(
+			"shaders/blur.comp",
+			avk::descriptor_binding<avk::image_view_as_sampled_image>(0, 0, 1u),
+			avk::descriptor_binding<avk::image_view_as_storage_image>(0, 1, 1u)
+		);
+
+		auto mainWnd = gvk::context().main_window();
+
+		// Create vertex buffers and framebuffers, one for each frame in flight:
 		auto numFramesInFlight = gvk::context().main_window()->number_of_frames_in_flight();
 		for (int i = 0; i < numFramesInFlight; ++i) {
-			mVertexBuffers.emplace_back(
+			// Note: We're only going to use the framebuffers when using and presenting from the compute queue:
+			mFramebuffers.push_back( 
+				gvk::context().create_framebuffer(
+					gvk::context().create_renderpass({
+							avk::attachment::declare(
+								mainWnd->swap_chain_image_format(), 
+								avk::on_load::clear.from_previous_layout(avk::layout::undefined), 
+								avk::usage::color(0), 
+								avk::on_store::store.in_layout(avk::layout::color_attachment_optimal)
+							)
+						},
+						mainWnd->renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
+					),
+					gvk::context().create_image_view(gvk::context().create_image(mainWnd->resolution().x, mainWnd->resolution().y, mainWnd->swap_chain_image_format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment | avk::image_usage::sampled | avk::image_usage::shader_storage))
+				)
+			);
+
+			mVertexBuffers.push_back(
 				gvk::context().create_buffer(avk::memory_usage::device, {},	avk::vertex_buffer_meta::create_from_data(mVertexData))
 			);
 		}
@@ -69,9 +95,9 @@ public:
 			avk::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
 		);
 
-		// Fill it with data already here, in initialize(), because this buffer will stay constant forever:
-		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mQueue);
-		// Wait with a fence until the data transfer has completed:
+		// Fill data on the graphics queue, so that we do not have to transfer ownership from transfer -> graphics later:
+		// (Doesn't matter if this is slightly slower than on the transfer queue, because we're transferring index data only once during initialization)
+		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mGraphicsQueue);
 		fence->wait_until_signalled();
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
@@ -88,6 +114,9 @@ public:
 		        ImGui::End();
 			});
 		}
+
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = gvk::context().create_descriptor_cache();
 	}
 
 	void update() override
@@ -95,6 +124,18 @@ public:
 		// On Q pressed,
 		if (gvk::input().key_pressed(gvk::key_code::q)) {
 			mQueueToPresentFrom = 1 - mQueueToPresentFrom;
+
+			if (1 == mQueueToPresentFrom) {
+				gvk::context().main_window()->set_image_usage_properties(
+					gvk::context().main_window()->get_config_image_usage_properties() | avk::image_usage::shader_storage
+				);
+				gvk::context().main_window()->set_queue_family_ownership(mComputeQueue.family_index());
+				gvk::context().main_window()->set_present_queue(mComputeQueue);
+			}
+			else {
+				gvk::context().main_window()->set_queue_family_ownership(mGraphicsQueue.family_index());
+				gvk::context().main_window()->set_present_queue(mGraphicsQueue);
+			}
 		}
 
 		// On Esc pressed,
@@ -104,9 +145,13 @@ public:
 		}
 	}
 
-	void render() override
+	// Perform the operations on the transfer queue:
+	avk::semaphore transfer()
 	{
 		using namespace avk;
+
+		const auto* mainWnd = gvk::context().main_window();
+		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
 		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start();
@@ -120,70 +165,227 @@ public:
 			vertexDataCurrentFrame.push_back({ glm::vec3(invTranslZ * rotMatrix * translateZ * glm::vec4{ vtx.pos, 1.0f }), vtx.color });
 		}
 
-		auto mainWnd = gvk::context().main_window();
-		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+		// Transfer vertex data on the (fast) transfer queue:
+		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({ // Gotta use a semaphore to synchronize different queues
+				command::conditional(
+					[frameId = gvk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
+						return frameId >= 3; // Because we have three concurrent frames
+					},
+					[&]() {
+						// Acquire exclusive ownership from the graphics queue:
+						return sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::none + access::none >> stage::auto_stage + access::auto_access)
+							.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mTransferQueue.family_index());
+					}
+				),
 
-		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({
-				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0)
-			}, 
-			mQueue,
+				// Perform the copy:
+				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
+
+				// Release exclusive ownership from the transfer queue:
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::auto_stage + access::auto_access >> stage::none + access::none)
+					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index())
+			}, mTransferQueue,
 			stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
 		);
 
-		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		return vertexBufferFillSemaphore;
+	}
 
-		// The swap chain provides us with an "image available semaphore" for the current frame.
-		// Only after the swapchain image has become available, we may start rendering into it.
-		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-		
-		// Create a command buffer and render into the *current* swap chain image:
-		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+	// Perform the operations on the graphics queue:
+	std::optional<avk::semaphore> graphics(avk::semaphore aVertexBufferFillSemaphore, const avk::framebuffer_t& aFramebuffer, std::optional<avk::semaphore> aImageAvailableSemaphore)
+	{
+		using namespace avk;
 
+		const auto* mainWnd = gvk::context().main_window();
+		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+		const auto presentFromGraphics = 0 == mQueueToPresentFrom;
+		std::optional<avk::semaphore> graphicsFinishedSemaphore;
+
+		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(mGraphicsQueue);
+
+		// Create a command buffer and render into the current swap chain image:
+		auto cmdBfrForGraphics = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+		// Get handle of the ImGui Manager invokee:
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 
-		gvk::context().record({
-		// For this inFlightIndex' corresponding vertex buffer, update its vertex data, then synchronize with a barrer before the draw call:
+		// Submit the draw calls to the graphics queue:
+		auto submissionData = gvk::context().record({
+				command::conditional(
+					[presentFromGraphics, frameId = gvk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
+						return !presentFromGraphics && frameId >= 3; // Because we have three concurrent frames
+					},
+					[&]() {
+						// Acquire exclusive ownership from the compute queue:
+						return sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::none + access::none >> stage::auto_stage + access::auto_access)
+							.with_queue_family_ownership_transfer(mComputeQueue.family_index(), mGraphicsQueue.family_index());
+					}
+				),
+
+				// Acquire exclusive ownership for the graphics queue:
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::none + access::none >> stage::vertex_attribute_input + access::vertex_attribute_read)
+					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index()),
+
 				// Begin and end one renderpass:
-				command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+				command::render_pass(aFramebuffer.renderpass_reference(), aFramebuffer, {
 					// And within, bind a pipeline and draw three vertices:
-					command::bind_pipeline(mPipeline.as_reference()),
+					command::bind_pipeline(mGraphicsPipeline.as_reference()),
 					command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())
 				}),
-
+			
 				// We've got to synchronize between the two draw calls. Scene drawing must have completed before ImGui
 				// may proceed to render something into the same color buffer:
-				sync::global_memory_barrier(avk::stage::auto_stage + avk::access::auto_access >> avk::stage::auto_stage + avk::access::auto_access),
+				sync::global_memory_barrier(stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access),
 
 				// Let ImGui render now:
-				imguiManager->render_command(),
-			})
-			.into_command_buffer(cmdBfr)
-			.then_submit_to(mQueue)
-			// Do not start to render before the image has become available:
-			.waiting_for(imageAvailableSemaphore >> stage::color_attachment_output)
-			// Also wait for the data transfer into the vertex buffer has completed:
-			.waiting_for(vertexBufferFillSemaphore >> stage::vertex_attribute_input)
-			.submit();
+				imguiManager->render_command(aFramebuffer),
 
+				// Release exclusive ownership from the the graphics queue
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::vertex_attribute_input + access::vertex_attribute_read >> stage::none + access::none)
+					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mTransferQueue.family_index()),
+
+				command::conditional(
+					[presentFromGraphics, frameId = gvk::context().main_window()->current_frame()]() {
+						return !presentFromGraphics;
+					},
+					[&]() {
+						// Release exclusive ownership from the graphics queue:
+						return sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::auto_stage + access::auto_access >> stage::none + access::none)
+							.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mComputeQueue.family_index());
+					}
+				)
+			})
+			.into_command_buffer(cmdBfrForGraphics)
+			.then_submit_to(mGraphicsQueue)
+			// Wait for the data transfer into the vertex buffer has completed:
+			.waiting_for(aVertexBufferFillSemaphore >> stage::vertex_attribute_input)
+			.store_for_now();
+
+		if (aImageAvailableSemaphore.has_value()) {
+			// Do not start to render before the image has become available:
+			submissionData.waiting_for(aImageAvailableSemaphore.value() >> stage::color_attachment_output);
+		}
+		else {
+			graphicsFinishedSemaphore = gvk::context().create_semaphore();
+			submissionData.signaling_upon_completion(stage::color_attachment_output >> graphicsFinishedSemaphore.value());
+		}
+
+		submissionData.submit();
+		
 		// Let the command buffer handle the semaphore's lifetime:
-		cmdBfr->handle_lifetime_of(std::move(vertexBufferFillSemaphore));
+		cmdBfrForGraphics->handle_lifetime_of(std::move(aVertexBufferFillSemaphore));
 
 		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
-		gvk::context().main_window()->handle_lifetime(std::move(cmdBfr));
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrForGraphics));
+
+		return graphicsFinishedSemaphore;
+	}
+
+	// Perform operations on the compute queue:
+	void compute(avk::semaphore aImageAvailableSemaphore, avk::semaphore aGraphicsFinishedSemaphore)
+	{
+		using namespace avk;
+
+		auto* mainWnd = gvk::context().main_window();
+		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+		const auto w = mainWnd->resolution().x;
+		const auto h = mainWnd->resolution().y;
+
+		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(mComputeQueue);
+
+		// Create a command buffer and render into the current swap chain image:
+		auto cmdBfrForCompute = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+		// Submit the dispatch calls to the compute queue:
+		gvk::context().record({
+				// Acquire exclusive ownership from the graphics queue:
+				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::none + access::none >> stage::auto_stage + access::auto_access)
+					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mComputeQueue.family_index()),
+
+				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access)
+					.with_layout_transition(layout::present_src >> layout::shader_read_only_optimal),
+				sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0), stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access)
+					.with_layout_transition(layout::undefined >> layout::general),
+
+				command::bind_pipeline(mComputePipeline.as_reference()),
+				command::bind_descriptors(mComputePipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						descriptor_binding(0, 0, mFramebuffers[inFlightIndex]->image_view_at(0)->as_sampled_image(layout::shader_read_only_optimal)),
+						descriptor_binding(0, 1, mainWnd->current_backbuffer_reference().image_view_at(0)->as_storage_image(layout::general)),
+					})),
+				command::dispatch((w + 15u) / 16u, (h + 15u) / 16u, 1),
+
+				sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0), stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access)
+					.with_layout_transition(layout::general >> layout::present_src),
+
+				// Release exclusive ownership from the compute queue:
+				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::auto_stage + access::auto_access >> stage::none + access::none)
+					.with_queue_family_ownership_transfer(mComputeQueue.family_index(), mGraphicsQueue.family_index())
+			})
+			.into_command_buffer(cmdBfrForCompute)
+			.then_submit_to(mComputeQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(aImageAvailableSemaphore >> stage::compute_shader)
+			// Do not start before graphics hasn't completed:
+			.waiting_for(aGraphicsFinishedSemaphore >> stage::compute_shader)
+			// Gotta use the fence to signal everything is completely finished:
+			.signaling_upon_completion(mainWnd->use_current_frame_finished_fence())
+			.submit();
+
+		// Let the command buffer handle the semaphores lifetimes:
+		cmdBfrForCompute->handle_lifetime_of(std::move(aImageAvailableSemaphore));
+		cmdBfrForCompute->handle_lifetime_of(std::move(aGraphicsFinishedSemaphore));
+
+		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// It will get deleted in the future after #concurrent-frames have passed by.
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrForCompute));
+
+	}
+
+	void render() override
+	{
+		auto mainWnd = gvk::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		// In this application, we have to wait for it either on the graphics queue or on the compute queue.
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+
+		// 1. TRANSFER:
+		auto transferCompleteSemaphore = transfer();
+
+		// 2. GRAPHICS:
+		const auto presentFromGraphics = 0 == mQueueToPresentFrom;
+		
+		if (presentFromGraphics) {
+			// Graphics must wait on the image to become avaiable:
+			graphics(std::move(transferCompleteSemaphore), mainWnd->current_backbuffer_reference(), imageAvailableSemaphore);
+		}
+		else {
+			// Graphics renders into the intermediate framebuffer, compute pipeline waits on the imageAvailableSemaphore (not graphics pipeline):
+			auto graphicsFinishedSemaphore = graphics(std::move(transferCompleteSemaphore), mFramebuffers[inFlightIndex].as_reference(), {});
+			assert(graphicsFinishedSemaphore.has_value());
+
+			compute(std::move(imageAvailableSemaphore), std::move(graphicsFinishedSemaphore.value()));
+		}
 	}
 
 
 private: // v== Member variables ==v
 	
-	avk::queue* mQueue;
+	avk::queue& mTransferQueue;
+	avk::queue& mGraphicsQueue;
+	avk::queue& mComputeQueue;
+	int mQueueToPresentFrom = 0;
+	avk::graphics_pipeline mGraphicsPipeline;
+	avk::compute_pipeline mComputePipeline;
+	std::vector<avk::framebuffer> mFramebuffers;
 	std::vector<avk::buffer> mVertexBuffers;
 	avk::buffer mIndexBuffer;
-	avk::graphics_pipeline mPipeline;
-	int mQueueToPresentFrom = 0;
-
-}; // vertex_buffers_app
+	/** One descriptor cache to use for allocating all the descriptor sets from: */
+	avk::descriptor_cache mDescriptorCache;
+};
 
 int main() // <== Starting point ==
 {
@@ -194,22 +396,26 @@ int main() // <== Starting point ==
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->enable_resizing(false);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
-		mainWnd->set_present_queue(singleQueue);
+		auto& transferQueue = gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue);
+		auto& graphicsQueue = gvk::context().create_queue(vk::QueueFlagBits::eGraphics, avk::queue_selection_preference::specialized_queue, mainWnd);
+		auto& computeQueue  = gvk::context().create_queue(vk::QueueFlagBits::eCompute , avk::queue_selection_preference::specialized_queue, mainWnd);
+		// Initialize to graphics queue (but can be changed later):
+		mainWnd->set_queue_family_ownership(graphicsQueue.family_index());
+		mainWnd->set_present_queue(graphicsQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
-		auto app = present_from_compute_app(singleQueue);
-		// Create another invokee for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto app = present_from_compute_app(transferQueue, graphicsQueue, computeQueue);
+		// ImGui always renders using the graphics queue:
+		auto ui = gvk::imgui_manager(graphicsQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Vertex Buffers"),
+			gvk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
 			[](gvk::validation_layers& config) {
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,

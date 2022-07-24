@@ -27,6 +27,7 @@
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\examples\present_from_compute\shaders\blur.comp" />
     <None Include="..\..\..\examples\present_from_compute\shaders\color.frag" />
     <None Include="..\..\..\examples\present_from_compute\shaders\passthrough.vert" />
   </ItemGroup>

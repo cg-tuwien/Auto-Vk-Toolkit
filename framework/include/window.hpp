@@ -64,6 +64,14 @@ namespace gvk
 		 */
 		void set_additional_back_buffer_attachments(std::vector<avk::attachment> aAdditionalAttachments);
 
+		/** Sets the image usage properties that shall be used for creation of the swap chain images
+		 */
+		void set_image_usage_properties(avk::image_usage aImageUsageProperties);
+
+		/** Gets the image usage properties that have been set, or sensible default values
+		 */
+		avk::image_usage get_config_image_usage_properties();
+		
 		/** Creates or opens the window */
 		void open();
 
@@ -353,10 +361,18 @@ namespace gvk
 			};
 		}
 
-		/** Add a queue which family will be added to shared ownership of the swap chain images. */
-		void add_queue_family_ownership(avk::queue& aQueue);
+		/** Set the queue families which will have shared ownership of the of the swap chain images. */
+		void set_queue_family_ownership(std::vector<uint32_t> aQueueFamilies);
 
-		/** Set the queue that shall handle presenting. You MUST set it if you want to show any rendered images in this window! */
+		/** Set the queue family which will have exclusive ownership of the of the swap chain images. */
+		void set_queue_family_ownership(uint32_t aQueueFamily);
+
+		/** Set the queue that shall handle presenting. You MUST set it if you want to show any rendered images in this window!
+		 *	Should you use this method to change the presentation queue in a running application, please note that the
+		 *	swap chain will NOT be recreated by invoking this method---this might, or might not be the result that you're after.
+		 *	Should you desire to recreate the swapchain, too, e.g., to switch the ownership of the images, then
+		 *	please first use window::set_queue_family_ownership, then call window::set_present_queue! 
+		 */
 		void set_present_queue(avk::queue& aPresentQueue);
 
 		/** Returns whether or not the current frame's image available semaphore has already been consumed (by user code),
@@ -420,6 +436,10 @@ namespace gvk
 		std::vector<avk::recorded_commands_t> layout_transitions_for_all_backbuffer_images();
 
 	private:
+		/** Invoked internally to update the presentation queue should a new one have been set
+		 */
+		void update_active_presentation_queue();
+
 		/**
 		 * constructs or updates ImageCreateInfo and SwapChainCreateInfo before the swap chain is
 		 * created.
@@ -474,9 +494,7 @@ namespace gvk
 #pragma region swap chain data for this window surface
 		// The frame counter/frame id/frame index/current frame number
 		frame_id_t mCurrentFrame;
-
-		// The image usage parameters for a swap chain
-		avk::image_usage mImageUsage;
+		
 		// The window's surface
 		vk::UniqueHandle<vk::SurfaceKHR, DISPATCH_LOADER_CORE_TYPE> mSurface;
 		// The swap chain create info
@@ -490,11 +508,15 @@ namespace gvk
 		// The swap chain's extent
 		vk::Extent2D mSwapChainExtent;
 		// Queue family indices which have shared ownership of the swap chain images
-		std::vector<std::function<uint32_t()>> mQueueFamilyIndicesGetter;
+		avk::unique_function<std::vector<uint32_t>()> mQueueFamilyIndicesGetter;
 		// Image data of the swap chain images
 		vk::ImageCreateInfo mImageCreateInfoSwapChain;
 		// All the image views of the swap chain
 		std::vector<avk::image_view> mSwapChainImageViews; // ...but the image views do!
+
+		// A function which returns the image usage properties for the back buffer images
+		avk::unique_function<avk::image_usage()> mImageUsageGetter;
+
 #pragma endregion
 
 #pragma region indispensable sync elements
@@ -528,7 +550,10 @@ namespace gvk
 		std::deque<std::tuple<frame_id_t, outdated_swapchain_resource_t>> mOutdatedSwapChainResources;
 
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
-		avk::queue* mPresentQueue = nullptr;
+		avk::unique_function<avk::queue*()> mPresentationQueueGetter;
+
+		// The presentation queue that is active
+		avk::queue* mActivePresentationQueue = nullptr;
 
 		// Current frame's image index
 		uint32_t mCurrentFrameImageIndex;
@@ -554,7 +579,7 @@ namespace gvk
 				presentation_mode_changed,                  // Indicates that the presentation mode has changed.
 				concurrent_frames_count_changed,            // Indicates that the number of concurrent frames has been modified.
 				presentable_images_count_changed,           // Indicates that the number of presentable images has been modified.
-				image_format_changed                        // Indicates that the image format of the framebuffer has been modified.
+				image_format_or_properties_changed          // Indicates that the image format of the framebuffer has been modified.
 			};
 			/** Reset the state of the determinator. This should be done per frame once the required changes have been applied. */
 			void reset() { mInvalidatedProperties.reset(); }

@@ -33,5 +33,8 @@
     <None Include="..\..\..\examples\present_from_compute\shaders\passthrough.vert">
       <Filter>shaders</Filter>
     </None>
+    <None Include="..\..\..\examples\present_from_compute\shaders\blur.comp">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

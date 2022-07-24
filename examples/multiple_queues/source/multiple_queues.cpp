@@ -71,7 +71,7 @@ public:
 		
 		// Create an index buffer and upload it:
 		mIndexBuffer[0] = gvk::context().create_buffer(memory_usage::device, {}, index_buffer_meta::create_from_data(mIndices));
-		gvk::context().record_and_submit_with_fence({ mIndexBuffer[0]->fill(mIndices.data(), 0) }, mTransferQueues[0])->wait_until_signalled();
+		gvk::context().record_and_submit_with_fence({ mIndexBuffer[0]->fill(mIndices.data(), 0) }, *mTransferQueues[0])->wait_until_signalled();
 		// Let's see what to do with the other tranfer queues:
 		for (int j = 1; j < 2; ++j) {
 			// If all the transfer queues are from the same queue family, they can all share the same index buffer -- if not, then they can't:
@@ -88,12 +88,12 @@ public:
 				//  1. Release exclusive ownership from the source queue family
 				sync::buffer_memory_barrier(mIndexBuffer[j].as_reference(), stage::auto_stage + access::auto_access >> stage::none + access::none)
 					.with_queue_family_ownership_transfer(mTransferQueues[j]->family_index(), mGraphicsQueue->family_index())
-			}, mTransferQueues[j])->wait_until_signalled();
+			}, *mTransferQueues[j])->wait_until_signalled();
 			    //  2. Acquire exclusive ownership for the destination queue family
 			gvk::context().record_and_submit_with_fence({
 				sync::buffer_memory_barrier(mIndexBuffer[j].as_reference(), stage::none + access::none >> stage::auto_stage + access::auto_access)
 					.with_queue_family_ownership_transfer(mTransferQueues[j]->family_index(), mGraphicsQueue->family_index())
-			}, mGraphicsQueue)->wait_until_signalled();
+			}, *mGraphicsQueue)->wait_until_signalled();
 		}
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
@@ -166,7 +166,7 @@ public:
 					//  1. Release exclusive ownership from the source queue family
 					sync::buffer_memory_barrier(vertexBuffer, stage::auto_stage + access::auto_access >> stage::none + access::none)
 						.with_queue_family_ownership_transfer(mTransferQueues[j]->family_index(), mGraphicsQueue->family_index())
-				), mTransferQueues[j], stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
+				), *mTransferQueues[j], stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
 			);
 
 		}
@@ -207,7 +207,7 @@ public:
 					.with_queue_family_ownership_transfer(mGraphicsQueue->family_index(), mTransferQueues[1]->family_index()),
 			})
 			.into_command_buffer(cmdBfr)
-			.then_submit_to(mGraphicsQueue)
+			.then_submit_to(*mGraphicsQueue)
 			// Do not start to render before the image has become available:
 			.waiting_for(imageAvailableSemaphore >> stage::color_attachment_output)
 			// Also wait for the data transfer into the vertex buffer has completed:
@@ -253,7 +253,7 @@ int main() // <== Starting point ==
 		};
 		avk::queue* graphicsQueue = &gvk::context().create_queue(vk::QueueFlagBits::eGraphics, avk::queue_selection_preference::specialized_queue, mainWnd);
 		// Only the graphics queue shall own the swapchain images, it is the queue which is used for the present call:
-		mainWnd->add_queue_family_ownership(*graphicsQueue);
+		mainWnd->set_queue_family_ownership(graphicsQueue->family_index());
 		mainWnd->set_present_queue(*graphicsQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
@@ -263,7 +263,7 @@ int main() // <== Starting point ==
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Vertex Buffers"),
+			gvk::application_name("Auto-Vk-Toolkit Example: Multiple Queues"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},

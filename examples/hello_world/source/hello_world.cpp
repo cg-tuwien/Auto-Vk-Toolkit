@@ -113,7 +113,7 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 				})
 			})
 			.into_command_buffer(cmdBfr)
-			.then_submit_to(mQueue)
+			.then_submit_to(*mQueue)
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
 			.submit();
 
@@ -143,7 +143,7 @@ int main() // <== Starting point ==
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
@@ -153,7 +153,7 @@ int main() // <== Starting point ==
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
+			gvk::application_name("Hello, Auto-Vk-Toolkit World!"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},

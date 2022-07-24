@@ -96,13 +96,13 @@ public:
 		if (firstInvokeeInChain) {
 			commands
 				.into_command_buffer(cmdBfr)
-				.then_submit_to(mQueue)
+				.then_submit_to(*mQueue)
 				.waiting_for(mainWnd->consume_current_image_available_semaphore() >> avk::stage::color_attachment_output);
 		}
 		else {
 			commands
 				.into_command_buffer(cmdBfr)
-				.then_submit_to(mQueue);
+				.then_submit_to(*mQueue);
 		}
 		
 		mainWnd->handle_lifetime(std::move(cmdBfr));
@@ -125,7 +125,7 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Hello Multi-Invokee World");
+		auto mainWnd = gvk::context().create_window("Multiple Invokees");
 		mainWnd->set_resolution({ 800, 600 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
@@ -133,7 +133,7 @@ int main() // <== Starting point ==
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create instances of our invokee:		
@@ -175,7 +175,7 @@ int main() // <== Starting point ==
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Hello, multiple invokees!"),
+			gvk::application_name("Auto-Vk-Toolkit Example: Multiple Invokees"),
 			[](gvk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
