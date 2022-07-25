@@ -110,7 +110,7 @@ public:
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::Separator();
 				ImGui::Text("Select queue to present from (shortcut to toggle: 'Q'):");
-				ImGui::Combo("Queue", &mQueueToPresentFrom, "Graphics Queue\0Compute Queue\0\0");
+				ImGui::Combo("Queue", &mUiQueueSelection, "Graphics Queue\0Compute Queue\0\0");
 		        ImGui::End();
 			});
 		}
@@ -122,21 +122,39 @@ public:
 	void update() override
 	{
 		// On Q pressed,
-		if (gvk::input().key_pressed(gvk::key_code::q)) {
-			mQueueToPresentFrom = 1 - mQueueToPresentFrom;
+		if (gvk::input().key_pressed(gvk::key_code::q) || mUiQueueSelection != mUiQueueSelectionPrevFrame) {
+			// Switch the queue:
+			if (gvk::input().key_pressed(gvk::key_code::q)) {
+				mQueueToPresentFrom = mQueueToPresentFrom == presentation_queue::compute ? presentation_queue::graphics : presentation_queue::compute;
+			}
+			else if (mUiQueueSelection != mUiQueueSelectionPrevFrame) {
+				mQueueToPresentFrom = 0 == mUiQueueSelection ? presentation_queue::graphics : presentation_queue::compute;
+			}
 
-			if (1 == mQueueToPresentFrom) {
+			if (presentation_queue::compute == mQueueToPresentFrom) {
 				gvk::context().main_window()->set_image_usage_properties(
 					gvk::context().main_window()->get_config_image_usage_properties() | avk::image_usage::shader_storage
 				);
 				gvk::context().main_window()->set_queue_family_ownership(mComputeQueue.family_index());
 				gvk::context().main_window()->set_present_queue(mComputeQueue);
+
+				if (!mFromComputeFirstFrameId.has_value()) {
+					mFromComputeFirstFrameId = gvk::context().main_window()->current_frame();
+				}
+
+				mUiQueueSelection = 1; // from compute
 			}
-			else {
+			else { // present from graphics:
+				gvk::context().main_window()->set_image_usage_properties(
+					avk::exclude(gvk::context().main_window()->get_config_image_usage_properties(), avk::image_usage::shader_storage)
+				);
 				gvk::context().main_window()->set_queue_family_ownership(mGraphicsQueue.family_index());
 				gvk::context().main_window()->set_present_queue(mGraphicsQueue);
+
+				mUiQueueSelection = 0; // from graphics
 			}
 		}
+		mUiQueueSelectionPrevFrame = mUiQueueSelection;
 
 		// On Esc pressed,
 		if (gvk::input().key_pressed(gvk::key_code::escape)) {
@@ -198,7 +216,6 @@ public:
 
 		const auto* mainWnd = gvk::context().main_window();
 		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
-		const auto presentFromGraphics = 0 == mQueueToPresentFrom;
 		std::optional<avk::semaphore> graphicsFinishedSemaphore;
 
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(mGraphicsQueue);
@@ -212,8 +229,8 @@ public:
 		// Submit the draw calls to the graphics queue:
 		auto submissionData = gvk::context().record({
 				command::conditional(
-					[presentFromGraphics, frameId = gvk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
-						return !presentFromGraphics && frameId >= 3; // Because we have three concurrent frames
+					[frameId = gvk::context().main_window()->current_frame(), this]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
+						return presentation_queue::compute == mQueueToPresentFrom && frameId >= mFromComputeFirstFrameId.value_or(0) + 3; // Because we have three concurrent frames
 					},
 					[&]() {
 						// Acquire exclusive ownership from the compute queue:
@@ -245,8 +262,8 @@ public:
 					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mTransferQueue.family_index()),
 
 				command::conditional(
-					[presentFromGraphics, frameId = gvk::context().main_window()->current_frame()]() {
-						return !presentFromGraphics;
+					[this]() {
+						return presentation_queue::compute == mQueueToPresentFrom;
 					},
 					[&]() {
 						// Release exclusive ownership from the graphics queue:
@@ -356,9 +373,7 @@ public:
 		auto transferCompleteSemaphore = transfer();
 
 		// 2. GRAPHICS:
-		const auto presentFromGraphics = 0 == mQueueToPresentFrom;
-		
-		if (presentFromGraphics) {
+		if (presentation_queue::graphics == mQueueToPresentFrom) {
 			// Graphics must wait on the image to become avaiable:
 			graphics(std::move(transferCompleteSemaphore), mainWnd->current_backbuffer_reference(), imageAvailableSemaphore);
 		}
@@ -373,11 +388,15 @@ public:
 
 
 private: // v== Member variables ==v
-	
+	enum struct presentation_queue { graphics, compute };
+
 	avk::queue& mTransferQueue;
 	avk::queue& mGraphicsQueue;
 	avk::queue& mComputeQueue;
-	int mQueueToPresentFrom = 0;
+	int mUiQueueSelectionPrevFrame = 0;
+	int mUiQueueSelection = 0;
+	presentation_queue mQueueToPresentFrom = presentation_queue::graphics;
+	std::optional<gvk::window::frame_id_t> mFromComputeFirstFrameId; // Gotta remember the first frame this happens to get the initial queue ownership tranfers right.
 	avk::graphics_pipeline mGraphicsPipeline;
 	avk::compute_pipeline mComputePipeline;
 	std::vector<avk::framebuffer> mFramebuffers;
@@ -415,7 +434,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			gvk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
 			[](gvk::validation_layers& config) {
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,

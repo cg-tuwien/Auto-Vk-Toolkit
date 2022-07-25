@@ -670,7 +670,7 @@ namespace gvk
 			case 1:
 				mImageCreateInfoSwapChain
 					.setSharingMode(vk::SharingMode::eExclusive)
-					.setQueueFamilyIndexCount(0u)
+					.setQueueFamilyIndexCount(1u)
 					.setPQueueFamilyIndices(&queueFamilyIndices[0]); // could also leave at nullptr!
 				break;
 			default:
