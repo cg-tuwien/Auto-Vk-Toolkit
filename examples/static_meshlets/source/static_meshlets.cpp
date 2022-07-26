@@ -4,7 +4,6 @@
 
 class static_meshlets_app : public gvk::invokee
 {
-
 	static constexpr size_t sNumVertices = 64;
 	static constexpr size_t sNumIndices = 378;
 
