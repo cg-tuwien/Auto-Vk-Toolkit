@@ -168,7 +168,7 @@ public:
 		std::function<void(bool)> cb = [](bool aUseDepthAtt) {
 			if (aUseDepthAtt) {
 				gvk::context().main_window()->set_additional_back_buffer_attachments({
-					avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
+					avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 				});
 			}
 			else {

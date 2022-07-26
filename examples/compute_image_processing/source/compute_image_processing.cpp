@@ -286,7 +286,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						cb.handle().setViewport(0, 1, &vpLeft);
 					}),
 
-					// And within, bind a pipeline and perform an indexed draw call:
+					// Bind a pipeline and perform an indexed draw call:
 					avk::command::bind_pipeline(mGraphicsPipeline.as_reference()),
 					avk::command::bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 0, mUbo[ifi]),
@@ -299,7 +299,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						cb.handle().setViewport(0, 1, &vpRight);
 					}),
 
-					// And within, bind a pipeline and perform an indexed draw call:
+					// Bind a pipeline and perform an indexed draw call:
 					avk::command::bind_pipeline(mGraphicsPipeline.as_reference()),
 					avk::command::bind_descriptors(mGraphicsPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 0, mUbo[ifi]),
