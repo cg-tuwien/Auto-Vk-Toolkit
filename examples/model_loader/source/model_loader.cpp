@@ -3,7 +3,7 @@
 #include "camera_path.hpp"
 #include "ui_helper.hpp"
 
-class static_meshlets_app : public gvk::invokee
+class model_loader_app : public gvk::invokee
 {
 	struct data_for_draw_call
 	{
@@ -26,7 +26,7 @@ class static_meshlets_app : public gvk::invokee
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
-	static_meshlets_app(avk::queue& aQueue)
+	model_loader_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mScale{1.0f, 1.0f, 1.0f}
 	{}
@@ -122,13 +122,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::filter_mode::trilinear
 		);
 
+		mImageSamplers = std::move(imageSamplers);
+
 		// A buffer to hold all the material data:
 		mMaterialBuffer = gvk::context().create_buffer(
 			avk::memory_usage::device, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
 		);
 
-		// Submit the commands necessary for that ^ instruction to the device:
+		// Submit the commands material commands and the materials buffer fill to the device:
 		auto matFence = gvk::context().record_and_submit_with_fence({
 			std::move(materialCommands),
 			mMaterialBuffer->fill(gpuMaterials.data(), 0)
@@ -142,8 +144,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::uniform_buffer_meta::create_from_data(glm::mat4())
 			);
 		}
-
-		mImageSamplers = std::move(imageSamplers);
 
 		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -424,7 +424,7 @@ int main() // <== Starting point ==
 		mainWnd->set_present_queue(singleQueue);
 
 		// Create an instance of our main avk::element which contains all the functionality:
-		auto app = static_meshlets_app(singleQueue);
+		auto app = model_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 

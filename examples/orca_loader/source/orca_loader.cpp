@@ -79,24 +79,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				// ... specifically, to its instances:
 				
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {},
-					avk::old_sync::wait_idle()
+				auto [positionsBuffer, indicesBuffer, posIndCommands] = gvk::create_vertex_and_index_buffers(
+					{ gvk::make_model_references_and_mesh_indices_selection(modelData.mLoadedModel, indices.mMeshIndices) }, {}
 				);
-				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
-				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer<avk::vertex_buffer_meta>(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
+				auto [texCoordsBuffer, tcoCommands] = gvk::create_2d_texture_coordinates_flipped_buffer<avk::vertex_buffer_meta>(
+					{ gvk::make_model_references_and_mesh_indices_selection(modelData.mLoadedModel, indices.mMeshIndices) }
 				);
-				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer<avk::vertex_buffer_meta>(
-					{ gvk::make_models_and_meshes_selection(modelData.mLoadedModel, indices.mMeshIndices) }
+				auto [normalsBuffer, nrmCommands] = gvk::create_normals_buffer<avk::vertex_buffer_meta>(
+					{ gvk::make_model_references_and_mesh_indices_selection(modelData.mLoadedModel, indices.mMeshIndices) }
 				);	
-				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+
+				// Submit all the fill commands to the queue:
+				auto fence = gvk::context().record_and_submit_with_fence({
+					std::move(posIndCommands),
+					std::move(tcoCommands),
+					std::move(nrmCommands)
+					// ^ No need for any synchronization in-between, because the commands do not depend on each other.
+				}, *mQueue);
 
 				for (size_t i = 0; i < modelData.mInstances.size(); ++i) {
 					auto& newElement = mDrawCalls.emplace_back();
@@ -107,6 +110,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					newElement.mTexCoordsBuffer = texCoordsBuffer;
 					newElement.mNormalsBuffer = normalsBuffer;
 				}
+
+				// Wait on the host until the device is done:
+				fence->wait_until_signalled();
 			}
 		}
 
@@ -114,16 +120,33 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		times.emplace_back(std::make_tuple("create materials config", endPart - startPart));
 		startPart = gvk::context().get_time();
 
-		// Convert the materials that were gathered above into a GPU-compatible format, and upload into a GPU storage buffer:
-auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
-	allMatConfigs, false, false,
-	avk::image_usage::general_texture,
-	avk::filter_mode::anisotropic_16x,
-	avk::old_sync::wait_idle()
-);
+		// For all the different materials, transfer them in structs which are well
+		// suited for GPU-usage (proper alignment, and containing only the relevant data),
+		// also load all the referenced images from file and provide access to them
+		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
+		auto [gpuMaterials, imageSamplers, materialCommands] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
+			allMatConfigs, false, false,
+			avk::image_usage::general_texture,
+			avk::filter_mode::anisotropic_16x
+		);
+
+		mImageSamplers = std::move(imageSamplers);
+
+		// A buffer to hold all the material data:
+		mMaterialBuffer = gvk::context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::storage_buffer_meta::create_from_data(gpuMaterials)
+		);
+
+		// Submit the commands material commands and the materials buffer fill to the device:
+		auto matFence = gvk::context().record_and_submit_with_fence({
+			std::move(materialCommands),
+			mMaterialBuffer->fill(gpuMaterials.data(), 0)
+		}, *mQueue);
+		matFence->wait_until_signalled();
 
 		endPart = gvk::context().get_time();
-		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
+		times.emplace_back(std::make_tuple("convert_for_gpu_usage and device upload", endPart - startPart));
 		startPart = gvk::context().get_time();
 
 		for (auto& t : times) {
@@ -132,17 +155,8 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 
 		auto end = gvk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
+		LOG_INFO(fmt::format("load_orca_scene took {} in total", diff));
 
-		mMaterialBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_visible, {},
-			avk::storage_buffer_meta::create_from_data(gpuMaterials)
-		);
-		mMaterialBuffer->fill(
-			gpuMaterials.data(), 0,
-			avk::old_sync::not_required()
-		);
-		mImageSamplers = std::move(imageSamplers);
 
 		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -157,16 +171,18 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 			avk::from_buffer_binding(2) -> stream_per_vertex<glm::vec3>() -> to_location(2), // <-- corresponds to vertex shader's inNormal
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
-			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
+			gvk::context().create_renderpass({
+				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
+				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
+				}, gvk::context().main_window()->renderpass_reference().subpass_dependencies()),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			avk::push_constant_binding_data { avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			avk::descriptor_binding(0, 5, mViewProjBuffer),
-			avk::descriptor_binding(4, 4, mImageSamplers),
+			avk::descriptor_binding(0, 5, mViewProjBuffers[0]),
+			avk::descriptor_binding(4, 4, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
 			avk::descriptor_binding(7, 9, mMaterialBuffer) 
 		);
 	}
@@ -248,34 +264,34 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 
 				// modelAndMeshes is only needed during serialization, otherwise the following buffers are filled by the
 				// serializer from the cache file in the repsective *_cached functions and modelAndMeshes may be empty.
-				std::vector<std::tuple<avk::resource_reference<const gvk::model_t>, std::vector<size_t>>> modelAndMeshes;
+				std::vector<std::tuple<const gvk::model_t&, std::vector<gvk::mesh_index_t>>> modelAndMeshes;
 				if (serializer.mode() == gvk::serializer::mode::serialize) {
-					modelAndMeshes = gvk::make_models_and_meshes_selection(getModelData().mLoadedModel, meshIndices[meshIndicesIndex].mMeshIndices);
+					modelAndMeshes = gvk::make_model_references_and_mesh_indices_selection(getModelData().mLoadedModel, meshIndices[meshIndicesIndex].mMeshIndices);
 				}
 
 				// Get a buffer containing all positions, and one containing all indices for all submeshes with this material
-				auto [positionsBuffer, indicesBuffer] = gvk::create_vertex_and_index_buffers_cached(
-					serializer, modelAndMeshes, {}, avk::old_sync::wait_idle()
-				);
-				positionsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
-				indicesBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+				auto [positionsBuffer, indicesBuffer, posIndCommands] = gvk::create_vertex_and_index_buffers_cached(serializer, modelAndMeshes, {});
 
 				// Get a buffer containing all texture coordinates for all submeshes with this material
-				auto texCoordsBuffer = gvk::create_2d_texture_coordinates_flipped_buffer_cached<avk::vertex_buffer_meta>(
-					serializer, modelAndMeshes
-				);
-				texCoordsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+				auto [texCoordsBuffer, tcoCommands] = gvk::create_2d_texture_coordinates_flipped_buffer_cached<avk::vertex_buffer_meta>(serializer, modelAndMeshes);
 
 				// Get a buffer containing all normals for all submeshes with this material
-				auto normalsBuffer = gvk::create_normals_buffer_cached<avk::vertex_buffer_meta>(
-					serializer, modelAndMeshes
-				);
-				normalsBuffer.enable_shared_ownership(); // Enable multiple owners of this buffer, because there might be multiple model-instances and hence, multiple draw calls that want to use this buffer.
+				auto [normalsBuffer, nrmCommands] = gvk::create_normals_buffer_cached<avk::vertex_buffer_meta>(serializer, modelAndMeshes);
 
 				// Get the number of instances from the model and serialize it or retrieve it from the serializer
 				size_t numInstances = (serializer.mode() == gvk::serializer::mode::serialize) ? getModelData().mInstances.size() : 0;
 				serializer.archive(numInstances);
 
+				// Submit all the fill commands to the queue:
+				auto fence = gvk::context().record_and_submit_with_fence({
+					std::move(posIndCommands),
+					std::move(tcoCommands),
+					std::move(nrmCommands)
+					// ^ No need for any synchronization in-between, because the commands do not depend on each other.
+				}, *mQueue);
+				// Wait on the host until the device is done:
+				fence->wait_until_signalled();
+				
 				// Create a draw calls for instances with the current material
 				for (int instanceIndex = 0; instanceIndex < numInstances; ++instanceIndex) {
 					auto& newElement = mDrawCalls.emplace_back();
@@ -295,6 +311,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 					newElement.mTexCoordsBuffer = texCoordsBuffer;
 					newElement.mNormalsBuffer = normalsBuffer;
 				}
+
 			}
 		}
 		endPart = gvk::context().get_time();
@@ -305,16 +322,30 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		// during the conversion in convert_for_gpu_usage_cached. If the serializer was initialized in
 		// mode deserialize, allMatConfigs may be empty since the serializer retreives everything needed
 		// from the cache file
-		auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage_cached<gvk::material_gpu_data>(
+		auto [gpuMaterials, imageSamplers, materialCommands] = gvk::convert_for_gpu_usage_cached<gvk::material_gpu_data>(
 			serializer,
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
-			avk::filter_mode::anisotropic_16x,
-			avk::old_sync::wait_idle()
+			avk::filter_mode::anisotropic_16x
 		);
 
+		mImageSamplers = std::move(imageSamplers);
+
+		// A buffer to hold all the material data:
+		mMaterialBuffer = gvk::context().create_buffer(
+			avk::memory_usage::device, {},
+			avk::storage_buffer_meta::create_from_data(gpuMaterials)
+		);
+
+		// Submit the commands material commands and the materials buffer fill to the device:
+		auto matFence = gvk::context().record_and_submit_with_fence({
+			std::move(materialCommands),
+			mMaterialBuffer->fill(gpuMaterials.data(), 0)
+		}, *mQueue);
+		matFence->wait_until_signalled();
+
 		endPart = gvk::context().get_time();
-		times.emplace_back(std::make_tuple("convert_for_gpu_usage", endPart - startPart));
+		times.emplace_back(std::make_tuple("convert_for_gpu_usage and device upload", endPart - startPart));
 		startPart = gvk::context().get_time();
 
 		for (auto& t : times) {
@@ -323,17 +354,7 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 
 		auto end = gvk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("serialization/deserialization took total {}", diff));
-
-		mMaterialBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_visible, {},
-			avk::storage_buffer_meta::create_from_data(gpuMaterials)
-		);
-		mMaterialBuffer->fill(
-			gpuMaterials.data(), 0,
-			avk::old_sync::not_required()
-		);
-		mImageSamplers = std::move(imageSamplers);
+		LOG_INFO(fmt::format("load_orca_scene_cached took {} in total", diff));
 
 		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -343,22 +364,24 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// The next 3 lines define the format and location of the vertex shader inputs:
 			// (The dummy values (like glm::vec3) tell the pipeline the format of the respective input)
-			avk::from_buffer_binding(0) -> stream_per_vertex<glm::vec3>() -> to_location(0), // <-- corresponds to vertex shader's inPosition
-			avk::from_buffer_binding(1) -> stream_per_vertex<glm::vec2>() -> to_location(1), // <-- corresponds to vertex shader's inTexCoord
-			avk::from_buffer_binding(2) -> stream_per_vertex<glm::vec3>() -> to_location(2), // <-- corresponds to vertex shader's inNormal
+			avk::from_buffer_binding(0)->stream_per_vertex<glm::vec3>()->to_location(0), // <-- corresponds to vertex shader's inPosition
+			avk::from_buffer_binding(1)->stream_per_vertex<glm::vec2>()->to_location(1), // <-- corresponds to vertex shader's inTexCoord
+			avk::from_buffer_binding(2)->stream_per_vertex<glm::vec3>()->to_location(2), // <-- corresponds to vertex shader's inNormal
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0),		avk::on_store::store),	 // But not in presentable format, because ImGui comes after
-			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care),
+			gvk::context().create_renderpass({
+				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
+				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
+				}, gvk::context().main_window()->renderpass_reference().subpass_dependencies()),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
-			avk::push_constant_binding_data { avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
-			avk::descriptor_binding(0, 5, mViewProjBuffer),
-			avk::descriptor_binding(4, 4, mImageSamplers),
-			avk::descriptor_binding(7, 9, mMaterialBuffer) 
+			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
+			avk::descriptor_binding(0, 5, mViewProjBuffers[0]),
+			avk::descriptor_binding(4, 4, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
+			avk::descriptor_binding(7, 9, mMaterialBuffer)
 		);
 	}
 	
@@ -368,11 +391,15 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = gvk::context().create_descriptor_cache();
-		
-		mViewProjBuffer = gvk::context().create_buffer(
-			avk::memory_usage::host_visible, {},
-			avk::uniform_buffer_meta::create_from_data(glm::mat4())
-		);
+
+		// One for each concurrent frame
+		const auto concurrentFrames = gvk::context().main_window()->number_of_frames_in_flight();
+		for (int i = 0; i < concurrentFrames; ++i) {
+			mViewProjBuffers.push_back(gvk::context().create_buffer(
+				avk::memory_usage::host_coherent, {},
+				avk::uniform_buffer_meta::create_from_data(glm::mat4())
+			));
+		}
 		
 #if USE_SERIALIZER
 		load_orca_scene_cached("assets/sponza_and_terrain.fscene");
@@ -465,6 +492,8 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 	void render() override
 	{
 		auto mainWnd = gvk::context().main_window();
+		auto ifi = mainWnd->current_in_flight_index();
+
 		if (mDestroyOldResourcesInFrame.has_value() && mDestroyOldResourcesInFrame.value() == mainWnd->current_frame()) {
 			mOldDrawCalls.clear();
 			mOldImageSamplers.clear();
@@ -474,48 +503,62 @@ auto [gpuMaterials, imageSamplers] = gvk::convert_for_gpu_usage<gvk::material_gp
 		}
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		mViewProjBuffer->fill(glm::value_ptr(viewProjMat), 0, avk::old_sync::not_required());
+		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
 		
+		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
-		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(mPipeline->get_renderpass(), gvk::context().main_window()->current_backbuffer());
-		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
-		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({ 
-			avk::descriptor_binding(0, 5, mViewProjBuffer),
-			avk::descriptor_binding(4, 4, mImageSamplers),
-			avk::descriptor_binding(7, 9, mMaterialBuffer)
-		}));
-
-		for (auto& drawCall : mDrawCalls) {
-			// Set the push constants:
-			auto pushConstantsForThisDrawCall = transformation_matrices {
-				// Set model matrix for this mesh:
-				glm::mat4{glm::orientate3(mRotateScene)} * drawCall.mModelMatrix * glm::mat4{glm::orientate3(mRotateObjects)},
-				// Set material index for this mesh:
-				drawCall.mMaterialIndex
-			};
-			cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
-
-			// Make the draw call:
-			cmdbfr->draw_indexed(
-				// Bind and use the index buffer:
-				avk::const_referenced(drawCall.mIndexBuffer),
-				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				avk::const_referenced(drawCall.mPositionsBuffer), avk::const_referenced(drawCall.mTexCoordsBuffer), avk::const_referenced(drawCall.mNormalsBuffer)
-			);
-		}
-
-		cmdbfr->end_render_pass();
-		cmdbfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
-		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(avk::owned(cmdbfr));
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
+		gvk::context().record({
+				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						avk::descriptor_binding(0, 5, mViewProjBuffers[ifi]),
+						avk::descriptor_binding(4, 4, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
+						avk::descriptor_binding(7, 9, mMaterialBuffer)
+					})),
+
+					// Draw all the draw calls:
+					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { // If there is no avk::command::... struct for a particular command, we can always use avk::command::custom_commands
+						for (auto& drawCall : mDrawCalls) {
+							// Set the push constants per draw call:
+							cb.record(
+								avk::command::push_constants(
+									mPipeline->layout(),
+									transformation_matrices{
+										// Set model matrix for this mesh:
+										glm::mat4{glm::orientate3(mRotateScene)} *drawCall.mModelMatrix * glm::mat4{glm::orientate3(mRotateObjects)},
+										// Set material index for this mesh:
+										drawCall.mMaterialIndex
+									}
+								)
+							);
+
+							// Make the draw call:
+							cb.record(avk::command::draw_indexed(
+								// Bind and use the index buffer:
+								drawCall.mIndexBuffer.as_reference(),
+								// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
+								drawCall.mPositionsBuffer.as_reference(), drawCall.mTexCoordsBuffer.as_reference(), drawCall.mNormalsBuffer.as_reference()
+							));
+						}
+					}),
+
+				})
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(*mQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
+					
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 
 private: // v== Member variables ==v
@@ -525,7 +568,7 @@ private: // v== Member variables ==v
 	avk::queue* mQueue;
 	avk::descriptor_cache mDescriptorCache;
 
-	avk::buffer mViewProjBuffer;
+	std::vector<avk::buffer> mViewProjBuffers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
 	std::vector<avk::image_sampler> mImageSamplers;
@@ -545,42 +588,79 @@ private: // v== Member variables ==v
 
 	ImGui::FileBrowser mFileBrowser;
 	
-}; // model_loader_app
+};
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
 		auto mainWnd = gvk::context().create_window("ORCA Loader");
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->set_additional_back_buffer_attachments({ 
-			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
+			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 		});
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = orca_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		auto ui = gvk::imgui_manager(singleQueue);
 
-		// GO:
-		gvk::start(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: ORCA Loader"),
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
+			gvk::application_name("Auto-Vk-Toolkit Example: ORCA Loader"),
+			[](gvk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
+			// Pass windows:
 			mainWnd,
-			app,
-			ui
+			// Pass invokees:
+			app, ui
 		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }
 
 

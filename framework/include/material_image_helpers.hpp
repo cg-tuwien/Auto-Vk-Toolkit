@@ -606,7 +606,6 @@ namespace gvk
 		);
 		
 		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(positionsBuffer->fill(positionsData.data(), 0));
-		actionTypeCommand.handle_lifetime_of(std::move(positionsBuffer)); 
 
 		// It is fine to let positionsData go out of scope, since its data has been copied to a
 		// staging buffer within fill, which is lifetime-handled by the command buffer.
@@ -617,9 +616,9 @@ namespace gvk
 			set_up_meta_from_data_for_index_buffer<Metas>(indicesData)...
 		);
 
-		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(indexBuffer->fill(indicesData.data(), 0), 0);
-		actionTypeCommand.handle_lifetime_of(std::move(indexBuffer));
-
+		actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(indexBuffer->fill(indicesData.data(), 0));
+		actionTypeCommand.infer_sync_hint_from_nested_commands();
+		
 		return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer), std::move(actionTypeCommand));
 	}
 	
@@ -690,7 +689,8 @@ namespace gvk
 				set_up_meta_from_total_size_for_vertex_buffer<Metas, std::remove_reference_t<decltype(positionsData)>::value_type>(totalPositionsSize, numPositions)...
 			);
 
-			fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize);
+			avk::command::action_type_command actionTypeCommand{};
+			actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(fill_device_buffer_from_cache(aSerializer, positionsBuffer, totalPositionsSize));
 
 			auto indexBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
@@ -698,8 +698,9 @@ namespace gvk
 				set_up_meta_from_total_size_for_index_buffer<Metas>(totalIndicesSize, numIndices)...
 			);
 
-			auto actionTypeCommand = fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize);
-
+			actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(fill_device_buffer_from_cache(aSerializer, indexBuffer, totalIndicesSize));
+			actionTypeCommand.infer_sync_hint_from_nested_commands();
+			
 			return std::make_tuple(std::move(positionsBuffer), std::move(indexBuffer), std::move(actionTypeCommand));
 		}
 	}
