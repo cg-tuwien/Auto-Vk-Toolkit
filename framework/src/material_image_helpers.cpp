@@ -192,12 +192,11 @@ namespace gvk
 				);
 				actionTypeCommand.mNestedCommandsAndSyncInstructions.push_back(
 					avk::sync::image_memory_barrier(*img,
-						avk::stage::copy            >> avk::stage::none ,
+						avk::stage::copy            >> avk::stage::transfer,
 						avk::access::transfer_write >> avk::access::none
 					).with_layout_transition(avk::layout::transfer_dst >> aImageLayout)
 				);
 				// There should be no need to make any memory available or visible, the transfer-execution dependency chain should be fine
-				// TODO: Verify the above ^ comment
 
 				actionTypeCommand.handle_lifetime_of(std::move(sb));
 			}
