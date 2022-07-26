@@ -167,7 +167,7 @@ namespace gvk
 	 *	@param	aMaxVertices		The maximum number of vertices of a meshlet.
 	 *	@param	aMaxIndices			The maximum number of indices of a meshlet.
 	 */
-	std::vector<meshlet> divide_into_meshlets(std::vector<gvk::model, std::vector<mesh_index_t>>& aModelsAndMeshletIndices,
+	std::vector<meshlet> divide_into_meshlets(std::vector<std::tuple<gvk::model, std::vector<mesh_index_t>>>& aModelsAndMeshletIndices,
 		const bool aCombineSubmeshes = true, const uint32_t aMaxVertices = 64, const uint32_t aMaxIndices = 378);
 
 	/** Divides the given models into meshlets using the given callback function.

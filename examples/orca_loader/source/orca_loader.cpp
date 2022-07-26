@@ -375,7 +375,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			gvk::context().create_renderpass({
 				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
 				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
-				}, gvk::context().main_window()->renderpass_reference().subpass_dependencies()),
+			}, gvk::context().main_window()->renderpass_reference().subpass_dependencies()),
 			// The following define additional data which we'll pass to the pipeline:
 			//   We'll pass two matrices to our vertex shader via push constants:
 			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(transformation_matrices) },
@@ -611,7 +611,6 @@ int main() // <== Starting point ==
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = orca_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		auto ui = gvk::imgui_manager(singleQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
