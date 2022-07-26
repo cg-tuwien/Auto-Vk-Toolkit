@@ -50,10 +50,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Note that lookup operations in a cubemap are defined in a left-handed coordinate system,
 		// i.e. when looking at the positive Z face from inside the cube, the positive X face is to the right.
 		avk::image cubemapImage;
+		avk::command::action_type_command loadImageCommand;
 
 		// Load the textures for all cubemap faces from one file (.ktx or .dds format), or from six individual files
 		if constexpr (gSelectedOption == options::one_dds_file) {
-			cubemapImage = gvk::create_cubemap_from_file_cached(
+			std::tie(cubemapImage, loadImageCommand) = gvk::create_cubemap_from_file_cached(
 				serializer, 
 				"assets/yokohama_at_night-All-Mipmaps-Srgb-RGBA8-DXT1-SRGB.dds", 
 				true, // <-- load in HDR if possible 
@@ -62,7 +63,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 		}
 		else if constexpr (gSelectedOption == options::one_ktx_file) {
-			cubemapImage = gvk::create_cubemap_from_file_cached(
+			std::tie(cubemapImage, loadImageCommand) = gvk::create_cubemap_from_file_cached(
 				serializer,
 				"assets/yokohama_at_night-All-Mipmaps-Srgb-RGB8-DXT1-SRGB.ktx",
 				true, // <-- load in HDR if possible 
@@ -71,7 +72,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 		}
 		else if constexpr (gSelectedOption == options::six_jpeg_files) {
-			cubemapImage = gvk::create_cubemap_from_file_cached(
+			std::tie(cubemapImage, loadImageCommand) = gvk::create_cubemap_from_file_cached(
 				serializer,
 				{ "assets/posx.jpg", "assets/negx.jpg", "assets/posy.jpg", "assets/negy.jpg", "assets/posz.jpg", "assets/negz.jpg" },
 				true, // <-- load in HDR if possible 
@@ -82,10 +83,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		else {
 			throw std::logic_error("invalid option selected");
 		}
+		gvk::context().record_and_submit_with_fence({ std::move(loadImageCommand) }, *mQueue)->wait_until_signalled();
 
 		auto cubemapSampler = gvk::context().create_sampler(avk::filter_mode::trilinear, avk::border_handling_mode::clamp_to_edge, static_cast<float>(cubemapImage->create_info().mipLevels));
-		auto cubemapImageView = gvk::context().create_image_view(avk::owned(cubemapImage), {}, avk::image_usage::general_cube_map_texture);
-		mImageSamplerCubemap = gvk::context().create_image_sampler(avk::owned(cubemapImageView), avk::owned(cubemapSampler));
+		auto cubemapImageView = gvk::context().create_image_view(cubemapImage, {}, avk::image_usage::general_cube_map_texture);
+		mImageSamplerCubemap = gvk::context().create_image_sampler(cubemapImageView, cubemapSampler);
 	
 		// Load a cube as the skybox from file
 		// Since the cubemap uses a left-handed coordinate system, we declare the cube to be defined in the same coordinate system as well.
@@ -100,9 +102,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// 2. Build all the buffers for the GPU
 			std::vector<gvk::mesh_index_t> indices = { 0 };
 
-			auto modelMeshSelection = gvk::make_models_and_meshes_selection(cube, indices);
+			auto modelMeshSelection = gvk::make_model_references_and_mesh_indices_selection(cube, indices);
 
-			auto [mPositionsBuffer, mIndexBuffer] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+			auto [mPositionsBuffer, mIndexBuffer, geometryCommands] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+			gvk::context().record_and_submit_with_fence({ std::move(geometryCommands) }, *mQueue)->wait_until_signalled();
 
 			newElement.mPositionsBuffer = std::move(mPositionsBuffer);
 			newElement.mIndexBuffer = std::move(mIndexBuffer);
@@ -117,23 +120,28 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// 2. Build all the buffers for the GPU
 			std::vector<gvk::mesh_index_t> indices = { 0 };
 
-			auto modelMeshSelection = gvk::make_models_and_meshes_selection(object, indices);
+			auto modelMeshSelection = gvk::make_model_references_and_mesh_indices_selection(object, indices);
 
-			auto [mPositionsBuffer, mIndexBuffer] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+			auto [posBuffer, indBuffer, posIndCommand] = gvk::create_vertex_and_index_buffers({ modelMeshSelection });
+			auto [nrmBuffer, nrmCommand] = gvk::create_normals_buffer<avk::vertex_buffer_meta>({ modelMeshSelection });
 
-			newElement.mPositionsBuffer = std::move(mPositionsBuffer);
-			newElement.mIndexBuffer = std::move(mIndexBuffer);
+			newElement.mPositionsBuffer = std::move(posBuffer);
+			newElement.mIndexBuffer = std::move(indBuffer);
+			newElement.mNormalsBuffer = std::move(nrmBuffer);
 
-			newElement.mNormalsBuffer = gvk::create_normals_buffer<avk::vertex_buffer_meta>({ modelMeshSelection });
+			gvk::context().record_and_submit_with_fence({ 
+				std::move(posIndCommand),
+				std::move(nrmCommand)
+			}, *mQueue)->wait_until_signalled();
 		}
 
 		mViewProjBufferSkybox = gvk::context().create_buffer(
-			avk::memory_usage::host_visible, {},
+			avk::memory_usage::host_coherent, {},
 			avk::uniform_buffer_meta::create_from_data(view_projection_matrices())
 		);
 
 		mViewProjBufferReflect = gvk::context().create_buffer(
-			avk::memory_usage::host_visible, {},
+			avk::memory_usage::host_coherent, {},
 			avk::uniform_buffer_meta::create_from_data(view_projection_matrices())
 		);
 
@@ -146,14 +154,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::from_buffer_binding(0)->stream_per_vertex<glm::vec3>()->to_location(0), // <-- corresponds to vertex shader's inPosition
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear, avk::color(0), avk::on_store::store),	 // But not in presentable format, because ImGui comes after
-			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear, avk::depth_stencil(), avk::on_store::store),
+			gvk::context().main_window()->renderpass(), // Just use the same renderpass
 			// The following define additional data which we'll pass to the pipeline:
 			avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
-			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
+			avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
 		);
 
 		mPipelineReflect = gvk::context().create_graphics_pipeline_for(
@@ -166,23 +173,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::from_buffer_binding(1)->stream_per_vertex<glm::vec3>()->to_location(1), // <-- corresponds to vertex shader's inNormal
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store),	 // But not in presentable format, because ImGui comes after
-			avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::load, avk::depth_stencil(), avk::on_store::dont_care),
+			gvk::context().main_window()->renderpass(), // Just use the same renderpass
 			// The following define additional data which we'll pass to the pipeline:
 			avk::descriptor_binding(0, 0, mViewProjBufferReflect),
-			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
+			avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
 		);
 
 		mUpdater.emplace();
 
-		// Make pipelines usable with the updater
-		mPipelineSkybox.enable_shared_ownership(); 
-		mUpdater->on(gvk::shader_files_changed_event(mPipelineSkybox)).update(mPipelineSkybox);
-		mPipelineReflect.enable_shared_ownership();
-		mUpdater->on(gvk::shader_files_changed_event(mPipelineReflect)).update(mPipelineReflect);
+		// Update the pipelines if one of their shader files has changed (enable hot reloading):
+		mUpdater->on(gvk::shader_files_changed_event(mPipelineSkybox.as_reference())).update(mPipelineSkybox);
+		mUpdater->on(gvk::shader_files_changed_event(mPipelineReflect.as_reference())).update(mPipelineReflect);
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 2.5f });
@@ -194,7 +198,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			.update(mPipelineSkybox, mPipelineReflect)
 			.invoke([this]() {
 				this->mQuakeCam.set_aspect_ratio(gvk::context().main_window()->aspect_ratio());
-			});
+		});
 
 		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
 		if(nullptr != imguiManager) {
@@ -222,67 +226,64 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			0.0f
 		};
 
-		mViewProjBufferReflect->fill(&viewProjMat, 0, avk::old_sync::not_required());
+		auto emptyCmd = mViewProjBufferReflect->fill(&viewProjMat, 0);
 
 		// scale skybox, mirror x axis, cancel out translation
 		viewProjMat.mModelViewMatrix = gvk::cancel_translation_from_matrix(mirroredViewMatrix * mModelMatrixSkybox);
 
-		mViewProjBufferSkybox->fill(&viewProjMat, 0, avk::old_sync::not_required());
+		auto emptyToo = mViewProjBufferSkybox->fill(&viewProjMat, 0);
 	}
 
 	void render() override
 	{
 		update_uniform_buffers();
+		
+		auto mainWnd = gvk::context().main_window();
+		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
-		auto *mainWnd = gvk::context().main_window();
-
+		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
-		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdbfr->begin_recording();
-		cmdbfr->begin_render_pass_for_framebuffer(mPipelineSkybox->get_renderpass(), gvk::context().main_window()->current_backbuffer());
-
-		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineSkybox));
-		cmdbfr->bind_descriptors(mPipelineSkybox->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-			avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
-			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
-		}));
-
-		for (auto& drawCall : mDrawCallsSkybox) {
-			// Make the draw call:
-			cmdbfr->draw_indexed(
-				// Bind and use the index buffer:
-				avk::const_referenced(drawCall.mIndexBuffer),
-				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				avk::const_referenced(drawCall.mPositionsBuffer)
-			);
-		}
-
-		cmdbfr->bind_pipeline(avk::const_referenced(mPipelineReflect));
-		cmdbfr->bind_descriptors(mPipelineReflect->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-			avk::descriptor_binding(0, 0, mViewProjBufferReflect),
-			avk::descriptor_binding(0, 1, mImageSamplerCubemap)
-		}));
-
-		for (auto& drawCall : mDrawCallsReflect) {
-			// Make the draw call:
-			cmdbfr->draw_indexed(
-				// Bind and use the index buffer:
-				avk::const_referenced(drawCall.mIndexBuffer),
-				// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-				avk::const_referenced(drawCall.mPositionsBuffer), avk::const_referenced(drawCall.mNormalsBuffer)
-			);
-		}
-
-		cmdbfr->end_render_pass();
-		cmdbfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 		
-		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(avk::owned(cmdbfr));
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
+		gvk::context().record({
+				// Begin and end one renderpass:
+				avk::command::render_pass(mPipelineSkybox->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), avk::command::gather(
+					// First, draw the skybox:
+					avk::command::bind_pipeline(mPipelineSkybox.as_reference()),
+					avk::command::bind_descriptors(mPipelineSkybox->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
+						avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
+					})),
+					avk::command::one_for_each(mDrawCallsSkybox, [](const data_for_draw_call& drawCall) {
+						return avk::command::draw_indexed(drawCall.mIndexBuffer.as_reference(), drawCall.mPositionsBuffer.as_reference());
+					}),
+					
+					// Then, draw an object which reflects it:
+					avk::command::bind_pipeline(mPipelineReflect.as_reference()),
+					avk::command::bind_descriptors(mPipelineReflect->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						avk::descriptor_binding(0, 0, mViewProjBufferReflect),
+						avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
+					})),
+					avk::command::one_for_each(mDrawCallsReflect, [](const data_for_draw_call& drawCall) {
+						return avk::command::draw_indexed(drawCall.mIndexBuffer.as_reference(), drawCall.mPositionsBuffer.as_reference(), drawCall.mNormalsBuffer.as_reference());
+					})
+				))
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(*mQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
+
+		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// It will get deleted in the future after #concurrent-frames have passed by.
+		gvk::context().main_window()->handle_lifetime(std::move(cmdBfr));
 	}
 
 	void update() override
@@ -331,21 +332,22 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
 		auto* mainWnd = gvk::context().create_window("Texture Cubemap");
-		mainWnd->set_resolution({ 640, 480 });
+		mainWnd->set_resolution({ 800, 600 });
 		mainWnd->request_srgb_framebuffer(true);
 		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments({ 
-			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear, avk::depth_stencil(), avk::on_store::dont_care)
+			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 		});
 		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main avk::element which contains all the functionality:
@@ -353,16 +355,47 @@ int main() // <== Starting point ==
 		// Create another element for drawing the UI with ImGui
 		auto ui = gvk::imgui_manager(singleQueue);
 
-		// GO:
-		gvk::start(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Texture Cubemap"),
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
+			gvk::application_name("Auto-Vk-Toolkit Example: Texture Cubemap"),
 			mainWnd,
 			app,
 			ui
 		);
+		
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;
 	}
 	catch (gvk::logic_error&) {}
 	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }
