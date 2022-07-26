@@ -52,8 +52,11 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		const auto hght = gvk::context().main_window()->resolution().y;
 		const auto frmt = gvk::format_from_window_color_buffer(mainWnd);
 		auto offscreenImage = gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image);
-		offscreenImage->transition_to_layout();
-		mOffscreenImageView = gvk::context().create_image_view(avk::owned(offscreenImage));
+		gvk::context().record_and_submit_with_fence({
+			avk::sync::image_memory_barrier(offscreenImage.as_reference(), avk::stage::none >> avk::stage::none, avk::access::none >> avk::access::none)
+				.with_layout_transition(avk::layout::undefined >> avk::layout::general)
+			}, *mQueue)->wait_until_signalled();
+		mOffscreenImageView = gvk::context().create_image_view(offscreenImage);
 
 		// The triangle_mesh_geometry_manager has lower execution order. Therefore, we can
 		// assume that it already contains the data that we require:
@@ -84,13 +87,13 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 			gvk::context().get_max_ray_tracing_recursion_depth(),
 			// Define push constants and descriptor bindings:
 			avk::push_constant_binding_data{ avk::shader_type::ray_generation | avk::shader_type::closest_hit, 0, sizeof(push_const_data) },
-			avk::descriptor_binding(0, 0, triMeshGeomMgr->image_samplers()),
+			avk::descriptor_binding(0, 0, triMeshGeomMgr->combined_image_sampler_descriptor_infos()),
 			avk::descriptor_binding(0, 1, triMeshGeomMgr->material_buffer()),
 			avk::descriptor_binding(0, 2, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->index_buffer_views())),
 			avk::descriptor_binding(0, 3, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->tex_coords_buffer_views())),
 			avk::descriptor_binding(0, 4, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->normals_buffer_views())),
-			avk::descriptor_binding(1, 0, mOffscreenImageView->as_storage_image()), // Bind the offscreen image to render into as storage image
-			avk::descriptor_binding(2, 0, mTlas)                                    // Bind the TLAS, s.t. we can trace rays against it
+			avk::descriptor_binding(1, 0, mOffscreenImageView->as_storage_image(avk::layout::general)), // Bind the offscreen image to render into as storage image
+			avk::descriptor_binding(2, 0, mTlas)                                                        // Bind the TLAS, s.t. we can trace rays against it
 		);
 
 		// Print the structure of our shader binding table, also displaying the offsets:
@@ -99,10 +102,9 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 #if ENABLE_SHADER_HOT_RELOADING_FOR_RAY_TRACING_PIPELINE || ENABLE_RESIZABLE_WINDOW
 		// Create an updater:
 		mUpdater.emplace();
-		mPipeline.enable_shared_ownership(); // The updater needs to hold a reference to it, so we need to enable shared ownership.
 
 #if ENABLE_SHADER_HOT_RELOADING_FOR_RAY_TRACING_PIPELINE
-		mUpdater->on(gvk::shader_files_changed_event(mPipeline))
+		mUpdater->on(gvk::shader_files_changed_event(mPipeline.as_reference()))
 			.update(mPipeline);
 #endif
 
@@ -112,7 +114,7 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 			.update(mOffscreenImageView, mPipeline)
 			.then_on(gvk::destroying_image_view_event()) // Make sure that our descriptor cache stays cleaned up:
 			.invoke([this](const avk::image_view& aImageViewToBeDestroyed) {
-			auto numRemoved = mDescriptorCache.remove_sets_with_handle(aImageViewToBeDestroyed->handle());
+			auto numRemoved = mDescriptorCache->remove_sets_with_handle(aImageViewToBeDestroyed->handle());
 				});
 #endif
 #endif
@@ -179,33 +181,35 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 			std::vector<avk::geometry_instance> activeGeometryInstances = triMeshGeomMgr->get_active_geometry_instances_for_tlas_build();
 
 			if (!activeGeometryInstances.empty()) {
+				// Get a command pool to allocate command buffers from:
 				auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
-				auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-				cmdbfr->begin_recording();
 
-				// We're using only one TLAS for all frames in flight. Therefore, we need to set up a barrier
-				// affecting the whole queue which waits until all previous ray tracing work has completed:
-				cmdbfr->establish_execution_barrier(
-					avk::pipeline_stage::ray_tracing_shaders, /* -> */ avk::pipeline_stage::acceleration_structure_build
-				);
+				// Create a command buffer and render into the *current* swap chain image:
+				auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-				// ...then we can safely update the TLAS with new data:
-				mTlas->build(                // We're not updating existing geometry, but we are changing the geometry => therefore, we need to perform a full rebuild.
-					activeGeometryInstances, // Build only with the active geometry instances
-					{},                      // Let top_level_acceleration_structure_t::build handle the staging buffer internally 
-					avk::old_sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
-				);
+				gvk::context().record({
+						// We're using only one TLAS for all frames in flight. Therefore, we need to set up a barrier
+						// affecting the whole queue which waits until all previous ray tracing work has completed:
+						avk::sync::global_execution_barrier(avk::stage::ray_tracing_shader >> avk::stage::acceleration_structure_build),
 
-				// ...and we need to ensure that the TLAS update-build has completed (also in terms of memory
-				// access--not only execution) before we may continue ray tracing with that TLAS:
-				cmdbfr->establish_global_memory_barrier(
-					avk::pipeline_stage::acceleration_structure_build,       /* -> */ avk::pipeline_stage::ray_tracing_shaders,
-					avk::memory_access::acceleration_structure_write_access, /* -> */ avk::memory_access::acceleration_structure_read_access
-				);
+						// ...then we can safely update the TLAS with new data:
+						mTlas->build(                // We're not updating existing geometry, but we are changing the geometry => therefore, we need to perform a full rebuild.
+							activeGeometryInstances, // Build only with the active geometry instances
+							{}                       // Let top_level_acceleration_structure_t::build handle the staging buffer internally 
+						),
 
-				cmdbfr->end_recording();
-				mQueue->submit(avk::referenced(cmdbfr));
-				gvk::context().main_window()->handle_lifetime(avk::owned(cmdbfr));
+						// ...and we need to ensure that the TLAS update-build has completed (also in terms of memory
+						// access--not only execution) before we may continue ray tracing with that TLAS:
+						avk::sync::global_memory_barrier(
+							avk::stage::acceleration_structure_build  >> avk::stage::ray_tracing_shader,
+							avk::access::acceleration_structure_write >> avk::access::acceleration_structure_read
+						)
+					})
+					.into_command_buffer(cmdBfr)
+					.then_submit_to(*mQueue)
+					.submit();
+				
+				gvk::context().main_window()->handle_lifetime(std::move(cmdBfr));
 			}
 
 			mTlasUpdateRequired = false;
@@ -238,78 +242,91 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = gvk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
+		// Get a command pool to allocate command buffers from:
 		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
-		auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdbfr->begin_recording();
+
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		// The triangle_mesh_geometry_manager has some of the data we require:
 		auto* triMeshGeomMgr = gvk::current_composition()->element_by_type<triangle_mesh_geometry_manager>();
-
-		cmdbfr->bind_pipeline(avk::const_referenced(mPipeline));
-		cmdbfr->bind_descriptors(mPipeline->layout(), mDescriptorCache.get_or_create_descriptor_sets({
-			avk::descriptor_binding(0, 0, triMeshGeomMgr->image_samplers()),
-			avk::descriptor_binding(0, 1, triMeshGeomMgr->material_buffer()),
-			avk::descriptor_binding(0, 2, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->index_buffer_views())),
-			avk::descriptor_binding(0, 3, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->tex_coords_buffer_views())),
-			avk::descriptor_binding(0, 4, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->normals_buffer_views())),
-			avk::descriptor_binding(1, 0, mOffscreenImageView->as_storage_image()),
-			avk::descriptor_binding(2, 0, mTlas)
-			}));
-
-		// Set the push constants:
-		auto pushConstantsForThisDrawCall = push_const_data{
-			glm::vec4{mAmbientLight, 0.0f},
-			glm::vec4{mLightDir, 0.0f},
-			mQuakeCam.global_transformation_matrix(),
-			glm::radians(mFieldOfViewForRayTracing) * 0.5f,
-			0.0f, // padding
-			mEnableShadows ? vk::Bool32{VK_TRUE} : vk::Bool32{VK_FALSE},
-			mShadowsFactor,
-			glm::vec4{ mShadowsColor, 1.0f },
-			mEnableAmbientOcclusion ? vk::Bool32{VK_TRUE} : vk::Bool32{VK_FALSE},
-			mAmbientOcclusionMinDist,
-			mAmbientOcclusionMaxDist,
-			mAmbientOcclusionFactor,
-			glm::vec4{ mAmbientOcclusionColor, 1.0f }
-		};
-		cmdbfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR, 0, sizeof(pushConstantsForThisDrawCall), &pushConstantsForThisDrawCall);
-
-		// Do it:
-		cmdbfr->trace_rays(
-			gvk::for_each_pixel(mainWnd),
-			mPipeline->shader_binding_table(),
-			avk::using_raygen_group_at_index(0),
-			avk::using_miss_group_at_index(0),
-			avk::using_hit_group_at_index(0)
-		);
-
-		// Sync ray tracing with transfer:
-		cmdbfr->establish_global_memory_barrier(
-			avk::pipeline_stage::ray_tracing_shaders, avk::pipeline_stage::transfer,
-			avk::memory_access::shader_buffers_and_images_write_access, avk::memory_access::transfer_read_access
-		);
-
-		avk::copy_image_to_another(
-			mOffscreenImageView->get_image(),
-			mainWnd->current_backbuffer()->image_at(0),
-			avk::old_sync::with_barriers_into_existing_command_buffer(*cmdbfr, {}, {})
-		);
-
-		// Make sure to properly sync with ImGui manager which comes afterwards (it uses a graphics pipeline):
-		cmdbfr->establish_global_memory_barrier(
-			avk::pipeline_stage::transfer, avk::pipeline_stage::color_attachment_output,
-			avk::memory_access::transfer_write_access, avk::memory_access::color_attachment_write_access
-		);
-
-		cmdbfr->end_recording();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 
+		gvk::context().record({
+				avk::command::bind_pipeline(mPipeline.as_reference()),
+				avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+					avk::descriptor_binding(0, 0, triMeshGeomMgr->combined_image_sampler_descriptor_infos()),
+					avk::descriptor_binding(0, 1, triMeshGeomMgr->material_buffer()),
+					avk::descriptor_binding(0, 2, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->index_buffer_views())),
+					avk::descriptor_binding(0, 3, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->tex_coords_buffer_views())),
+					avk::descriptor_binding(0, 4, avk::as_uniform_texel_buffer_views(triMeshGeomMgr->normals_buffer_views())),
+					avk::descriptor_binding(1, 0, mOffscreenImageView->as_storage_image(avk::layout::general)),
+					avk::descriptor_binding(2, 0, mTlas)
+				})),
+				avk::command::push_constants(
+					mPipeline->layout(), 
+					push_const_data{
+						glm::vec4{mAmbientLight, 0.0f},
+						glm::vec4{mLightDir, 0.0f},
+						mQuakeCam.global_transformation_matrix(),
+						glm::radians(mFieldOfViewForRayTracing) * 0.5f,
+						0.0f, // padding
+						mEnableShadows ? vk::Bool32{VK_TRUE} : vk::Bool32{VK_FALSE},
+						mShadowsFactor,
+						glm::vec4{ mShadowsColor, 1.0f },
+						mEnableAmbientOcclusion ? vk::Bool32{VK_TRUE} : vk::Bool32{VK_FALSE},
+						mAmbientOcclusionMinDist,
+						mAmbientOcclusionMaxDist,
+						mAmbientOcclusionFactor,
+						glm::vec4{ mAmbientOcclusionColor, 1.0f }
+					},
+					avk::shader_type::ray_generation | avk::shader_type::closest_hit
+				),
+
+				// Do it:
+				avk::command::trace_rays(
+					gvk::for_each_pixel(mainWnd),
+					mPipeline->shader_binding_table(),
+					avk::using_raygen_group_at_index(0),
+					avk::using_miss_group_at_index(0),
+					avk::using_hit_group_at_index(0)
+				),
+
+				// Wait until ray tracing has completed, then transfer the result image into the swap chain image:
+				avk::sync::image_memory_barrier(mOffscreenImageView->get_image(),
+					avk::stage::ray_tracing_shader >> avk::stage::copy,
+					avk::access::shader_write      >> avk::access::transfer_read
+				).with_layout_transition(avk::layout::general >> avk::layout::transfer_src),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0),
+					avk::stage::none               >> avk::stage::copy,
+					avk::access::none              >> avk::access::transfer_write
+				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
+
+				avk::copy_image_to_another(
+					mOffscreenImageView->get_image(), avk::layout::transfer_src,
+					mainWnd->current_backbuffer_reference().image_at(0), avk::layout::transfer_dst
+				),
+
+				avk::sync::image_memory_barrier(mOffscreenImageView->get_image(),
+					avk::stage::copy               >> avk::stage::ray_tracing_shader,
+					avk::access::transfer_read     >> avk::access::shader_write
+				).with_layout_transition(avk::layout::transfer_src >> avk::layout::general),
+				avk::sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0), // Prepare for ImGui
+					avk::stage::copy               >> avk::stage::color_attachment_output,
+					avk::access::transfer_write    >> avk::access::color_attachment_write
+				).with_layout_transition(avk::layout::transfer_dst >> avk::layout::color_attachment_optimal),
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(*mQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
+
 		// Submit the draw call and take care of the command buffer's lifetime:
-		mQueue->submit(cmdbfr, imageAvailableSemaphore);
-		mainWnd->handle_lifetime(avk::owned(cmdbfr));
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 
 private: // v== Member variables ==v
@@ -374,6 +391,7 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it:
 		auto mainWnd = gvk::context().create_window("Real-Time Ray Tracing with Shadows and AO - Main Window");
@@ -385,20 +403,20 @@ int main() // <== Starting point ==
 
 		// Create one single queue to submit command buffers to:
 		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		// ... pass the queue to the constructors of the invokees:
 
 		// Create an instance of our main invokee:
 		auto mainInvokee = ray_tracing_with_shadows_and_ao_invokee(singleQueue);
 		// Create an instance of the invokee that handles our triangle mesh geometry:
-		auto triMeshGeomMgrInvokee = triangle_mesh_geometry_manager();
+		auto triMeshGeomMgrInvokee = triangle_mesh_geometry_manager(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto imguiManagerInvokee = gvk::imgui_manager(singleQueue);
 
-		// Launch the render loop in 5.. 4.. 3.. 2.. 1.. 
-		gvk::start(
-			gvk::application_name("Real-Time Ray Tracing with Shadows and AO"),
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
+			gvk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing with Shadows and AO"),
 			gvk::required_device_extensions()
 			// We need several extensions for ray tracing:
 			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
@@ -424,9 +442,40 @@ int main() // <== Starting point ==
 			// Pass the invokees that shall be invoked every frame:
 			mainInvokee, triMeshGeomMgrInvokee, imguiManagerInvokee
 		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		gvk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+				[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->sync_before_render();
+					});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+					wnd->render_frame();
+					});
+			}
+			); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+
+		result = EXIT_SUCCESS;
 	}
 	catch (gvk::logic_error& e) { LOG_ERROR(std::string("Caught gvk::logic_error in main(): ") + e.what()); }
 	catch (gvk::runtime_error& e) { LOG_ERROR(std::string("Caught gvk::runtime_error in main(): ") + e.what()); }
 	catch (avk::logic_error& e) { LOG_ERROR(std::string("Caught avk::logic_error in main(): ") + e.what()); }
 	catch (avk::runtime_error& e) { LOG_ERROR(std::string("Caught avk::runtime_error in main(): ") + e.what()); }
+	return result;
 }

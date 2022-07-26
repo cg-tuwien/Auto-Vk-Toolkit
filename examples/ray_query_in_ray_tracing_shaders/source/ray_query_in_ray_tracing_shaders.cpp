@@ -414,7 +414,7 @@ int main() // <== Starting point ==
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Ray Query in Ray Tracing Shaders"),
+			gvk::application_name("Auto-Vk-Toolkit Example: Ray Query in Ray Tracing Shaders"),
 			gvk::required_device_extensions()
 			// We need several extensions for ray tracing:
 			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)

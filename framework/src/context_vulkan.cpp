@@ -413,7 +413,7 @@ namespace gvk
 		});
 	}
 
-	void context_vulkan::record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
+	avk::command_buffer context_vulkan::record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, vk::CommandBufferUsageFlags aUsageFlags)
 	{
 		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
 		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
@@ -422,6 +422,8 @@ namespace gvk
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(aQueue)
 			.submit();
+
+		return cmdBfr;
 	}
 
 	avk::semaphore context_vulkan::record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags)
