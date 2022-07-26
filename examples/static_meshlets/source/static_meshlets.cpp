@@ -105,7 +105,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0),
 				drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0)
 #if USE_REDIRECTED_GPU_DATA
-				drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0);
+				, drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0)
 #endif
 			}, *mQueue)->wait_until_signalled();
 
@@ -114,7 +114,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mNormalBuffers.push_back(gvk::context().create_buffer_view(drawCall.mNormalsBuffer));
 			mTexCoordsBuffers.push_back(gvk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
 #if USE_REDIRECTED_GPU_DATA
-			mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(shared(drawCall.mMeshletDataBuffer)));
+			mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(drawCall.mMeshletDataBuffer));
 #endif
 		}
 	}
@@ -312,58 +312,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
-	void render() override
-	{
-		auto mainWnd = gvk::context().main_window();
-		auto ifi = mainWnd->current_in_flight_index();
-
-auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
-		
-		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
-
-		// The swap chain provides us with an "image available semaphore" for the current frame.
-		// Only after the swapchain image has become available, we may start rendering into it.
-		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-		
-		// Create a command buffer and render into the *current* swap chain image:
-		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		
-		gvk::context().record({
-				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
-					avk::command::bind_pipeline(mPipeline.as_reference()),
-					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
-						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
-						avk::descriptor_binding(0, 1, mViewProjBuffers[ifi]),
-						avk::descriptor_binding(1, 0, mMaterialBuffer),
-						avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
-						avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
-						avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-#if USE_REDIRECTED_GPU_DATA
-						avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
-#endif
-						avk::descriptor_binding(4, 0, mMeshletsBuffer)
-					})),
-
-					avk::command::push_constants(mPipeline->layout(), push_constants{ mHighlightMeshlets }),
-
-					// Draw all the meshlets with just one single draw call:
-					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { 
-						cb.handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0);
-					}),
-
-				})
-			})
-			.into_command_buffer(cmdBfr)
-			.then_submit_to(*mQueue)
-			// Do not start to render before the image has become available:
-			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
-			.submit();
-					
-		mainWnd->handle_lifetime(std::move(cmdBfr));
-	}
-
 	void update() override
 	{
 		if (gvk::input().key_pressed(gvk::key_code::c)) {
@@ -408,6 +356,57 @@ auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
 			}
 		}
+	}
+
+	void render() override
+	{
+		auto mainWnd = gvk::context().main_window();
+		auto ifi = mainWnd->current_in_flight_index();
+
+		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
+		
+		// Get a command pool to allocate command buffers from:
+		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+
+		// The swap chain provides us with an "image available semaphore" for the current frame.
+		// Only after the swapchain image has become available, we may start rendering into it.
+		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
+		
+		// Create a command buffer and render into the *current* swap chain image:
+		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		
+		gvk::context().record({
+				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
+						avk::descriptor_binding(0, 1, mViewProjBuffers[ifi]),
+						avk::descriptor_binding(1, 0, mMaterialBuffer),
+						avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
+						avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
+						avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
+#if USE_REDIRECTED_GPU_DATA
+						avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
+#endif
+						avk::descriptor_binding(4, 0, mMeshletsBuffer)
+					})),
+
+					avk::command::push_constants(mPipeline->layout(), push_constants{ mHighlightMeshlets }),
+
+					// Draw all the meshlets with just one single draw call:
+					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { 
+						cb.handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0);
+					})
+				})
+			})
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(*mQueue)
+			// Do not start to render before the image has become available:
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
+					
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 
 private: // v== Member variables ==v
