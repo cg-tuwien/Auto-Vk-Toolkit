@@ -3,23 +3,22 @@
 When using _graphics mesh pipelines_ with _task_ and _mesh shaders_, a typical use case is to segmented meshes into smaller segments called meshlets, and process these. These meshlets contain multiple triangles that should ideally be structured in a meaningful way in memory in order to enable efficient processing, like for example good memory and cache coherency. Meshlets of triangle meshes typically consist of relatively small packages of vertices and triangles of the original mesh geometry.
 More information on how the meshlet pipeline works can be found on Nvidia's developer blog: [Christoph Kubisch - Introduction to Turing Mesh Shaders](https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/).
 
-## Dividing Meshes into Meshlets in Gears-Vk
+## Dividing Meshes into Meshlets in Auto-Vk-Toolkit
 
-Gears-Vk provides utility functions that help to divide a mesh into meshlets and convert the resulting data structure into one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../framework/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../framework/src/meshlet_helpers.cpp).
+_Auto-Vk-Toolkit_ provides utility functions that help to divide a mesh into meshlets and convert the resulting data structure into one that can be directly used on the GPU. The implementation can be found in [meshlet_helpers.hpp](../auto_vk_toolkit/include/meshlet_helpers.hpp) and [meshlet_helpers.cpp](../auto_vk_toolkit/src/meshlet_helpers.cpp).
 
-As a first step, the models and mesh indices that are to be divided into meshlets need to be selected. The helper function `gvk::make_selection_of_shared_models_and_mesh_indices()` can be used for this purpose.
+As a first step, the models and mesh indices that are to be divided into meshlets need to be selected. The helper function `avk::make_model_references_and_mesh_indices_selection` can be used for this purpose.
 
-The resulting collection can be used with one of the overloads of `gvk::divide_into_meshlets()`. If no custom division function is provided to this helper function, a simple algorithm (via `gvk::basic_meshlet_divider()`) is used by default, which just combines consecutive vertices into a meshlet until the limits defined by its parameters `aMaxVertices` and `aMaxIndices` have been reached. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
+The resulting collection can be used with one of the overloads of `avk::divide_into_meshlets`. If no custom division function is provided to this helper function, a simple algorithm (via `avk::basic_meshlets_divider`) is used by default, which just combines consecutive vertices into a meshlet until the limits defined by its parameters `aMaxVertices` and `aMaxIndices` have been reached. It should be noted that this will likely not result in good vertex reuse, but is a quick way to get up and running. 
 
-The function `gvk::divide_into_meshlets()` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraries like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
+The function `avk::divide_into_meshlets` also offers a custom division function to be passed as parameter. This custom division function allows the usage of custom division algorithms, as provided through external libraries like [meshoptimizer](https://github.com/zeux/meshoptimizer), for example.
 
 ### Using a Custom Division Function
 
-The custom division function (parameter `aMeshletDivision` to `gvk::divide_into_meshlets()`) can either receive the vertices and indices or just the indices depending on the use case.
+The custom division function (parameter `aMeshletDivision` to `avk::divide_into_meshlets`) can either receive the vertices and indices or just the indices depending on the use case.
 Additionally it receives the model and optionally the mesh index. If no mesh index is provided then the meshes were combined beforehand.
-Ownership of the model **must not** be taken within the body of the custom `aMeshletDivision` function. 
 
-Please note that the model will be assigned to each [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) after `aMeshletDivision` has executed (see implementation of [`gvk::divide_indexed_geometry_into_meshlets()`](../framework/include/meshlet_helpers.hpp#L139)).
+Please note that the model will be assigned to each [`struct meshlet`](../auto_vk_toolkit/include/meshlet_helpers.hpp#L7) after `aMeshletDivision` has executed (see implementation of [`avk::divide_indexed_geometry_into_meshlets`](../auto_vk_toolkit/include/meshlet_helpers.hpp#L130)).
 
 The custom division function must follow a specific declaration schema. Optional parameters can be omitted, but all of them need to be provided in the following order:
 
@@ -36,14 +35,14 @@ The custom division function **must** return a `std::vector<meshlet>` by value, 
 
 #### Example for Vertices and Indices:
 
-Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes both, vertices and indices:
+Example of a custom division function that can be passed to `avk::divide_into_meshlets`, that takes both, vertices and indices:
 
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
-    const gvk::model_t& aModel, std::optional<gvk::mesh_index_t> aMeshIndex,
+    const avk::model_t& aModel, std::optional<avk::mesh_index_t> aMeshIndex,
     uint32_t aMaxVertices, uint32_t aMaxIndices) {
 
-    std::vector<gvk::meshlet> generatedMeshlets;
+    std::vector<avk::meshlet> generatedMeshlets;
     // Perform meshlet division here, and store resulting meshlet in generatedMeshlets
     return generatedMeshlets;
 }
@@ -51,14 +50,14 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
 
 #### Example for Indices Only:
 
-Example of a custom division function that can be passed to `gvk::divide_into_meshlets()`, that takes indices only:
+Example of a custom division function that can be passed to `avk::divide_into_meshlets`, that takes indices only:
 
 ```C++
 [](const std::vector<uint32_t>& aIndices,
-    const gvk::model_t& aModel, std::optional<gvk::mesh_index_t> aMeshIndex,
+    const avk::model_t& aModel, std::optional<avk::mesh_index_t> aMeshIndex,
     uint32_t aMaxVertices, uint32_t aMaxIndices) {
 
-    std::vector<gvk::meshlet> generatedMeshlets;
+    std::vector<avk::meshlet> generatedMeshlets;
     // Perform meshlet division here, and store resulting meshlet in generatedMeshlets
     return generatedMeshlets;
 }
@@ -66,13 +65,13 @@ Example of a custom division function that can be passed to `gvk::divide_into_me
 
 #### Example That Uses a 3rd Party Library:
 
-An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) **can** be used via the custom division function that can be passed to `gvk::divide_into_meshlets()`:
+An example about how [meshoptimizer](https://github.com/zeux/meshoptimizer) **can** be used via the custom division function that can be passed to `avk::divide_into_meshlets`:
 
 Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Therefore the value 124 triangles (372 indices) has been recommended by [meshoptimizer](https://github.com/zeux/meshoptimizer#mesh-shading) for Nvidia cards!
 
 ```C++
 [](const std::vector<glm::vec3>& tVertices, const std::vector<uint32_t>& aIndices,
-    const gvk::model_t& aModel, std::optional<gvk::mesh_index_t> aMeshIndex,
+    const avk::model_t& aModel, std::optional<avk::mesh_index_t> aMeshIndex,
     uint32_t aMaxVertices, uint32_t aMaxIndices) {
 
     // definitions
@@ -90,8 +89,8 @@ Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Therefore
                                                 aIndices.data(), aIndices.size(), &tVertices[0].x, tVertices.size(), sizeof(glm::vec3), 
                                                 aMaxVertices, max_triangles, cone_weight);
 
-    // copy the data over to the gears-vk meshlet structure
-    std::vector<gvk::meshlet> generatedMeshlets(meshlet_count);
+    // copy the data over to Auto-Vk-Toolkit's meshlet structure
+    std::vector<avk::meshlet> generatedMeshlets(meshlet_count);
     generatedMeshlets.resize(meshlet_count);
     generatedMeshlets.reserve(meshlet_count);
     for(int k = 0; k < meshlet_count; k++) {
@@ -117,9 +116,9 @@ Please note: meshoptimizer expects `aMaxIndices` to be divisible by 4. Therefore
 
 ## Converting Into a Format for GPU Usage
 
-Meshlets in the host-side format [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) cannot be directly used in device code, because they store data in data types from the C++ Standard Library. Therefore, these records need to be converted into a suitable format for the GPU. The `gvk::convert_for_gpu_usage<T>()` utility functions **can** be used for this purpose. 
+Meshlets in the host-side format [`struct meshlet`](../auto_vk_toolkit/include/meshlet_helpers.hpp#L7) cannot be directly used in device code, because they store data in data types from the C++ Standard Library. Therefore, these records need to be converted into a suitable format for the GPU. The `avk::convert_for_gpu_usage<T>` utility functions **can** be used for this purpose. 
 
-Two types for device-side meshlets are provided by Gears-Vk, which are both supported by `gvk::convert_for_gpu_usage<T>()`:
+Two types for device-side meshlets are provided by _Auto-Vk-Toolkit_, which are both supported by `avk::convert_for_gpu_usage<T>`:
 
 ```c++
 /** Meshlet for GPU usage
@@ -154,6 +153,6 @@ struct meshlet_redirected_gpu_data
 };
 ```
 
-The main conceptual difference between the two types `gvk::meshlet_gpu_data` and `gvk::meshlet_redirected_gpu_data` is that `gvk::meshlet_gpu_data` has the vertex indices of a meshlet stored directly in the meshlet struct instance, whereas `gvk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the data stored in the meshlet struct instance. Therefore, the latter type is called "redirected" and it can help to reduce the memory footprint of a meshlet. On the other hand, it requires an additional indirection into a separate index buffer.
+The main conceptual difference between the two types `avk::meshlet_gpu_data` and `avk::meshlet_redirected_gpu_data` is that `avk::meshlet_gpu_data` has the vertex indices of a meshlet stored directly in the meshlet struct instance, whereas `avk::meshlet_redirected_gpu_data` uses a separate vertex index array that is indexed by the data stored in the meshlet struct instance. Therefore, the latter type is called "redirected" and it can help to reduce the memory footprint of a meshlet. On the other hand, it requires an additional indirection into a separate index buffer.
 
-If a custom GPU-suitable format is needed, our implementation can be used as a reference for converting [`meshlet`](../framework/include/meshlet_helpers.hpp#L7) into that custom GPU-suitable format. Transformation into a different GPU-suitable format must be implemented manually.
+If a custom GPU-suitable format is needed, our implementation can be used as a reference for converting [`struct meshlet`](../auto_vk_toolkit/include/meshlet_helpers.hpp#L7) into that custom GPU-suitable format. Transformation into a different GPU-suitable format must be implemented manually.
