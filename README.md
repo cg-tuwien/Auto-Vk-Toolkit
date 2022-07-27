@@ -133,3 +133,8 @@ _A:_ Check out [Post Build Helper](./visual_studio#post-build-helper), which off
 **Q: The application takes a long time to load assets like 3D models and images. Can it be accelerated?**     
 _A:_ If you are referring to _Debug_ builds, you can configure _Post Build Helper_ so that it deploys _Release_ DLLs of some external dependencies even for _Debug_ builds. They should accelerate asset loading a lot. To enable deployment of _Release_ DLLs, please open _Post Build Helper_'s [settings](./visual_studio#post-build-helper-settings) and enable the option "Always deploy Release DLLs".
 
+**Q: Getting `cereal::Exception` in `cereal::loadBinary`, or `Unhandled exception at 0x00007FFE82204FD9 in ...exe: Microsoft C++ exception: cereal::Exception at memory location ...`**
+_A:_ Your serialized cache file (e.g., for `sponza_and_terrain.fscene` this could be `sponza_and_terrain.fscene.cache`) has become corrupt (maybe because it was not fully written due to a previously occured error in the application, or because execution was aborted). Delete the cache file (e.g., `sponza_and_terrain.fscene.cache`) and let a new one be generated!
+
+
+
