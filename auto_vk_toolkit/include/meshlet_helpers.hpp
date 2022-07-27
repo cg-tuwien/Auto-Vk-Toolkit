@@ -145,11 +145,7 @@ namespace avk
 			generatedMeshlets = aMeshletDivision(aVertices, aIndices, aModel.get(), aMeshIndex, aMaxVertices, aMaxIndices);
 		}
 		else {
-#if defined(_MSC_VER) && defined(__cplusplus)
-			static_assert(false);
-#else
 			assert(false);
-#endif
 			throw avk::logic_error("No compatible lambda has been passed to divide_into_meshlets.");
 		}
 
@@ -278,11 +274,7 @@ namespace avk
 				vertexIndices->insert(vertexIndices->end(), indexGroups, indexGroups + indexGroupCount);
 			}
 			else {
-#if defined(_MSC_VER) && defined(__cplusplus)
-				static_assert(false);
-#else
 				assert(false);
-#endif
 				throw avk::logic_error("No suitable type passed to convert_for_gpu_usage.");
 			}
 		}
@@ -338,11 +330,7 @@ namespace avk
 			aSerializer.archive(resultMeshletsData);
 		}
 		else {
-#if defined(_MSC_VER) && defined(__cplusplus)
-			static_assert(false);
-#else
 			assert(false);
-#endif
 			throw avk::logic_error("No suitable type passed to convert_for_gpu_usage_cached.");
 		}
 		return result;

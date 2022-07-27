@@ -323,11 +323,7 @@ namespace avk
 						aBoneMatrixCalc(anode.mBoneMeshTargets[i].mMeshBoneInfo, anode.mBoneMeshTargets[i].mInverseMeshRootMatrix, anode.mGlobalTransform, anode.mBoneMeshTargets[i].mInverseBindPoseMatrix, localTransform, ai, i, timeInTicks);
 				    }
 					else {
-#if defined(_MSC_VER) && defined(__cplusplus)
-						static_assert(false);
-#else
 						assert(false);
-#endif
 						throw avk::logic_error("No compatible lambda has been passed to animation::animate.");
 					}
 					
