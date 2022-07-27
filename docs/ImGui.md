@@ -54,7 +54,7 @@ if(nullptr != imguiManager) {
 
 _Auto-Vk-Toolkit_ extends [Dear ImGui](https://github.com/ocornut/imgui) with support for a background color on images with alpha channes via `ImGui::ImageWithBg` and rendering multiple images on top of each other via `ImGui::ImageStack`. The background color is specified as the last argument to `ImGui::ImageWithBg` and defaults to fully transparent. `ImGui::ImageStack` takes a `std::initializer_list<ImTextureID>` as the first argument and renders the images in the the specified order from back to front. `ImGui::ImageStack` also supports setting a background color as the last argument which defaults to fully transparent.
 
-The added functions can be used by including `framework/include/imgui_utils.h` and usage is similar to `ImGui::Image` by first creating a suitable `ImTextureId` via `avk::imgui_manager::get_or_create_texture_descriptor`:
+The added functions can be used by including [`imgui_utils.h`](../auto_vk_toolkit/auto_vk_toolkit/include/imgui_utils.h) and usage is similar to `ImGui::Image` by first creating a suitable `ImTextureId` via `avk::imgui_manager::get_or_create_texture_descriptor`:
 
 ```cpp
 #include "imgui_utils.h"
