@@ -4,18 +4,35 @@
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
-*Auto-Vk-Toolkit* is ready to go. If your system meets the system requirements (see section _Installation_ below), everything is set up to build an run right out of the box. Open [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), set one of the example projects as startup project, build and run!
+_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/), and teaching (e.g., [Algorithms for Real-Time Rendering](Algorithms for Real-Time Rendering).
 
-*Note:* At the first run, the _Post Build Helper_ tool is being built. Watch Visual Studio's "Output" tab for status messages and possible instructions.
+Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) include:
+- Window management and input handling through [GLFW](https://www.glfw.org/).
+- Render loop framework with `update()` and `render()` callbacks at varying or fixed update times.
+- Powerful _Auto-Vk_-`avk::root` implementation, with swap chain handling and automatic resource lifetime management.
+- Versatile [updater](./docs/updater.md) which enables swapchain recreation.
+- In combination with a powerful [_Post Build Helper_](./visual_studio/) tool (Windows-only), the [updater](./docs/updater.md) enables shader hot reloading.
+- Model loading of a variety of 3D scenes with the help of [assimp](https://github.com/assimp/assimp).
+- Loading of `.fscene` files from the [ORCA: Open Research Content Archive](https://developer.nvidia.com/orca).
+- Loading of a multitude of image formats, including cube maps.
+- Versatile [serializer](./docs/serializer.md) support which allows to serialize Vulkan resources such as `avk:buffer` or `avk::image` instances, and also custom types; based on [cereal](https://github.com/USCiLab/cereal).
+- [User interface](./docs/ImGui.md) support through [ImGui](https://github.com/ocornut/imgui) with support for displaying textures in the UI.
+- Support for real-time ray tracing (RTX) and building of acceleration structures through [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)
+- Support for dividing meshes into [meshlets](./docs/meshlets.md) which can be rendered with task and mesh shaders.
+
 
 # Installation
 
-## Visual Studio 2019
-A preconfigured project setup is provided for Visual Studio 2019 on Windows.
+*Auto-Vk-Toolkit* is ready to go with Visual Studio or CMake. If your system meets the system requirements, everything is set up to build an run right out of the box. E.g., for Visual Studio, open [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), set one of the example projects as startup project, build and run!
+
+*Note:* At the first run, the _Post Build Helper_ tool is being built. Watch Visual Studio's "Output" tab for status messages and possible instructions.
+
+## Visual Studio 2019 or 2022
+A preconfigured project setup is provided for Visual Studio 2019 on Windows. The projects can be automatically converted to Visual Studio 2022.
 
 Requirements:
 * Windows 10 or 11
-* Visual Studio 2019 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
+* Visual Studio 2019 or 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
 * A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer.          
   Latest stable and tested version: Vulkan SDK 1.3.216.0
 

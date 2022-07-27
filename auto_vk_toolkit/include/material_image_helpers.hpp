@@ -601,7 +601,7 @@ namespace avk
 
 		auto positionsBuffer = context().create_buffer(
 			avk::memory_usage::device, aUsageFlags,
-			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+			avk::vertex_buffer_meta::create_from_data(positionsData).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
 			set_up_meta_from_data_for_vertex_buffer<Metas>(positionsData)...
 		);
 		
@@ -685,7 +685,7 @@ namespace avk
 
 			auto positionsBuffer = context().create_buffer(
 				avk::memory_usage::device, aUsageFlags,
-				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions).describe_member(0, avk::format_for<std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
+				avk::vertex_buffer_meta::create_from_total_size(totalPositionsSize, numPositions).describe_member(0, avk::format_for<typename std::remove_reference_t<decltype(positionsData)>::value_type>(), avk::content_description::position),
 				set_up_meta_from_total_size_for_vertex_buffer<Metas, std::remove_reference_t<decltype(positionsData)>::value_type>(totalPositionsSize, numPositions)...
 			);
 
