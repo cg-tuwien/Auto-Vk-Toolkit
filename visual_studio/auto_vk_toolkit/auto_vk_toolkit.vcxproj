@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug_Vulkan|x64">
+      <Configuration>Debug_Vulkan</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Publish_Vulkan|x64">
+      <Configuration>Publish_Vulkan</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_Vulkan|x64">
+      <Configuration>Release_Vulkan</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
+    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp" />
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp" />
+    <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\animation.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\bezier_curve.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\catmull_rom_spline.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\composition.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\cp_interpolation.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\cubic_uniform_b_spline.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\files_changed_event.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\image_data.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_manager.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\camera.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\composition_interface.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\context_generic_glfw.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\context_vulkan.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\fixed_update_timer.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_utils.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\input_buffer.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\log.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\material_image_helpers.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\math_utils.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\meshlet_helpers.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\model.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\orca_scene.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\quadratic_uniform_b_spline.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\quake_camera.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\transform.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\updater.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\varying_update_timer.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\vk_convenience_functions.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\window_base.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\window.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="cg_stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\attachment.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_error.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_log.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\bindings.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\binding_data.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\border_handling_mode.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\bottom_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_view.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\commands.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\command_buffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\command_pool.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\cpp_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_alloc_request.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_cache.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_pool.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set_layout.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\fence.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\filter_mode.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\format_for.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\framebuffer.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\geometry_instance.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\layout.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\input_description.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\mapping_access.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_access.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_usage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\mem_handle.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\on_load.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\push_constants.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\query_pool.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\queue.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\set_of_descriptor_set_layouts.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\stage_and_access.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\old_sync.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usages.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usage_type.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vma_handle.hpp" />
+    <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\animation.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\bezier_curve.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\camera.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\catmull_rom_spline.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\concurrent_frames_count_changed_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\conversion_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cp_interpolation.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cubic_uniform_b_spline.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\destroying_events.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\event_data.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\files_changed_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\image_data.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\imgui_utils.h" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\invokee.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\composition.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\composition_interface.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_generic_glfw.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_generic_glfw_types.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_state.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_vulkan.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cursor.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\imgui_manager.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\fixed_update_timer.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\input_buffer.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\invoker_interface.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\key_code.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\key_state.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\log.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_config.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_gpu_data.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_gpu_data_ext.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_image_helpers.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\math_utils.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\meshlet_helpers.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\model.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\model_types.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\orca_scene.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\quadratic_uniform_b_spline.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\quake_camera.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\settings.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\configure_and_compose.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\sequential_invoker.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_additional_attachments_changed_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_changed_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_format_changed_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_resized_event.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\timer_frame_type.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\timer_interface.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\transform.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\updater.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\varying_update_timer.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\vk_convenience_functions.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\window_base.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\window.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="cg_stdafx.hpp" />
+    <ClInclude Include="cg_targetver.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource_gpu_data.hpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{602F842F-50C1-466D-8696-1707937D8AB9}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>cgb</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>auto_vk_toolkit</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\props\rendering_api_vulkan.props" />
+    <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\extra_debug_dependencies.props" />
+    <Import Project="..\props\linked_libs_debug.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\props\rendering_api_vulkan.props" />
+    <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\props\rendering_api_vulkan.props" />
+    <Import Project="..\props\solution_directories.props" />
+    <Import Project="..\props\external_dependencies.props" />
+    <Import Project="..\props\linked_libs_release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>auto_vk_toolkit</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>auto_vk_toolkit</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(FrameworkRoot)lib\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>$(ProjectDir)temp\intermediate\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>auto_vk_toolkit</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -21,7 +21,7 @@ if(UNIX)
     else (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
         # there is some issue with libassimp-dev in the GitHub workflows on Ubuntu
         # see:
-        #  - https://github.com/cg-tuwien/Gears-Vk/runs/3432527652?check_suite_focus=true#step:4:80
+        #  - https://github.com/cg-tuwien/Auto-Vk-Toolkit/runs/3432527652?check_suite_focus=true#step:4:80
         #  - https://bugs.launchpad.net/ubuntu/+source/assimp/+bug/1882427
         # the following work-around should fix this
         # source: https://github.com/robotology/idyntree/issues/693#issuecomment-640216067

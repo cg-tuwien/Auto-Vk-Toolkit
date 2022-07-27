@@ -5,11 +5,11 @@
 // https://github.com/SaschaWillems/Vulkan#ComputeShader Copyright (c) 2016 Sascha Willems
 //
 
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
-class compute_image_processing_app : public gvk::invokee
+class compute_image_processing_app : public avk::invokee
 {
 private: // v== Struct definitions and data ==v
 
@@ -48,30 +48,30 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		// Create and upload vertex data for a quad
-		mVertexBuffer = gvk::context().create_buffer(
+		mVertexBuffer = avk::context().create_buffer(
 			avk::memory_usage::device, {},
 			avk::vertex_buffer_meta::create_from_data(mVertexData)
 		);
-		gvk::context().record_and_submit_with_fence({ mVertexBuffer->fill(mVertexData.data(), 0) }, *mQueue)->wait_until_signalled();
+		avk::context().record_and_submit_with_fence({ mVertexBuffer->fill(mVertexData.data(), 0) }, *mQueue)->wait_until_signalled();
 
 		// Create and upload incides for drawing the quad
-		mIndexBuffer = gvk::context().create_buffer(
+		mIndexBuffer = avk::context().create_buffer(
 			avk::memory_usage::device, {},
 			avk::index_buffer_meta::create_from_data(mIndices)
 		);
-		gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill( mIndices.data(), 0) }, *mQueue)->wait_until_signalled();
+		avk::context().record_and_submit_with_fence({ mIndexBuffer->fill( mIndices.data(), 0) }, *mQueue)->wait_until_signalled();
 
 		// Create a host-coherent buffer for the matrices
-		auto fif = gvk::context().main_window()->number_of_frames_in_flight();
+		auto fif = avk::context().main_window()->number_of_frames_in_flight();
 		for (decltype(fif) i = 0; i < fif; ++i) {
-			mUbo.emplace_back(gvk::context().create_buffer(
+			mUbo.emplace_back(avk::context().create_buffer(
 				avk::memory_usage::host_coherent, {}, // Note: This flag lets the buffer be created in a different memory region than vertex and index buffers above
 				avk::uniform_buffer_meta::create_from_data(MatricesForUbo{})
 			));
 		}
 
 		// Load an image from file, upload it and then create a view and a sampler for it for usage in shaders:
-		auto [image, uploadInputImageCommand] = gvk::create_image_from_file(
+		auto [image, uploadInputImageCommand] = avk::create_image_from_file(
 			"assets/lion.png", false, false, true, 4,
 			avk::layout::transfer_src, // For now, transfer the image into transfer_dst layout, because we'll need to copy from it:
 			avk::memory_usage::device, // The device shall be stored in (fast) device-local memory. For this reason, the function will also return commands that we need to execute later
@@ -80,28 +80,28 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// The uploadInputImageCommand will contain a copy operation from a temporary host-coherent buffer into a device-local buffer.
 		// We schedule it for execution a bit further down.		
 
-		mInputImageAndSampler = gvk::context().create_image_sampler(
-			gvk::context().create_image_view(image), 
-			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
+		mInputImageAndSampler = avk::context().create_image_sampler(
+			avk::context().create_image_view(image), 
+			avk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
 		);
 		const auto wdth = mInputImageAndSampler->width();
 		const auto hght = mInputImageAndSampler->height();
 		const auto frmt = mInputImageAndSampler->format();
 
 		// Create an image to write the modified result into, also create view and sampler for that
-		mTargetImageAndSampler = gvk::context().create_image_sampler(
-			gvk::context().create_image_view(
-				gvk::context().create_image( // Create an image and set some properties:
+		mTargetImageAndSampler = avk::context().create_image_sampler(
+			avk::context().create_image_view(
+				avk::context().create_image( // Create an image and set some properties:
 					wdth, hght, frmt, 1 /* one layer */, avk::memory_usage::device, /* in your GPU's device-local memory */
 					avk::image_usage::general_storage_image // This flag means (among other usages) that the image can be written to, because it includes the "storage_image" usage flag.
 				)
 			),
-			gvk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
+			avk::context().create_sampler(avk::filter_mode::bilinear, avk::border_handling_mode::clamp_to_edge)
 		);
 
 		// Execute the uploadInputImageCommand command, wait until that one has completed (by using an automatically created barrier), 
 		// then initialize the target image with the contents of the input image:
-		gvk::context().record_and_submit_with_fence({
+		avk::context().record_and_submit_with_fence({
 			// Copy into the source image:
 			std::move(uploadInputImageCommand),
 
@@ -121,20 +121,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}, *mQueue)->wait_until_signalled(); // Finally, wait with a fence until everything has completed.
 		
 		// Create our rasterization graphics pipeline with the required configuration:
-		mGraphicsPipeline = gvk::context().create_graphics_pipeline_for(
+		mGraphicsPipeline = avk::context().create_graphics_pipeline_for(
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos) -> to_location(0),
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::uv)  -> to_location(1),
 			"shaders/texture.vert",
 			"shaders/texture.frag",
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::culling_mode::disabled,
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)).enable_dynamic_viewport(),
-			gvk::context().create_renderpass({
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)).enable_dynamic_viewport(),
+			avk::context().create_renderpass({
 					avk::attachment::declare(
-						gvk::format_from_window_color_buffer(gvk::context().main_window()), 
+						avk::format_from_window_color_buffer(avk::context().main_window()), 
 						avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store.in_layout(avk::layout::color_attachment_optimal) // Not presentable format yet, because ImGui renders afterwards
 					).set_clear_color({0.f, 0.5f, 0.75f, 0.0f}), // Set a different clear color
-				}, gvk::context().main_window()->renderpass_reference().subpass_dependencies() // Use the same subpass dependencies as main window's renderpass
+				}, avk::context().main_window()->renderpass_reference().subpass_dependencies() // Use the same subpass dependencies as main window's renderpass
 			),
 			// Define bindings:
 			avk::descriptor_binding(0, 0, mUbo[0]),	// Just take any UBO, as this is just used to describe the pipeline's layout.
@@ -143,31 +143,31 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Create 3 compute pipelines:
 		mComputePipelines.resize(3);
-		mComputePipelines[0] = gvk::context().create_compute_pipeline_for(
+		mComputePipelines[0] = avk::context().create_compute_pipeline_for(
 			"shaders/emboss.comp",
 			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image(avk::layout::general)),
 			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image(avk::layout::general))
 		);
-		mComputePipelines[1] = gvk::context().create_compute_pipeline_for(
+		mComputePipelines[1] = avk::context().create_compute_pipeline_for(
 			"shaders/edgedetect.comp",
 			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image(avk::layout::general)),
 			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image(avk::layout::general))
 		);
-		mComputePipelines[2] = gvk::context().create_compute_pipeline_for(
+		mComputePipelines[2] = avk::context().create_compute_pipeline_for(
 			"shaders/sharpen.comp",
 			avk::descriptor_binding(0, 0, mInputImageAndSampler->get_image_view()->as_storage_image(avk::layout::general)),
 			avk::descriptor_binding(0, 1, mTargetImageAndSampler->get_image_view()->as_storage_image(avk::layout::general))
 		);
 		
 		mUpdater.emplace();
-		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[0].as_reference())).update(mComputePipelines[0]);
-		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[1].as_reference())).update(mComputePipelines[1]);
-		mUpdater->on(gvk::shader_files_changed_event(mComputePipelines[2].as_reference())).update(mComputePipelines[2]);
+		mUpdater->on(avk::shader_files_changed_event(mComputePipelines[0].as_reference())).update(mComputePipelines[0]);
+		mUpdater->on(avk::shader_files_changed_event(mComputePipelines[1].as_reference())).update(mComputePipelines[1]);
+		mUpdater->on(avk::shader_files_changed_event(mComputePipelines[2].as_reference())).update(mComputePipelines[2]);
 		
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCache = gvk::context().create_descriptor_cache();
+		mDescriptorCache = avk::context().create_descriptor_cache();
 		
-		auto* imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto* imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this, imguiManager](){
 		        ImGui::Begin("Info & Settings");
@@ -200,9 +200,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		assert(!mUpdateToRenderDependency.has_value());
 
 		// Handle some input:
-		if (gvk::input().key_pressed(gvk::key_code::num0)) {
+		if (avk::input().key_pressed(avk::key_code::num0)) {
 			// [0] => Copy the input image to the target image and use a semaphore to sync the next draw call
-			auto semaphore = gvk::context().record_and_submit_with_semaphore({
+			auto semaphore = avk::context().record_and_submit_with_semaphore({
 				// Copy source to target:
 				avk::copy_image_to_another(mInputImageAndSampler->get_image(), avk::layout::general, mTargetImageAndSampler->get_image(), avk::layout::general),
 			}, *mQueue, avk::stage::auto_stage);
@@ -210,18 +210,18 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// We'll wait for it in render():
 			mUpdateToRenderDependency = std::move(semaphore);
 		}
-		else if (gvk::input().key_down(gvk::key_code::num1) || gvk::input().key_pressed(gvk::key_code::num2) || gvk::input().key_pressed(gvk::key_code::num3)) {
+		else if (avk::input().key_down(avk::key_code::num1) || avk::input().key_pressed(avk::key_code::num2) || avk::input().key_pressed(avk::key_code::num3)) {
 			// [1], [2], or [3] => Use a compute shader to modify the image
 			
 			size_t computeIndex = 0;
-			if (gvk::input().key_pressed(gvk::key_code::num2)) { computeIndex = 1; }
-			if (gvk::input().key_pressed(gvk::key_code::num3)) { computeIndex = 2; }
+			if (avk::input().key_pressed(avk::key_code::num2)) { computeIndex = 1; }
+			if (avk::input().key_pressed(avk::key_code::num3)) { computeIndex = 2; }
 
-			auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+			auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 			auto cmdbfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 			cmdbfr->begin_recording();
 
-			auto semaphore = gvk::context().record_and_submit_with_semaphore({
+			auto semaphore = avk::context().record_and_submit_with_semaphore({
 				// Bind the compute pipeline:
 				avk::command::bind_pipeline(mComputePipelines[computeIndex].as_reference()),
 
@@ -239,16 +239,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mUpdateToRenderDependency = std::move(semaphore);
 		}
 
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
-			gvk::current_composition()->stop();
+			avk::current_composition()->stop();
 		}
 	}
 
 	void render() override
 	{
 		// Update the UBO's data:
-		auto* mainWnd = gvk::context().main_window();
+		auto* mainWnd = avk::context().main_window();
 		const auto w = mainWnd->swap_chain_extent().width;
 		const auto halfW = w * 0.5f;
 		const auto h = mainWnd->swap_chain_extent().height;
@@ -256,7 +256,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		MatricesForUbo uboVS{};
 		uboVS.projection = glm::perspective(glm::radians(60.0f), w * 0.5f / h, 0.1f, 256.0f);
 		uboVS.model = glm::translate(glm::mat4{1.0f}, glm::vec3(0.0f, 0.0f, -3.0));
-		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(gvk::time().time_since_start() * mRotationSpeed * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = uboVS.model * glm::rotate(glm::mat4{1.0f}, glm::radians(avk::time().time_since_start() * mRotationSpeed * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// Update the buffer:
 		const auto ifi = mainWnd->current_in_flight_index();
@@ -264,7 +264,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// ^ Because of its memory region (host-coherent), we can be sure that the returned commands are empty. Hence, we do not need to execute them.
 		
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
@@ -277,9 +277,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto vpLeft = vk::Viewport{ 0.0f, 0.0f, halfW, static_cast<float>(h) };
 		auto vpRight = vk::Viewport{ halfW, 0.0f, halfW, static_cast<float>(h) };
 
-		auto submission = gvk::context().record({
+		auto submission = avk::context().record({
 				// Begin and end one renderpass:
-				avk::command::render_pass(mGraphicsPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(mGraphicsPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
 
 					// Draw left viewport:
 					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { // If there is no avk::command::... struct for a particular command, we can always use avk::command::custom_commands
@@ -325,9 +325,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		submission.submit();
 
-		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// Use a convenience function of avk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
-		gvk::context().main_window()->handle_lifetime(std::move(cmdBfr));
+		avk::context().main_window()->handle_lifetime(std::move(cmdBfr));
 	}
 
 private: // v== Member variables ==v
@@ -354,25 +354,25 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto* mainWnd = gvk::context().create_window("Compute Image Effects Example");
+		auto* mainWnd = avk::context().create_window("Compute Image Effects Example");
 		mainWnd->set_resolution({ 1600, 800 });
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue(vk::QueueFlagBits::eCompute, avk::queue_selection_preference::versatile_queue, mainWnd);
+		auto& singleQueue = avk::context().create_queue(vk::QueueFlagBits::eCompute, avk::queue_selection_preference::versatile_queue, mainWnd);
 		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = compute_image_processing_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue);
 		
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Gears-Vk + Auto-Vk Example: Compute Image Effects Exampl"),
-			[](gvk::validation_layers& config) {
+			avk::application_name("Auto-Vk-Toolkit Example: Compute Image Effects Exampl"),
+			[](avk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
@@ -383,19 +383,19 @@ int main() // <== Starting point ==
 
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):
-		gvk::sequential_invoker invoker;
+		avk::sequential_invoker invoker;
 
 		// With everything configured, let us start our render loop:
 		composition.start_render_loop(
 			// Callback in the case of update:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Call all the update() callbacks:
 				invoker.invoke_updates(aToBeInvoked);
 			},
 			// Callback in the case of render:
-				[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Sync (wait for fences and so) per window BEFORE executing render callbacks
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->sync_before_render();
 					});
 
@@ -403,16 +403,14 @@ int main() // <== Starting point ==
 				invoker.invoke_renders(aToBeInvoked);
 
 				// Render per window:
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->render_frame();
 					});
 			}
-			); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+			); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
 
 		result = EXIT_SUCCESS;
 	}
-	catch (gvk::logic_error&) {}
-	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 	return result;

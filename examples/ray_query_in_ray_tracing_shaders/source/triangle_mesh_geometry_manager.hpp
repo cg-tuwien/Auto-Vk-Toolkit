@@ -1,13 +1,13 @@
 #pragma once
 
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
 
 // An invokee that handles triangle mesh geometry:
-class triangle_mesh_geometry_manager : public gvk::invokee
+class triangle_mesh_geometry_manager : public avk::invokee
 {
-public: // v== gvk::invokee overrides which will be invoked by the framework ==v
+public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	triangle_mesh_geometry_manager(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 	{}
@@ -18,10 +18,10 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		// Load an ORCA scene from file:
-		auto orca = gvk::orca_scene_t::load_from_file("assets/sponza_and_terrain.fscene", aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+		auto orca = avk::orca_scene_t::load_from_file("assets/sponza_and_terrain.fscene", aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
 		// Prepare a vector to hold all the material information of all models:
-		std::vector<gvk::material_config> materialData;
+		std::vector<avk::material_config> materialData;
 
 		for (auto& model : orca->models()) {
 			auto& nameAndRangeInfo = mBlasNamesAndRanges.emplace_back(
@@ -36,22 +36,22 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 			for (const auto& [materialConfig, meshIndices] : distinctMaterials) {
 				materialData.push_back(materialConfig);
 
-				auto selection = gvk::make_model_references_and_mesh_indices_selection(model.mLoadedModel, meshIndices);
+				auto selection = avk::make_model_references_and_mesh_indices_selection(model.mLoadedModel, meshIndices);
 				// Store all of this data in buffers and buffer views, s.t. we can access it later in ray tracing shaders
-				auto [posBfr, idxBfr, posIdxCmds] = gvk::create_vertex_and_index_buffers<avk::uniform_texel_buffer_meta, avk::read_only_input_to_acceleration_structure_builds_buffer_meta>(
+				auto [posBfr, idxBfr, posIdxCmds] = avk::create_vertex_and_index_buffers<avk::uniform_texel_buffer_meta, avk::read_only_input_to_acceleration_structure_builds_buffer_meta>(
 					selection                                          // Select several indices (those with the same material) from a model
 				);
-				auto [nrmBfr, nrmCmds] = gvk::create_normals_buffer               <avk::uniform_texel_buffer_meta>(selection);
-				auto [texBfr, texCmds] = gvk::create_2d_texture_coordinates_buffer<avk::uniform_texel_buffer_meta>(selection);
+				auto [nrmBfr, nrmCmds] = avk::create_normals_buffer               <avk::uniform_texel_buffer_meta>(selection);
+				auto [texBfr, texCmds] = avk::create_2d_texture_coordinates_buffer<avk::uniform_texel_buffer_meta>(selection);
 
 				// Create a bottom level acceleration structure instance with this geometry.
-				auto blas = gvk::context().create_bottom_level_acceleration_structure(
+				auto blas = avk::context().create_bottom_level_acceleration_structure(
 					{ avk::acceleration_structure_size_requirements::from_buffers(avk::vertex_index_buffer_pair{ posBfr, idxBfr }) },
 					false // no need to allow updates for static geometry
 				);
 				
 				// Upload the data, represented by commands:
-				gvk::context().record_and_submit_with_fence({
+				avk::context().record_and_submit_with_fence({
 					std::move(posIdxCmds),
 					std::move(nrmCmds),
 					std::move(texCmds),
@@ -66,9 +66,9 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 
 					// Create a concrete geometry instance:
 					mAllGeometryInstances.push_back(
-						gvk::context().create_geometry_instance(blas.as_reference()) // Refer to the concrete BLAS
+						avk::context().create_geometry_instance(blas.as_reference()) // Refer to the concrete BLAS
 							// Set this instance's transformation matrix:
-						.set_transform_column_major(gvk::to_array(gvk::matrix_from_transforms(inst.mTranslation, glm::quat(inst.mRotation), inst.mScaling)))
+						.set_transform_column_major(avk::to_array(avk::matrix_from_transforms(inst.mTranslation, glm::quat(inst.mRotation), inst.mScaling)))
 						// Set this instance's custom index, which is especially important since we'll use it in shaders
 						// to refer to the right material and also vertex data (these two are aligned index-wise):
 						.set_custom_index(bufferViewIndex)
@@ -92,10 +92,10 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 
 				// After we have used positions and indices for building the BLAS, still need to create buffer views which allow us to access
 				// the per vertex data in ray tracing shaders, where they will be accessible via samplerBuffer- or usamplerBuffer-type uniforms.
-				mPositionsBufferViews.push_back(gvk::context().create_buffer_view(posBfr)); 
-				mIndexBufferViews.push_back(gvk::context().create_buffer_view(idxBfr));
-				mNormalsBufferViews.push_back(gvk::context().create_buffer_view(nrmBfr));
-				mTexCoordsBufferViews.push_back(gvk::context().create_buffer_view(texBfr));
+				mPositionsBufferViews.push_back(avk::context().create_buffer_view(posBfr)); 
+				mIndexBufferViews.push_back(avk::context().create_buffer_view(idxBfr));
+				mNormalsBufferViews.push_back(avk::context().create_buffer_view(nrmBfr));
+				mTexCoordsBufferViews.push_back(avk::context().create_buffer_view(texBfr));
 			}
 
 			// Set the final range-to index (one after the end, i.e. excluding the last index):
@@ -108,7 +108,7 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		mTlasUpdateRequired = true;
 
 		// Convert the materials that were gathered above into a GPU-compatible format and generate and upload images to the GPU:
-		auto [gpuMaterials, imageSamplers, matCmds] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
+		auto [gpuMaterials, imageSamplers, matCmds] = avk::convert_for_gpu_usage<avk::material_gpu_data>(
 			materialData, true /* assume textures in sRGB */, false /* flip textures */,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear // No need for MIP-mapping (which would be activated with trilinear or anisotropic) since we're using ray tracing
@@ -119,18 +119,18 @@ public: // v== gvk::invokee overrides which will be invoked by the framework ==v
 		mCombinedImageSamplerDescriptorInfos = avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal);
 
 		// Upload materials in GPU-compatible format into a GPU storage buffer:
-		mMaterialBuffer = gvk::context().create_buffer(
+		mMaterialBuffer = avk::context().create_buffer(
 			avk::memory_usage::host_visible, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
 		);
 
-		gvk::context().record_and_submit_with_fence({
+		avk::context().record_and_submit_with_fence({
 			mMaterialBuffer->fill(gpuMaterials.data(), 0),
 			matCmds
 		}, *mQueue)->wait_until_signalled();
 
 		// Add an "ImGui Manager" which handles the UI specific to the requirements of this invokee:
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([this]() {
 				ImGui::Begin("Triangle Mesh Geometry Instances");

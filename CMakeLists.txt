@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Gears_Vk)
+project(Auto_Vk_Toolkit)
 
 if (MSVC)
     # <ranges> support requires /std:c++latest on MSVC
@@ -12,71 +12,75 @@ include(FetchContent)
 
 # ----------------------- Options -------------------------
 
-set(gvk_AllowedLibraryTypes INTERFACE SHARED STATIC)
-set(gvk_LibraryType STATIC CACHE STRING
-        "The type of library gvk should be built as. Must be one of ${gvk_AllowedLibraryTypes}. Default: STATIC")
-set_property(CACHE gvk_LibraryType PROPERTY STRINGS ${gvk_AllowedLibraryTypes})
+set(avk_toolkit_AllowedLibraryTypes INTERFACE SHARED STATIC)
+set(avk_toolkit_LibraryType STATIC CACHE STRING
+        "The type of library avk_toolkit should be built as. Must be one of ${avk_toolkit_AllowedLibraryTypes}. Default: STATIC")
+set_property(CACHE avk_toolkit_LibraryType PROPERTY STRINGS ${avk_toolkit_AllowedLibraryTypes})
 
-if(NOT gvk_LibraryType IN_LIST gvk_AllowedLibraryTypes)
-    message(FATAL_ERROR "gvk_LibraryType must be one of ${gvk_AllowedLibraryTypes}")
+if(NOT avk_toolkit_LibraryType IN_LIST avk_toolkit_AllowedLibraryTypes)
+    message(FATAL_ERROR "avk_toolkit_LibraryType must be one of ${avk_toolkit_AllowedLibraryTypes}")
 endif()
 
-set(gvk_IncludeScope INTERFACE)
-set(gvk_SourceScope INTERFACE)
-if (NOT gvk_LibraryType STREQUAL "INTERFACE")
-    set(gvk_IncludeScope PUBLIC)
-    set(gvk_SourceScope PRIVATE)
-endif (NOT gvk_LibraryType STREQUAL "INTERFACE")
+set(avk_toolkit_IncludeScope INTERFACE)
+set(avk_toolkit_SourceScope INTERFACE)
+if (NOT avk_toolkit_LibraryType STREQUAL "INTERFACE")
+    set(avk_toolkit_IncludeScope PUBLIC)
+    set(avk_toolkit_SourceScope PRIVATE)
+endif (NOT avk_toolkit_LibraryType STREQUAL "INTERFACE")
 
-option(gvk_ForceAssimpBuild "Force and use a local build of Assimp even if it is installed on the system. (Linux only)" OFF)
-option(gvk_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW). (Linux only)" OFF)
-if (gvk_StaticDependencies)
+option(avk_toolkit_ForceAssimpBuild "Force and use a local build of Assimp even if it is installed on the system. (Linux only)" OFF)
+option(avk_toolkit_StaticDependencies "Build dependencies as static instead of shared libraries (Assimp & GLFW). (Linux only)" OFF)
+if (avk_toolkit_StaticDependencies)
     set(BUILD_SHARED_LIBS OFF)
 endif()
 
-option(gvk_ReleaseDLLsOnly "Use release DLLs for all dependencies of examples. (Windows only)" ON)
-option(gvk_CreateDependencySymlinks "Create symbolic links instead of copying dependencies of examples, i.e. DLLs (Windows only) & assets." ON)
+option(avk_toolkit_ReleaseDLLsOnly "Use release DLLs for all dependencies of examples. (Windows only)" ON)
+option(avk_toolkit_CreateDependencySymlinks "Create symbolic links instead of copying dependencies of examples, i.e. DLLs (Windows only) & assets." ON)
 
-option(gvk_BuildExamples "Build all examples for Gears-Vk." OFF)
-option(gvk_BuildHelloWorld "Build example: hello_world." OFF)
-option(gvk_BuildFramebuffer "Build example: framebuffer." OFF)
-option(gvk_BuildComputeImageProcessing "Build example: compute_image_processing." OFF)
-option(gvk_BuildMultiInvokeeRendering "Build example: multi_invokee_rendering." OFF)
-option(gvk_BuildModelLoader "Build example: model_loader." OFF)
-option(gvk_BuildStaticMeshlets "Build example: static_meshlets." OFF)
-option(gvk_BuildSkinnedMeshlets "Build example: skinned_meshlets." OFF)
-option(gvk_BuildOrcaLoader "Build example: orca_loader." OFF)
-option(gvk_BuildRayQueryInRayTracingShaders "Build example: ray_query_in_ray_tracing_shaders." OFF)
-option(gvk_BuildRayTracingWithShadowsAndAO "Build example: ray_tracing_with_shadows_and_ao." OFF)
-option(gvk_BuildRayTracingCustomIntersection "Build example: ray_tracing_custom_intersection." OFF)
-option(gvk_BuildTextureCubemap "Build example: texture_cubemap." OFF)
-option(gvk_BuildVertexBuffers "Build example: vertex_buffers." OFF)
+option(avk_toolkit_BuildExamples "Build all examples for Auto-Vk-Toolkit." OFF)
+option(avk_toolkit_BuildHelloWorld "Build example: hello_world." OFF)
+option(avk_toolkit_BuildFramebuffer "Build example: framebuffer." OFF)
+option(avk_toolkit_BuildComputeImageProcessing "Build example: compute_image_processing." OFF)
+option(avk_toolkit_BuildMultiInvokeeRendering "Build example: multi_invokee_rendering." OFF)
+option(avk_toolkit_BuildModelLoader "Build example: model_loader." OFF)
+option(avk_toolkit_BuildStaticMeshlets "Build example: static_meshlets." OFF)
+option(avk_toolkit_BuildSkinnedMeshlets "Build example: skinned_meshlets." OFF)
+option(avk_toolkit_BuildOrcaLoader "Build example: orca_loader." OFF)
+option(avk_toolkit_BuildRayQueryInRayTracingShaders "Build example: ray_query_in_ray_tracing_shaders." OFF)
+option(avk_toolkit_BuildRayTracingWithShadowsAndAO "Build example: ray_tracing_with_shadows_and_ao." OFF)
+option(avk_toolkit_BuildRayTracingCustomIntersection "Build example: ray_tracing_custom_intersection." OFF)
+option(avk_toolkit_BuildTextureCubemap "Build example: texture_cubemap." OFF)
+option(avk_toolkit_BuildVertexBuffers "Build example: vertex_buffers." OFF)
+option(avk_toolkit_BuildMultipleQueues "Build example: multiple_queues." OFF)
+option(avk_toolkit_BuildPresentFromCompute "Build example: present_from_compute." OFF)
 
-if (gvk_BuildExamples)
-    set(gvk_BuildHelloWorld ON)
-    set(gvk_BuildFramebuffer ON)
-    set(gvk_BuildComputeImageProcessing ON)
-    set(gvk_BuildMultiInvokeeRendering ON)
-    set(gvk_BuildModelLoader ON)
-    set(gvk_BuildStaticMeshlets ON)
-    set(gvk_BuildSkinnedMeshlets ON)
-    set(gvk_BuildOrcaLoader ON)
-    set(gvk_BuildRayQueryInRayTracingShaders ON)
-    set(gvk_BuildRayTracingWithShadowsAndAO ON)
-    set(gvk_BuildRayTracingCustomIntersection ON)
-    set(gvk_BuildTextureCubemap ON)
-    set(gvk_BuildVertexBuffers ON)
+if (avk_toolkit_BuildExamples)
+    set(avk_toolkit_BuildHelloWorld ON)
+    set(avk_toolkit_BuildFramebuffer ON)
+    set(avk_toolkit_BuildComputeImageProcessing ON)
+    set(avk_toolkit_BuildMultiInvokeeRendering ON)
+    set(avk_toolkit_BuildModelLoader ON)
+    set(avk_toolkit_BuildStaticMeshlets ON)
+    set(avk_toolkit_BuildSkinnedMeshlets ON)
+    set(avk_toolkit_BuildOrcaLoader ON)
+    set(avk_toolkit_BuildRayQueryInRayTracingShaders ON)
+    set(avk_toolkit_BuildRayTracingWithShadowsAndAO ON)
+    set(avk_toolkit_BuildRayTracingCustomIntersection ON)
+    set(avk_toolkit_BuildTextureCubemap ON)
+    set(avk_toolkit_BuildVertexBuffers ON)
+    set(avk_toolkit_BuildMultipleQueues ON)
+    set(avk_toolkit_BuildPresentFromCompute ON)
 endif()
 
-# ---------------------- Framework ------------------------
+# ---------------------- Auto-Vk-Toolkit Framework ------------------------
 
-add_library(${PROJECT_NAME} ${gvk_LibraryType})
+add_library(${PROJECT_NAME} ${avk_toolkit_LibraryType})
 
 # Append MSVC specific compiler flags
 if (MSVC)
     target_compile_options(${PROJECT_NAME}
-        ${gvk_IncludeScope} "/bigobj"
-        ${gvk_IncludeScope} "/MP")
+        ${avk_toolkit_IncludeScope} "/bigobj"
+        ${avk_toolkit_IncludeScope} "/MP")
 endif(MSVC)
 
 # Disable obsolete functionality in ImGui:
@@ -85,15 +89,15 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_DISABLE_OBSOLETE_KEYIO I
 
 ## Direct Sources & Includes
 # NOTE: We first collect all include directories and source files and add it to our target in the end.
-#   We do it like this, because depending on gvk_LibraryType the scope (INTERFACE, PUBLIC, PRIVATE) changes and we don't
+#   We do it like this, because depending on avk_toolkit_LibraryType the scope (INTERFACE, PUBLIC, PRIVATE) changes and we don't
 #   want to copy this over and over.
-set(gvk_IncludeDirs
+set(avk_toolkit_IncludeDirs
         # external
         external/$<IF:$<BOOL:${UNIX}>,linux,universal>/include
 
-        # framework
-        framework/include)
-set(gvk_Sources
+        # Auto-Vk-Toolkit framework files:
+        auto_vk_toolkit/include)
+set(avk_toolkit_Sources
         # FileWatcher
         external/universal/src/FileWatcher/FileWatcher.cpp
         external/universal/src/FileWatcher/FileWatcherLinux.cpp
@@ -109,75 +113,74 @@ set(gvk_Sources
         external/universal/src/imgui_tables.cpp
         external/universal/src/imgui_widgets.cpp
 
-        # framework
-        framework/src/animation.cpp
-        framework/src/bezier_curve.cpp
-        framework/src/camera.cpp
-        framework/src/catmull_rom_spline.cpp
-        framework/src/cgb_exceptions.cpp
-        framework/src/composition.cpp
-        framework/src/composition_interface.cpp
-        framework/src/context_generic_glfw.cpp
-        framework/src/context_vulkan.cpp
-        framework/src/cp_interpolation.cpp
-        framework/src/cubic_uniform_b_spline.cpp
-        framework/src/files_changed_event.cpp
-        framework/src/fixed_update_timer.cpp
-        framework/src/imgui_manager.cpp
-        framework/src/imgui_utils.cpp
-        framework/src/image_data.cpp
-        framework/src/input_buffer.cpp
-        framework/src/log.cpp
-        framework/src/material_image_helpers.cpp
-        framework/src/math_utils.cpp
-        framework/src/meshlet_helpers.cpp
-        framework/src/model.cpp
-        framework/src/orca_scene.cpp
-        framework/src/quadratic_uniform_b_spline.cpp
-        framework/src/quake_camera.cpp
-        framework/src/swapchain_resized_event.cpp
-        framework/src/transform.cpp
-        framework/src/updater.cpp
-        framework/src/varying_update_timer.cpp
-        framework/src/vk_convenience_functions.cpp
-        framework/src/window.cpp
-        framework/src/window_base.cpp)
+        # Auto-Vk-Toolkit framework files:
+        auto_vk_toolkit/src/animation.cpp
+        auto_vk_toolkit/src/bezier_curve.cpp
+        auto_vk_toolkit/src/camera.cpp
+        auto_vk_toolkit/src/catmull_rom_spline.cpp
+        auto_vk_toolkit/src/composition.cpp
+        auto_vk_toolkit/src/composition_interface.cpp
+        auto_vk_toolkit/src/context_generic_glfw.cpp
+        auto_vk_toolkit/src/context_vulkan.cpp
+        auto_vk_toolkit/src/cp_interpolation.cpp
+        auto_vk_toolkit/src/cubic_uniform_b_spline.cpp
+        auto_vk_toolkit/src/files_changed_event.cpp
+        auto_vk_toolkit/src/fixed_update_timer.cpp
+        auto_vk_toolkit/src/imgui_manager.cpp
+        auto_vk_toolkit/src/imgui_utils.cpp
+        auto_vk_toolkit/src/image_data.cpp
+        auto_vk_toolkit/src/input_buffer.cpp
+        auto_vk_toolkit/src/log.cpp
+        auto_vk_toolkit/src/material_image_helpers.cpp
+        auto_vk_toolkit/src/math_utils.cpp
+        auto_vk_toolkit/src/meshlet_helpers.cpp
+        auto_vk_toolkit/src/model.cpp
+        auto_vk_toolkit/src/orca_scene.cpp
+        auto_vk_toolkit/src/quadratic_uniform_b_spline.cpp
+        auto_vk_toolkit/src/quake_camera.cpp
+        auto_vk_toolkit/src/swapchain_resized_event.cpp
+        auto_vk_toolkit/src/transform.cpp
+        auto_vk_toolkit/src/updater.cpp
+        auto_vk_toolkit/src/varying_update_timer.cpp
+        auto_vk_toolkit/src/vk_convenience_functions.cpp
+        auto_vk_toolkit/src/window.cpp
+        auto_vk_toolkit/src/window_base.cpp)
 
 ## Load Dependencies
-target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
-    ${gvk_IncludeDirs})
-target_sources(${PROJECT_NAME} ${gvk_SourceScope}
-    ${gvk_Sources})
+target_include_directories(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
+    ${avk_toolkit_IncludeDirs})
+target_sources(${PROJECT_NAME} ${avk_toolkit_SourceScope}
+    ${avk_toolkit_Sources})
 
 # Auto-Vk
 # TODO: should CMake ever replace the Visual Studio build process this should use cmake/avk.cmake to fetch Auto-Vk
 set(avk_UseVMA ON)                   # make sure to add VMA stuff to Auto-Vk's sources
 set(avk_LibraryType INTERFACE)       # this is the default, but just in case
 add_subdirectory(auto_vk)            # we use the git submodule here as long as we have two separate build systems
-target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
     avk)
 
 # Assimp
 include(cmake/assimp.cmake)
 if (UNIX)
-    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_include_directories(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         ${assimp_SOURCE_DIR}/include/assimp)
 endif()
-target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
     assimp::assimp)
 
 # GLFW
 include(cmake/glfw.cmake)
 if(UNIX)
-    target_include_directories(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_include_directories(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         ${glfw_SOURCE_DIR}/include/GLFW)
 endif(UNIX)
-target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
     glfw)
 
 # Vulkan
 find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
     Vulkan::Vulkan)
 
 # stb
@@ -185,10 +188,10 @@ target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
 #   Since this version doesn't work on Linux, the Linux build process generates its own STB shared library.
 include(cmake/stb.cmake)
 if (UNIX)
-    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
             stb_shared)
 else()
-    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         stb)
 endif(UNIX)
 
@@ -196,82 +199,92 @@ if (UNIX)
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
-    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         Threads::Threads)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # explicitly link dbghelp to debug builds on Windows
-    target_link_libraries(${PROJECT_NAME} ${gvk_IncludeScope}
+    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         dbghelp)
 endif (UNIX)
 
-# add gvk.hpp as precomiled header
-target_precompile_headers(${PROJECT_NAME} ${gvk_IncludeScope} [["gvk.hpp"]])
+# add avk_toolkit.hpp as precomiled header
+target_precompile_headers(${PROJECT_NAME} ${avk_toolkit_IncludeScope} [["auto_vk_toolkit.hpp"]])
 
 # ---------------------- Examples -------------------------
 
 include(cmake/post_build_helper/add_post_build_commands.cmake)
 
 ## hello_world
-if (gvk_BuildHelloWorld)
+if (avk_toolkit_BuildHelloWorld)
     add_subdirectory(examples/hello_world)
 endif()
 
 ## framebuffer
-if (gvk_BuildFramebuffer)
+if (avk_toolkit_BuildFramebuffer)
     add_subdirectory(examples/framebuffer)
 endif()
 
 ## compute_image_processing
-if (gvk_BuildComputeImageProcessing)
+if (avk_toolkit_BuildComputeImageProcessing)
     add_subdirectory(examples/compute_image_processing)
 endif()
 
 ## multi_invokee_rendering
-if (gvk_BuildMultiInvokeeRendering)
+if (avk_toolkit_BuildMultiInvokeeRendering)
     add_subdirectory(examples/multi_invokee_rendering)
 endif()
 
 ## model_loader
-if (gvk_BuildModelLoader)
+if (avk_toolkit_BuildModelLoader)
     add_subdirectory(examples/model_loader)
 endif()
 
 ## static_meshlets
-if (gvk_BuildStaticMeshlets)
+if (avk_toolkit_BuildStaticMeshlets)
     add_subdirectory(examples/static_meshlets)
 endif()
 
 ## skinned_meshlets
-if (gvk_BuildSkinnedMeshlets)
+if (avk_toolkit_BuildSkinnedMeshlets)
     add_subdirectory(examples/skinned_meshlets)
 endif()
 
 ## orca_loader
-if (gvk_BuildOrcaLoader)
+if (avk_toolkit_BuildOrcaLoader)
     add_subdirectory(examples/orca_loader)
 endif()
 
 ## ray_query_in_ray_tracing_shaders
-if (gvk_BuildRayQueryInRayTracingShaders)
+if (avk_toolkit_BuildRayQueryInRayTracingShaders)
     add_subdirectory(examples/ray_query_in_ray_tracing_shaders)
 endif()
 
 ## ray_tracing_with_shadows_and_ao
-if (gvk_BuildRayTracingWithShadowsAndAO)
+if (avk_toolkit_BuildRayTracingWithShadowsAndAO)
     add_subdirectory(examples/ray_tracing_with_shadows_and_ao)
 endif()
 
 ## ray_tracing_custom_intersection
-if (gvk_BuildRayTracingCustomIntersection)
+if (avk_toolkit_BuildRayTracingCustomIntersection)
     add_subdirectory(examples/ray_tracing_custom_intersection)
 endif()
 
 ## texture_cubemap
-if (gvk_BuildTextureCubemap)
+if (avk_toolkit_BuildTextureCubemap)
     add_subdirectory(examples/texture_cubemap)
 endif()
 
 ## vertex_buffers
-if (gvk_BuildVertexBuffers)
+if (avk_toolkit_BuildVertexBuffers)
     add_subdirectory(examples/vertex_buffers)
+endif()
+
+## multiple_queues
+if (avk_toolkit_BuildMultipleQueues)
+    add_subdirectory(examples/multiple_queues)
+endif()
+
+## present_from_compute
+if (avk_toolkit_BuildPresentFromCompute)
+    add_subdirectory(examples/present_from_compute)
 endif()

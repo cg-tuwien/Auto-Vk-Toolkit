@@ -1,4 +1,4 @@
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 #include "../shaders/cpu_gpu_shared_config.h"
 
@@ -8,7 +8,7 @@ static constexpr size_t sNumVertices = 64;
 static constexpr size_t sNumIndices = 378;
 static constexpr uint32_t cConcurrentFrames = 3u;
 
-class skinned_meshlets_app : public gvk::invokee
+class skinned_meshlets_app : public avk::invokee
 {
 	struct alignas(16) push_constants
 	{
@@ -69,10 +69,10 @@ class skinned_meshlets_app : public gvk::invokee
 		animated_model_data& operator=(const animated_model_data&) = delete;
 
 		std::string mModelName;
-		gvk::animation_clip_data mClip;
+		avk::animation_clip_data mClip;
 		uint32_t mNumBoneMatrices;
 		size_t mBoneMatricesBufferIndex;
-		gvk::animation mAnimation;
+		avk::animation mAnimation;
 
 		[[nodiscard]] double start_sec() const { return mClip.mStartTicks / mClip.mTicksPerSecond; }
 		[[nodiscard]] double end_sec() const { return mClip.mEndTicks / mClip.mTicksPerSecond; }
@@ -89,9 +89,9 @@ class skinned_meshlets_app : public gvk::invokee
 		uint32_t mModelIndex;
 
 #if !USE_REDIRECTED_GPU_DATA
-		gvk::meshlet_gpu_data<sNumVertices, sNumIndices> mGeometry;
+		avk::meshlet_gpu_data<sNumVertices, sNumIndices> mGeometry;
 #else
-		gvk::meshlet_redirected_gpu_data mGeometry;
+		avk::meshlet_redirected_gpu_data mGeometry;
 #endif
 	};
 
@@ -111,45 +111,45 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			drawCall.mModelMatrix = drawCallData.mModelMatrix;
 			drawCall.mMaterialIndex = drawCallData.mMaterialIndex;
 
-			drawCall.mPositionsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mPositionsBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0], avk::content_description::position),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mPositions),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mPositions).describe_only_member(drawCallData.mPositions[0]) // just take the vec3 as it is
 			);
 
-			drawCall.mNormalsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mNormalsBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mNormals),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mNormals),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mNormals).describe_only_member(drawCallData.mNormals[0]) // just take the vec3 as it is
 			);
 
-			drawCall.mTexCoordsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mTexCoordsBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mTexCoords),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mTexCoords),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mTexCoords).describe_only_member(drawCallData.mTexCoords[0]) // just take the vec2 as it is   
 			);
 
 #if USE_REDIRECTED_GPU_DATA
-			drawCall.mMeshletDataBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mMeshletDataBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mMeshletData).describe_only_member(drawCallData.mMeshletData[0])
 			);
 #endif
 
-			drawCall.mBoneIndicesBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mBoneIndicesBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mBoneIndices),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mBoneIndices),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mBoneIndices).describe_only_member(drawCallData.mBoneIndices[0]) // just take the uvec4 as it is 
 			);
 
-			drawCall.mBoneWeightsBuffer = gvk::context().create_buffer(avk::memory_usage::device, {},
+			drawCall.mBoneWeightsBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mBoneWeights),
 				avk::storage_buffer_meta::create_from_data(drawCallData.mBoneWeights),
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mBoneWeights).describe_only_member(drawCallData.mBoneWeights[0]) // just take the vec4 as it is 
 			);
 
-			gvk::context().record_and_submit_with_fence({
+			avk::context().record_and_submit_with_fence({
 				drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0),
 				drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0),
 				drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0),
@@ -161,33 +161,33 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}, *mQueue)->wait_until_signalled();
 
 			// add them to the texel buffers
-			mPositionBuffers.push_back(gvk::context().create_buffer_view(drawCall.mPositionsBuffer));
-			mNormalBuffers.push_back(gvk::context().create_buffer_view(drawCall.mNormalsBuffer));
-			mTexCoordsBuffers.push_back(gvk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
+			mPositionBuffers.push_back(avk::context().create_buffer_view(drawCall.mPositionsBuffer));
+			mNormalBuffers.push_back(avk::context().create_buffer_view(drawCall.mNormalsBuffer));
+			mTexCoordsBuffers.push_back(avk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
 #if USE_REDIRECTED_GPU_DATA
-			mMeshletDataBuffers.push_back(gvk::context().create_buffer_view(drawCall.mMeshletDataBuffer));
+			mMeshletDataBuffers.push_back(avk::context().create_buffer_view(drawCall.mMeshletDataBuffer));
 #endif
-			mBoneIndicesBuffers.push_back(gvk::context().create_buffer_view(drawCall.mBoneIndicesBuffer));
-			mBoneWeightsBuffers.push_back(gvk::context().create_buffer_view(drawCall.mBoneWeightsBuffer));
+			mBoneIndicesBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneIndicesBuffer));
+			mBoneWeightsBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneWeightsBuffer));
 		}
 	}
 
 	void initialize() override
 	{
 		// use helper functions to create ImGui elements
-		auto surfaceCap = gvk::context().physical_device().getSurfaceCapabilitiesKHR(gvk::context().main_window()->surface());
+		auto surfaceCap = avk::context().physical_device().getSurfaceCapabilitiesKHR(avk::context().main_window()->surface());
 
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCache = gvk::context().create_descriptor_cache();
+		mDescriptorCache = avk::context().create_descriptor_cache();
 
 		glm::mat4 globalTransform = glm::rotate(glm::radians(180.f), glm::vec3(0.f, 1.f, 0.f)) * glm::scale(glm::vec3(1.f));
-		std::vector<gvk::model> loadedModels;
+		std::vector<avk::model> loadedModels;
 		// Load a model from file:
-		auto model = gvk::model_t::load_from_file("assets/crab.fbx", aiProcess_Triangulate);
+		auto model = avk::model_t::load_from_file("assets/crab.fbx", aiProcess_Triangulate);
 
 		loadedModels.push_back(std::move(model));
 
-		std::vector<gvk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
+		std::vector<avk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
 		std::vector<loaded_data_for_draw_call> dataForDrawCall;
 		std::vector<meshlet> meshletsGeometry;
 		std::vector<animated_model_data> animatedModels;
@@ -247,34 +247,34 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					drawCallData.mMaterialIndex++;
 				}
 
-				auto selection = gvk::make_model_references_and_mesh_indices_selection(curModel, meshIndex);
-				std::vector<gvk::mesh_index_t> meshIndices;
+				auto selection = avk::make_model_references_and_mesh_indices_selection(curModel, meshIndex);
+				std::vector<avk::mesh_index_t> meshIndices;
 				meshIndices.push_back(meshIndex);
 				// Build meshlets:
-				std::tie(drawCallData.mPositions, drawCallData.mIndices) = gvk::get_vertices_and_indices(selection);
-				drawCallData.mNormals = gvk::get_normals(selection);
-				drawCallData.mTexCoords = gvk::get_2d_texture_coordinates(selection, 0);
+				std::tie(drawCallData.mPositions, drawCallData.mIndices) = avk::get_vertices_and_indices(selection);
+				drawCallData.mNormals = avk::get_normals(selection);
+				drawCallData.mTexCoords = avk::get_2d_texture_coordinates(selection, 0);
 				// Get bone indices and weights too
-				drawCallData.mBoneIndices = gvk::get_bone_indices_for_single_target_buffer(selection, meshIndicesInOrder);
-				drawCallData.mBoneWeights = gvk::get_bone_weights(selection);
+				drawCallData.mBoneIndices = avk::get_bone_indices_for_single_target_buffer(selection, meshIndicesInOrder);
+				drawCallData.mBoneWeights = avk::get_bone_weights(selection);
 
 				// create selection for the meshlets
-				auto meshletSelection = gvk::make_models_and_mesh_indices_selection(curModel, meshIndex);
+				auto meshletSelection = avk::make_models_and_mesh_indices_selection(curModel, meshIndex);
 
-				auto cpuMeshlets = gvk::divide_into_meshlets(meshletSelection);
+				auto cpuMeshlets = avk::divide_into_meshlets(meshletSelection);
 #if !USE_REDIRECTED_GPU_DATA
 #if USE_CACHE
-				gvk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>>(serializer, cpuMeshlets);
+				avk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
+				auto [gpuMeshlets, _] = avk::convert_for_gpu_usage_cached<avk::meshlet_gpu_data<sNumVertices, sNumIndices>>(serializer, cpuMeshlets);
 #else
-				auto [gpuMeshlets, _] = gvk::convert_for_gpu_usage<gvk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(cpuMeshlets);
+				auto [gpuMeshlets, _] = avk::convert_for_gpu_usage<avk::meshlet_gpu_data<sNumVertices, sNumIndices>, sNumVertices, sNumIndices>(cpuMeshlets);
 #endif
 #else
 #if USE_CACHE
-				gvk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage_cached<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
+				avk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
+				auto [gpuMeshlets, generatedMeshletData] = avk::convert_for_gpu_usage_cached<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
-				auto [gpuMeshlets, generatedMeshletData] = gvk::convert_for_gpu_usage<gvk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
+				auto [gpuMeshlets, generatedMeshletData] = avk::convert_for_gpu_usage<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
 #endif
 				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
 #endif
@@ -304,7 +304,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// buffers for the animated bone matrices, will be populated before rendering
 			std::get<additional_animated_model_data>(animModel).mBoneMatricesAni.resize(std::get<animated_model_data>(animModel).mNumBoneMatrices);
 			for (size_t cfi = 0; cfi < cConcurrentFrames; ++cfi) {
-				mBoneMatricesBuffersAni[cfi].push_back(gvk::context().create_buffer(
+				mBoneMatricesBuffersAni[cfi].push_back(avk::context().create_buffer(
 					avk::memory_usage::host_coherent, {},
 					avk::storage_buffer_meta::create_from_data(std::get<additional_animated_model_data>(animModel).mBoneMatricesAni)
 				));
@@ -314,7 +314,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		add_draw_calls(dataForDrawCall, mDrawCalls);
 
 		// Put the meshlets that we have gathered into a buffer:
-		mMeshletsBuffer = gvk::context().create_buffer(
+		mMeshletsBuffer = avk::context().create_buffer(
 			avk::memory_usage::device, {},
 			avk::storage_buffer_meta::create_from_data(meshletsGeometry)
 		);
@@ -324,27 +324,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
 		// also load all the referenced images from file and provide access to them
 		// via samplers; It all happens in `ak::convert_for_gpu_usage`:
-		auto [gpuMaterials, imageSamplers, matCommands] = gvk::convert_for_gpu_usage<gvk::material_gpu_data>(
+		auto [gpuMaterials, imageSamplers, matCommands] = avk::convert_for_gpu_usage<avk::material_gpu_data>(
 			allMatConfigs, false, false,
 			avk::image_usage::general_texture,
 			avk::filter_mode::trilinear
 			);
 
-		gvk::context().record_and_submit_with_fence({
+		avk::context().record_and_submit_with_fence({
 			mMeshletsBuffer->fill(meshletsGeometry.data(), 0),
 			matCommands
 			}, * mQueue)->wait_until_signalled();
 
 		// One for each concurrent frame
-		const auto concurrentFrames = gvk::context().main_window()->number_of_frames_in_flight();
+		const auto concurrentFrames = avk::context().main_window()->number_of_frames_in_flight();
 		for (int i = 0; i < concurrentFrames; ++i) {
-			mViewProjBuffers.push_back(gvk::context().create_buffer(
+			mViewProjBuffers.push_back(avk::context().create_buffer(
 				avk::memory_usage::host_coherent, {},
 				avk::uniform_buffer_meta::create_from_data(glm::mat4())
 			));
 		}
 
-		mMaterialBuffer = gvk::context().create_buffer(
+		mMaterialBuffer = avk::context().create_buffer(
 			avk::memory_usage::host_visible, {},
 			avk::storage_buffer_meta::create_from_data(gpuMaterials)
 		);
@@ -352,22 +352,22 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mImageSamplers = std::move(imageSamplers);
 
-		auto swapChainFormat = gvk::context().main_window()->swap_chain_image_format();
+		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = gvk::context().create_graphics_pipeline_for(
+		mPipeline = avk::context().create_graphics_pipeline_for(
 			// Specify which shaders the pipeline consists of:
 			avk::task_shader("shaders/meshlet.task"),
 			avk::mesh_shader("shaders/meshlet.mesh"),
 			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth
 			// attachment, which has been configured when creating the window. See main() function!
-			gvk::context().create_renderpass({
-				avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
-				avk::attachment::declare(gvk::format_from_window_depth_buffer(gvk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
-				}, gvk::context().main_window()->renderpass_reference().subpass_dependencies()),
+			avk::context().create_renderpass({
+				avk::attachment::declare(avk::format_from_window_color_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
+				avk::attachment::declare(avk::format_from_window_depth_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
+				}, avk::context().main_window()->renderpass_reference().subpass_dependencies()),
 			// The following define additional data which we'll pass to the pipeline:
 			avk::push_constant_binding_data{ avk::shader_type::fragment, 0, sizeof(push_constants) },
 			avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
@@ -390,19 +390,19 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// we want to use an updater, so create one:
 
 		mUpdater.emplace();
-		mUpdater->on(gvk::shader_files_changed_event(mPipeline.as_reference())).update(mPipeline);
+		mUpdater->on(avk::shader_files_changed_event(mPipeline.as_reference())).update(mPipeline);
 
-		mUpdater->on(gvk::swapchain_resized_event(gvk::context().main_window())).invoke([this]() {
-			this->mQuakeCam.set_aspect_ratio(gvk::context().main_window()->aspect_ratio());
+		mUpdater->on(avk::swapchain_resized_event(avk::context().main_window())).invoke([this]() {
+			this->mQuakeCam.set_aspect_ratio(avk::context().main_window()->aspect_ratio());
 		});
 
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, -1.0f, 8.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), gvk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-		gvk::current_composition()->add_element(mQuakeCam);
+		avk::current_composition()->add_element(mQuakeCam);
 
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([this]() {
 				ImGui::Begin("Info & Settings");
@@ -421,39 +421,39 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		if (gvk::input().key_pressed(gvk::key_code::c)) {
+		if (avk::input().key_pressed(avk::key_code::c)) {
 			// Center the cursor:
-			auto resolution = gvk::context().main_window()->resolution();
-			gvk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
+			auto resolution = avk::context().main_window()->resolution();
+			avk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
-			gvk::current_composition()->stop();
+			avk::current_composition()->stop();
 		}
-		if (gvk::input().key_pressed(gvk::key_code::left)) {
-			mQuakeCam.look_along(gvk::left());
+		if (avk::input().key_pressed(avk::key_code::left)) {
+			mQuakeCam.look_along(avk::left());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::right)) {
-			mQuakeCam.look_along(gvk::right());
+		if (avk::input().key_pressed(avk::key_code::right)) {
+			mQuakeCam.look_along(avk::right());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::up)) {
-			mQuakeCam.look_along(gvk::front());
+		if (avk::input().key_pressed(avk::key_code::up)) {
+			mQuakeCam.look_along(avk::front());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::down)) {
-			mQuakeCam.look_along(gvk::back());
+		if (avk::input().key_pressed(avk::key_code::down)) {
+			mQuakeCam.look_along(avk::back());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::page_up)) {
-			mQuakeCam.look_along(gvk::up());
+		if (avk::input().key_pressed(avk::key_code::page_up)) {
+			mQuakeCam.look_along(avk::up());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::page_down)) {
-			mQuakeCam.look_along(gvk::down());
+		if (avk::input().key_pressed(avk::key_code::page_down)) {
+			mQuakeCam.look_along(avk::down());
 		}
-		if (gvk::input().key_pressed(gvk::key_code::home)) {
+		if (avk::input().key_pressed(avk::key_code::home)) {
 			mQuakeCam.look_at(glm::vec3{ 0.0f, 0.0f, 0.0f });
 		}
 
-		if (gvk::input().key_pressed(gvk::key_code::f1)) {
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		if (avk::input().key_pressed(avk::key_code::f1)) {
+			auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -467,19 +467,19 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void render() override
 	{
-		auto mainWnd = gvk::context().main_window();
+		auto mainWnd = avk::context().main_window();
 		auto ifi = mainWnd->current_in_flight_index();
 
 		// Animate all the meshes
 		for (auto& model : mAnimatedModels) {
 			auto& animation = std::get<animated_model_data>(model).mAnimation;
 			auto& clip = std::get<animated_model_data>(model).mClip;
-			const auto doubleTime = fmod(gvk::time().absolute_time_dp(), std::get<animated_model_data>(model).duration_sec() * 2);
+			const auto doubleTime = fmod(avk::time().absolute_time_dp(), std::get<animated_model_data>(model).duration_sec() * 2);
 			auto time = glm::lerp(std::get<animated_model_data>(model).start_sec(), std::get<animated_model_data>(model).end_sec(), (doubleTime > std::get<animated_model_data>(model).duration_sec() ? doubleTime - std::get<animated_model_data>(model).duration_sec() : doubleTime) / std::get<animated_model_data>(model).duration_sec());
 			auto targetMemory = std::get<additional_animated_model_data>(model).mBoneMatricesAni.data();
 
 			// Use lambda option 1 that takes as parameters: mesh_bone_info, inverse mesh root matrix, global node/bone transform w.r.t. the animation, inverse bind-pose matrix
-			animation.animate(clip, time, [this, &animation, targetMemory](gvk::mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix, const glm::mat4& aLocalTransformMatrix, size_t aAnimatedNodeIndex, size_t aBoneMeshTargetIndex, double aAnimationTimeInTicks) {
+			animation.animate(clip, time, [this, &animation, targetMemory](avk::mesh_bone_info aInfo, const glm::mat4& aInverseMeshRootMatrix, const glm::mat4& aTransformMatrix, const glm::mat4& aInverseBindPoseMatrix, const glm::mat4& aLocalTransformMatrix, size_t aAnimatedNodeIndex, size_t aBoneMeshTargetIndex, double aAnimationTimeInTicks) {
 				// Construction of the bone matrix for this node:
 				//   1. Bring vertex into bone space
 				//   2. Apply transformaton in bone space => MODEL SPACE
@@ -491,7 +491,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
@@ -500,13 +500,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
-		gvk::context().record(avk::command::gather(
+		avk::context().record(avk::command::gather(
 				// Upload the updated bone matrices into the buffer for the current frame (considering that we have cConcurrentFrames-many concurrent frames):
 				avk::command::one_for_each(mAnimatedModels, [this, ifi](const std::tuple<animated_model_data, additional_animated_model_data>& tpl){
 					return mBoneMatricesBuffersAni[ifi][std::get<animated_model_data>(tpl).mBoneMatricesBufferIndex]->fill(std::get<additional_animated_model_data>(tpl).mBoneMatricesAni.data(), 0);
 				}),
 
-				avk::command::render_pass(mPipeline->renderpass_reference(), gvk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(mPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
 					avk::command::bind_pipeline(mPipeline.as_reference()),
 					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
@@ -556,7 +556,7 @@ private: // v== Member variables ==v
 
 	std::vector<data_for_draw_call> mDrawCalls;
 	avk::graphics_pipeline mPipeline;
-	gvk::quake_camera mQuakeCam;
+	avk::quake_camera mQuakeCam;
 	size_t mNumMeshletWorkgroups;
 
 	std::vector<avk::buffer_view> mPositionBuffers;
@@ -577,30 +577,30 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Skinned Meshlets");
+		auto mainWnd = avk::context().create_window("Skinned Meshlets");
 
 		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_additional_back_buffer_attachments({
 			avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 		});
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(cConcurrentFrames);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
+		auto& singleQueue = avk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
 		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = skinned_meshlets_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Auto-Vk-Toolkit Example: Skinned Meshlets"),
-			gvk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME)
+			avk::application_name("Auto-Vk-Toolkit Example: Skinned Meshlets"),
+			avk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME)
 			.add_extension(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME),
 			[](vk::PhysicalDeviceVulkan12Features& features) {
 				features.setUniformAndStorageBuffer8BitAccess(VK_TRUE);
@@ -614,19 +614,19 @@ int main() // <== Starting point ==
 
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):
-		gvk::sequential_invoker invoker;
+		avk::sequential_invoker invoker;
 
 		// With everything configured, let us start our render loop:
 		composition.start_render_loop(
 			// Callback in the case of update:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Call all the update() callbacks:
 				invoker.invoke_updates(aToBeInvoked);
 			},
 			// Callback in the case of render:
-				[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+				[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Sync (wait for fences and so) per window BEFORE executing render callbacks
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->sync_before_render();
 					});
 
@@ -634,16 +634,14 @@ int main() // <== Starting point ==
 				invoker.invoke_renders(aToBeInvoked);
 
 				// Render per window:
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->render_frame();
 					});
 			}
-			); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+			); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
 
 		result = EXIT_SUCCESS;
 	}
-	catch (gvk::logic_error&) {}
-	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 	return result;

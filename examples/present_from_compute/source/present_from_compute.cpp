@@ -1,7 +1,7 @@
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 
-class present_from_compute_app : public gvk::invokee
+class present_from_compute_app : public avk::invokee
 {
 	// Define a struct for our vertex input data:
 	struct Vertex {
@@ -44,32 +44,32 @@ public:
 	void initialize() override
 	{
 		// Create graphics pipeline:
-		mGraphicsPipeline = gvk::context().create_graphics_pipeline_for(
+		mGraphicsPipeline = avk::context().create_graphics_pipeline_for(
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::pos)   -> to_location(0),	// Describe the position vertex attribute
 			avk::from_buffer_binding(0) -> stream_per_vertex(&Vertex::color) -> to_location(1), // Describe the color vertex attribute
 			avk::vertex_shader("shaders/passthrough.vert"),										// Add a vertex shader
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			gvk::context().main_window()->renderpass()
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
+			avk::context().main_window()->renderpass()
 		);
 
 		// Create compute pipeline:
-		mComputePipeline = gvk::context().create_compute_pipeline_for(
+		mComputePipeline = avk::context().create_compute_pipeline_for(
 			"shaders/blur.comp",
 			avk::descriptor_binding<avk::image_view_as_sampled_image>(0, 0, 1u),
 			avk::descriptor_binding<avk::image_view_as_storage_image>(0, 1, 1u)
 		);
 
-		auto mainWnd = gvk::context().main_window();
+		auto mainWnd = avk::context().main_window();
 
 		// Create vertex buffers and framebuffers, one for each frame in flight:
-		auto numFramesInFlight = gvk::context().main_window()->number_of_frames_in_flight();
+		auto numFramesInFlight = avk::context().main_window()->number_of_frames_in_flight();
 		for (int i = 0; i < numFramesInFlight; ++i) {
 			// Note: We're only going to use the framebuffers when using and presenting from the compute queue:
 			mFramebuffers.push_back( 
-				gvk::context().create_framebuffer(
-					gvk::context().create_renderpass({
+				avk::context().create_framebuffer(
+					avk::context().create_renderpass({
 							avk::attachment::declare(
 								mainWnd->swap_chain_image_format(), 
 								avk::on_load::clear.from_previous_layout(avk::layout::undefined), 
@@ -79,29 +79,29 @@ public:
 						},
 						mainWnd->renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
 					),
-					gvk::context().create_image_view(gvk::context().create_image(mainWnd->resolution().x, mainWnd->resolution().y, mainWnd->swap_chain_image_format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment | avk::image_usage::sampled | avk::image_usage::shader_storage))
+					avk::context().create_image_view(avk::context().create_image(mainWnd->resolution().x, mainWnd->resolution().y, mainWnd->swap_chain_image_format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment | avk::image_usage::sampled | avk::image_usage::shader_storage))
 				)
 			);
 
 			mVertexBuffers.push_back(
-				gvk::context().create_buffer(avk::memory_usage::device, {},	avk::vertex_buffer_meta::create_from_data(mVertexData))
+				avk::context().create_buffer(avk::memory_usage::device, {},	avk::vertex_buffer_meta::create_from_data(mVertexData))
 			);
 		}
 		
 		// Create index buffer. Upload data already since we won't change it ever
 		// (hence the usage of avk::create_and_fill instead of just avk::create)
-		mIndexBuffer = gvk::context().create_buffer(
+		mIndexBuffer = avk::context().create_buffer(
 			avk::memory_usage::device, {},										// Also this buffer should "live" in GPU memory
 			avk::index_buffer_meta::create_from_data(mIndices)					// Pass/create meta data about the indices
 		);
 
 		// Fill data on the graphics queue, so that we do not have to transfer ownership from transfer -> graphics later:
 		// (Doesn't matter if this is slightly slower than on the transfer queue, because we're transferring index data only once during initialization)
-		auto fence = gvk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mGraphicsQueue);
+		auto fence = avk::context().record_and_submit_with_fence({ mIndexBuffer->fill(mIndices.data(), 0) }, mGraphicsQueue);
 		fence->wait_until_signalled();
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -116,15 +116,15 @@ public:
 		}
 
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCache = gvk::context().create_descriptor_cache();
+		mDescriptorCache = avk::context().create_descriptor_cache();
 	}
 
 	void update() override
 	{
 		// On Q pressed,
-		if (gvk::input().key_pressed(gvk::key_code::q) || mUiQueueSelection != mUiQueueSelectionPrevFrame) {
+		if (avk::input().key_pressed(avk::key_code::q) || mUiQueueSelection != mUiQueueSelectionPrevFrame) {
 			// Switch the queue:
-			if (gvk::input().key_pressed(gvk::key_code::q)) {
+			if (avk::input().key_pressed(avk::key_code::q)) {
 				mQueueToPresentFrom = mQueueToPresentFrom == presentation_queue::compute ? presentation_queue::graphics : presentation_queue::compute;
 			}
 			else if (mUiQueueSelection != mUiQueueSelectionPrevFrame) {
@@ -132,24 +132,24 @@ public:
 			}
 
 			if (presentation_queue::compute == mQueueToPresentFrom) {
-				gvk::context().main_window()->set_image_usage_properties(
-					gvk::context().main_window()->get_config_image_usage_properties() | avk::image_usage::shader_storage
+				avk::context().main_window()->set_image_usage_properties(
+					avk::context().main_window()->get_config_image_usage_properties() | avk::image_usage::shader_storage
 				);
-				gvk::context().main_window()->set_queue_family_ownership(mComputeQueue.family_index());
-				gvk::context().main_window()->set_present_queue(mComputeQueue);
+				avk::context().main_window()->set_queue_family_ownership(mComputeQueue.family_index());
+				avk::context().main_window()->set_present_queue(mComputeQueue);
 
 				if (!mFromComputeFirstFrameId.has_value()) {
-					mFromComputeFirstFrameId = gvk::context().main_window()->current_frame();
+					mFromComputeFirstFrameId = avk::context().main_window()->current_frame();
 				}
 
 				mUiQueueSelection = 1; // from compute
 			}
 			else { // present from graphics:
-				gvk::context().main_window()->set_image_usage_properties(
-					avk::exclude(gvk::context().main_window()->get_config_image_usage_properties(), avk::image_usage::shader_storage)
+				avk::context().main_window()->set_image_usage_properties(
+					avk::exclude(avk::context().main_window()->get_config_image_usage_properties(), avk::image_usage::shader_storage)
 				);
-				gvk::context().main_window()->set_queue_family_ownership(mGraphicsQueue.family_index());
-				gvk::context().main_window()->set_present_queue(mGraphicsQueue);
+				avk::context().main_window()->set_queue_family_ownership(mGraphicsQueue.family_index());
+				avk::context().main_window()->set_present_queue(mGraphicsQueue);
 
 				mUiQueueSelection = 0; // from graphics
 			}
@@ -157,9 +157,9 @@ public:
 		mUiQueueSelectionPrevFrame = mUiQueueSelection;
 
 		// On Esc pressed,
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// stop the current composition:
-			gvk::current_composition()->stop();
+			avk::current_composition()->stop();
 		}
 	}
 
@@ -168,11 +168,11 @@ public:
 	{
 		using namespace avk;
 
-		const auto* mainWnd = gvk::context().main_window();
+		const auto* mainWnd = avk::context().main_window();
 		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// Modify our vertex data according to our rotation animation and upload this frame's vertex data:
-		auto rotAngle = glm::radians(90.0f) * gvk::time().time_since_start();
+		auto rotAngle = glm::radians(90.0f) * avk::time().time_since_start();
 		auto rotMatrix = glm::rotate(rotAngle, glm::vec3(0.f, 1.f, 0.f));
 		auto translateZ = glm::translate(glm::vec3{ 0.0f, 0.0f, -0.5f });
 		auto invTranslZ = glm::inverse(translateZ);
@@ -184,9 +184,9 @@ public:
 		}
 
 		// Transfer vertex data on the (fast) transfer queue:
-		auto vertexBufferFillSemaphore = gvk::context().record_and_submit_with_semaphore({ // Gotta use a semaphore to synchronize different queues
+		auto vertexBufferFillSemaphore = avk::context().record_and_submit_with_semaphore({ // Gotta use a semaphore to synchronize different queues
 				command::conditional(
-					[frameId = gvk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
+					[frameId = avk::context().main_window()->current_frame()]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
 						return frameId >= 3; // Because we have three concurrent frames
 					},
 					[&]() {
@@ -214,22 +214,22 @@ public:
 	{
 		using namespace avk;
 
-		const auto* mainWnd = gvk::context().main_window();
+		const auto* mainWnd = avk::context().main_window();
 		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		std::optional<avk::semaphore> graphicsFinishedSemaphore;
 
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(mGraphicsQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(mGraphicsQueue);
 
 		// Create a command buffer and render into the current swap chain image:
 		auto cmdBfrForGraphics = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		// Get handle of the ImGui Manager invokee:
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 
 		// Submit the draw calls to the graphics queue:
-		auto submissionData = gvk::context().record({
+		auto submissionData = avk::context().record({
 				command::conditional(
-					[frameId = gvk::context().main_window()->current_frame(), this]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
+					[frameId = avk::context().main_window()->current_frame(), this]() { // Skip ownership transfer for the very first frame, because in the very first frame, there is no owner yet
 						return presentation_queue::compute == mQueueToPresentFrom && frameId >= mFromComputeFirstFrameId.value_or(0) + 3; // Because we have three concurrent frames
 					},
 					[&]() {
@@ -283,7 +283,7 @@ public:
 			submissionData.waiting_for(aImageAvailableSemaphore.value() >> stage::color_attachment_output);
 		}
 		else {
-			graphicsFinishedSemaphore = gvk::context().create_semaphore();
+			graphicsFinishedSemaphore = avk::context().create_semaphore();
 			submissionData.signaling_upon_completion(stage::color_attachment_output >> graphicsFinishedSemaphore.value());
 		}
 
@@ -292,9 +292,9 @@ public:
 		// Let the command buffer handle the semaphore's lifetime:
 		cmdBfrForGraphics->handle_lifetime_of(std::move(aVertexBufferFillSemaphore));
 
-		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// Use a convenience function of avk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
-		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrForGraphics));
+		avk::context().main_window()->handle_lifetime(std::move(cmdBfrForGraphics));
 
 		return graphicsFinishedSemaphore;
 	}
@@ -304,18 +304,18 @@ public:
 	{
 		using namespace avk;
 
-		auto* mainWnd = gvk::context().main_window();
+		auto* mainWnd = avk::context().main_window();
 		const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 		const auto w = mainWnd->resolution().x;
 		const auto h = mainWnd->resolution().y;
 
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(mComputeQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(mComputeQueue);
 
 		// Create a command buffer and render into the current swap chain image:
 		auto cmdBfrForCompute = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		// Submit the dispatch calls to the compute queue:
-		gvk::context().record({
+		avk::context().record({
 				// Acquire exclusive ownership from the graphics queue:
 				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::none + access::none >> stage::auto_stage + access::auto_access)
 					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mComputeQueue.family_index()),
@@ -353,15 +353,15 @@ public:
 		cmdBfrForCompute->handle_lifetime_of(std::move(aImageAvailableSemaphore));
 		cmdBfrForCompute->handle_lifetime_of(std::move(aGraphicsFinishedSemaphore));
 
-		// Use a convenience function of gvk::window to take care of the command buffer's lifetime:
+		// Use a convenience function of avk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
-		gvk::context().main_window()->handle_lifetime(std::move(cmdBfrForCompute));
+		avk::context().main_window()->handle_lifetime(std::move(cmdBfrForCompute));
 
 	}
 
 	void render() override
 	{
-		auto mainWnd = gvk::context().main_window();
+		auto mainWnd = avk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
@@ -396,7 +396,7 @@ private: // v== Member variables ==v
 	int mUiQueueSelectionPrevFrame = 0;
 	int mUiQueueSelection = 0;
 	presentation_queue mQueueToPresentFrom = presentation_queue::graphics;
-	std::optional<gvk::window::frame_id_t> mFromComputeFirstFrameId; // Gotta remember the first frame this happens to get the initial queue ownership tranfers right.
+	std::optional<avk::window::frame_id_t> mFromComputeFirstFrameId; // Gotta remember the first frame this happens to get the initial queue ownership tranfers right.
 	avk::graphics_pipeline mGraphicsPipeline;
 	avk::compute_pipeline mComputePipeline;
 	std::vector<avk::framebuffer> mFramebuffers;
@@ -411,16 +411,16 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Present from Compute");
+		auto mainWnd = avk::context().create_window("Present from Compute");
 		mainWnd->set_resolution({ 640, 480 });
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->enable_resizing(false);
 		mainWnd->open();
 
-		auto& transferQueue = gvk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue);
-		auto& graphicsQueue = gvk::context().create_queue(vk::QueueFlagBits::eGraphics, avk::queue_selection_preference::specialized_queue, mainWnd);
-		auto& computeQueue  = gvk::context().create_queue(vk::QueueFlagBits::eCompute , avk::queue_selection_preference::specialized_queue, mainWnd);
+		auto& transferQueue = avk::context().create_queue(vk::QueueFlagBits::eTransfer, avk::queue_selection_preference::specialized_queue);
+		auto& graphicsQueue = avk::context().create_queue(vk::QueueFlagBits::eGraphics, avk::queue_selection_preference::specialized_queue, mainWnd);
+		auto& computeQueue  = avk::context().create_queue(vk::QueueFlagBits::eCompute , avk::queue_selection_preference::specialized_queue, mainWnd);
 		// Initialize to graphics queue (but can be changed later):
 		mainWnd->set_queue_family_ownership(graphicsQueue.family_index());
 		mainWnd->set_present_queue(graphicsQueue);
@@ -428,12 +428,12 @@ int main() // <== Starting point ==
 		// Create an instance of our main "invokee" which contains all the functionality:
 		auto app = present_from_compute_app(transferQueue, graphicsQueue, computeQueue);
 		// ImGui always renders using the graphics queue:
-		auto ui = gvk::imgui_manager(graphicsQueue);
+		auto ui = avk::imgui_manager(graphicsQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
-			[](gvk::validation_layers& config) {
+			avk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
+			[](avk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
@@ -444,19 +444,19 @@ int main() // <== Starting point ==
 
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):
-		gvk::sequential_invoker invoker;
+		avk::sequential_invoker invoker;
 
 		// With everything configured, let us start our render loop:
 		composition.start_render_loop(
 			// Callback in the case of update:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Call all the update() callbacks:
 				invoker.invoke_updates(aToBeInvoked);
 			},
 			// Callback in the case of render:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Sync (wait for fences and so) per window BEFORE executing render callbacks
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->sync_before_render();
 				});
 
@@ -464,16 +464,14 @@ int main() // <== Starting point ==
 				invoker.invoke_renders(aToBeInvoked);
 
 				// Render per window:
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->render_frame();
 				});
 			}
-		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+		); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
 	
 		result = EXIT_SUCCESS;
 	}
-	catch (gvk::logic_error&) {}
-	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 	return result;

@@ -1,8 +1,8 @@
-include(${Gears_Vk_SOURCE_DIR}/cmake/post_build_helper/compile_shaders.cmake)
+include(${Auto_Vk_Toolkit_SOURCE_DIR}/cmake/post_build_helper/compile_shaders.cmake)
 
 function(add_post_build_commands target glslDirectory spvDirectory assetsDirectory assets symlinks)
-    # add precompiled headers from Gears-Vk
-    target_precompile_headers(${target} REUSE_FROM Gears_Vk)
+    # add precompiled headers from Auto-Vk-Toolkit
+    target_precompile_headers(${target} REUSE_FROM Auto_Vk_Toolkit)
 
     # test if symbolic links are supported
     if (symlinks)
@@ -81,9 +81,9 @@ function(add_post_build_commands target glslDirectory spvDirectory assetsDirecto
     # shared libraries
     if (WIN32)
         if (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
-            set(gvk_DLLDirectory "${Gears_Vk_SOURCE_DIR}/external/release/bin/x64")
+            set(gvk_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/release/bin/x64")
         else()
-            set(gvk_DLLDirectory "${Gears_Vk_SOURCE_DIR}/external/debug/bin/x64")
+            set(gvk_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/debug/bin/x64")
         endif (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
         file(GLOB dllsToCopy "${gvk_DLLDirectory}/*.dll")
         foreach(dllToCopy ${dllsToCopy})

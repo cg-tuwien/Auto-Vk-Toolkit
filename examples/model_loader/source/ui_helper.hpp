@@ -1,4 +1,4 @@
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 #include <any>
 
@@ -111,15 +111,15 @@ public:
 	{
 		std::vector<const char*> items { "immediate", "fifo", "mailbox", "relaxed_fifo" };
 
-		std::unordered_map<std::string, gvk::presentation_mode> stringMap = {
-			{items[0],	gvk::presentation_mode::immediate},
-			{items[1],	gvk::presentation_mode::fifo},
-			{items[2],	gvk::presentation_mode::mailbox},
-			{items[3],	gvk::presentation_mode::relaxed_fifo}
+		std::unordered_map<std::string, avk::presentation_mode> stringMap = {
+			{items[0],	avk::presentation_mode::immediate},
+			{items[1],	avk::presentation_mode::fifo},
+			{items[2],	avk::presentation_mode::mailbox},
+			{items[3],	avk::presentation_mode::relaxed_fifo}
 		};
 
 		std::function<void(std::string)> cb = [stringMap](const std::string aItem) {
-			gvk::context().main_window()->set_presentaton_mode(stringMap.at(aItem));
+			avk::context().main_window()->set_presentaton_mode(stringMap.at(aItem));
 		};
 
 		return std::move(combo_box_container{"Presentation Mode", std::move(items), 0, std::move(cb) });
@@ -128,7 +128,7 @@ public:
 	static check_box_container get_framebuffer_mode_imgui_element()
 	{
 		std::function<void(bool)> cb = [](bool aRequestSrgb) {
-			gvk::context().main_window()->request_srgb_framebuffer(aRequestSrgb);
+			avk::context().main_window()->request_srgb_framebuffer(aRequestSrgb);
 		};
 
 		return std::move(check_box_container{ "SRGB framebuffer", false, std::move(cb) });
@@ -137,7 +137,7 @@ public:
 	static check_box_container get_window_resize_imgui_element()
 	{
 		std::function<void(bool)> cb = [](bool aResizable) {
-			gvk::context().main_window()->enable_resizing(aResizable);
+			avk::context().main_window()->enable_resizing(aResizable);
 		};
 
 		return std::move(check_box_container{ "Resizable Window", true, std::move(cb) });
@@ -146,7 +146,7 @@ public:
 	static slider_container<int> get_number_of_concurrent_frames_imgui_element(int aCurrent = 3, int aMin = 1, int aMax = 10)
 	{
 		std::function<void(int)> cb = [](int aNumConcurrentFrames) {
-			gvk::context().main_window()->set_number_of_concurrent_frames(aNumConcurrentFrames);
+			avk::context().main_window()->set_number_of_concurrent_frames(aNumConcurrentFrames);
 		};
 		assert(aCurrent >= aMin);
 		assert(aMax >= aCurrent);
@@ -156,7 +156,7 @@ public:
 	static slider_container<int> get_number_of_presentable_images_imgui_element(int aCurrent = 3, int aMin = 2, int aMax = 8)
 	{
 		std::function<void(int)> cb = [](int aNumPresentatbleImages) {
-			gvk::context().main_window()->set_number_of_presentable_images(aNumPresentatbleImages);
+			avk::context().main_window()->set_number_of_presentable_images(aNumPresentatbleImages);
 		};
 		assert(aCurrent >= aMin);
 		assert(aMax >= aCurrent);
@@ -167,12 +167,12 @@ public:
 	{
 		std::function<void(bool)> cb = [](bool aUseDepthAtt) {
 			if (aUseDepthAtt) {
-				gvk::context().main_window()->set_additional_back_buffer_attachments({
+				avk::context().main_window()->set_additional_back_buffer_attachments({
 					avk::attachment::declare(vk::Format::eD32Sfloat, avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 				});
 			}
 			else {
-				gvk::context().main_window()->set_additional_back_buffer_attachments({});
+				avk::context().main_window()->set_additional_back_buffer_attachments({});
 			}
 		};
 

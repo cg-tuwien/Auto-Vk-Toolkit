@@ -1,7 +1,7 @@
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 
-class ray_tracing_custom_intersection_app : public gvk::invokee
+class ray_tracing_custom_intersection_app : public avk::invokee
 {
 	struct transformation_matrices {
 		glm::mat4 mCameraTransform;
@@ -29,8 +29,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void add_geometry_instances_for_bottom_level_acc_structure(size_t aIndex, const avk::bottom_level_acceleration_structure_t& aBlas, glm::vec3 aTranslation) {
 		mTranslations[aIndex + 0] =  aTranslation;
 		mTranslations[aIndex + 1] = -aTranslation;
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
-		mGeometryInstances.emplace_back( gvk::context().create_geometry_instance( aBlas ).set_transform_column_major(gvk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
+		mGeometryInstances.emplace_back( avk::context().create_geometry_instance( aBlas ).set_transform_column_major(avk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 0]))) );
+		mGeometryInstances.emplace_back( avk::context().create_geometry_instance( aBlas ).set_transform_column_major(avk::to_array(glm::translate(glm::mat4{1.0f}, mTranslations[aIndex + 1]))) );
 	}
 
 	void set_bottom_level_pyramid_data()
@@ -60,7 +60,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void build_pyramid_buffers()
 	{
-		auto& vtxBfr = mPyramidVertexBuffers.emplace_back(gvk::context().create_buffer(
+		auto& vtxBfr = mPyramidVertexBuffers.emplace_back(avk::context().create_buffer(
 			avk::memory_usage::host_coherent,
 #if VK_HEADER_VERSION >= 162
 #else
@@ -72,7 +72,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		));
 		auto emptyCmd = vtxBfr->fill(mPyramidVertices.data(), 0);
 		
-		auto& idxBfr = mPyramidIndexBuffers.emplace_back( gvk::context().create_buffer(
+		auto& idxBfr = mPyramidIndexBuffers.emplace_back( avk::context().create_buffer(
 			avk::memory_usage::host_coherent, 
 #if VK_HEADER_VERSION >= 162
 #else
@@ -88,9 +88,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
-		mDescriptorCache = gvk::context().create_descriptor_cache();
+		mDescriptorCache = avk::context().create_descriptor_cache();
 		
-		auto* mainWnd = gvk::context().main_window();
+		auto* mainWnd = avk::context().main_window();
 		auto fif = static_cast<size_t>(mainWnd->number_of_frames_in_flight());
 		for (size_t i = 0; i < fif; ++i) {
 			// ------------ Add AABBs to bottom-level acceleration structures: --------------
@@ -102,11 +102,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto& tLast = mTLAS.emplace_back();
 			
 			for (size_t j=0; j < 3; ++j) {
-				bLast[j] = gvk::context().create_bottom_level_acceleration_structure(
+				bLast[j] = avk::context().create_bottom_level_acceleration_structure(
 					{ avk::acceleration_structure_size_requirements::from_aabbs(1u) }, 
 					true /* allow updates */
 				);
-				gvk::context().record_and_submit_with_fence({ bLast[j]->build({ mAabbs[j] }) }, *mQueue)->wait_until_signalled();
+				avk::context().record_and_submit_with_fence({ bLast[j]->build({ mAabbs[j] }) }, *mQueue)->wait_until_signalled();
 
 				if (0 == i) {
 					add_geometry_instances_for_bottom_level_acc_structure(2*j, bLast[j].as_reference(), glm::vec3{ 0.0f, 0.0f, -3.0f });
@@ -124,11 +124,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Put data into an acceleration structure:
 			const size_t pyrOffset = 3;
 			for (size_t j=0; j < 2; ++j) {
-				bLast[pyrOffset + j] = gvk::context().create_bottom_level_acceleration_structure(
+				bLast[pyrOffset + j] = avk::context().create_bottom_level_acceleration_structure(
 					{ avk::acceleration_structure_size_requirements::from_buffers( avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } ) },
 					true /* allow updates */
 				);
-				gvk::context().record_and_submit_with_fence({ bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } }) }, *mQueue)->wait_until_signalled();
+				avk::context().record_and_submit_with_fence({ bLast[pyrOffset + j]->build({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[i], mPyramidIndexBuffers[i] } }) }, *mQueue)->wait_until_signalled();
 			}
 			
 			if (0 == i /* only once */ ) {
@@ -137,21 +137,21 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			// ----------- Build the top-level acceleration structure (for this frame in flight): -------------
 			assert (8 == mGeometryInstances.size());
-			tLast = gvk::context().create_top_level_acceleration_structure(static_cast<uint32_t>(mGeometryInstances.size()));
-			gvk::context().record_and_submit_with_fence({ tLast->build(mGeometryInstances) }, *mQueue)->wait_until_signalled();
+			tLast = avk::context().create_top_level_acceleration_structure(static_cast<uint32_t>(mGeometryInstances.size()));
+			avk::context().record_and_submit_with_fence({ tLast->build(mGeometryInstances) }, *mQueue)->wait_until_signalled();
 		}
 		
 		// Create offscreen image views to ray-trace into, one for each frame in flight:
 		const auto wdth = mainWnd->resolution().x;
 		const auto hght = mainWnd->resolution().y;
-		const auto frmt = gvk::format_from_window_color_buffer(mainWnd);
+		const auto frmt = avk::format_from_window_color_buffer(mainWnd);
 		for (decltype(fif) i = 0; i < fif; ++i) {
 			mOffscreenImageViews.emplace_back(
-				gvk::context().create_image_view(
-					gvk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
+				avk::context().create_image_view(
+					avk::context().create_image(wdth, hght, frmt, 1, avk::memory_usage::device, avk::image_usage::general_storage_image)
 				)
 			);
-			gvk::context().record_and_submit_with_fence({
+			avk::context().record_and_submit_with_fence({
 				avk::sync::image_memory_barrier(mOffscreenImageViews.back()->get_image(), avk::stage::none >> avk::stage::none, avk::access::none >> avk::access::none)
 					.with_layout_transition(avk::layout::undefined >> avk::layout::general)
 			}, *mQueue)->wait_until_signalled();
@@ -159,7 +159,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		// Create our ray tracing pipeline with the required configuration:
-		mPipeline = gvk::context().create_ray_tracing_pipeline_for(
+		mPipeline = avk::context().create_ray_tracing_pipeline_for(
 			avk::define_shader_table(
 				avk::ray_generation_shader("shaders/rt_aabb.rgen"),
 				avk::procedural_hit_group::create_with_rint_and_rchit("shaders/rt_aabb.rint", "shaders/rt_aabb.rchit"),
@@ -167,7 +167,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::miss_shader("shaders/rt_aabb.rmiss"),
 				avk::miss_shader("shaders/rt_aabb_secondary.rmiss")
 			),
-			gvk::context().get_max_ray_tracing_recursion_depth(),
+			avk::context().get_max_ray_tracing_recursion_depth(),
 			// Define push constants and descriptor bindings:
 			avk::push_constant_binding_data { avk::shader_type::ray_generation, 0, sizeof(transformation_matrices) },
 			avk::descriptor_binding(0, 0, mOffscreenImageViews[0]->as_storage_image(avk::layout::general)), // Just take any, this is just to define the layout
@@ -180,9 +180,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), mainWnd->aspect_ratio(), 0.5f, 100.0f);
 		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
-		gvk::current_composition()->add_element(mQuakeCam);
+		avk::current_composition()->add_element(mQuakeCam);
 
-		auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){
 		        ImGui::Begin("Info & Settings");
@@ -231,10 +231,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		auto* mainWnd = gvk::context().main_window();
+		auto* mainWnd = avk::context().main_window();
 
-		static gvk::window::frame_id_t updateBlasUntilFrame = -1;
-		static gvk::window::frame_id_t updateTlasUntilFrame = -1;
+		static avk::window::frame_id_t updateBlasUntilFrame = -1;
+		static avk::window::frame_id_t updateTlasUntilFrame = -1;
 		if (mUpdateBlas) {
 			updateBlasUntilFrame = mainWnd->current_frame() + mainWnd->number_of_frames_in_flight() - 1;
 		}
@@ -246,7 +246,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			const auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 			for (size_t i=0; i < mBLAS[inFlightIndex].size(); ++i) {
 				if (i < 3) { // 3 AABBs
-					auto cmdBfr = gvk::context().record_and_submit({
+					auto cmdBfr = avk::context().record_and_submit({
 						mBLAS[inFlightIndex][i]->build({ mAabbs[i] }, {}),
 						avk::sync::global_memory_barrier(
 							avk::stage::acceleration_structure_build  >> avk::stage::ray_tracing_shader,
@@ -264,7 +264,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					mPyramidVertexBuffers[inFlightIndex]->fill(mPyramidVertices.data(), 0);
 					mPyramidIndexBuffers[inFlightIndex]->fill(mPyramidIndices.data(), 0);
 
-					auto cmdBfr = gvk::context().record_and_submit({
+					auto cmdBfr = avk::context().record_and_submit({
 						mBLAS[inFlightIndex][i]->update({ avk::vertex_index_buffer_pair{ mPyramidVertexBuffers[inFlightIndex], mPyramidIndexBuffers[inFlightIndex] } }),
 						avk::sync::global_memory_barrier(
 							avk::stage::acceleration_structure_build  >> avk::stage::ray_tracing_shader,
@@ -285,7 +285,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				mGeometryInstances[i].mTransform.matrix[2][3] = mTranslations[i][2];
 			}
 
-			auto cmdBfr = gvk::context().record_and_submit({
+			auto cmdBfr = avk::context().record_and_submit({
 				avk::sync::global_memory_barrier(
 					avk::stage::acceleration_structure_build  >> avk::stage::acceleration_structure_build,
 					avk::access::acceleration_structure_write >> avk::access::acceleration_structure_read
@@ -300,17 +300,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mainWnd->handle_lifetime(std::move(cmdBfr));
 		}
 
-		if (gvk::input().key_pressed(gvk::key_code::space)) {
+		if (avk::input().key_pressed(avk::key_code::space)) {
 			// Print the current camera position
 			auto pos = mQuakeCam.translation();
-			LOG_INFO(fmt::format("Current camera position: {}", gvk::to_string(pos)));
+			LOG_INFO(fmt::format("Current camera position: {}", avk::to_string(pos)));
 		}
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
-			gvk::current_composition()->stop();
+			avk::current_composition()->stop();
 		}
-		if (gvk::input().key_pressed(gvk::key_code::f1)) {
-			auto imguiManager = gvk::current_composition()->element_by_type<gvk::imgui_manager>();
+		if (avk::input().key_pressed(avk::key_code::f1)) {
+			auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 			if (mQuakeCam.is_enabled()) {
 				mQuakeCam.disable();
 				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
@@ -324,11 +324,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void render() override
 	{
-		auto mainWnd = gvk::context().main_window();
+		auto mainWnd = avk::context().main_window();
 		auto inFlightIndex = mainWnd->in_flight_index_for_frame();
 
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -337,7 +337,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 
-		gvk::context().record({
+		avk::context().record({
 				avk::command::bind_pipeline(mPipeline.as_reference()),
 				avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 					avk::descriptor_binding(0, 0, mOffscreenImageViews[inFlightIndex]->as_storage_image(avk::layout::general)),
@@ -347,7 +347,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				// Do it:
 				avk::command::trace_rays(
-					gvk::for_each_pixel(mainWnd),
+					avk::for_each_pixel(mainWnd),
 					mPipeline->shader_binding_table(),
 					avk::using_raygen_group_at_index(0),
 					avk::using_miss_group_at_index(0),
@@ -393,7 +393,7 @@ private: // v== Member variables ==v
 	avk::descriptor_cache mDescriptorCache;
 	std::vector<avk::image_view> mOffscreenImageViews;
 	avk::ray_tracing_pipeline mPipeline;
-	gvk::quake_camera mQuakeCam;
+	avk::quake_camera mQuakeCam;
 
 	// Bottom level acceleration structure data:
 	std::array<VkAabbPositionsKHR, 3> mAabbs;
@@ -423,26 +423,26 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Real-Time Ray Tracing - Custom Intersection Example");
+		auto mainWnd = avk::context().create_window("Real-Time Ray Tracing - Custom Intersection Example");
 		mainWnd->set_resolution({ 1920, 1080 });
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
+		auto& singleQueue = avk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
 		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = ray_tracing_custom_intersection_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			gvk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing - Custom Intersection Example"),
+			avk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing - Custom Intersection Example"),
 #if VK_HEADER_VERSION >= 162
-			gvk::required_device_extensions()
+			avk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
@@ -459,7 +459,7 @@ int main() // <== Starting point ==
 				aAccelerationStructureFeatures.setAccelerationStructure(VK_TRUE);
 			},
 #else 
-			gvk::required_device_extensions()
+			avk::required_device_extensions()
 				.add_extension(VK_KHR_RAY_TRACING_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
@@ -480,19 +480,19 @@ int main() // <== Starting point ==
 		
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):
-		gvk::sequential_invoker invoker;
+		avk::sequential_invoker invoker;
 
 		// With everything configured, let us start our render loop:
 		composition.start_render_loop(
 			// Callback in the case of update:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Call all the update() callbacks:
 				invoker.invoke_updates(aToBeInvoked);
 			},
 			// Callback in the case of render:
-			[&invoker](const std::vector<gvk::invokee*>& aToBeInvoked) {
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
 				// Sync (wait for fences and so) per window BEFORE executing render callbacks
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->sync_before_render();
 				});
 
@@ -500,16 +500,14 @@ int main() // <== Starting point ==
 				invoker.invoke_renders(aToBeInvoked);
 
 				// Render per window:
-				gvk::context().execute_for_each_window([](gvk::window* wnd) {
+				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->render_frame();
 				});
 			}
-		); // This is a blocking call, which loops until gvk::current_composition()->stop(); has been called (see update())
+		); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
 	
 		result = EXIT_SUCCESS;
 	}
-	catch (gvk::logic_error&) {}
-	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
 	return result;

@@ -33,7 +33,7 @@
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\gears_vk\gears-vk.vcxproj">
+    <ProjectReference Include="..\..\auto_vk_toolkit\auto_vk_toolkit.vcxproj">
       <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
     </ProjectReference>
   </ItemGroup>
