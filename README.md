@@ -1,6 +1,6 @@
 # Auto-Vk-Toolkit v0.98
 
-*Auto-Vk-Toolkit* is a framework for the Vulkan graphics API, implemented in modern C++, using C++17 and C++20 features.     
+*Auto-Vk-Toolkit* is a framework for the Vulkan graphics API, implemented in modern C++.  
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
@@ -129,6 +129,8 @@ _A:_ Check out [Post Build Helper](./visual_studio#post-build-helper), which off
 * [Application could not start at first try (maybe due to missing assets or DLLs)](./visual_studio#application-could-not-start-at-first-try-maybe-due-to-missing-assets-or-dlls)
 * [Error message about denied access to DLL files (DLLs are not re-deployed)](./visual_studio#error-message-about-denied-access-to-dll-files-dlls-are-not-re-deployed)
 * [Slow performance when showing lists within the Post Build Helper](./visual_studio#slow-performance-when-showing-lists-within-the-post-build-helper)
+* [Error message in the UI of Post Build Helper: "Could not find part of the path '...'"](./visual_studio#error-message-in-the-ui-of-post-build-helper-could-not-find-part-of-the-path-)
+* [Error message in the console: `can't fopen`, or `!RUNTIME ERROR! Couldn't load image from '...'` or similar](./visual_studio#error-message-in-the-console-cant-fopen-or-runtime-error-couldnt-load-image-from--or-similar)
 
 **Q: The application takes a long time to load assets like 3D models and images. Can it be accelerated?**     
 _A:_ If you are referring to _Debug_ builds, you can configure _Post Build Helper_ so that it deploys _Release_ DLLs of some external dependencies even for _Debug_ builds. They should accelerate asset loading a lot. To enable deployment of _Release_ DLLs, please open _Post Build Helper_'s [settings](./visual_studio#post-build-helper-settings) and enable the option "Always deploy Release DLLs".
