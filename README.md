@@ -1,10 +1,12 @@
 # Auto-Vk-Toolkit v0.98
 
-*Auto-Vk-Toolkit* is a framework for the Vulkan graphics API, implemented in modern C++.  
+*Auto-Vk-Toolkit* (formerly "Gears-Vk") is a framework for the Vulkan graphics API, implemented in modern C++.
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
-_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/)), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR)).
+_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/)), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR)). The following image showcases some work that has been developed using it: Post-processing graphics effects; division of meshes into meshlets, and rendering them with fine-grained view-frustum and backface culling; real-time ray traced shadows and reflections. 
+
+![Some screenshots of applications implemented with Auto-Vk-Toolkit](./docs/images/auto-vk-toolkit-teaser.png)
 
 Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)) include:
 - Window management and input handling through [GLFW](https://www.glfw.org/).
@@ -55,7 +57,7 @@ Please see [docs/cmake.md](/docs/cmake.md)!
 
 Hello World           |  Multiple Queues   | Skinned Meshlets | Texture Cubemap
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-![](./docs/images/example_hello_world.png)  |  ![](./docs/images/example_multiple_queues.png) |  ![](./docs/images/example_skinned_meshlets.png) |  ![](./docs/images/example_texture_cubemap.png)
+![Screenshot of the hello_world example application](./docs/images/example_hello_world.png)  |  ![Screenshot of the multiple_queues example application](./docs/images/example_multiple_queues.png) |  ![Screenshot of the skinned_meshlets example application](./docs/images/example_skinned_meshlets.png) |  ![Screenshot of the texture_cubemap example application](./docs/images/example_texture_cubemap.png)
 
 Several example applications are included in this repository:
 - [Hello World](./examples/hello_world): How to render one single triangle
