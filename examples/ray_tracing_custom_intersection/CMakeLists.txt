@@ -12,4 +12,4 @@ add_post_build_commands(ray_tracing_custom_intersection
     ${ray_tracing_custom_intersection_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

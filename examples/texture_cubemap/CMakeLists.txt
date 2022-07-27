@@ -15,4 +15,4 @@ add_post_build_commands(texture_cubemap
     ${texture_cubemap_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:texture_cubemap>/assets
     "${texture_cubemap_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

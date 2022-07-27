@@ -10,4 +10,4 @@ add_post_build_commands(multiple_queues
     ${multiple_queues_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:multiple_queues>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

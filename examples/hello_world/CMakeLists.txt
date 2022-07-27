@@ -10,4 +10,4 @@ add_post_build_commands(hello_world
     ${hello_world_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:hello_world>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

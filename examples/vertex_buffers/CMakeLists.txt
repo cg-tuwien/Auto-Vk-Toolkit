@@ -10,4 +10,4 @@ add_post_build_commands(vertex_buffers
     ${vertex_buffers_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:vertex_buffers>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

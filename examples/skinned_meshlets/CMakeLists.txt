@@ -15,4 +15,4 @@ add_post_build_commands(skinned_meshlets
     ${skinned_meshlets_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:skinned_meshlets>/assets
     "${skinned_meshlets_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

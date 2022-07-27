@@ -13,4 +13,4 @@ add_post_build_commands(compute_image_processing
     ${compute_image_processing_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:compute_image_processing>/assets
     "${compute_image_processing_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

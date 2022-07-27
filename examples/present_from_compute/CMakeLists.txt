@@ -10,4 +10,4 @@ add_post_build_commands(present_from_compute
     ${present_from_compute_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:present_from_compute>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

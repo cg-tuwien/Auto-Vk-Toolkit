@@ -10,4 +10,4 @@ add_post_build_commands(multi_invokee_rendering
     ${multi_invokee_rendering_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:multi_invokee_rendering>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

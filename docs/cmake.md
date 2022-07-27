@@ -67,6 +67,8 @@ The build process can be configured, supporting the following options:
 | `avk_toolkit_BuildRayTracingCustomIntersection` | Build example: ray_tracing_custom_intersection. | `OFF` |
 | `avk_toolkit_BuildTextureCubemap` | Build example: texture_cubemap. | `OFF` |
 | `avk_toolkit_BuildVertexBuffers` | Build example: vertex_buffers. | `OFF` |
+| `avk_toolkit_BuildMultipleQueues` | Build example: multiple_queues. | `OFF` |
+| `avk_toolkit_BuildPresentFromCompute` | Build example: present_from_compute. | `OFF` |
 
 In CLion, under the Settings menu, find CMake and enter `-D avk_toolkit_BuildModelLoader=ON` in the "CMake options"-field for example, then reload the CMakeLists in the project and CLion should automagically add the example's build configuration which can then be run on the top right of the UI.
 
