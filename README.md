@@ -4,7 +4,7 @@
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
-_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/), and teaching (e.g., [Algorithms for Real-Time Rendering](Algorithms for Real-Time Rendering).
+_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR).
 
 Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) include:
 - Window management and input handling through [GLFW](https://www.glfw.org/).
