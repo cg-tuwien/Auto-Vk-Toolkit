@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 include(FetchContent)
 
 if(UNIX)
-    if (NOT gvk_ForceAssimpBuild)
+    if (NOT avk_toolkit_ForceAssimpBuild)
         find_package(assimp)
-    endif (NOT gvk_ForceAssimpBuild)
-    if (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
+    endif (NOT avk_toolkit_ForceAssimpBuild)
+    if (NOT assimp_FOUND OR avk_toolkit_ForceAssimpBuild)
         set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
         set(ASSIMP_BUILD_TESTS OFF)
         set(INJECT_DEBUG_POSTFIX OFF)
@@ -18,7 +18,7 @@ if(UNIX)
         )
 
         FetchContent_MakeAvailable(assimp)
-    else (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
+    else (NOT assimp_FOUND OR avk_toolkit_ForceAssimpBuild)
         # there is some issue with libassimp-dev in the GitHub workflows on Ubuntu
         # see:
         #  - https://github.com/cg-tuwien/Auto-Vk-Toolkit/runs/3432527652?check_suite_focus=true#step:4:80
@@ -40,18 +40,18 @@ if(UNIX)
                     PROPERTY IMPORTED_LOCATION
                     "${assimp_LOCATION_RELEASE}")
         endif()
-    endif (NOT assimp_FOUND OR gvk_ForceAssimpBuild)
+    endif (NOT assimp_FOUND OR avk_toolkit_ForceAssimpBuild)
 else()
-    set(gvk_AssimpReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/assimp-vc140-mt.dll")
-    set(gvk_AssimpDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/assimp-vc140-mt.dll")
-    set(gvk_AssimpReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/assimp-vc140-mt.lib")
-    set(gvk_AssimpDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/assimp-vc140-mt.lib")
+    set(avk_toolkit_AssimpReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/assimp-vc140-mt.dll")
+    set(avk_toolkit_AssimpDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/assimp-vc140-mt.dll")
+    set(avk_toolkit_AssimpReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/assimp-vc140-mt.lib")
+    set(avk_toolkit_AssimpDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/assimp-vc140-mt.lib")
 
     add_library(assimp::assimp SHARED IMPORTED)
     set_target_properties(assimp::assimp PROPERTIES
-        IMPORTED_IMPLIB         "${gvk_AssimpReleaseLIBPath}"
-        IMPORTED_IMPLIB_DEBUG   "${gvk_AssimpDebugLIBPath}"
-        IMPORTED_LOCATION       "${gvk_AssimpReleaseDLLPath}"
-        IMPORTED_LOCATION_DEBUG "${gvk_AssimpDebugDLLPath}"
+        IMPORTED_IMPLIB         "${avk_toolkit_AssimpReleaseLIBPath}"
+        IMPORTED_IMPLIB_DEBUG   "${avk_toolkit_AssimpDebugLIBPath}"
+        IMPORTED_LOCATION       "${avk_toolkit_AssimpReleaseDLLPath}"
+        IMPORTED_LOCATION_DEBUG "${avk_toolkit_AssimpDebugDLLPath}"
         IMPORTED_CONFIGURATIONS "RELEASE;DEBUG")
 endif(UNIX)

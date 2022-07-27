@@ -83,7 +83,7 @@ jobs:
           export CXX=${{ matrix.config.cxx }}
           cmake \
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-            -Dgvk_BuildHelloWorld=ON \
+            -Davk_toolkit_BuildHelloWorld=ON \
             -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
             -DASSIMP_BUILD_TESTS=OFF \
             -DINJECT_DEBUG_POSTFIX=OFF \
@@ -146,7 +146,7 @@ jobs:
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
           cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
-            -Dgvk_BuildHelloWorld=ON `
+            -Davk_toolkit_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
 
       - name: Build

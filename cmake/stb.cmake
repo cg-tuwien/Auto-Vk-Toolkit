@@ -50,16 +50,16 @@ if(UNIX)
     target_sources(stb_shared PRIVATE
             ${stb_SOURCE_DIR}/stb_lib.cpp)
 else()
-    set(gvk_STBReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/stb.dll")
-    set(gvk_STBDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/stb.dll")
-    set(gvk_STBReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/stb.lib")
-    set(gvk_STBDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/stb.lib")
+    set(avk_toolkit_STBReleaseDLLPath "${PROJECT_SOURCE_DIR}/external/release/bin/x64/stb.dll")
+    set(avk_toolkit_STBDebugDLLPath "${PROJECT_SOURCE_DIR}/external/debug/bin/x64/stb.dll")
+    set(avk_toolkit_STBReleaseLIBPath "${PROJECT_SOURCE_DIR}/external/release/lib/x64/stb.lib")
+    set(avk_toolkit_STBDebugLIBPath "${PROJECT_SOURCE_DIR}/external/debug/lib/x64/stb.lib")
 
     add_library(stb SHARED IMPORTED)
     set_target_properties(stb PROPERTIES
-        IMPORTED_IMPLIB         "${gvk_STBReleaseLIBPath}"
-        IMPORTED_IMPLIB_DEBUG   "${gvk_STBDebugLIBPath}"
-        IMPORTED_LOCATION       "${gvk_STBReleaseDLLPath}"
-        IMPORTED_LOCATION_DEBUG "${gvk_STBDebugDLLPath}"
+        IMPORTED_IMPLIB         "${avk_toolkit_STBReleaseLIBPath}"
+        IMPORTED_IMPLIB_DEBUG   "${avk_toolkit_STBDebugLIBPath}"
+        IMPORTED_LOCATION       "${avk_toolkit_STBReleaseDLLPath}"
+        IMPORTED_LOCATION_DEBUG "${avk_toolkit_STBDebugDLLPath}"
         IMPORTED_CONFIGURATIONS "RELEASE;DEBUG")
 endif(UNIX)

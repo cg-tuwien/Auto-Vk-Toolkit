@@ -80,12 +80,12 @@ function(add_post_build_commands target glslDirectory spvDirectory assetsDirecto
 
     # shared libraries
     if (WIN32)
-        if (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
-            set(gvk_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/release/bin/x64")
+        if (CMAKE_BUILD_TYPE STREQUAL "Release" OR avk_toolkit_ReleaseDLLsOnly)
+            set(avk_toolkit_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/release/bin/x64")
         else()
-            set(gvk_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/debug/bin/x64")
-        endif (CMAKE_BUILD_TYPE STREQUAL "Release" OR gvk_ReleaseDLLsOnly)
-        file(GLOB dllsToCopy "${gvk_DLLDirectory}/*.dll")
+            set(avk_toolkit_DLLDirectory "${Auto_Vk_Toolkit_SOURCE_DIR}/external/debug/bin/x64")
+        endif (CMAKE_BUILD_TYPE STREQUAL "Release" OR avk_toolkit_ReleaseDLLsOnly)
+        file(GLOB dllsToCopy "${avk_toolkit_DLLDirectory}/*.dll")
         foreach(dllToCopy ${dllsToCopy})
             get_filename_component(dllFileName ${dllToCopy} NAME)
             if(symlinks)
