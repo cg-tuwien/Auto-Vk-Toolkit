@@ -1023,6 +1023,12 @@ namespace CgbPostBuildHelper
 								{
 									var updFilePath = fileInfos.Value.Item1;
 									var updFilterPath = fileInfos.Value.Item2;
+
+									if (null == updFilePath || null == updFilterPath)
+                                    {
+										continue;
+                                    }
+
 									HandleFileToDeploy(updConfig, updFilePath, updFilterPath, deployments, fileDeployments, windowsToShowFor);
 								}
 
