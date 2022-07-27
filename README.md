@@ -6,7 +6,7 @@ To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwi
 
 _Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/)), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR)).
 
-Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) include:
+Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)) include:
 - Window management and input handling through [GLFW](https://www.glfw.org/).
 - Render loop framework with `update()` and `render()` callbacks at varying or fixed update times.
 - Powerful _Auto-Vk_-`avk::root` implementation, with swap chain handling and automatic resource lifetime management.
@@ -56,6 +56,23 @@ Please see [docs/cmake.md](/docs/cmake.md)!
 Hello World           |  Multiple Queues   | Skinned Meshlets | Texture Cubemap
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 ![](./docs/images/example_hello_world.png)  |  ![](./docs/images/example_multiple_queues.png) |  ![](./docs/images/example_skinned_meshlets.png) |  ![](./docs/images/example_texture_cubemap.png)
+
+Several example applications are included in this repository:
+- [Hello World](./examples/hello_world): How to render one single triangle
+- [Vertex Buffers](./examples/vertex_buffers): How to use vertex buffers with graphics pipelines
+- [Framebuffer](./examples/framebuffer): How to create and use framebuffers
+- [Multi Invokee Rendering](./examples/multi_invokee_rendering): How to use multiple invokees, how your application could be structured
+- [Multiple Qeues](./examples/multiple_queues): How to utilize multiple queues (two transfer and one graphics queue)
+- [Compute Image Processing](./examples/compute_image_processing): How to use compute shaders for some image processing
+- [Present From Compute](./examples/present_from_compute): How to present to the swap chain from a compute queue
+- [Model Loader](./examples/model_loader): How to load 3D models from file and render them
+- [ORCA Loader](./examples/orca_loader): How to load ORCA `.fscene` files and render them; also how to use the serializer
+- [Static Meshlets](./examples/static_meshlets): How to divide a 3D model into small meshlets and render them using task and mesh shaders
+- [Skinned Meshlets](./examples/skinned_meshlets): How to divide an animated, skinned 3D model into small meshlets and how to animate and render that using task and mesh shaders
+- [Ray Tracing With Shadows and AO](./examples/ray_tracing_with_shadows_and_ao): How to build acceleration structures from triangle meshes and create a ray-traced image. Additionally adds ray traced shadows and a very simple (and ugly) version of ambient occlusion to the rendered result by recursive ray tracing from closest hit shaders.
+- [Ray Query in Ray Tracing Shaders](./examples/ray_query_in_ray_tracing_shaders): Similar to the "Ray Tracing With Shadows and AO" Example, but instead of recursive ray tracing with a shader binding table etc., it simply uses ray queries from closest hit shaders to achieve the same result.
+- [Ray Tracing Custom Intersection](./examples/ray_tracing_custom_intersection): How to build acceleration structures from AABBs and from triangle meshes.
+- [Texture Cubemap](./examples/texture_cubemap): How to load and use cube maps.
 
 # Creating a New Project
 
