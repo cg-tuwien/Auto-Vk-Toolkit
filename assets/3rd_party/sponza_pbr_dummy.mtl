@@ -1,0 +1,95 @@
+newmtl leaf
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Thorn_roughness.png
+
+newmtl vase_round
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\VaseRound_roughness.png
+
+newmtl Material__57
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\VasePlant_roughness.png
+
+newmtl Material__298
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Background_roughness.png
+
+newmtl bricks
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Bricks_a_Roughness.png
+
+newmtl arch
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Arch_roughness.png
+
+newmtl ceiling
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Ceiling_roughness.png
+
+newmtl column_a
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Column_a_roughness.png
+
+newmtl floor
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Floor_roughness.png
+
+newmtl column_c
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Column_c_roughness.png
+
+newmtl details
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Details_roughness.png
+
+newmtl column_b
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Column_b_roughness.png
+
+newmtl flagpole
+	map_Ka sponza_pbr_textures\Metallic_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_FlagPole_roughness.png
+
+newmtl fabric_e
+	map_Ka sponza_pbr_textures\Sponza_Fabric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Fabric_roughness.png
+
+newmtl fabric_d
+	map_Ka sponza_pbr_textures\Sponza_Fabric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Fabric_roughness.png
+
+newmtl fabric_a
+	map_Ka sponza_pbr_textures\Sponza_Fabric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Fabric_roughness.png
+
+newmtl fabric_g
+	map_Ka sponza_pbr_textures\Sponza_Curtain_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Curtain_roughness.png
+
+newmtl fabric_c
+	map_Ka sponza_pbr_textures\Sponza_Curtain_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Curtain_roughness.png
+
+newmtl fabric_f
+	map_Ka sponza_pbr_textures\Sponza_Curtain_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Curtain_roughness.png
+
+newmtl chain
+	map_Ka sponza_pbr_textures\ChainTexture_Metallic.png
+	map_Kd sponza_pbr_textures\ChainTexture_Roughness.png
+
+newmtl vase_hanging
+	map_Ka sponza_pbr_textures\Metallic_metallic.png
+	map_Kd sponza_pbr_textures\VaseHanging_roughness.png
+
+newmtl vase
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Vase_roughness.png
+
+newmtl Material__25
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Lion_Roughness.png
+
+newmtl roof
+	map_Ka sponza_pbr_textures\Dielectric_metallic.png
+	map_Kd sponza_pbr_textures\Sponza_Roof_roughness.png

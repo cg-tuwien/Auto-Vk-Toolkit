@@ -1,0 +1,594 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
+      <Filter>auto_vk_toolkit_src\external\FileWatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
+      <Filter>auto_vk_toolkit_src\external\FileWatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="cg_stdafx.cpp">
+      <Filter>precompiled_headers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_manager.cpp">
+      <Filter>auto_vk_toolkit_src\user_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\input_buffer.cpp">
+      <Filter>auto_vk_toolkit_src\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\fixed_update_timer.cpp">
+      <Filter>auto_vk_toolkit_src\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\varying_update_timer.cpp">
+      <Filter>auto_vk_toolkit_src\timers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\composition_interface.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\context_generic_glfw.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\context_vulkan.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\window.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\model.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\orca_scene.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\material_image_helpers.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\transform.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\camera.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\quake_camera.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\log.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\math_utils.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\window_base.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\vk_convenience_functions.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\composition.cpp">
+      <Filter>auto_vk_toolkit_src\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk\src\avk.cpp">
+      <Filter>auto_vk_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\animation.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\updater.cpp">
+      <Filter>auto_vk_toolkit_src\updater</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\files_changed_event.cpp">
+      <Filter>auto_vk_toolkit_src\updater</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp">
+      <Filter>auto_vk_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\bezier_curve.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\catmull_rom_spline.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\cp_interpolation.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\cubic_uniform_b_spline.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\quadratic_uniform_b_spline.cpp">
+      <Filter>auto_vk_toolkit_src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\image_data.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
+      <Filter>auto_vk_toolkit_src\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_utils.cpp">
+      <Filter>auto_vk_toolkit_src\user_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\meshlet_helpers.cpp">
+      <Filter>auto_vk_toolkit_src\data</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\fixed_update_timer.hpp">
+      <Filter>auto_vk_toolkit_includes\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\timer_frame_type.hpp">
+      <Filter>auto_vk_toolkit_includes\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\timer_interface.hpp">
+      <Filter>auto_vk_toolkit_includes\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\input_buffer.hpp">
+      <Filter>auto_vk_toolkit_includes\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\key_code.hpp">
+      <Filter>auto_vk_toolkit_includes\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\key_state.hpp">
+      <Filter>auto_vk_toolkit_includes\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\model.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\varying_update_timer.hpp">
+      <Filter>auto_vk_toolkit_includes\timers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_stdafx.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_targetver.hpp">
+      <Filter>precompiled_headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\orca_scene.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource_gpu_data.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\imgui_manager.hpp">
+      <Filter>auto_vk_toolkit_includes\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cursor.hpp">
+      <Filter>auto_vk_toolkit_includes\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_generic_glfw.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_generic_glfw_types.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_vulkan.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\window.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\context_state.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\configure_and_compose.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\composition.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\composition_interface.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_image_helpers.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_config.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_gpu_data.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\transform.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\log.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\camera.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\quake_camera.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\math_utils.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\window_base.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\vk_convenience_functions.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\invoker_interface.hpp">
+      <Filter>auto_vk_toolkit_includes\invokers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\settings.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\conversion_utils.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\invokee.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\sequential_invoker.hpp">
+      <Filter>auto_vk_toolkit_includes\invokers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\attachment.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_error.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\avk_log.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\binding_data.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\bindings.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\border_handling_mode.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\bottom_level_acceleration_structure.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_meta.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\buffer_view.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\command_buffer.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\command_pool.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\commands.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\compute_pipeline_config.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\cpp_utils.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_alloc_request.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_cache.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_pool.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\descriptor_set_layout.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\fence.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\filter_mode.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\format_for.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\framebuffer.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\geometry_instance.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\graphics_pipeline_config.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_format.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_color_channel_order.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_sampler.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_usage.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\image_view.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\input_description.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_access.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\memory_usage.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\on_load.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\on_store.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\pipeline_stage.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\push_constants.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\queue.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\ray_tracing_pipeline_config.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\renderpass.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\sampler.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\semaphore.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\set_of_descriptor_set_layouts.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_binding_table.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_info.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\shader_type.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\old_sync.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\top_level_acceleration_structure.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usages.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_usage_type.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vertex_index_buffer_pair.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vk_utils2.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vulkan_helper_functions.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\query_pool.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\animation.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\model_types.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_resized_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_changed_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\files_changed_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\updater.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\event_data.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\vma_handle.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\mem_handle.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\mapping_access.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\scoped_mapping.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\bezier_curve.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\catmull_rom_spline.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cp_interpolation.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\cubic_uniform_b_spline.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\quadratic_uniform_b_spline.hpp">
+      <Filter>auto_vk_toolkit_includes\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\destroying_events.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_format_changed_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\concurrent_frames_count_changed_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\swapchain_additional_attachments_changed_event.hpp">
+      <Filter>auto_vk_toolkit_includes\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\material_gpu_data_ext.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\image_data.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\imgui_utils.h">
+      <Filter>auto_vk_toolkit_includes\user_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\meshlet_helpers.hpp">
+      <Filter>auto_vk_toolkit_includes\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\layout.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\subpass_dependency.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk\include\avk\stage_and_access.hpp">
+      <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="precompiled_headers">
+      <UniqueIdentifier>{7ec27cee-9cd5-4218-838d-24f9822158b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes">
+      <UniqueIdentifier>{f0debc15-831c-4ce5-8aa8-b45e296d9848}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\user_interface">
+      <UniqueIdentifier>{f803aed2-06ab-4a2f-b409-9c74eb85a01b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\base">
+      <UniqueIdentifier>{26caf0b8-7ce7-43d3-9e8f-9b44e20fdbae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\timers">
+      <UniqueIdentifier>{bb4197cf-5a2e-439b-8c69-0f3197ed1abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\input">
+      <UniqueIdentifier>{13e34ef1-6c80-45ea-a246-44fbddb451b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\invokers">
+      <UniqueIdentifier>{55acfcc3-15f4-491b-8cfa-d768e751b37a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\data">
+      <UniqueIdentifier>{7e592d59-e1a9-4f56-a9d2-2fdb56a7075f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\utils">
+      <UniqueIdentifier>{42c1501c-8c6d-4276-ac58-d37027b2c265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_includes\updater">
+      <UniqueIdentifier>{0d850567-16cc-4bcc-a93d-64942590e522}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_includes">
+      <UniqueIdentifier>{9e5f3a01-c1b4-4952-a270-2a62a0bc3aa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_src">
+      <UniqueIdentifier>{568607b2-d6cb-4a02-9b26-0d96fab766de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src">
+      <UniqueIdentifier>{99cf0065-9330-4485-b7e0-b67aa6c775cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\external">
+      <UniqueIdentifier>{01ec6606-9462-4183-b896-331537dd7240}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\external\FileWatcher">
+      <UniqueIdentifier>{e42383c6-18d8-4c20-95ad-9d3f00c29b0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\user_interface">
+      <UniqueIdentifier>{b3702408-1275-441e-96c8-274bca405c65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\base">
+      <UniqueIdentifier>{20a5d664-c092-4504-91ac-42ba3437b7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\data">
+      <UniqueIdentifier>{e1a6a227-b044-42b8-ae5c-68f3bd93df72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\input">
+      <UniqueIdentifier>{26864eed-0286-4cb0-b966-c212bb6a9b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\timers">
+      <UniqueIdentifier>{1a6b27c5-b97b-4f6b-af5d-646a8543d57a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\utils">
+      <UniqueIdentifier>{c52831a5-f770-4498-84d8-f1957757ebad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="auto_vk_toolkit_src\updater">
+      <UniqueIdentifier>{2dda539a-e6b0-4a2c-9780-d2135446e605}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,5 @@
 # Blender v2.78 (sub 0) OBJ File: ''
 # www.blender.org
-mtllib parallelogram.mtl
 o parallelogram
 v -0.473668 -0.006892 -0.006192
 v -0.511436 2.699352 0.661454

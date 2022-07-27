@@ -1,50 +1,51 @@
-#include <gvk.hpp>
+#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 
-class multi_invokee_rendering_app : public gvk::invokee
+class multi_invokee_rendering_app : public avk::invokee
 {
-public: // v== cgb::invokee overrides which will be invoked by the framework ==v
-	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder = 0)
-		: gvk::invokee(aExecutionOrder), mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }
+public: 
+	multi_invokee_rendering_app(avk::queue& aQueue, unsigned int aTrianglePart, int aExecutionOrder)
+		: mQueue{ &aQueue }, mTrianglePart{ aTrianglePart }, mCustomExecutionOrder(aExecutionOrder)
 	{}
 
 	void initialize() override
-	{		
-		auto wnd = gvk::context().main_window();
+	{
+		auto wnd = avk::context().main_window();
 
-		std::vector<avk::attachment> attachments;
-		attachments.push_back(avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store)); // But not in presentable format, because ImGui (and other invokees) comes after);
-		for (auto a : wnd->get_additional_back_buffer_attachments()) {
-			a.mLoadOperation = avk::on_load::dont_care;
-			a.mStoreOperation = avk::on_store::dont_care;
-			attachments.push_back(a);
-		}
-		mRenderPass = gvk::context().create_renderpass(
-			attachments,
-			[](avk::renderpass_sync& rpSync) {
-				if (rpSync.is_external_pre_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mDestinationMemoryDependency = avk::memory_access::color_attachment_read_access;
-				}
-				if (rpSync.is_external_post_sync()) {
-					rpSync.mSourceStage = avk::pipeline_stage::color_attachment_output;
-					rpSync.mSourceMemoryDependency = avk::memory_access::color_attachment_write_access;
-					rpSync.mDestinationStage = avk::pipeline_stage::bottom_of_pipe;
-					rpSync.mDestinationMemoryDependency = {};
-				}
-			}
-		);
+		auto subpassDependencies = std::vector{
+			avk::subpass_dependency(
+				avk::subpass::external >> avk::subpass::index(0),
+				avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+				avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write // Layout transition is BOTH, read and write!
+			),
+			avk::subpass_dependency(
+				avk::subpass::index(0) >> avk::subpass::external,
+				avk::stage::color_attachment_output >> avk::stage::color_attachment_output,
+				avk::access::color_attachment_write >> avk::access::color_attachment_read | avk::access::color_attachment_write
+			)
+		};
 
+		mClearRenderPass = avk::context().create_renderpass({ 
+				avk::attachment::declare(
+					avk::format_from_window_color_buffer(avk::context().main_window()), 
+					avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0), avk::on_store::store
+				) 
+			}, subpassDependencies);
 
+		mLoadRenderPass = avk::context().create_renderpass({
+				avk::attachment::declare(
+					avk::format_from_window_color_buffer(avk::context().main_window()),
+					avk::on_load::load                                             , avk::usage::color(0), avk::on_store::store
+				)
+			}, subpassDependencies);
+		
 		// Create a graphics pipeline:
-		mPipeline = gvk::context().create_graphics_pipeline_for(
+		mPipeline = avk::context().create_graphics_pipeline_for(
 			avk::vertex_shader("shaders/a_triangle.vert"),
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(gvk::context().main_window()->backbuffer_at_index(0)),
-			avk::attachment::declare(gvk::format_from_window_color_buffer(gvk::context().main_window()), avk::on_load::load, avk::color(0), avk::on_store::store),
+			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
+			mClearRenderPass,
 			avk::push_constant_binding_data{ avk::shader_type::vertex, 0, sizeof(unsigned int) }
 		);
 
@@ -53,62 +54,67 @@ public: // v== cgb::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		mPipeline.enable_shared_ownership(); // Make it usable with the updater
 		mUpdater->on(
-				gvk::swapchain_resized_event(gvk::context().main_window()),
-				gvk::shader_files_changed_event(mPipeline)
-			)
-			.update(mPipeline);
+			avk::swapchain_resized_event(avk::context().main_window()),
+			avk::shader_files_changed_event(mPipeline.as_reference())
+		)
+		.update(mPipeline);
 	}
 
 	void update() override
 	{
 		// On Esc pressed,
-		if (gvk::input().key_pressed(gvk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// stop the current composition:
-			gvk::current_composition()->stop();
+			avk::current_composition()->stop();
 		}
 	}
 
 	void render() override
 	{
-		auto mainWnd = gvk::context().main_window();
+		auto mainWnd = avk::context().main_window();
 
 		// need handling the case where previous invokees had been disabled (or this is the first invokee on the list)
 		bool firstInvokeeInChain = !mainWnd->has_consumed_current_image_available_semaphore();
 
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = gvk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		cmdBfr->begin_recording();
 
-		const auto pushConstants = mTrianglePart;
-		cmdBfr->handle().pushConstants(mPipeline->layout_handle(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), &pushConstants);
-		
-		// first invokee needs to clear up the backbuffer image: main window render pass clears on load
-		cmdBfr->begin_render_pass_for_framebuffer(firstInvokeeInChain ? gvk::context().main_window()->get_renderpass() : const_referenced(mRenderPass.value()), gvk::context().main_window()->current_backbuffer());
-		cmdBfr->handle().bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline->handle());
-		cmdBfr->handle().draw(3u, 1u, 0u, 0u);
-		cmdBfr->end_render_pass();
-		cmdBfr->end_recording();
-		
-		if (!firstInvokeeInChain) {
-			mQueue->submit(cmdBfr);
-			mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		auto commands = avk::context().record({
+			avk::command::push_constants(mPipeline->layout(), mTrianglePart, avk::shader_type::vertex),
+			avk::command::render_pass(
+				firstInvokeeInChain ? mClearRenderPass.as_reference() : mLoadRenderPass.as_reference(), 
+				avk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(mPipeline.as_reference()),
+					avk::command::draw(3u, 1u, 0u, 0u)
+				}
+			)
+		});
+
+		if (firstInvokeeInChain) {
+			commands
+				.into_command_buffer(cmdBfr)
+				.then_submit_to(*mQueue)
+				.waiting_for(mainWnd->consume_current_image_available_semaphore() >> avk::stage::color_attachment_output);
 		}
-		else
-		{
-			auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
-			mQueue->submit(cmdBfr, imageAvailableSemaphore);
-			mainWnd->handle_lifetime(avk::owned(cmdBfr));
+		else {
+			commands
+				.into_command_buffer(cmdBfr)
+				.then_submit_to(*mQueue);
 		}
+		
+		mainWnd->handle_lifetime(std::move(cmdBfr));
 	}
 	
 private: // v== Member variables ==v
 
-	unsigned int mTrianglePart = 0;
-	std::optional<avk::renderpass> mRenderPass;
 	avk::queue* mQueue;
+	unsigned int mTrianglePart = 0;
+	int mCustomExecutionOrder;
+	avk::renderpass mClearRenderPass;
+	avk::renderpass mLoadRenderPass;
 	avk::graphics_pipeline mPipeline;
 	
 
@@ -116,17 +122,18 @@ private: // v== Member variables ==v
 
 int main() // <== Starting point ==
 {
+	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = gvk::context().create_window("Hello Multi-Invokee World");
+		auto mainWnd = avk::context().create_window("Multiple Invokees");
 		mainWnd->set_resolution({ 800, 600 });
 		mainWnd->enable_resizing(true);
-		mainWnd->set_presentaton_mode(gvk::presentation_mode::mailbox);
+		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
 		mainWnd->set_number_of_concurrent_frames(3u);
 		mainWnd->open();
 
-		auto& singleQueue = gvk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->add_queue_family_ownership(singleQueue);
+		auto& singleQueue = avk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->set_queue_family_ownership(singleQueue.family_index());
 		mainWnd->set_present_queue(singleQueue);
 		
 		// Create instances of our invokee:		
@@ -135,7 +142,7 @@ int main() // <== Starting point ==
 		auto app3 = multi_invokee_rendering_app(singleQueue, 0, -3);
 				
 		// Create another element for drawing the UI with ImGui
-		auto ui = gvk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue);
 		
 		auto apps = std::vector<multi_invokee_rendering_app*>{ &app1, &app2, &app3 };
 		ui.add_callback([&apps]() {	
@@ -145,8 +152,7 @@ int main() // <== Starting point ==
 			ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 
-			for (auto* app : apps)
-			{
+			for (auto* app : apps) {
 				bool isEnabled = app->is_enabled();
 				std::string name = fmt::format("Disable/Enable Invokee [{}]", app->name());
 				ImGui::Checkbox(name.c_str(), &isEnabled);
@@ -167,20 +173,52 @@ int main() // <== Starting point ==
 		});
 		
 
-		// GO:
-		gvk::start(
-			gvk::application_name("Hello, Gears-Vk + Auto-Vk World!"),
+		// Compile all the configuration parameters and the invokees into a "composition":
+		auto composition = configure_and_compose(
+			avk::application_name("Auto-Vk-Toolkit Example: Multiple Invokees"),
+			[](avk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				//config.enable_feature(vk::ValidationFeatureEnableEXT::eBestPractices);
+			},
+			// Pass windows:
 			mainWnd,
-			app1,
-			app2,
-			app3,
-			ui
-		);			
+			// Pass invokees:
+			app1, app2, app3, ui
+		);
+
+		// Create an invoker object, which defines the way how invokees/elements are invoked
+		// (In this case, just sequentially in their execution order):
+		avk::sequential_invoker invoker;
+
+		// With everything configured, let us start our render loop:
+		composition.start_render_loop(
+			// Callback in the case of update:
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
+				// Call all the update() callbacks:
+				invoker.invoke_updates(aToBeInvoked);
+			},
+			// Callback in the case of render:
+			[&invoker](const std::vector<avk::invokee*>& aToBeInvoked) {
+				// Sync (wait for fences and so) per window BEFORE executing render callbacks
+				avk::context().execute_for_each_window([](avk::window* wnd) {
+					wnd->sync_before_render();
+				});
+
+				// Call all the render() callbacks:
+				invoker.invoke_renders(aToBeInvoked);
+
+				// Render per window:
+				avk::context().execute_for_each_window([](avk::window* wnd) {
+					wnd->render_frame();
+				});
+			}
+		); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
+	
+		result = EXIT_SUCCESS;		
 	}
-	catch (gvk::logic_error&) {}
-	catch (gvk::runtime_error&) {}
 	catch (avk::logic_error&) {}
 	catch (avk::runtime_error&) {}
+	return result;
 }
 
 

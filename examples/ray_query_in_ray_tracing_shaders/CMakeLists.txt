@@ -15,4 +15,4 @@ add_post_build_commands(ray_query_in_ray_tracing_shaders
     ${ray_query_in_ray_tracing_shaders_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets
     "${ray_query_in_ray_tracing_shaders_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

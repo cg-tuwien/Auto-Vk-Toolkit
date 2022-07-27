@@ -12,7 +12,7 @@
 			"ctestCommandArgs": "",
 			"variables": [
 				{
-					"name": "gvk_BuildExamples",
+					"name": "avk_toolkit_BuildExamples",
 					"value": "True",
 					"type": "BOOL"
 				}
@@ -30,7 +30,7 @@
 			"inheritEnvironments": [ "msvc_x64_x64" ],
 			"variables": [
 				{
-					"name": "gvk_BuildExamples",
+					"name": "avk_toolkit_BuildExamples",
 					"value": "True",
 					"type": "BOOL"
 				}
@@ -48,12 +48,12 @@
 			"inheritEnvironments": [ "msvc_x64_x64" ],
 			"variables": [
 				{
-					"name": "gvk_BuildExamples",
+					"name": "avk_toolkit_BuildExamples",
 					"value": "True",
 					"type": "BOOL"
 				},
 				{
-					"name": "gvk_CreateDependencySymlinks",
+					"name": "avk_toolkit_CreateDependencySymlinks",
 					"value": "False",
 					"type": "BOOL"
 				}

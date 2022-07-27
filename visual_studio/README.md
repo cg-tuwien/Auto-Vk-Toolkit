@@ -1,22 +1,22 @@
 # Project Management with Visual Studio
 
-The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](./tools/executables) and is invoked as a build step of _Gears-Vk_'s example applications. 
+The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](./tools/executables) and is invoked as a build step of _Auto-Vk-Toolkit_'s example applications. 
 
-The repository contains one solution file: [`gears-vk.sln`](./) which references multiple Visual Studio project files (`*.vcxproj`): The _Gears-Vk_ library project and several example projects. Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
+The repository contains one solution file: [`auto_vk_toolkit.sln`](./) which references multiple Visual Studio project files (`*.vcxproj`): The _Auto-Vk-Toolkit_ library project and several example projects. Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
 
-The examples' Visual Studio project files are located in [`visual_studio/examples/`](./examples). Their source code is located in [`examples/`](../examples). All examples reference the _Gears-Vk_ library project ([`gears-vk.vcxproj`](./gears_vk/)). Substantial parts of the Visual Studio project configuration is handled via property files which are located under [`props/`](./props).
+The examples' Visual Studio project files are located in [`visual_studio/examples/`](./examples). Their source code is located in [`examples/`](../examples). All examples reference the _Auto-Vk-Toolkit_ library project ([`auto_vk_toolkit.vcxproj`](./auto_vk_toolkit/)). Substantial parts of the Visual Studio project configuration is handled via property files which are located under [`props/`](./props).
 
 ## Creating a New Project
 
-In order to create a new project that uses the _Gears-Vk_ framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan-specific dependencies, or `linked_libs_debug.props` for Debug builds. The example configurations are fully configured.
+In order to create a new project that uses the _Auto-Vk-Toolkit_ framework, you have to reference the framework and reference the correct property files, e.g. `rendering_api_vulkan.props` for Vulkan-specific dependencies, or `linked_libs_debug.props` for Debug builds. The example configurations are fully configured.
 
 A more convenient way to create a new project could be to use the `create_new_project.exe` tool, located under [`visual_studio/tools/executables/`](./tools/executables). It allows to copy the settings from an existing project (e.g., one of the examples) and effectively duplicates and renames a selected project. Step by step instructions can be found in the root directory's [`README.md`](../README.md) file under the section [Creating a New Project](../README.md#creating-a-new-project).
 
 ## Resource Management
 
-Most applications created with _Gears-Vk_ will probably require additional resources like shader files, images, or 3D models. _Gears-Vk_ offers an elegant way to manage these resources through Visual Studio's filters and its _Post Build Helper_.
+Most applications created with _Auto-Vk-Toolkit_ will probably require additional resources like shader files, images, or 3D models. _Auto-Vk-Toolkit_ offers an elegant way to manage these resources through Visual Studio's filters and its _Post Build Helper_.
 
-To manage project's asset and shader dependencies, they can simply be added to Visual Studio's filters, which are just Visual Studio's standard way of managing project file references. The data is stored in `*.vcxproj.filters` files. _Gears-Vk_ -- more precisely, its _Post Build Helper_ -- analyzes these `*.vcxproj.filters` files and assigns special meaning to two filter names: 
+To manage project's asset and shader dependencies, they can simply be added to Visual Studio's filters, which are just Visual Studio's standard way of managing project file references. The data is stored in `*.vcxproj.filters` files. _Auto-Vk-Toolkit_ -- more precisely, its _Post Build Helper_ -- analyzes these `*.vcxproj.filters` files and assigns special meaning to two filter names: 
 
 * `assets`, and
 * `shaders`.
@@ -29,19 +29,19 @@ When building the project, all these resources get deployed **according to their
 
 The `sponza_structure.obj` model from the example can be loaded like follows:
 ```
-auto sponza = gvk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+auto sponza = avk::model_t::load_from_file("assets/sponza_structure.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 ```
 
 Load ORCA scene file `sponza.fscene` from the example can be loaded like follows:
 ```
-auto orca = gvk::orca_scene_t::load_from_file("assets/sponza.fscene");
+auto orca = avk::orca_scene_t::load_from_file("assets/sponza.fscene");
 ```
 
 Shader files are automatically compiled to SPIR-V by the _Post Build Helper_ and they get a `.spv` extension when deployed to the target directory. Aside from the additional extension, their path stays the same. I.e. the `transform_and_pass_pos_nrm_uv.vert` shader from the example can be loaded from `shaders/transform_and_pass_pos_nrm_uv.vert.spv`. To emphasize it again: This target location is completely unattached from the `transform_and_pass_pos_nrm_uv.vert` shader file's source location on the file system. Only the filter path determines where it will be deployed to.
 
-The shader files from the example can be used for creating a graphics pipeline like follows (note that the added `.spv` extension can be left out. It's automatically added by _Gears-Vk_ when loading a shader from a given path fails at the first try.):
+The shader files from the example can be used for creating a graphics pipeline like follows (note that the added `.spv` extension can be left out. It's automatically added by _Auto-Vk-Toolkit_ when loading a shader from a given path fails at the first try.):
 ```
-auto pipeline = gvk::context().create_graphics_pipeline_for(
+auto pipeline = avk::context().create_graphics_pipeline_for(
 	avk::vertex_shader("shaders/transform_and_pass_pos_nrm_uv.vert"),
 	avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 	avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
@@ -105,7 +105,7 @@ Make sure that the `<Filter>` element is present and set to the correct value. I
 
 The _Post Build Helper_ is a helper tool which is invoked upon successful building of a project. It deploys all the referenced assets (i.e. everything assigned to `shaders` or `assets` filters in Visual Studio) to the target directory, which includes the SPIR-V compilation of shader files. It also deploys all the dependent assets, like, for example, all the textures which are referenced by a 3D model file.
 
-The _Post Build Helper_ will provide a tray icon, informing about the deployment process and providing lists of deployed files and it will **stay active as a tray application** until you close it. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it. It does not only stay active for providing information, but -- most importantly if you'd like to use _Gears-Vk_'s Shader Hot Reloading feature -- for monitoring the deployed files for changes, and re-deploying these files if changes have been detected. (This means that you can modify, e.g., a shader file that you have added to your Visual Studio project; and by saving it, the _Post Build Helper_ will recognize the change and re-deploy the shader file to the target directory, where it can be loaded from during application run-time in order to hot-reload it and update the pipelines where it is in use.)     
+The _Post Build Helper_ will provide a tray icon, informing about the deployment process and providing lists of deployed files and it will **stay active as a tray application** until you close it. The tray icon provides several actions that can be accessed by left-clicking or right-clicking it. It does not only stay active for providing information, but -- most importantly if you'd like to use _Auto-Vk-Toolkit_'s Shader Hot Reloading feature -- for monitoring the deployed files for changes, and re-deploying these files if changes have been detected. (This means that you can modify, e.g., a shader file that you have added to your Visual Studio project; and by saving it, the _Post Build Helper_ will recognize the change and re-deploy the shader file to the target directory, where it can be loaded from during application run-time in order to hot-reload it and update the pipelines where it is in use.)     
 The _Post Build Helper_'s tray icon looks like this: <img src="./docs/images/PBH_tray.png" />.
 
 ### Deployment of Dependent Assets
@@ -149,7 +149,7 @@ Follow these steps to build the _Post Build Helper_ manually:
 2. Select the `Release` build and build the project.
 3. A custom build event will automatically copy `cgb_post_build_helper.exe` into [`visual_studio/tools/executables/`](./tools/executables), which is the location that is used for executing the _Post Build Helper_ as a post build step from the Visual Studio projects.
 	
-If you still experience problems after following these steps, please create an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and describe your situation in detail.
+If you still experience problems after following these steps, please create an [Issue](https://github.com/cg-tuwien/Auto-Vk-Toolkit/issues) and describe your situation in detail.
 
 #### Too few resources are being deployed
 
@@ -163,13 +163,21 @@ One strategy to solve it might be to build (not build and run) the project and w
 
 #### Error message about denied access to DLL files (DLLs are not re-deployed)
 
-"Access denied" error messages w.r.t. DLL files are usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents the _Post Build Helper_ to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/Gears-Vk/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the _Post Build Helper_).
+"Access denied" error messages w.r.t. DLL files are usually not a problem. Some process still accesses the `.dll` files in the target directory and prevents the _Post Build Helper_ to replace them. However, in most cases the files would just be exactly the same `.dll` files as in the previous build (except you've updated them). If it turns out to be a real issue, please submit an [Issue](https://github.com/cg-tuwien/Auto-Vk-Toolkit/issues) and as a first-aid measure, try to kill all processes which might access the affected DLL files (closing console windows, closing Windows Explorer, exiting the _Post Build Helper_).
 
 #### Slow performance when showing lists within the Post Build Helper
 
 When _Post Build Helper_'s UI takes a long time to load, it might be that its internal lists have become very big in size. Restart the _Post Build Helper_ to clear the internal lists by right-clicking on the tray icon, and selecting `Exit`. A new instance of the _Post Build Helper_ will be created at the next build with fresh, but empty lists.
 
 _Beware:_ All the existing lists will be gone after closing the _Post Build Helper_. No event data is persistently stored.
+
+#### Error message in the UI of Post Build Helper: "Could not find part of the path '...'"
+
+You might be subject to a the 260 character-path length limit of Windows. Try disabling the maximum file path length of 260 characters, or alternatively move the project to a location with a shorter path!
+
+#### Error message in the console: `can't fopen`, or `!RUNTIME ERROR! Couldn't load image from '...'` or similar
+
+Sometimes, symlinks cause such problems. The _Post Build Helper_ deploys files as symlinks by default instead of copying the files. For unknown reasons, _Auto-Vk-Toolkit_ applications sometimes fail to open such symlinked files. If you encounter this problem, please try enabling _Post Build Helper_'s **"Always copy assets to output directly"** setting. This setting can be seen below in the screenshot under [_Post Build Helper_ Settings](#post-build-helper-settings). 
 
 ### _Post Build Helper_ Settings
 

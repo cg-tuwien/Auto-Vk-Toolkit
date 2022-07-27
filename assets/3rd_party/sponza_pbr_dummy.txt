@@ -1,0 +1,2 @@
+Just include sponza_pbr_dummy.obj in the assets filter, the Post-Build-Helper will then take care of deploying the textures.
+(Make sure to "exclude from build" the .obj in Visual Studio, or you will get a linker error.)

@@ -10,4 +10,4 @@ add_post_build_commands(framebuffer
     ${framebuffer_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:framebuffer>/assets
     ""
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

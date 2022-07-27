@@ -15,4 +15,4 @@ add_post_build_commands(static_meshlets
     ${static_meshlets_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:static_meshlets>/assets
     "${static_meshlets_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

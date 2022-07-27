@@ -1,0 +1,36 @@
+#version 460
+#extension GL_EXT_samplerless_texture_functions : require
+
+// ###### SRC/DST IMAGES #################################
+layout(set = 0, binding = 0) uniform texture2D uInImg;
+layout(set = 0, binding = 1, rgba8) writeonly uniform restrict image2D uOutImg;
+// -------------------------------------------------------
+
+vec3 get_pixel(ivec2 pos)
+{
+	pos = clamp(pos, ivec2(0,0), textureSize(uInImg, 0) - 1);
+	return texelFetch(uInImg, pos, 0).rgb;
+}
+
+float[] factors = {
+    1.0/16.0, 1.0/8.0, 1.0/16.0, 
+    1.0/ 8.0, 1.0/4.0, 1.0/ 8.0, 
+    1.0/16.0, 1.0/8.0, 1.0/16.0, 
+};
+
+ivec2[] offsets = {
+	ivec2(-1, -1), ivec2( 0, -1), ivec2( 1, -1),
+	ivec2(-1,  0), ivec2( 0,  0), ivec2( 1,  0),
+	ivec2(-1,  1), ivec2( 0,  1), ivec2( 1,  1)
+};
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+void main()
+{
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	vec3 value = vec3(0, 0, 0);
+	for (int i=0; i < 9; ++i) {
+		value += get_pixel(pos + offsets[i]) * factors[i];
+	}
+	imageStore(uOutImg, pos, vec4(value, 1.0));
+}

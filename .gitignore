@@ -1,5 +1,5 @@
 # Build results of the framework-library
-framework/lib/
+auto_vk_toolkit/lib/
 
 # CMake output directory and Visual Studio cache/options directory if opened as CMake projec
 out/

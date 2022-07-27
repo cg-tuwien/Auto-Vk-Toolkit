@@ -13,4 +13,4 @@ add_post_build_commands(ray_tracing_with_shadows_and_ao
     ${ray_tracing_with_shadows_and_ao_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets
     "${ray_tracing_with_shadows_and_ao_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})
