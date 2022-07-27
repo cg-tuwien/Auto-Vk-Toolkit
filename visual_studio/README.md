@@ -171,6 +171,14 @@ When _Post Build Helper_'s UI takes a long time to load, it might be that its in
 
 _Beware:_ All the existing lists will be gone after closing the _Post Build Helper_. No event data is persistently stored.
 
+#### Error message in the UI of Post Build Helper: "Could not find part of the path '...'"
+
+You might be subject to a the 260 character-path length limit of Windows. Try disabling the maximum file path length of 260 characters, or alternatively move the project to a location with a shorter path!
+
+#### Error message in the console: `can't fopen`, or `!RUNTIME ERROR! Couldn't load image from '...'` or similar
+
+Sometimes, symlinks cause such problems. The _Post Build Helper_ deploys files as symlinks by default instead of copying the files. For unknown reasons, _Auto-Vk-Toolkit_ applications sometimes fail to open such symlinked files. If you encounter this problem, please try enabling _Post Build Helper_'s **"Always copy assets to output directly"** setting. This setting can be seen below in the screenshot under [_Post Build Helper_ Settings](#post-build-helper-settings). 
+
 ### _Post Build Helper_ Settings
 
 The _Post Build Helper_ has several settings that might be helpful during the development process. They can be accessed by right-clicking on the tray icon and executing `Open Settings`.
