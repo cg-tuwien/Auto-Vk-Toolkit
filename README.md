@@ -1,12 +1,12 @@
-# Gears-Vk + Auto-Vk
+# Auto-Vk-Toolkit v0.98
 
-*Gears-Vk* rendering framework for the Vulkan 1.2 API, implemented in modern C++, using C++17 and C++20 features.     
+*Auto-Vk-Toolkit* is a framework for the Vulkan graphics API, implemented in modern C++, using C++17 and C++20 features.     
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
-*Gears-Vk* is ready to go. If your system meets the system requirements (see section _Installation_ below), everything is set up to build an run right out of the box. Just open [`visual_studio/gears-vk.sln`](./visual_studio/gears-vk.sln), set one of the example projects as startup project, build and run.
+*Auto-Vk-Toolkit* is ready to go. If your system meets the system requirements (see section _Installation_ below), everything is set up to build an run right out of the box. Open [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), set one of the example projects as startup project, build and run!
 
-*Note:* At the first run, the Post Build Helper tool is being built. Watch Visual Studio's "Output" tab for status messages and possible instructions.
+*Note:* At the first run, the _Post Build Helper_ tool is being built. Watch Visual Studio's "Output" tab for status messages and possible instructions.
 
 # Installation
 
@@ -14,21 +14,22 @@ To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwi
 A preconfigured project setup is provided for Visual Studio 2019 on Windows.
 
 Requirements:
-* Windows 10 
-* Visual Studio 2019 with a Windows 10 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
-* A [Vulkan 1.2 SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer 
+* Windows 10 or 11
+* Visual Studio 2019 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
+* A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer.          
+  Latest stable and tested version: Vulkan SDK 1.3.216.0
 
 Setup and build instructions:
 * Clone this repository
 * Execute a `git submodule update --init` to pull the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework which is added as a submodule under `auto_vk`
-* Open the Visual Studio solution file [`visual_studio/gears-vk.sln`](./visual_studio/), and build the solution
+* Open the Visual Studio solution file [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), and build the solution
 * During building, you'll recognize messages from the _Post Build Helper_ tool in Visual Studio's `Output`-tab, some popup messages, and an icon in the system tray. Please have a look at section [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper) for additional information.
 * Several example applications are available in the solution file. Set one of them as startup project, and run.
 
 Set up your own project:
-* To add _Gears-Vk_ to one of your custom repositories, you might want to add it as a GIT submodule. You could execute `git submodule add https://github.com/cg-tuwien/Gears-Vk.git gears_vk` to add _Gears-Vk_ as submodule in directory `gears_vk`.
-* Execute `git submodule update --init --recursive` in order to pull both, _Gears-Vk_ and the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework.
-* The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links agains _Gears-Vk_.
+* To add _Auto-Vk-Toolkit_ to one of your custom repositories, you might want to add it as a GIT submodule. You could execute `git submodule add https://github.com/cg-tuwien/Auto-Vk-Toolkit.git auto_vk_toolkit` to add _Auto-Vk-Toolkit_ as submodule in directory `auto_vk_toolkit`.
+* Execute `git submodule update --init --recursive` in order to pull both, _Auto-Vk-Toolkit_ and [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk).
+* The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links against _Auto-Vk-Toolkit_.
 
 ## CMake
 
@@ -45,18 +46,18 @@ Use it like follows to create a copy of an existing project:
 * Asset references and shader references are retained and their paths are adapted.       
   _Attention:_ Make sure to remove the existing references if you are going to modify the referenced assets/shaders! You'll have to create copies of these files manually and add references to the copies instead. If you fail to do so, you'll end up modifying the stock assets or the examples' shader files.
 * Precompiled headers are disabled in the newly created project copy. If you'd like to use this feature, you'll have to manually enable it in Visual Studio's project settings.
-* Manually add a reference to the _Gears-Vk_ library project [`gears-vk.vxcproj`](visual_studio/gears_vk) to your Visual Studio solution and ensure that the newly created project copy references it.
+* Manually add a reference to the _Auto-Vk-Toolkit_ library project [`auto_vk_toolkit.vxcproj`](visual_studio/visual_studio/auto_vk_toolkit) to your Visual Studio solution and ensure that the newly created project copy references it.
 * All source and include file references are removed from the newly created project copy. You'll have to add at least a `.cpp` file containing a `main()` function.
-* Add `#include <gvk.hpp>` to use _Gears-Vk_.
-* After these steps, you should be able to successfully link against _Gears-Vk_ build your newly created project.
+* Add `#include <auto_vk_toolkit.hpp>` to use _Auto-Vk-Toolkit_.
+* After these steps, you should be able to successfully link against _Auto-Vk-Toolkit_ build your newly created project.
 
-A good strategy is to add _Gears-Vk_ as a **git submodule** to your repository and use `create_new_project.exe` and the steps above to create a properly configured project in a directory outside of the submodule. Make sure to frequently update the submodule by pulling from _Gears-Vk_'s `master` branch to get the latest updates.
+A good strategy is to add _Auto-Vk-Toolkit_ as a **git submodule** to your repository and use `create_new_project.exe` and the steps above to create a properly configured project in a directory outside of the submodule. Make sure to frequently update the submodule by pulling from _Auto-Vk-Toolkit_'s `master` branch to get the latest updates.
 
 # Resource Mangement and the Post Build Helper
 
-_Gears-Vk_'s Visual Studio projects are configured so that Visual Studio itself can be elegantly used for resource management. That means, required assets (3D models, images, [ORCA](https://developer.nvidia.com/orca) scene files) and shader files can just be added to Visual Studio's filters in the "Solution Explorer" view and a smart _Post Build Helper_ tool ensures that those resources are deployed to the application's target directory.
+_Auto-Vk-Toolkit_'s Visual Studio projects are configured so that Visual Studio itself can be elegantly used for resource management. That means, required assets (3D models, images, [ORCA](https://developer.nvidia.com/orca) scene files) and shader files can just be added to Visual Studio's filters in the "Solution Explorer" view and a smart _Post Build Helper_ tool ensures that those resources are deployed to the application's target directory.
 
-In short:
+In short/**TL;DR**:
 * Add required 3D models, images, and ORCA scenes to the `assets` filter, and
 * add required shader files to the `shaders` filter
 directly in Visual Studio. Then build the application, wait for the _Post Build Helper_ to deploy these resources to the target directory, and run your application!
@@ -72,23 +73,24 @@ You will notice _Post Build Helper_ activity through its tray icon: <img src="vi
 
 For more information about the _Post Build Helper_, please refer to the [Post Build Helper](visual_studio/README.md#post-build-helper) section, and for more information about shader hot reloading, please refer to the [Automatic Resource-Updates](#automatic-resource-updates) section below.
 
-# What's the difference between Gears-Vk and Auto-Vk?
+# What's the difference between Auto-Vk-Toolkit and Auto-Vk?
 
 *Auto-Vk* is a platform-agnostic convenience and productivity layer atop Vulkan-Hpp. 
 
-*Gears-Vk* establishes the missing link to the operating system -- in this case Windows 10 -- and adds further functionality:
-* Rendering environment configuration, such as enabling Vulkan extensions (e.g. if `VK_KHR_raytracing` shall be used, it selects an appropriate physical device and enables required flags and extensions)
+*Auto-Vk-Toolkit* establishes the missing link to the operating system, like window handling, and adds further functionality:
+* Rendering environment configuration, such as enabling Vulkan extensions (e.g. if `VK_KHR_ray_tracing_pipeline` shall be used, it selects an appropriate physical device and enables required flags and extensions)
 * Window management (through GLFW)
-* Game-loop/render-loop handling with convenient to use callback methods via the `gvk::invokee` interface (such as `initialize()`, `update()`, `render()`, where the former is called only once and the latter two are invoked each frame)
+* Game-loop/render-loop handling with convenient to use callback methods via the `avk::invokee` interface (such as `initialize()`, `update()`, `render()`, where the former is called only once and the latter two are invoked each frame)
 * User input handling
-* A ready to use base class for object hierarchies: `gvk::transform`
-* A ready to use user-controllable camera class `gvk::quake_camera` (which is derived from both, `gvk::transform` and `gvk::invokee`)
+* A ready to use base class for object hierarchies: `avk::transform`
+* A ready to use user-controllable camera class `avk::quake_camera` (which is derived from both, `avk::transform` and `avk::invokee`)
 * Resource loading support for:
   * Images
   * 3D Models
   * Scenes in the ORCA format, see: [ORCA: Open Research Content Archive](https://developer.nvidia.com/orca)
-* Material loading and conversion into a GPU-suitable format (`gvk::material` and `gvk::material_gpu_data`)
-* Lightsource loading and conversion into a GPU-suitable format (`gvk::lightsource` and `gvk::lightsource_gpu_data`)
+* Material loading and conversion into a GPU-suitable format (`avk::material` and `a
+vk::material_gpu_data`)
+* Lightsource loading and conversion into a GPU-suitable format (`avk::lightsource` and `avk::lightsource_gpu_data`)
 * Resource handling via Visual Studio's filters, i.e. just drag and drop assets and shaders that you'd like to use directly into Visual Studio's filter hierarchy and get them deployed to the target directory.
 * A powerful Post Build Helper tool which is invoked as a custom build step.
   * It deploys assets and shaders to the target directory
@@ -102,10 +104,10 @@ See: [Automatic Resource-Updates](./docs/updater.md)
 
 # FAQs, Known Issues, Troubleshooting
 
-**Q: Can Gears-Vk be used on Linux?**           
+**Q: Can _Auto-Vk-Toolkit_ be used on Linux?**           
 _A:_ Yes. Please see the CMake documentation at [docs/cmake.md](/docs/cmake.md)!
 
-**Q: Can Gears-Vk be used without the _Post Build Helper_?**      
+**Q: Can _Auto-Vk-Toolkit_ be used without the _Post Build Helper_?**      
 _A:_ Yes. The _Post Build Helper_ is a convenience tool that handles resource deployment, asset dependencies, and also file updates (useful for shader hot reloading, depending on the project structure). If you're not using it, you'll have to manage deployment of resources, and compilation of shader files into SPIR-V manually.
 
 **Q: I have troubles with asset management in Visual Studio. Any advice?**        
@@ -130,4 +132,9 @@ _A:_ Check out [Post Build Helper](./visual_studio#post-build-helper), which off
 
 **Q: The application takes a long time to load assets like 3D models and images. Can it be accelerated?**     
 _A:_ If you are referring to _Debug_ builds, you can configure _Post Build Helper_ so that it deploys _Release_ DLLs of some external dependencies even for _Debug_ builds. They should accelerate asset loading a lot. To enable deployment of _Release_ DLLs, please open _Post Build Helper_'s [settings](./visual_studio#post-build-helper-settings) and enable the option "Always deploy Release DLLs".
+
+**Q: Getting `cereal::Exception` in `cereal::loadBinary`, or `Unhandled exception at 0x00007FFE82204FD9 in ...exe: Microsoft C++ exception: cereal::Exception at memory location ...`**
+_A:_ Your serialized cache file (e.g., for `sponza_and_terrain.fscene` this could be `sponza_and_terrain.fscene.cache`) has become corrupt (maybe because it was not fully written due to a previously occured error in the application, or because execution was aborted). Delete the cache file (e.g., `sponza_and_terrain.fscene.cache`) and let a new one be generated!
+
+
 
