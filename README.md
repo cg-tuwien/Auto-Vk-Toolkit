@@ -4,14 +4,16 @@
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
 To achieve this goal, this framework uses [*Auto-Vk*](https://github.com/cg-tuwien/Auto-Vk), a convenience and productivity layer atop [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp).
 
-_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/)), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR)). The following image showcases some work that has been developed using it (from left to right): Usage in an advanced graphics course for teaching modern low-level GPU concepts; post-processing graphics effects; division of meshes into meshlets, and rendering them with fine-grained view-frustum and backface culling; real-time ray traced shadows and reflections. 
+_Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.g., [Conservative Meshlet Bounds for Robust Culling of Skinned Meshes](https://www.cg.tuwien.ac.at/research/publications/2021/unterguggenberger-2021-msh/)), and teaching (e.g., [Algorithms for Real-Time Rendering](https://www.cg.tuwien.ac.at/courses/ARTR)). 
 
 ![Some screenshots of applications implemented with Auto-Vk-Toolkit](./docs/images/auto-vk-toolkit-teaser.png)
+
+This image showcases some work that has been developed using _Auto-Vk-Toolkit_ (from left to right): Usage in an advanced graphics course for teaching modern low-level GPU concepts; post-processing graphics effects; division of meshes into meshlets and rendering them with fine-grained view-frustum and backface culling in task and mesh shaders; ray traced shadows and reflections using the hardware-accelerated real-time ray tracing device extensions. 
 
 Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)) include:
 - Window management and input handling through [GLFW](https://www.glfw.org/).
 - Render loop framework with `update()` and `render()` callbacks at varying or fixed update times.
-- Powerful _Auto-Vk_-`avk::root` implementation, with swap chain handling and automatic resource lifetime management.
+- Powerful [_Auto-Vk_-`avk::root`](https://github.com/cg-tuwien/Auto-Vk#usage) implementation, with swap chain handling and automatic resource lifetime management.
 - Versatile [updater](./docs/updater.md) which enables swapchain recreation.
 - In combination with a powerful [_Post Build Helper_](./visual_studio/) tool (Windows-only), the [updater](./docs/updater.md) enables shader hot reloading.
 - Model loading of a variety of 3D scenes with the help of [assimp](https://github.com/assimp/assimp).
@@ -19,8 +21,9 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 - Loading of a multitude of image formats, including cube maps.
 - Versatile [serializer](./docs/serializer.md) support which allows to serialize Vulkan resources such as `avk:buffer` or `avk::image` instances, and also custom types; based on [cereal](https://github.com/USCiLab/cereal).
 - [User interface](./docs/ImGui.md) support through [ImGui](https://github.com/ocornut/imgui) with support for displaying textures in the UI.
-- Support for real-time ray tracing (RTX) and building of acceleration structures through [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)
+- Support for real-time ray tracing (RTX) and convenient building of acceleration structures from triangle meshes or AABBs.
 - Support for dividing meshes into [meshlets](./docs/meshlets.md) which can be rendered with task and mesh shaders.
+- Handling of bone hierarchies, supporting animation of skinned meshes.
 
 # Installation
 
