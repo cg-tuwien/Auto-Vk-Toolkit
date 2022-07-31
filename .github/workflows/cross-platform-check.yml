@@ -2,8 +2,6 @@ name: "Build (GCC/Clang/MSVC)"
 
 on:
   push:
-    branches:
-      - 'master'
     paths:
       - 'cmake/**'
       - 'examples/**'
