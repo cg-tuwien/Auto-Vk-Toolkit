@@ -91,15 +91,6 @@ namespace avk
 		 */
 		virtual void render() {}
 
-		/**	@brief Render gizmos for this invokee
-		 *
-		 *	This method can be used to render additional information
-		 *	about this invokee like, for instance, debug information.
-		 *	This method will always be called after all @ref render
-		 *	methods of the current @ref run have been invoked.
-		 */
-		virtual void render_gizmos() {}
-
 		/**	@brief Cleanup this invokee
 		 *
 		 *	This is the last method in the lifecycle of a invokee,

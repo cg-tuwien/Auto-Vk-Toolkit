@@ -524,7 +524,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { // If there is no avk::command::... struct for a particular command, we can always use avk::command::custom_commands
 						for (auto& drawCall : mDrawCalls) {
 							// Set the push constants per draw call:
-							cb.record(
+							cb.record({
 								avk::command::push_constants(
 									mPipeline->layout(),
 									transformation_matrices{
@@ -533,16 +533,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 										// Set material index for this mesh:
 										drawCall.mMaterialIndex
 									}
-								)
-							);
+								),
 
-							// Make the draw call:
-							cb.record(avk::command::draw_indexed(
-								// Bind and use the index buffer:
-								drawCall.mIndexBuffer.as_reference(),
-								// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
-								drawCall.mPositionsBuffer.as_reference(), drawCall.mTexCoordsBuffer.as_reference(), drawCall.mNormalsBuffer.as_reference()
-							));
+								// Make the draw call:
+								avk::command::draw_indexed(
+									// Bind and use the index buffer:
+									drawCall.mIndexBuffer.as_reference(),
+									// Bind the vertex input buffers in the right order (corresponding to the layout specifiers in the vertex shader)
+									drawCall.mPositionsBuffer.as_reference(), drawCall.mTexCoordsBuffer.as_reference(), drawCall.mNormalsBuffer.as_reference()
+								)
+							});
 						}
 					}),
 

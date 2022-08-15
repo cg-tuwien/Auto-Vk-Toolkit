@@ -73,7 +73,7 @@ namespace avk
 
 		/**	@brief	Removes an element from the composition at the end of the current frame
 		 *	Removes the given element from the composition at the end of the current frame.
-		 *	This means that all current frame's repeading method calls up until @ref invokee::render_gizmos()
+		 *	This means that all current frame's repeading method calls up until @ref invokee::render()
 		 *  will be called on the element. After that, @ref invokee::finalize() will be called and the
 		 *  element will be removed from the collection.
 		 *  @param	pElement	Reference to the element to be removed from the composition
