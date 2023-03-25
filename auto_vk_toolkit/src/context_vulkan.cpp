@@ -474,6 +474,27 @@ namespace avk
 		return sem;
 	}
 
+	avk::semaphore context_vulkan::record_and_submit_with_timeline_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, uint64_t aSignalValue, uint64_t aInitialValue, vk::CommandBufferUsageFlags aUsageFlags) {
+		auto sem = create_timeline_semaphore(aInitialValue);
+		record_and_submit_with_timeline_semaphore(aRecordedCommandsAndSyncInstructions, aQueue, aSrcSignalStage >> sem | aSignalValue, aUsageFlags);
+		return sem;
+	}
+
+	void context_vulkan::record_and_submit_with_timeline_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::semaphore_signal_info aSignalInfo, vk::CommandBufferUsageFlags aUsageFlags) {
+		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
+		auto cmdBfr = cmdPool->alloc_command_buffer(aUsageFlags);
+		
+
+		record(std::move(aRecordedCommandsAndSyncInstructions))
+			.into_command_buffer(cmdBfr)
+			.then_submit_to(aQueue)
+			.signaling_upon_completion(aSignalInfo)
+			.submit();
+
+		aSignalInfo.mSignalSemaphore.get().handle_lifetime_of(std::move(cmdBfr));
+		// TODO we probably need another way to handle the lifetime of resources since timeline semaphores aren't single use ==> live longer
+	}
+
 	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, vk::CommandBufferUsageFlags aUsageFlags)
 	{
 		auto& cmdPool = get_command_pool_for_single_use_command_buffers(aQueue);
