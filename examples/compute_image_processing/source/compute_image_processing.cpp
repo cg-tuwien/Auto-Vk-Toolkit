@@ -5,9 +5,15 @@
 // https://github.com/SaschaWillems/Vulkan#ComputeShader Copyright (c) 2016 Sascha Willems
 //
 
-#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "sequential_invoker.hpp"
+#include "vk_convenience_functions.hpp"
 
 class compute_image_processing_app : public avk::invokee
 {
@@ -167,7 +173,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = avk::context().create_descriptor_cache();
 		
-		auto* imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
+		auto* imguiManager = avk::composition_interface::current()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this, imguiManager](){
 		        ImGui::Begin("Info & Settings");
@@ -241,7 +247,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
-			avk::current_composition()->stop();
+			avk::composition_interface::current()->stop();
 		}
 	}
 

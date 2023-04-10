@@ -1,6 +1,11 @@
 #include <auto_vk_toolkit.hpp>
 #include <imgui.h>
 
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "sequential_invoker.hpp"
+
 class vertex_buffers_app : public avk::invokee
 {
 	// Define a struct for our vertex input data:

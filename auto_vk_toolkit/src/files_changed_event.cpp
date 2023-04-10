@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "files_changed_event.hpp"
+
 namespace avk
 {
 	FW::FileWatcher files_changed_event::sFileWatcher{};

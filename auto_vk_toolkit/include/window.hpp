@@ -1,6 +1,8 @@
 #pragma once
 #include <auto_vk_toolkit.hpp>
 
+#include "window_base.hpp"
+
 namespace avk
 {
 	class window : public window_base

@@ -1,5 +1,11 @@
-#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "sequential_invoker.hpp"
+
+#include "context_vulkan.hpp"
 
 class framebuffer_app : public avk::invokee
 {

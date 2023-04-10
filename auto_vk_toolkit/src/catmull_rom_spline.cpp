@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "catmull_rom_spline.hpp"
+
 namespace avk
 {
 	catmull_rom_spline::catmull_rom_spline(std::vector<glm::vec3> pControlPoints)

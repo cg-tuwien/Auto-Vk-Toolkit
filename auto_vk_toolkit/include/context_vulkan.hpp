@@ -1,6 +1,9 @@
 #pragma once
 #include <auto_vk_toolkit.hpp>
 
+#include "context_generic_glfw.hpp"
+#include "settings.hpp"
+
 namespace avk
 {	
 	// ============================== VULKAN CONTEXT ================================
@@ -13,7 +16,13 @@ namespace avk
 	class context_vulkan : public context_generic_glfw, public avk::root
 	{
 	public:
+		static context_vulkan& get() {
+			static context_vulkan instance;
+			return instance;
+		};
+	private:
 		context_vulkan() = default;
+	public:		
 		context_vulkan(const context_vulkan&) = delete;
 		context_vulkan(context_vulkan&&) = delete;
 		context_vulkan& operator=(const context_vulkan&) = delete;
@@ -293,4 +302,9 @@ namespace avk
 
 	};
 
+	static inline auto& context() {
+		return avk::context_vulkan::get();
+	}
 }
+
+

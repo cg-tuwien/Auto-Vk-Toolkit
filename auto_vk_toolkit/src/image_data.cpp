@@ -1,4 +1,6 @@
-#include <auto_vk_toolkit.hpp>
+
+#include "image_data.hpp"
+#include "vk_convenience_functions.hpp"
 
 namespace avk
 {	

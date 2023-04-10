@@ -1,4 +1,5 @@
-#include <auto_vk_toolkit.hpp>
+
+#include "camera.hpp"
 
 namespace avk
 {

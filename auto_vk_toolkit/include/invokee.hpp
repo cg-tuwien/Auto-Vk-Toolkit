@@ -1,5 +1,8 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+
+#include "updater.hpp"
+#include "composition_interface.hpp"
 
 namespace avk
 {
@@ -50,7 +53,7 @@ namespace avk
 		virtual ~invokee()
 		{
 			// Make sure, this element gets removed from the composition
-			auto* cc = avk::current_composition();
+			auto* cc = composition_interface::current();
 			if (nullptr != cc) {
 				cc->remove_element_immediately(*this, true);
 			}

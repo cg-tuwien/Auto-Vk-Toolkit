@@ -1,7 +1,14 @@
-#include <auto_vk_toolkit.hpp>
 #include <imgui.h>
+
 #include "camera_path.hpp"
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "model.hpp"
+#include "sequential_invoker.hpp"
 #include "ui_helper.hpp"
+#include "vk_convenience_functions.hpp"
 
 class model_loader_app : public avk::invokee
 {

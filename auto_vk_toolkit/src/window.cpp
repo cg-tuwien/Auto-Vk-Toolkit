@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "context_vulkan.hpp"
+
 namespace avk
 {
 	std::mutex window::sSubmitMutex;
@@ -469,7 +471,7 @@ namespace avk
 			assert(fence->handle() == mFramesInFlightFences[fenceIndex]->handle());
 
 			// Using a temporary semaphore for the signal operation:
-			auto sigSem = avk::context().create_semaphore();
+			auto sigSem = context().create_semaphore();
 			vk::SemaphoreSubmitInfoKHR sigSemInfo{ sigSem->handle() };
 			
 			// Waiting on the same semaphores here and during vkPresentKHR should be fine: (TODO: is it?)
@@ -479,7 +481,7 @@ namespace avk
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
 				.setPSignalSemaphoreInfos(&sigSemInfo);
-			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), avk::context().dispatch_loader_ext());
+			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), context().dispatch_loader_ext());
 
 			// Consequently, the present call must wait on the temporary semaphore only:
 			waitSemHandles.clear();
@@ -838,7 +840,7 @@ namespace avk
 			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain && !additionalAttachmentsChanged && i < mBackBuffers.size()) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
 				for (int j = 1; j < backBufferImageViews.size(); j++) {
-					imageViews.emplace_back(avk::context().create_image_view_from_template(*backBufferImageViews[j], imageResize));
+					imageViews.emplace_back(context().create_image_view_from_template(*backBufferImageViews[j], imageResize));
 				}
 			}
 			else {
@@ -853,7 +855,7 @@ namespace avk
 					}
 				}
 			}
-			auto& ref = newBuffers.emplace_back(avk::context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), extent.x, extent.y));
+			auto& ref = newBuffers.emplace_back(context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), extent.x, extent.y));
 			ref.enable_shared_ownership();
 		}
 

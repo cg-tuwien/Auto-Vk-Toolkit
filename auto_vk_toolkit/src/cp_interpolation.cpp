@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "cp_interpolation.hpp"
+
 namespace avk
 {
 	cp_interpolation::cp_interpolation(std::vector<glm::vec3> pControlPoints)

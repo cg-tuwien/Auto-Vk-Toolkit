@@ -1,6 +1,14 @@
-#include <auto_vk_toolkit.hpp>
+
 #include <imgui.h>
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
 #include "triangle_mesh_geometry_manager.hpp"
+#include "quake_camera.hpp"
+#include "vk_convenience_functions.hpp"
+#include "conversion_utils.hpp"
+
 
 // Set this compiler switch to 1 to enable hot reloading of
 // the ray tracing pipeline's shaders. Set to 0 to disable it.

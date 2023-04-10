@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "math_utils.hpp"
+
 namespace avk
 {
 	glm::vec2 get_angles_from_direction_yaw_pitch(const glm::vec3& direction)

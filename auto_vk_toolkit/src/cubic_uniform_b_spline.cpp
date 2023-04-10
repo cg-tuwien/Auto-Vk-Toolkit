@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "cubic_uniform_b_spline.hpp"
+
 namespace avk
 {
 	std::array<float, 4> cubic_uniform_b_spline::Mr0{ { -1.f/6.f,  3.f/6.f, -3.f/6.f,  1.f/6.f } };

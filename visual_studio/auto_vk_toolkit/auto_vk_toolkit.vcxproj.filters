@@ -127,6 +127,9 @@
     <ClCompile Include="..\..\auto_vk_toolkit\src\meshlet_helpers.cpp">
       <Filter>auto_vk_toolkit_src\data</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\timer_globals.cpp">
+      <Filter>auto_vk_toolkit_src\timers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\auto_vk_toolkit\include\fixed_update_timer.hpp">
@@ -245,9 +248,6 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vk_toolkit\include\sequential_invoker.hpp">
       <Filter>auto_vk_toolkit_includes\invokers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp">
-      <Filter>auto_vk_toolkit_includes\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\acceleration_structure_size_requirements.hpp">
       <Filter>auto_vk_includes</Filter>
@@ -521,6 +521,9 @@
     </ClInclude>
     <ClInclude Include="..\..\auto_vk\include\avk\stage_and_access.hpp">
       <Filter>auto_vk_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp">
+      <Filter>auto_vk_toolkit_includes\base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

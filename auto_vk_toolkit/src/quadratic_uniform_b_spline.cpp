@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "quadratic_uniform_b_spline.hpp"
+
 namespace avk
 {
 	std::array<float, 3> quadratic_uniform_b_spline::Mr0{ {   .5f, -1.f,   .5f } };

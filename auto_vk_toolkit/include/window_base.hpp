@@ -1,6 +1,9 @@
 #pragma once
 #include <auto_vk_toolkit.hpp>
 
+#include "cursor.hpp"
+#include "context_generic_glfw_types.hpp"
+
 namespace avk
 {
 	/** Dimensions of a window */

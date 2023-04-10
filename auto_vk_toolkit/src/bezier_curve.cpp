@@ -1,5 +1,8 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "bezier_curve.hpp"
+#include "math_utils.hpp"
+
 namespace avk
 {
 	bezier_curve::bezier_curve(std::vector<glm::vec3> pControlPoints)

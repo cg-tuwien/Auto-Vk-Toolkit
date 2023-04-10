@@ -1,6 +1,9 @@
 #include <auto_vk_toolkit.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "animation.hpp"
+#include "transform.hpp"
+
 namespace avk
 {
 	glm::vec3 animation::compute_node_local_translation(const animated_node& aNode, double aTimeInTicks) const

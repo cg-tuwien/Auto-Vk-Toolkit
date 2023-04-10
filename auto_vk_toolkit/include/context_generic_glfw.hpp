@@ -1,5 +1,9 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "context_state.hpp"
+#include "context_generic_glfw_types.hpp"
+
+class cursor;
 
 namespace avk
 {

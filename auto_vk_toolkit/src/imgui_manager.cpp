@@ -8,6 +8,11 @@
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
 #include <imgui_internal.h>
 
+#include "imgui_manager.hpp"
+#include "composition_interface.hpp"
+#include "vk_convenience_functions.hpp"
+#include "timer_interface.hpp"
+
 namespace avk
 {
 	void imgui_manager::initialize()
@@ -15,7 +20,7 @@ namespace avk
 		LOG_DEBUG_VERBOSE("Setting up IMGUI...");
 
 		// Get the main window's handle:
-		auto* wnd = avk::context().main_window();
+		auto* wnd = context().main_window();
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -55,18 +60,18 @@ namespace avk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through avk::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,		 magicImguiFactor });
 		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
-		mDescriptorPool = avk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
+		mDescriptorPool = context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 
 		// DescriptorSet chache for user textures
-		mImTextureDescriptorCache = avk::context().create_descriptor_cache("imgui_manager's texture descriptor cache");
+		mImTextureDescriptorCache = context().create_descriptor_cache("imgui_manager's texture descriptor cache");
 
 		init_info.DescriptorPool = mDescriptorPool.handle();
 		init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
-		mCommandPool = &avk::context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
+		mCommandPool = &context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
 		mCommandBuffers = mCommandPool->alloc_command_buffers(static_cast<uint32_t>(wnd->number_of_frames_in_flight()));
 		for (avk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
-			mRenderFinishedSemaphores.push_back(avk::context().create_semaphore());
+			mRenderFinishedSemaphores.push_back(context().create_semaphore());
 			mRenderFinishedSemaphores.back().enable_shared_ownership();
 		}
 
@@ -76,10 +81,10 @@ namespace avk
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
 		// ImGui has a hard-coded floor for MinImageCount which is 2.
 		// Take the max of min image count supported by the phys. device and imgui:
-		auto surfaceCap = avk::context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
+		auto surfaceCap = context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
 		init_info.MinImageCount = std::max(2u, surfaceCap.minImageCount);
 		init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
-		init_info.CheckVkResultFn = avk::context().check_vk_result;
+		init_info.CheckVkResultFn = context().check_vk_result;
 
 		// copy current state of init_info in for later use
 		// this shenanigans is necessary for ImGui to keep functioning when certain rendering properties (renderpass) are changed (and to give it new image count)
@@ -98,7 +103,7 @@ namespace avk
 			// Re-create all the semaphores because the number of concurrent frames could have changed:
 			mRenderFinishedSemaphores.clear();
 			for (avk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
-				mRenderFinishedSemaphores.push_back(avk::context().create_semaphore());
+				mRenderFinishedSemaphores.push_back(context().create_semaphore());
 				mRenderFinishedSemaphores.back().enable_shared_ownership();
 			}
 		};
@@ -136,8 +141,8 @@ namespace avk
 		//io.ClipboardUserData = g_Window;
 
 #if defined(_WIN32)
-		avk::context().dispatch_to_main_thread([]() {
-			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(avk::context().main_window()->handle()->mHandle);
+		context().dispatch_to_main_thread([]() {
+			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(context().main_window()->handle()->mHandle);
 			});
 #endif
 
@@ -149,13 +154,14 @@ namespace avk
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
-		auto wndSize = avk::context().main_window()->resolution(); // TODO: What about multiple windows?
+		auto wndSize = context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
 		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 		io.DeltaTime = avk::time().delta_time();
 
 		if (mUserInteractionEnabled) {
 			// Cursor position:
+			static const auto input = []() { return composition_interface::current()->input(); };
 			const auto cursorPos = input().cursor_position();
 			io.AddMousePosEvent(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
 
@@ -297,7 +303,7 @@ namespace avk
 
 		auto& cmdBfr = aCommandBuffer;
 
-		auto mainWnd = avk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
@@ -354,10 +360,10 @@ namespace avk
 			{}, // no resource-specific sync hints
 			[
 				this,
-				lMainWnd = avk::context().main_window(), // TODO: ImGui shall not only support main_mindow, but all windows!
+				lMainWnd = context().main_window(), // TODO: ImGui shall not only support main_mindow, but all windows!
 				lFramebufferPtr = aTargetFramebuffer.has_value()
 					? &aTargetFramebuffer.value().get_const_reference()
-					: &avk::context().main_window()->current_backbuffer_reference()
+					: &context().main_window()->current_backbuffer_reference()
 			](avk::command_buffer_t& cmdBfr) {
 				for (auto& cb : mCallback) {
 					cb();
@@ -398,7 +404,7 @@ namespace avk
 			return;
 		}
 
-		auto mainWnd = avk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		const auto ifi = mainWnd->current_in_flight_index();
 		auto& cmdBfr = mCommandBuffers[ifi];
 
@@ -448,23 +454,23 @@ namespace avk
 
 	void imgui_manager::upload_fonts()
 	{
-		auto cmdBfr = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue)->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		auto cmdBfr = context().get_command_pool_for_single_use_command_buffers(*mQueue)->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
 
 		if (mUsingSemaphoreInsteadOfFenceForFontUpload) {
-			auto semaphore = avk::context().create_semaphore();
+			auto semaphore = context().create_semaphore();
 			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(avk::stage::transfer >> semaphore);
 
 			// The following is not totally correct, i.e., living on the edge:
-			auto* mainWnd = avk::context().main_window();
+			auto* mainWnd = context().main_window();
 			mainWnd->add_present_dependency_for_current_frame(std::move(semaphore));
 		}
 		else {
-			auto fen = avk::context().create_fence();
+			auto fen = context().create_fence();
 			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(fen);
 
@@ -477,7 +483,7 @@ namespace avk
 	{
 		using namespace avk;
 
-		auto* wnd = avk::context().main_window();
+		auto* wnd = context().main_window();
 		std::vector<attachment> attachments;
 		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, usage::color(0), on_store::store.in_layout(layout::present_src)));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {

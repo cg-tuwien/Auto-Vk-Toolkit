@@ -1,5 +1,7 @@
-#include <auto_vk_toolkit.hpp>
+
 #include <sstream>
+
+#include "model.hpp"
 
 namespace avk
 {

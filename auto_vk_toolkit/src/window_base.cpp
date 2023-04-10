@@ -1,5 +1,7 @@
 #include <auto_vk_toolkit.hpp>
 
+#include "context_vulkan.hpp"
+
 namespace avk
 {
 	uint32_t window_base::mNextWindowId = 0u;
@@ -182,7 +184,7 @@ namespace avk
 	{
 		assert(handle());
 		context().dispatch_to_main_thread([this, aCursorMode]() {
-			avk::context().activate_cursor(this, aCursorMode);
+			context().activate_cursor(this, aCursorMode);
 			mCursorMode = aCursorMode;
 			// Also update the cursor position, because window-coordinates and raw-coordinates can be different
 			glfwGetCursorPos(handle()->mHandle, &mCursorPosition.x, &mCursorPosition.y);

@@ -17,15 +17,56 @@
   <ItemGroup>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
     <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp" />
-    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp" />
-    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp" />
-    <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\timer_globals.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\animation.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\bezier_curve.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\catmull_rom_spline.cpp" />
@@ -43,8 +84,18 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vk_toolkit\src\fixed_update_timer.cpp" />
-    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_utils.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\fixed_update_timer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </PrecompiledHeaderFile>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_utils.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\input_buffer.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\log.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\material_image_helpers.cpp" />
@@ -56,7 +107,13 @@
     <ClCompile Include="..\..\auto_vk_toolkit\src\quake_camera.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\transform.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\updater.cpp" />
-    <ClCompile Include="..\..\auto_vk_toolkit\src\varying_update_timer.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\varying_update_timer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </PrecompiledHeaderFile>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\vk_convenience_functions.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\window_base.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\window.cpp">
@@ -153,7 +210,12 @@
     <ClInclude Include="..\..\auto_vk_toolkit\include\event.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\event_data.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\files_changed_event.hpp" />
-    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\auto_vk_toolkit.hpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">CompileAsHeaderUnit</CompileAs>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+    </ClInclude>
     <ClInclude Include="..\..\auto_vk_toolkit\include\image_data.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\imgui_utils.h" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\invokee.hpp" />
@@ -206,7 +268,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="cg_stdafx.hpp" />
+    <ClInclude Include="cg_stdafx.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="cg_targetver.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\lightsource_gpu_data.hpp" />
@@ -223,20 +287,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -290,17 +354,18 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
+      <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>cg_stdafx.hpp</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <ForcedIncludeFiles>cg_stdafx.hpp</ForcedIncludeFiles>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <AdditionalOptions>/Zm1000 /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
