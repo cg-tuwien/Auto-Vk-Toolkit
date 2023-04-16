@@ -6,7 +6,7 @@ namespace avk
 	/**	@brief Get the current timer, which represents the current game-/render-time
 	 *	This can be nullptr! Use time() for a version which will not return nullptr.
 	 */
-	inline timer_interface*& timer_reference()
+	timer_interface*& timer_reference()
 	{
 		static timer_interface* sTimer = nullptr;
 		return sTimer;
@@ -15,14 +15,14 @@ namespace avk
 	/**	@brief Sets a new timer.
 	 *	ATTENTION: This timer must live until the end of the application!
 	 */
-	inline void set_timer(timer_interface* const aPointerToNewTimer)
+	void set_timer(timer_interface* const aPointerToNewTimer)
 	{
 		timer_reference() = aPointerToNewTimer;
 	}
 
 	/**	@brief Get the current timer, which represents the current game-/render-time
 	 */
-	inline timer_interface& time()
+	timer_interface& time()
 	{
 		// If there is no timer set AT THE FIRST INVOCATION, one will be set.
 		// But at subsequent invocations, no further checks are performed.

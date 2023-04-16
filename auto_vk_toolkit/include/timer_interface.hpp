@@ -97,16 +97,16 @@ namespace avk
 	 /**	@brief Get the current timer, which represents the current game-/render-time
   *	This can be nullptr! Use time() for a version which will not return nullptr.
   */
-	extern inline timer_interface*& timer_reference();
+	extern timer_interface*& timer_reference();
 
 	/**	@brief Sets a new timer.
 	 *	ATTENTION: This timer must live until the end of the application!
 	 */
-	extern inline void set_timer(timer_interface* const aPointerToNewTimer);
+	extern void set_timer(timer_interface* const aPointerToNewTimer);
 
 	/**	@brief Get the current timer, which represents the current game-/render-time
 	 */
-	extern inline timer_interface& time();
+	extern timer_interface& time();
 
 	extern void set_default_timer();
 }
