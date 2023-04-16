@@ -140,6 +140,7 @@ set(avk_toolkit_Sources
         auto_vk_toolkit/src/quake_camera.cpp
         auto_vk_toolkit/src/swapchain_resized_event.cpp
         auto_vk_toolkit/src/transform.cpp
+        auto_vk_toolkit/src/timer_globals.cpp
         auto_vk_toolkit/src/updater.cpp
         auto_vk_toolkit/src/varying_update_timer.cpp
         auto_vk_toolkit/src/vk_convenience_functions.cpp
