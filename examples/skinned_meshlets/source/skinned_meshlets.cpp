@@ -579,7 +579,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mMeshletDataBuffers;
 #endif
 
-	bool mHighlightMeshlets;
+	bool mHighlightMeshlets = false;
 
 }; // skinned_meshlets_app
 
