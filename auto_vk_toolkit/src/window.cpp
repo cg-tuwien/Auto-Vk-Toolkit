@@ -812,11 +812,11 @@ namespace avk
 			auto newRenderPass = context().create_renderpass(renderpassAttachments, {
 				// We only create one subpass here => create default dependencies as per specification chapter 8.1) Render Pass Creation:
 				avk::subpass_dependency{avk::subpass::external >> avk::subpass::index(0),
-					avk::stage::none  >> avk::stage::all_commands,
+					avk::stage::none  >> avk::stage::all_graphics,
 					avk::access::none >> avk::access::input_attachment_read | avk::access::color_attachment_read | avk::access::color_attachment_write | avk::access::depth_stencil_attachment_read | avk::access::depth_stencil_attachment_write
 				},
 				avk::subpass_dependency{avk::subpass::index(0) >> avk::subpass::external,
-					avk::stage::all_commands                                                          >> avk::stage::none,
+					avk::stage::all_graphics                                                          >> avk::stage::none,
 					avk::access::color_attachment_write | avk::access::depth_stencil_attachment_write >> avk::access::none
 				}
 			});
