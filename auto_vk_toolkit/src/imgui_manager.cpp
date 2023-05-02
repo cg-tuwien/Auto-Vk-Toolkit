@@ -465,6 +465,9 @@ namespace avk
 			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(avk::stage::transfer >> semaphore);
 
+			// Let the semaphore handle the command buffer's lifetime:
+			semaphore->handle_lifetime_of(std::move(cmdBfr));
+
 			// The following is not totally correct, i.e., living on the edge:
 			auto* mainWnd = context().main_window();
 			mainWnd->add_present_dependency_for_current_frame(std::move(semaphore));
@@ -545,7 +548,7 @@ namespace avk
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache->get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler.as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
-			});
+		});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler
 		assert(sets.size() == 1);
