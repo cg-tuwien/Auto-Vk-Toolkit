@@ -31,6 +31,6 @@ else()
             ${PROJECT_SOURCE_DIR}/external/universal/src/imgui_demo.cpp
             ${PROJECT_SOURCE_DIR}/external/universal/src/imgui_draw.cpp
             ${PROJECT_SOURCE_DIR}/external/universal/src/imgui_widgets.cpp
-            ${PROJECT_SOURCE_DIR}/external/universal/src/backends/imgui_impl_glfw.cpp
-            ${PROJECT_SOURCE_DIR}/external/universal/src/backends/imgui_impl_vulkan.cpp)
+            ${PROJECT_SOURCE_DIR}/external/universal/src/imgui_impl_glfw.cpp
+            ${PROJECT_SOURCE_DIR}/external/universal/src/imgui_impl_vulkan.cpp)
 endif(UNIX)
