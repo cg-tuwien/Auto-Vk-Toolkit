@@ -1,5 +1,3 @@
-#include <auto_vk_toolkit.hpp>
-
 #include "composition_interface.hpp"
 #include "context_vulkan.hpp"
 #include "context_generic_glfw.hpp"

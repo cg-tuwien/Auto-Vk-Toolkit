@@ -1,5 +1,4 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
 
 #include "context_generic_glfw.hpp"
 #include "settings.hpp"
