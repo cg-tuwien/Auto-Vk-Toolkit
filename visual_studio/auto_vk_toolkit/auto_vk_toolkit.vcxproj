@@ -21,50 +21,90 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcher.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\FileWatcher\FileWatcherWin32.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_demo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_draw.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_impl_glfw.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_impl_vulkan.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_tables.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\external\universal\src\imgui_widgets.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\animation.cpp" />
@@ -90,10 +130,18 @@
       </PrecompiledHeaderFile>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\imgui_utils.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\input_buffer.cpp" />
@@ -112,6 +160,10 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
       </PrecompiledHeaderFile>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\vk_convenience_functions.cpp" />
