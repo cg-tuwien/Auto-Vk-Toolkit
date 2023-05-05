@@ -135,13 +135,30 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Add an "ImGui Manager" which handles the UI:
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
-			imguiManager->add_callback([this]() {
+			imguiManager->add_callback([
+				this,
+				timestampPeriod = std::invoke([]() {
+					// get timestamp period from physical device, could be different for other GPUs
+					vk::PhysicalDeviceProperties props;
+					avk::context().physical_device().getProperties(&props);
+					return props.limits.timestampPeriod;
+				}),
+				lastFrameDurationMs = 0.0,
+				lastTraceRaysDurationMs = 0.0
+			]() mutable {
 				ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_FirstUseEver);
 				ImGui::SetWindowSize(ImVec2(400.0f, 410.0f), ImGuiCond_FirstUseEver);
 
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::Separator();
+				ImGui::TextColored(ImVec4(.5f, .3f, .4f, 1.f), "Timestamp Period: %.3f ns", timestampPeriod);
+				lastFrameDurationMs = glm::mix(lastFrameDurationMs, mLastFrameDuration * 1e-6 * timestampPeriod, 0.05);
+				lastTraceRaysDurationMs = glm::mix(lastTraceRaysDurationMs, mLastTraceRaysDuration * 1e-6 * timestampPeriod, 0.05);
+				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "Frame time (timer queries): %.3lf ms", lastFrameDurationMs);
+				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "TraceRays took (t.queries): %.3lf ms", lastTraceRaysDurationMs);
+				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
 
@@ -176,6 +193,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::End();
 			});
 		}
+
+		mTimestampPool = avk::context().create_query_pool_for_timestamp_queries(
+			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()) * 2
+		);
 	}
 
 	void update() override
@@ -263,7 +284,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Only after the swapchain image has become available, we may start rendering into it.
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 
+		const auto firstQueryIndex = static_cast<uint32_t>(inFlightIndex) * 2;
+		if (mainWnd->current_frame() > mainWnd->number_of_frames_in_flight()) // otherwise we will wait forever
+		{
+			auto timers = mTimestampPool->get_results<uint64_t, 2>(
+				firstQueryIndex, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait); // => ensure that the results are available
+			mLastTraceRaysDuration = timers[1] - timers[0];
+			mLastFrameDuration = timers[1] - mLastTimestamp;
+			mLastTimestamp = timers[1];
+		}
+
 		avk::context().record({
+				mTimestampPool->reset(firstQueryIndex, 2),
+				mTimestampPool->write_timestamp(firstQueryIndex + 0, avk::stage::all_commands), // measure before trace_rays
+
 				avk::command::bind_pipeline(mPipeline.as_reference()),
 				avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 					avk::descriptor_binding(0, 0, triMeshGeomMgr->combined_image_sampler_descriptor_infos()),
@@ -302,6 +336,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::using_miss_group_at_index(0),
 					avk::using_hit_group_at_index(0)
 				),
+
+				mTimestampPool->write_timestamp(firstQueryIndex + 1, avk::stage::ray_tracing_shader), // measure after trace_rays
 
 				// Wait until ray tracing has completed, then transfer the result image into the swap chain image:
 				avk::sync::image_memory_barrier(mOffscreenImageView->get_image(),
@@ -395,6 +431,11 @@ private: // v== Member variables ==v
 
 	bool mTlasUpdateRequired = false;
 
+	avk::query_pool mTimestampPool;
+	uint64_t mLastTimestamp = 0;
+	uint64_t mLastTraceRaysDuration = 0;
+	uint64_t mLastFrameDuration = 0;
+
 }; // End of ray_tracing_with_shadows_and_ao_invokee
 
 int main() // <== Starting point ==
@@ -467,7 +508,7 @@ int main() // <== Starting point ==
 				// Sync (wait for fences and so) per window BEFORE executing render callbacks
 				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->sync_before_render();
-					});
+				});
 
 				// Call all the render() callbacks:
 				invoker.invoke_renders(aToBeInvoked);
@@ -475,7 +516,7 @@ int main() // <== Starting point ==
 				// Render per window:
 				avk::context().execute_for_each_window([](avk::window* wnd) {
 					wnd->render_frame();
-					});
+				});
 			}
 			); // This is a blocking call, which loops until avk::current_composition()->stop(); has been called (see update())
 
