@@ -2,7 +2,7 @@
 
 The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](./tools/executables) and is invoked as a build step of _Auto-Vk-Toolkit_'s example applications. 
 
-The repository contains one solution file: [`auto_vk_toolkit.sln`](./) which references multiple Visual Studio project files (`*.vcxproj`): The _Auto-Vk-Toolkit_ library project and several example projects. Out of the box, they are configured for Visual Studio 2019 and require C++ with the latest language features, i.e. `/std:c++latest`.
+The repository contains one solution file: [`auto_vk_toolkit.sln`](./) which references multiple Visual Studio project files (`*.vcxproj`): The _Auto-Vk-Toolkit_ library project and several example projects. Out of the box, they are configured for Visual Studio 2022 and are set to use C++ with the latest language features, i.e. `/std:c++latest`. 
 
 The examples' Visual Studio project files are located in [`visual_studio/examples/`](./examples). Their source code is located in [`examples/`](../examples). All examples reference the _Auto-Vk-Toolkit_ library project ([`auto_vk_toolkit.vcxproj`](./auto_vk_toolkit/)). Substantial parts of the Visual Studio project configuration is handled via property files which are located under [`props/`](./props).
 
