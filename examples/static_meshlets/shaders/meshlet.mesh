@@ -1,7 +1,7 @@
 #version 460
 #extension GL_EXT_shader_16bit_storage : require
 #extension GL_EXT_shader_8bit_storage : require
-#extension GL_NV_mesh_shader : require
+#extension GL_EXT_mesh_shader : require
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_ARB_shader_draw_parameters : require
@@ -45,10 +45,12 @@ struct extended_meshlet
 	meshlet mGeometry;
 };
 
-in taskNV block
+struct MyPayloadStruct
 {
 	uint meshletIndices[32];
 };
+
+taskPayloadSharedEXT MyPayloadStruct payload;
 
 layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
@@ -89,7 +91,7 @@ vec3 meshletcolors[MAX_COLORS] = {
 
 void main() 
 {
-	uint mshIdx = meshletIndices[gl_WorkGroupID.x];
+	uint mshIdx = payload.meshletIndices[gl_WorkGroupID.x];
 	uint thread_id = gl_LocalInvocationID.x;
 
 	// Get all the meshlet data:
@@ -121,7 +123,7 @@ void main()
 		vec4 posCS = ubo.mViewProjMatrix * posWS;
  
 		// Set the vertex position:
-		gl_MeshVerticesNV[i].gl_Position = posCS;
+		gl_MeshVerticesEXT[i].gl_Position = posCS;
  
 		// Set the per vertex data for the fragment shader:
 		v_out[i].positionWS = posWS.xyz;
@@ -134,7 +136,7 @@ void main()
 	// only set once
 	if(thread_id == 0)
 	{
-		gl_PrimitiveCountNV = triangleCount;
+		SetMeshOutputsEXT(vertexCount, triangleCount);
 	}
  
 	// Write the indices for the vertices:
@@ -142,9 +144,11 @@ void main()
 	// write for each triangle, also note the 32 stepping
 	for (uint i = thread_id; i < triangleCount; i+=32)
 	{
-		gl_PrimitiveIndicesNV[i*3 + 0] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 0]);
-		gl_PrimitiveIndicesNV[i*3 + 1] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 1]);
-		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]);
+		gl_PrimitiveTriangleIndicesEXT[i*3] = uvec3(
+			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 0],
+			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 1],
+			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]
+		);
 	}
 #else // USE_REDIRECTED_GPU_DATA
 	// Here we have the indices packed into an uint, so we can write each of the uints at once:

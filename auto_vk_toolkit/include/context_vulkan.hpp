@@ -41,6 +41,9 @@ namespace avk
 #else
 			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
+#if VK_HEADER_VERSION >= 243
+			, vk::PhysicalDeviceMeshShaderFeaturesEXT& aMeshShaderFeatures
+#endif
 		);
 
 		vk::Instance& vulkan_instance()                                         { return mInstance;        }

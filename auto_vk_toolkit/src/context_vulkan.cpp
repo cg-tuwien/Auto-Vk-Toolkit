@@ -113,6 +113,9 @@ namespace avk
 #else
 		vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
+#if VK_HEADER_VERSION >= 243
+		, vk::PhysicalDeviceMeshShaderFeaturesEXT& aMeshShaderFeatures
+#endif
 	)
 	{
 		mSettings = std::move(aSettings);
@@ -205,13 +208,6 @@ namespace avk
 			.setShadingRateCoarseSampleOrder(VK_TRUE);
 		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
 
-		// Always prepare the mesh shader feature descriptor, but only use it if the extension has been requested
-		auto meshShaderFeatureNV = VkPhysicalDeviceMeshShaderFeaturesNV{};
-		meshShaderFeatureNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
-		meshShaderFeatureNV.taskShader = VK_TRUE;
-		meshShaderFeatureNV.meshShader = VK_TRUE;
-		auto activateMeshShaderFeature = mesh_shader_extension_requested() && supports_mesh_shader(context().physical_device());
-
 		auto queueCreateInfos = avk::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
 		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
 		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
@@ -267,10 +263,23 @@ namespace avk
 		}
 #endif
 
+#if VK_HEADER_VERSION >= 243
+		if (mesh_shader_extension_requested()) {
+			aMeshShaderFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aMeshShaderFeatures);
+		}
+#else
+		// Always prepare the mesh shader feature descriptor, but only use it if the extension has been requested
+		auto meshShaderFeatureNV = VkPhysicalDeviceMeshShaderFeaturesNV{};
+		meshShaderFeatureNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+		meshShaderFeatureNV.taskShader = VK_TRUE;
+		meshShaderFeatureNV.meshShader = VK_TRUE;
+		auto activateMeshShaderFeature = mesh_shader_extension_requested() && supports_mesh_shader(context().physical_device());
 		if (activateMeshShaderFeature) {
 			meshShaderFeatureNV.pNext = deviceFeatures.pNext;
 			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
+#endif
 
 		// Unconditionally enable Synchronization2, because synchronization abstraction depends on it; it is just not implemented for Synchronization1:
 		auto physicalDeviceSync2Features = vk::PhysicalDeviceSynchronization2FeaturesKHR{}
@@ -863,10 +872,14 @@ namespace avk
 	bool context_vulkan::supports_mesh_shader(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
-		auto meshShaderFeaturesNV = vk::PhysicalDeviceMeshShaderFeaturesNV{};
-		supportedExtFeatures.pNext = &meshShaderFeaturesNV;
+#if VK_HEADER_VERSION >= 243
+		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesEXT{};
+#else
+		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesNV{};
+#endif
+		supportedExtFeatures.pNext = &meshShaderFeatures;
 		device.getFeatures2(&supportedExtFeatures);
-		return meshShaderFeaturesNV.meshShader == VK_TRUE && meshShaderFeaturesNV.taskShader == VK_TRUE;
+		return meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE;
 	}
 
 	bool context_vulkan::shading_rate_image_extension_requested()
@@ -878,7 +891,11 @@ namespace avk
 	bool context_vulkan::mesh_shader_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+#if VK_HEADER_VERSION >= 243
+		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_EXT_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+#else
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+#endif
 	}	
 
 #if VK_HEADER_VERSION >= 162

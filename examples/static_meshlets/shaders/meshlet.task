@@ -1,7 +1,7 @@
 #version 460
 #extension GL_EXT_shader_16bit_storage : require
 #extension GL_EXT_shader_8bit_storage : require
-#extension GL_NV_mesh_shader : require
+#extension GL_EXT_mesh_shader : require
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_ARB_shader_draw_parameters : require
@@ -12,10 +12,12 @@
 // 32 executions in parallel
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
-out taskNV block
+struct MyPayloadStruct
 {
 	uint meshletIndices[32];
 };
+
+taskPayloadSharedEXT MyPayloadStruct payload;
 
 void main() 
 {
@@ -24,14 +26,14 @@ void main()
 	uint thread_id = gl_LocalInvocationID.x;
 	uint mshIdx = meshlet_group_id * 32 + thread_id;
 
-	meshletIndices[thread_id] = mshIdx;
+	payload.meshletIndices[thread_id] = mshIdx;
 
 	// Here culling on a per meshlet basis can be performed, so that the subsequent mesh shader is only executed for the surviving meshlets.
 	// For example backface culling or frustum culling.
 
 	// We only need to write the task count once for all executions:
 	if (thread_id == 0) {
-		gl_TaskCountNV = 32;
+		EmitMeshTasksEXT(32, 1, 1);
 	}
 }
 

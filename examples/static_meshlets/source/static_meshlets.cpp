@@ -405,7 +405,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 					// Draw all the meshlets with just one single draw call:
 					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { 
-						cb.handle().drawMeshTasksNV(mNumMeshletWorkgroups, 0);
+						cb.handle().drawMeshTasksEXT(mNumMeshletWorkgroups, 1, 1);
 					})
 				})
 			})
@@ -472,8 +472,13 @@ int main() // <== Starting point ==
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Static Meshlets"),
-			avk::required_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME)
-			.add_extension(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME),
+			// Gotta enable the mesh shader extension, ...
+			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME),
+			// ... and enable the mesh shader features that we need:
+			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
+				meshShaderFeatures.setMeshShader(VK_TRUE);
+				meshShaderFeatures.setTaskShader(VK_TRUE);
+			},
 			[](vk::PhysicalDeviceVulkan12Features& features) {
 				features.setUniformAndStorageBuffer8BitAccess(VK_TRUE);
 				features.setStorageBuffer8BitAccess(VK_TRUE);
