@@ -27,8 +27,8 @@ void main()
 	// For example backface culling or frustum culling.
 
 	// We only need to write the task count once for all executions:
-	if (thread_id == 0) {
+//	if (thread_id == 0) {
 		EmitMeshTasksEXT(32, 1, 1);
-	}
+//	}
 }
 

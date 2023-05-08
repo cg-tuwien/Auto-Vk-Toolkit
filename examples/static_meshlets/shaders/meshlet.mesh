@@ -139,7 +139,7 @@ void main()
 	// write for each triangle, also note the 32 stepping
 	for (uint i = thread_id; i < triangleCount; i+=32)
 	{
-		gl_PrimitiveTriangleIndicesEXT[i*3] = uvec3(
+		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
 			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 0],
 			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 1],
 			meshletsBuffer.values[mshIdx].mGeometry.indices[i * 3 + 2]
@@ -147,7 +147,6 @@ void main()
 	}
 #else // USE_REDIRECTED_GPU_DATA
 	// Here we have the indices packed into an uint, so we can write each of the uints at once:
-	uint indexGroupCount = (triangleCount * 3 + 3) / 4; // need to calculate how many packed uints we have
 	for (uint i = thread_id; i < indexGroupCount; i += 32)
 	{
 		uint index = uint(texelFetch(meshletVertexIndices[texelBufferIndex], int(indexOffset + i))).x;
