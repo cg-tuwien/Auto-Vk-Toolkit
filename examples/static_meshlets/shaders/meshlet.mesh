@@ -45,12 +45,7 @@ struct extended_meshlet
 	meshlet mGeometry;
 };
 
-struct MyPayloadStruct
-{
-	uint meshletIndices[32];
-};
-
-taskPayloadSharedEXT MyPayloadStruct payload;
+taskPayloadSharedEXT uint meshletIndices[32];
 
 layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
@@ -91,7 +86,7 @@ vec3 meshletcolors[MAX_COLORS] = {
 
 void main() 
 {
-	uint mshIdx = payload.meshletIndices[gl_WorkGroupID.x];
+	uint mshIdx = meshletIndices[gl_WorkGroupID.x];
 	uint thread_id = gl_LocalInvocationID.x;
 
 	// Get all the meshlet data:
