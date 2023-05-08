@@ -113,7 +113,7 @@ namespace avk
 #else
 		vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 		, vk::PhysicalDeviceMeshShaderFeaturesEXT& aMeshShaderFeatures
 #endif
 	)
@@ -263,7 +263,7 @@ namespace avk
 		}
 #endif
 
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 		if (mesh_shader_extension_requested()) {
 			aMeshShaderFeatures.setPNext(deviceFeatures.pNext);
 			deviceFeatures.setPNext(&aMeshShaderFeatures);
@@ -872,7 +872,7 @@ namespace avk
 	bool context_vulkan::supports_mesh_shader(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesEXT{};
 #else
 		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesNV{};
@@ -891,7 +891,7 @@ namespace avk
 	bool context_vulkan::mesh_shader_extension_requested()
 	{
 		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_EXT_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
 #else
 		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);

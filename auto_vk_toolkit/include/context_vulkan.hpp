@@ -41,7 +41,7 @@ namespace avk
 #else
 			vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 			, vk::PhysicalDeviceMeshShaderFeaturesEXT& aMeshShaderFeatures
 #endif
 		);

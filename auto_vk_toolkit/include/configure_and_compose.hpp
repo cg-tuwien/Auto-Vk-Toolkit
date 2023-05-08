@@ -4,7 +4,7 @@
 
 namespace avk
 {
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 #define CONFIG_STRUCTS_DECLARATIONS vk::PhysicalDeviceAccelerationStructureFeaturesKHR& acsFtrs, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& rtpFtrs, vk::PhysicalDeviceRayQueryFeaturesKHR& rquFtrs, vk::PhysicalDeviceMeshShaderFeaturesEXT& meShFtr
 #define CONFIG_PARAMETERS_PASSED_ON acsFtrs, rtpFtrs, rquFtrs, meShFtr
 #elif VK_HEADER_VERSION >= 162
@@ -147,7 +147,7 @@ namespace avk
 		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceMeshShaderFeaturesEXT&)> fu, Args&... args)
 	{
@@ -210,7 +210,7 @@ namespace avk
 		vk::PhysicalDeviceRayTracingFeaturesKHR rtf = vk::PhysicalDeviceRayTracingFeaturesKHR{}
 		.setRayTracing(VK_FALSE);
 #endif
-#if VK_HEADER_VERSION >= 243
+#if VK_HEADER_VERSION >= 239
 		auto meShFtr = vk::PhysicalDeviceMeshShaderFeaturesEXT{}; // all set to false
 #endif
 
