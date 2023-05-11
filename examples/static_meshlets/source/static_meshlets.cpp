@@ -252,8 +252,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create our rasterization graphics pipeline with the required configuration:
 		mPipeline = avk::context().create_graphics_pipeline_for(
 			// Specify which shaders the pipeline consists of:
-			avk::task_shader("shaders/meshlet.task"), // we use a task and mesh shader
-			avk::mesh_shader("shaders/meshlet.mesh"),
+			avk::task_shader("shaders/meshlet.task")
+				.set_specialization_constant(0, meshShaderProps.maxPreferredTaskWorkGroupInvocations),
+			avk::mesh_shader("shaders/meshlet.mesh")
+				.set_specialization_constant(0, meshShaderProps.maxPreferredTaskWorkGroupInvocations)
+				.set_specialization_constant(1, meshShaderProps.maxPreferredMeshWorkGroupInvocations),
 			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 			// Some further settings:
 			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),

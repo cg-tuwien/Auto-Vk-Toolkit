@@ -3,10 +3,9 @@
 #extension GL_KHR_shader_subgroup_arithmetic : require
 #extension GL_KHR_shader_subgroup_ballot     : require
 
-layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 32; // <- Expected to be set to 32 for Nvidia on host side.
-layout (constant_id = 1) const uint NUM_MESH_SHADER_INVOCATIONS = 32; // <- Expected to be set to 32 for Nvidia on host side.
+layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
 // ^  same as  v 
-layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
 taskPayloadSharedEXT uint meshletIndices[NUM_TASK_SHADER_INVOCATIONS];
 
@@ -37,14 +36,14 @@ void main()
 	EmitMeshTasksEXT(numMeshlets, 1, 1);
 	// ^ Additional info from the VK_EXT_mesh_shader spec:
 	// 
-	// The arguments are taken from the first invocation in each workgroup. Any invocation must 
-	// execute this instruction exactly once and under uniform control flow. This instruction 
-	// also serves as an OpControlBarrier instruction, and also performs and adheres to the 
-	// description and semantics of an OpControlBarrier instruction with the 'Execution' and 
-	// 'Memory' operands set to Workgroup and the 'Semantics' operand set to a combination of 
-	// WorkgroupMemory and AcquireRelease. Ceases all further processing: Only instructions 
-	// executed before OpEmitMeshTasksEXT have observable side effects.
-	// 
-	// This instruction must be the last instruction in a block.
+	// > The arguments are taken from the first invocation in each workgroup. Any invocation must 
+	// > execute this instruction exactly once and under uniform control flow. This instruction 
+	// > also serves as an OpControlBarrier instruction, and also performs and adheres to the 
+	// > description and semantics of an OpControlBarrier instruction with the 'Execution' and 
+	// > 'Memory' operands set to Workgroup and the 'Semantics' operand set to a combination of 
+	// > WorkgroupMemory and AcquireRelease. Ceases all further processing: Only instructions 
+	// > executed before OpEmitMeshTasksEXT have observable side effects.
+	// > 
+	// > This instruction must be the last instruction in a block.
 }
 

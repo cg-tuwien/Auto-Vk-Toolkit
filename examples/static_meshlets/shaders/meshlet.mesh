@@ -4,9 +4,9 @@
 #extension GL_EXT_mesh_shader            : require
 #extension GL_EXT_nonuniform_qualifier   : require
 
-layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 32; // <- Expected to be set to 32 for Nvidia on host side.
-layout (constant_id = 1) const uint NUM_MESH_SHADER_INVOCATIONS = 32; // <- Expected to be set to 32 for Nvidia on host side.
-layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
+layout (constant_id = 1) const uint NUM_MESH_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
+layout(local_size_x_id = 1, local_size_y = 1, local_size_z = 1) in;
 // The max_vertices and max_primitives numbers have been recommended by Nvidia:
 layout(triangles, max_vertices = 64, max_primitives = 126) out;
 
@@ -70,7 +70,7 @@ vec3 meshletcolors[MAX_COLORS] = {
 void main() 
 {
 	uint meshletIndex = meshletIndices[gl_WorkGroupID.x];
-	uint invocationid = gl_LocalInvocationID.x;
+	uint invocationId = gl_LocalInvocationID.x;
 
 	// Get all the meshlet data:
 	uint vertexCount          = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mVertexCount);
@@ -81,7 +81,7 @@ void main()
 	uint texelBufferIndex     = meshletsBuffer.mValues[meshletIndex].mTexelBufferIndex;
 	
 	// Step by NUM_MESH_SHADER_INVOCATIONS as we have that many threads but potentially more vertices to calculate:
-	for (uint i = invocationid; i < vertexCount; i += NUM_MESH_SHADER_INVOCATIONS)
+	for (uint i = invocationId; i < vertexCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
 		// Get the vertex index:
 		uint vi = meshletsBuffer.mValues[meshletIndex].mGeometry.mVertices[i];
@@ -104,14 +104,18 @@ void main()
 		v_out[i].color = meshletcolors[meshletIndex % MAX_COLORS];
 	}
  
-	// only set once
-	if(invocationid == 0)
-	{
-		SetMeshOutputsEXT(vertexCount, triangleCount);
-	}
+	// Sets the actual output size of the primitives and vertices that the 
+	// mesh shader workgroup will emit upon completion:
+	SetMeshOutputsEXT(vertexCount, triangleCount);
+	// ^ Note: This is the correct way and place to call SetMeshOutputsEXT, as the spec says:
+	// 
+	// > The arguments are taken from the first invocation in each workgroup. 
+	// > Any invocation must execute this instruction no more than once and 
+	// > under uniform control flow. There must not be any control flow path 
+	// > to an output write that is not preceded by this instruction.
  
 	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
-	for (uint i = invocationid; i < triangleCount; i+=32)
+	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
 		// Write the indices for the vertices:
 		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
