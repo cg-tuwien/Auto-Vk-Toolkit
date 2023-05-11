@@ -1,3 +1,4 @@
+#include <ranges>
 #include <imgui.h>
 
 #include "configure_and_compose.hpp"
@@ -9,7 +10,6 @@
 #include "serializer.hpp"
 #include "sequential_invoker.hpp"
 #include "quake_camera.hpp"
-#include "../shaders/cpu_gpu_shared_config.h"
 #include "vk_convenience_functions.hpp"
 
 class static_meshlets_app : public avk::invokee
@@ -20,6 +20,8 @@ class static_meshlets_app : public avk::invokee
 	struct alignas(16) push_constants
 	{
 		vk::Bool32 mHighlightMeshlets;
+		int32_t    mVisibleMeshletIndexFrom;
+		int32_t    mVisibleMeshletIndexTo;
 	};
 
 	/** Contains the necessary buffers for drawing everything */
@@ -28,9 +30,6 @@ class static_meshlets_app : public avk::invokee
 		avk::buffer mPositionsBuffer;
 		avk::buffer mTexCoordsBuffer;
 		avk::buffer mNormalsBuffer;
-#if USE_REDIRECTED_GPU_DATA
-		avk::buffer mMeshletDataBuffer;
-#endif
 
 		glm::mat4 mModelMatrix;
 
@@ -44,9 +43,6 @@ class static_meshlets_app : public avk::invokee
 		std::vector<glm::vec2> mTexCoords;
 		std::vector<glm::vec3> mNormals;
 		std::vector<uint32_t> mIndices;
-#if USE_REDIRECTED_GPU_DATA
-		std::vector<uint32_t> mMeshletData;
-#endif
 
 		glm::mat4 mModelMatrix;
 
@@ -60,11 +56,7 @@ class static_meshlets_app : public avk::invokee
 		uint32_t mMaterialIndex;
 		uint32_t mTexelBufferIndex;
 
-#if !USE_REDIRECTED_GPU_DATA
 		avk::meshlet_gpu_data<sNumVertices, sNumIndices> mGeometry;
-#else
-		avk::meshlet_redirected_gpu_data mGeometry;
-#endif
 	};
 
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
@@ -101,30 +93,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mTexCoords).describe_only_member(drawCallData.mTexCoords[0]) // just take the vec2 as it is   
 			);
 
-#if USE_REDIRECTED_GPU_DATA
-			drawCall.mMeshletDataBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
-				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
-				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mMeshletData).describe_only_member(drawCallData.mMeshletData[0])
-			);
-#endif
-
 			avk::context().record_and_submit_with_fence({
 				drawCall.mPositionsBuffer->fill(drawCallData.mPositions.data(), 0),
 				drawCall.mNormalsBuffer->fill(drawCallData.mNormals.data(), 0),
 				drawCall.mTexCoordsBuffer->fill(drawCallData.mTexCoords.data(), 0)
-#if USE_REDIRECTED_GPU_DATA
-				, drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0)
-#endif
 			}, *mQueue)->wait_until_signalled();
 
 			// add them to the texel buffers
 			mPositionBuffers.push_back(avk::context().create_buffer_view(drawCall.mPositionsBuffer));
 			mNormalBuffers.push_back(avk::context().create_buffer_view(drawCall.mNormalsBuffer));
 			mTexCoordsBuffers.push_back(avk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
-#if USE_REDIRECTED_GPU_DATA
-			mMeshletDataBuffers.push_back(avk::context().create_buffer_view(drawCall.mMeshletDataBuffer));
-#endif
 		}
 	}
 
@@ -190,14 +168,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				auto meshletSelection = avk::make_models_and_mesh_indices_selection(curModel, meshIndex);
 
 				auto cpuMeshlets = avk::divide_into_meshlets(meshletSelection);
-#if !USE_REDIRECTED_GPU_DATA
 				avk::serializer serializer("direct_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
 				auto [gpuMeshlets, _] = avk::convert_for_gpu_usage_cached<avk::meshlet_gpu_data<sNumVertices, sNumIndices>>(serializer, cpuMeshlets);
-#else
-				avk::serializer serializer("indirect_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, generatedMeshletData] = avk::convert_for_gpu_usage_cached<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
-				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
-#endif
 
 				serializer.flush();
 
@@ -226,7 +198,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::memory_usage::device, {},
 			avk::storage_buffer_meta::create_from_data(meshletsGeometry)
 		);
-		mNumMeshletWorkgroups = meshletsGeometry.size();
+		mNumMeshlets = static_cast<uint32_t>(meshletsGeometry.size());
+		mShowMeshletsTo = static_cast<int>(mNumMeshlets);
 
 		// For all the different materials, transfer them in structs which are well
 		// suited for GPU-usage (proper alignment, and containing only the relevant data),
@@ -260,6 +233,21 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mImageSamplers = std::move(imageSamplers);
 
+		// Before creating a pipeline, let's query the VK_EXT_mesh_shader-specific device properties:
+		// Also, just out of curiosity, query the subgroup properties too:
+		vk::PhysicalDeviceMeshShaderPropertiesEXT meshShaderProps;
+		vk::PhysicalDeviceSubgroupProperties subgroupProps;
+		vk::PhysicalDeviceProperties2 phProps2{};
+		phProps2.pNext = &meshShaderProps;
+		meshShaderProps.pNext = &subgroupProps;
+		avk::context().physical_device().getProperties2(&phProps2);
+		LOG_INFO(std::format("Max. preferred task threads is {}, mesh threads is {}, subgroup size is {}.",
+			meshShaderProps.maxPreferredTaskWorkGroupInvocations,
+			meshShaderProps.maxPreferredMeshWorkGroupInvocations,
+			subgroupProps.subgroupSize));
+		LOG_INFO(std::format("This device supports the following subgroup operations: {}", vk::to_string(subgroupProps.supportedOperations)));
+		LOG_INFO(std::format("This device supports subgroup operations in the following stages: {}", vk::to_string(subgroupProps.supportedStages)));
+		
 		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
 		mPipeline = avk::context().create_graphics_pipeline_for(
@@ -277,7 +265,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::attachment::declare(avk::format_from_window_depth_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
 			}, avk::context().main_window()->renderpass_reference().subpass_dependencies()),
 			// The following define additional data which we'll pass to the pipeline:
-			avk::push_constant_binding_data{ avk::shader_type::fragment, 0, sizeof(push_constants) },
+			avk::push_constant_binding_data{ avk::shader_type::all, 0, sizeof(push_constants) },
 			avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
 			avk::descriptor_binding(0, 1, mViewProjBuffers[0]),
 			avk::descriptor_binding(1, 0, mMaterialBuffer),
@@ -285,9 +273,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-#if USE_REDIRECTED_GPU_DATA
-			avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
-#endif
 			avk::descriptor_binding(4, 0, mMeshletsBuffer)
 		);
 		// set up updater
@@ -314,7 +299,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
-				ImGui::Checkbox("Highlight Meshlets", &mHighlightMeshlets);
+
+				// Select the range of meshlets to be rendered:
+				ImGui::Checkbox("Highlight meshlets", &mHighlightMeshlets);
+				ImGui::Text("Select meshlets to be rendered:");
+				ImGui::DragIntRange2("Visible range", &mShowMeshletsFrom, &mShowMeshletsTo, 1, 0, static_cast<int>(mNumMeshlets));
 
 				ImGui::End();
 			});
@@ -331,27 +320,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
-		}
-		if (avk::input().key_pressed(avk::key_code::left)) {
-			mQuakeCam.look_along(avk::left());
-		}
-		if (avk::input().key_pressed(avk::key_code::right)) {
-			mQuakeCam.look_along(avk::right());
-		}
-		if (avk::input().key_pressed(avk::key_code::up)) {
-			mQuakeCam.look_along(avk::front());
-		}
-		if (avk::input().key_pressed(avk::key_code::down)) {
-			mQuakeCam.look_along(avk::back());
-		}
-		if (avk::input().key_pressed(avk::key_code::page_up)) {
-			mQuakeCam.look_along(avk::up());
-		}
-		if (avk::input().key_pressed(avk::key_code::page_down)) {
-			mQuakeCam.look_along(avk::down());
-		}
-		if (avk::input().key_pressed(avk::key_code::home)) {
-			mQuakeCam.look_at(glm::vec3{ 0.0f, 0.0f, 0.0f });
 		}
 
 		if (avk::input().key_pressed(avk::key_code::f1)) {
@@ -395,17 +363,18 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 						avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 						avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-#if USE_REDIRECTED_GPU_DATA
-						avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
-#endif
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
 					})),
 
-					avk::command::push_constants(mPipeline->layout(), push_constants{ mHighlightMeshlets }),
+					avk::command::push_constants(mPipeline->layout(), push_constants{ 
+						mHighlightMeshlets,
+						static_cast<int32_t>(mShowMeshletsFrom),
+						static_cast<int32_t>(mShowMeshletsTo)
+					}),
 
 					// Draw all the meshlets with just one single draw call:
 					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { 
-						cb.handle().drawMeshTasksEXT(mNumMeshletWorkgroups, 1, 1);
+						cb.handle().drawMeshTasksEXT(avk::div_ceil(mNumMeshlets, 32), 1, 1);
 					})
 				})
 			})
@@ -431,16 +400,15 @@ private: // v== Member variables ==v
 	std::vector<data_for_draw_call> mDrawCalls;
 	avk::graphics_pipeline mPipeline;
 	avk::quake_camera mQuakeCam;
-	size_t mNumMeshletWorkgroups;
+	uint32_t mNumMeshlets;
 
 	std::vector<avk::buffer_view> mPositionBuffers;
 	std::vector<avk::buffer_view> mTexCoordsBuffers;
 	std::vector<avk::buffer_view> mNormalBuffers;
-#if USE_REDIRECTED_GPU_DATA
-	std::vector<avk::buffer_view> mMeshletDataBuffers;
-#endif
 
 	bool mHighlightMeshlets = true;
+	int  mShowMeshletsFrom  = 0;
+	int  mShowMeshletsTo    = 0;
 
 }; // static_meshlets_app
 

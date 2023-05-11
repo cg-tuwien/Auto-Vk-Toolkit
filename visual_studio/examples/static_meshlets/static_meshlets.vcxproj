@@ -15,7 +15,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\examples\static_meshlets\shaders\cpu_gpu_shared_config.h" />
     <ClInclude Include="cg_stdafx.hpp" />
     <ClInclude Include="cg_targetver.hpp" />
   </ItemGroup>
@@ -25,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\examples\static_meshlets\shaders\diffuse_shading_fixed_lightsource.frag" />
-    <None Include="..\..\..\examples\static_meshlets\shaders\glsl_helpers.glsl" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.mesh" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.task" />
   </ItemGroup>

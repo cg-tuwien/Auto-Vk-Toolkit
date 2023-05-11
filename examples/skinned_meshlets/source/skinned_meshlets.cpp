@@ -10,6 +10,12 @@
 #include "serializer.hpp"
 #include "quake_camera.hpp"
 #include "sequential_invoker.hpp"
+/**
+ *	Please note: This example can provide the geometry data in two different formats:
+ *	 - USE_REDIRECTED_GPU_DATA 0 ...
+ *	 - USE_REDIRECTED_GPU_DATA 1 ...
+ *	Change the mode for both, C++ and GLSL, in cpu_gpu_shared_config.h
+ */
 #include "../shaders/cpu_gpu_shared_config.h"
 #include "vk_convenience_functions.hpp"
 
