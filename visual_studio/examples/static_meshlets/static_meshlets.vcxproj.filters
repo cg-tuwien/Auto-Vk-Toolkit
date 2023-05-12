@@ -25,6 +25,12 @@
     <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
       <Filter>assets</Filter>
     </None>
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.mesh">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.task">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

@@ -233,9 +233,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mImageSamplers = std::move(imageSamplers);
 
-		// Before creating a pipeline, let's query the VK_EXT_mesh_shader-specific device properties:
-		// Also, just out of curiosity, query the subgroup properties too:
-		vk::PhysicalDeviceMeshShaderPropertiesEXT meshShaderProps;
+		vk::PhysicalDeviceMeshShaderPropertiesEXT meshShaderProps{};
 		vk::PhysicalDeviceSubgroupProperties subgroupProps;
 		vk::PhysicalDeviceProperties2 phProps2{};
 		phProps2.pNext = &meshShaderProps;
@@ -247,42 +245,68 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			subgroupProps.subgroupSize));
 		LOG_INFO(std::format("This device supports the following subgroup operations: {}", vk::to_string(subgroupProps.supportedOperations)));
 		LOG_INFO(std::format("This device supports subgroup operations in the following stages: {}", vk::to_string(subgroupProps.supportedStages)));
-		
-		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
+
 		// Create our rasterization graphics pipeline with the required configuration:
-		mPipeline = avk::context().create_graphics_pipeline_for(
-			// Specify which shaders the pipeline consists of:
-			avk::task_shader("shaders/meshlet.task")
-				.set_specialization_constant(0, meshShaderProps.maxPreferredTaskWorkGroupInvocations),
-			avk::mesh_shader("shaders/meshlet.mesh")
-				.set_specialization_constant(0, meshShaderProps.maxPreferredTaskWorkGroupInvocations)
-				.set_specialization_constant(1, meshShaderProps.maxPreferredMeshWorkGroupInvocations),
-			avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
-			// Some further settings:
-			avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
-			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
-			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth
-			// attachment, which has been configured when creating the window. See main() function!
-			avk::context().create_renderpass({
-				avk::attachment::declare(avk::format_from_window_color_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
-				avk::attachment::declare(avk::format_from_window_depth_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
-			}, avk::context().main_window()->renderpass_reference().subpass_dependencies()),
-			// The following define additional data which we'll pass to the pipeline:
-			avk::push_constant_binding_data{ avk::shader_type::all, 0, sizeof(push_constants) },
-			avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
-			avk::descriptor_binding(0, 1, mViewProjBuffers[0]),
-			avk::descriptor_binding(1, 0, mMaterialBuffer),
-			// texel buffers
-			avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
-			avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
-			avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-			avk::descriptor_binding(4, 0, mMeshletsBuffer)
+		auto createGraphicsMeshPipeline = [this](auto taskShader, auto meshShader, uint32_t taskWorkGroups, uint32_t meshWorkGroups) {
+			// Before creating a pipeline, let's query the VK_EXT_mesh_shader-specific device properties:
+			// Also, just out of curiosity, query the subgroup properties too:
+			
+			return avk::context().create_graphics_pipeline_for(
+				// Specify which shaders the pipeline consists of:
+				avk::task_shader(taskShader)
+					.set_specialization_constant(0, taskWorkGroups),
+				avk::mesh_shader(meshShader)
+					.set_specialization_constant(0, taskWorkGroups)
+					.set_specialization_constant(1, meshWorkGroups),
+				avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
+				// Some further settings:
+				avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
+				avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
+				// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth
+				// attachment, which has been configured when creating the window. See main() function!
+				avk::context().create_renderpass({
+					avk::attachment::declare(avk::format_from_window_color_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::color(0)     , avk::on_store::store),
+					avk::attachment::declare(avk::format_from_window_depth_buffer(avk::context().main_window()), avk::on_load::clear.from_previous_layout(avk::layout::undefined), avk::usage::depth_stencil, avk::on_store::dont_care)
+					}, avk::context().main_window()->renderpass_reference().subpass_dependencies()),
+				// The following define additional data which we'll pass to the pipeline:
+				avk::push_constant_binding_data{ avk::shader_type::all, 0, sizeof(push_constants) },
+				avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
+				avk::descriptor_binding(0, 1, mViewProjBuffers[0]),
+				avk::descriptor_binding(1, 0, mMaterialBuffer),
+				// texel buffers
+				avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
+				avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
+				avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
+				avk::descriptor_binding(4, 0, mMeshletsBuffer)
+			);
+		};
+		
+		mPipelineEXT = createGraphicsMeshPipeline(
+			"shaders/meshlet.task", "shaders/meshlet.mesh", 
+			meshShaderProps.maxPreferredTaskWorkGroupInvocations, 
+			meshShaderProps.maxPreferredMeshWorkGroupInvocations
 		);
 		// set up updater
 		// we want to use an updater, so create one:
-
+		
 		mUpdater.emplace();
-		mUpdater->on(avk::shader_files_changed_event(mPipeline.as_reference())).update(mPipeline);
+		mUpdater->on(avk::shader_files_changed_event(mPipelineEXT.as_reference())).update(mPipelineEXT);
+
+		if (avk::context().supports_nv_mesh_shader(avk::context().physical_device())) {
+			vk::PhysicalDeviceMeshShaderPropertiesNV meshShaderPropsNv{};
+			phProps2.pNext = &meshShaderPropsNv;
+			avk::context().physical_device().getProperties2(&phProps2);
+
+			mPipelineNV = createGraphicsMeshPipeline(
+				"shaders/meshlet.nv.task", "shaders/meshlet.nv.mesh",
+				meshShaderPropsNv.maxTaskWorkGroupInvocations,
+				meshShaderPropsNv.maxMeshWorkGroupInvocations
+			);
+
+			mUpdater->on(avk::shader_files_changed_event(mPipelineNV.as_reference())).update(mPipelineNV);
+
+			mUseNvPipeline = false;
+		}
 
 		mUpdater->on(avk::swapchain_resized_event(avk::context().main_window())).invoke([this]() {
 			this->mQuakeCam.set_aspect_ratio(avk::context().main_window()->aspect_ratio());
@@ -302,6 +326,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+
+				ImGui::Separator();
+				if (mUseNvPipeline.has_value()) {
+					int choice = mUseNvPipeline.value() ? 1 : 0;
+					ImGui::Combo("Pipeline", &choice, "VK_EXT_mesh_shader\0VK_NV_mesh_shader\0");
+					mUseNvPipeline = (choice == 1);
+					ImGui::Separator();
+				}
 
 				// Select the range of meshlets to be rendered:
 				ImGui::Checkbox("Highlight meshlets", &mHighlightMeshlets);
@@ -355,11 +387,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		
+
+		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
 		avk::context().record({
-				avk::command::render_pass(mPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
-					avk::command::bind_pipeline(mPipeline.as_reference()),
-					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+				avk::command::render_pass(pipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(pipeline.as_reference()),
+					avk::command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
 						avk::descriptor_binding(0, 1, mViewProjBuffers[ifi]),
 						avk::descriptor_binding(1, 0, mMaterialBuffer),
@@ -369,15 +402,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						avk::descriptor_binding(4, 0, mMeshletsBuffer)
 					})),
 
-					avk::command::push_constants(mPipeline->layout(), push_constants{ 
+					avk::command::push_constants(pipeline->layout(), push_constants{
 						mHighlightMeshlets,
 						static_cast<int32_t>(mShowMeshletsFrom),
 						static_cast<int32_t>(mShowMeshletsTo)
 					}),
 
 					// Draw all the meshlets with just one single draw call:
-					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { 
-						cb.handle().drawMeshTasksEXT(avk::div_ceil(mNumMeshlets, 32), 1, 1);
+					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) {
+						if (mUseNvPipeline.value_or(false)) {
+							cb.handle().drawMeshTasksNV(avk::div_ceil(mNumMeshlets, 32), 0);
+						}
+						else {
+							cb.handle().drawMeshTasksEXT(avk::div_ceil(mNumMeshlets, 32), 1, 1);
+						}
 					})
 				})
 			})
@@ -401,7 +439,8 @@ private: // v== Member variables ==v
 	std::vector<avk::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	avk::graphics_pipeline mPipeline;
+	avk::graphics_pipeline mPipelineEXT;
+	avk::graphics_pipeline mPipelineNV;
 	avk::quake_camera mQuakeCam;
 	uint32_t mNumMeshlets;
 
@@ -412,6 +451,7 @@ private: // v== Member variables ==v
 	bool mHighlightMeshlets = true;
 	int  mShowMeshletsFrom  = 0;
 	int  mShowMeshletsTo    = 0;
+	std::optional<bool> mUseNvPipeline = {};
 
 }; // static_meshlets_app
 
@@ -444,7 +484,8 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Static Meshlets"),
 			// Gotta enable the mesh shader extension, ...
-			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME),
+			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME)
+				.add_extension(VK_NV_MESH_SHADER_EXTENSION_NAME),
 			// ... and enable the mesh shader features that we need:
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);

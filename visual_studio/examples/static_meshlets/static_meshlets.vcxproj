@@ -25,6 +25,8 @@
   <ItemGroup>
     <None Include="..\..\..\examples\static_meshlets\shaders\diffuse_shading_fixed_lightsource.frag" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.mesh" />
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.mesh" />
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.task" />
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.task" />
   </ItemGroup>
   <ItemGroup>

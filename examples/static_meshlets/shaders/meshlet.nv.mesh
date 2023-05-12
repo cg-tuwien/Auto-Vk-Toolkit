@@ -1,6 +1,6 @@
 #version 460
 #extension GL_EXT_shader_8bit_storage    : require
-#extension GL_EXT_mesh_shader            : require
+#extension GL_NV_mesh_shader             : require
 #extension GL_EXT_nonuniform_qualifier   : require
 
 layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
@@ -14,7 +14,10 @@ layout(set = 0, binding = 1) uniform CameraTransform
 	mat4 mViewProjMatrix;
 } ubo;
 
-taskPayloadSharedEXT uint meshletIndices[NUM_TASK_SHADER_INVOCATIONS];
+in taskNV block
+{
+	uint meshletIndices[NUM_TASK_SHADER_INVOCATIONS];
+};
 
 //////////////////////////////////////////////////////////////////////
 // Meshlet data passed from the host side:
@@ -53,16 +56,16 @@ layout (location = 0) out PerVertexData
 // Color table for drawing each meshlet with a different color:
 #define MAX_COLORS 10
 vec3 meshletcolors[MAX_COLORS] = {
-  vec3(0.9, 0.1, 0.1), 
-  vec3(0.7, 0.2, 0.2), 
-  vec3(0.5, 0.3, 0.3), 
-  vec3(0.3, 0.4, 0.5), 
-  vec3(0.2, 0.5, 0.7), 
-  vec3(0.1, 0.7, 0.9), 
-  vec3(0.3, 0.6, 0.8), 
-  vec3(0.6, 0.8, 0.9), 
-  vec3(0.8, 0.9, 0.95),
-  vec3(1.0, 1.0, 1.0)  
+  vec3(0.47, 0.73, 0.38),
+  vec3(0.50, 0.85, 0.50),
+  vec3(0.60, 0.90, 0.60),
+  vec3(0.70, 0.95, 0.70),
+  vec3(0.56, 0.87, 0.56),
+  vec3(0.52, 0.90, 0.52),
+  vec3(0.32, 0.65, 0.32),
+  vec3(0.58, 0.71, 0.50),
+  vec3(0.55, 0.65, 0.47),
+  vec3(0.97, 0.98, 0.95) 
 };
 //////////////////////////////////////////////////////////////////////
 
@@ -93,7 +96,7 @@ void main()
 		vec4 posCS = ubo.mViewProjMatrix * posWS;
  
 		// Set the vertex position:
-		gl_MeshVerticesEXT[i].gl_Position = posCS;
+		gl_MeshVerticesNV[i].gl_Position = posCS;
  
 		// Set the per vertex data for the fragment shader:
 		v_out[i].positionWS = posWS.xyz;
@@ -105,22 +108,17 @@ void main()
  
 	// Sets the actual output size of the primitives and vertices that the 
 	// mesh shader workgroup will emit upon completion:
-	SetMeshOutputsEXT(vertexCount, triangleCount);
-	// ^ Note: This is the correct way and place to call SetMeshOutputsEXT, as the spec says:
-	// 
-	// > The arguments are taken from the first invocation in each workgroup. 
-	// > Any invocation must execute this instruction no more than once and 
-	// > under uniform control flow. There must not be any control flow path 
-	// > to an output write that is not preceded by this instruction.
+	if (invocationId == 0)
+	{
+		gl_PrimitiveCountNV = triangleCount;
+	}
  
 	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
 	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
 		// Write the indices for the vertices:
-		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
-			meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 0],
-			meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 1],
-			meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 2]
-		);
+		gl_PrimitiveIndicesNV[i * 3 + 0] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 0]);
+		gl_PrimitiveIndicesNV[i * 3 + 1] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 1]);
+		gl_PrimitiveIndicesNV[i * 3 + 2] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 2]);
 	}
 }
