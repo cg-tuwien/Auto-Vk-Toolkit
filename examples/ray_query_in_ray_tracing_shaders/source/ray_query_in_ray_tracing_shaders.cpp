@@ -137,9 +137,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				this,
 				timestampPeriod = std::invoke([]() {
 					// get timestamp period from physical device, could be different for other GPUs
-					vk::PhysicalDeviceProperties props;
-					avk::context().physical_device().getProperties(&props);
-					return props.limits.timestampPeriod;
+					auto props = avk::context().physical_device().getProperties();
+					return static_cast<double>(props.limits.timestampPeriod);
 				}),
 				lastFrameDurationMs = 0.0,
 				lastTraceRaysDurationMs = 0.0

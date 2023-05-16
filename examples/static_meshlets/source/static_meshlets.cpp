@@ -1,4 +1,3 @@
-#include <ranges>
 #include <imgui.h>
 
 #include "configure_and_compose.hpp"
@@ -319,11 +318,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
-			imguiManager->add_callback([this]() {
+			imguiManager->add_callback([
+				this,
+				timestampPeriod = std::invoke([]() {
+					// get timestamp period from physical device, could be different for other GPUs
+					auto props = avk::context().physical_device().getProperties();
+					return static_cast<double>(props.limits.timestampPeriod);
+				}),
+				lastFrameDurationMs = 0.0,
+				lastDrawMeshTasksDurationMs = 0.0
+			]() mutable {
 				ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+				ImGui::Separator();
+				ImGui::TextColored(ImVec4(.5f, .3f, .4f, 1.f), "Timestamp Period: %.3f ns", timestampPeriod);
+				lastFrameDurationMs = glm::mix(lastFrameDurationMs, mLastFrameDuration * 1e-6 * timestampPeriod, 0.05);
+				lastDrawMeshTasksDurationMs = glm::mix(lastDrawMeshTasksDurationMs, mLastDrawMeshTasksDuration * 1e-6 * timestampPeriod, 0.05);
+				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "Frame time (timer queries): %.3lf ms", lastFrameDurationMs);
+				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "drawMeshTasks took        : %.3lf ms", lastDrawMeshTasksDurationMs);
+				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
 
@@ -343,6 +358,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::End();
 			});
 		}
+
+		mTimestampPool = avk::context().create_query_pool_for_timestamp_queries(
+			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()) * 2
+		);
 	}
 
 	void update() override
@@ -373,10 +392,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void render() override
 	{
 		auto mainWnd = avk::context().main_window();
-		auto ifi = mainWnd->current_in_flight_index();
+		auto inFlightIndex = mainWnd->current_in_flight_index();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
-		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
+		auto emptyCmd = mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
 		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
@@ -388,13 +407,26 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
+		const auto firstQueryIndex = static_cast<uint32_t>(inFlightIndex) * 2;
+		if (mainWnd->current_frame() > mainWnd->number_of_frames_in_flight()) // otherwise we will wait forever
+		{
+			auto timers = mTimestampPool->get_results<uint64_t, 2>(
+				firstQueryIndex, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait); // => ensure that the results are available
+			mLastDrawMeshTasksDuration = timers[1] - timers[0];
+			mLastFrameDuration = timers[1] - mLastTimestamp;
+			mLastTimestamp = timers[1];
+		}
+
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
 		avk::context().record({
+				mTimestampPool->reset(firstQueryIndex, 2),
+				mTimestampPool->write_timestamp(firstQueryIndex + 0, avk::stage::all_commands), // measure before drawMeshTasks*
+
 				avk::command::render_pass(pipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
 					avk::command::bind_pipeline(pipeline.as_reference()),
 					avk::command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
-						avk::descriptor_binding(0, 1, mViewProjBuffers[ifi]),
+						avk::descriptor_binding(0, 1, mViewProjBuffers[inFlightIndex]),
 						avk::descriptor_binding(1, 0, mMaterialBuffer),
 						avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
 						avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
@@ -416,7 +448,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						else {
 							cb.handle().drawMeshTasksEXT(avk::div_ceil(mNumMeshlets, 32), 1, 1);
 						}
-					})
+					}),
+
+					mTimestampPool->write_timestamp(firstQueryIndex + 1, avk::stage::mesh_shader)
 				})
 			})
 			.into_command_buffer(cmdBfr)
@@ -452,6 +486,11 @@ private: // v== Member variables ==v
 	int  mShowMeshletsFrom  = 0;
 	int  mShowMeshletsTo    = 0;
 	std::optional<bool> mUseNvPipeline = {};
+
+	avk::query_pool mTimestampPool;
+	uint64_t mLastTimestamp = 0;
+	uint64_t mLastDrawMeshTasksDuration = 0;
+	uint64_t mLastFrameDuration = 0;
 
 }; // static_meshlets_app
 
