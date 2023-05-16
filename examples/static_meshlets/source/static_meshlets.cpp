@@ -338,6 +338,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				lastDrawMeshTasksDurationMs = glm::mix(lastDrawMeshTasksDurationMs, mLastDrawMeshTasksDuration * 1e-6 * timestampPeriod, 0.05);
 				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "Frame time (timer queries): %.3lf ms", lastFrameDurationMs);
 				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "drawMeshTasks took        : %.3lf ms", lastDrawMeshTasksDurationMs);
+				ImGui::Text(                                   "#task shader invocations  : %u", mNumTaskShaderInvocations);
+				ImGui::Text(                                   "#mesh shader invocations  : %u", mNumMeshShaderInvocations);
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
@@ -361,6 +363,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mTimestampPool = avk::context().create_query_pool_for_timestamp_queries(
 			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()) * 2
+		);
+
+		mPipelineStatsPool = avk::context().create_query_pool_for_pipeline_statistics_queries(
+			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()),
+			vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT
 		);
 	}
 
@@ -415,11 +422,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mLastDrawMeshTasksDuration = timers[1] - timers[0];
 			mLastFrameDuration = timers[1] - mLastTimestamp;
 			mLastTimestamp = timers[1];
+
+			mNumTaskShaderInvocations = mPipelineStatsPool->get_result<uint32_t>(inFlightIndex, vk::QueryResultFlagBits::eWait);
 		}
 
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
 		avk::context().record({
-				mTimestampPool->reset(firstQueryIndex, 2),
+				mPipelineStatsPool->reset(inFlightIndex, 1),
+				mPipelineStatsPool->begin_query(inFlightIndex, {}),
+				mTimestampPool->reset(firstQueryIndex, 2),     // reset the two values relevant for the current frame in flight
 				mTimestampPool->write_timestamp(firstQueryIndex + 0, avk::stage::all_commands), // measure before drawMeshTasks*
 
 				avk::command::render_pass(pipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
@@ -450,7 +461,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						}
 					}),
 
-					mTimestampPool->write_timestamp(firstQueryIndex + 1, avk::stage::mesh_shader)
+					mTimestampPool->write_timestamp(firstQueryIndex + 1, avk::stage::mesh_shader),
+					mPipelineStatsPool->end_query(inFlightIndex),
 				})
 			})
 			.into_command_buffer(cmdBfr)
@@ -492,6 +504,10 @@ private: // v== Member variables ==v
 	uint64_t mLastDrawMeshTasksDuration = 0;
 	uint64_t mLastFrameDuration = 0;
 
+	avk::query_pool mPipelineStatsPool;
+	uint32_t mNumTaskShaderInvocations = 0;
+	uint32_t mNumMeshShaderInvocations = 0;
+
 }; // static_meshlets_app
 
 int main() // <== Starting point ==
@@ -529,6 +545,9 @@ int main() // <== Starting point ==
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);
 				meshShaderFeatures.setTaskShader(VK_TRUE);
+			},
+			[](vk::PhysicalDeviceFeatures& features) {
+				features.setPipelineStatisticsQuery(VK_TRUE);
 			},
 			[](vk::PhysicalDeviceVulkan12Features& features) {
 				features.setUniformAndStorageBuffer8BitAccess(VK_TRUE);
