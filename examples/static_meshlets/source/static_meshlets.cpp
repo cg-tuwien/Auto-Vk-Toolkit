@@ -125,6 +125,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		std::vector<loaded_data_for_draw_call> dataForDrawCall;
 		std::vector<meshlet> meshletsGeometry;
 
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesEXT{};
+		supportedExtFeatures.pNext = &meshShaderFeatures;
+		avk::context().physical_device().getFeatures2(&supportedExtFeatures);
+
 		// Generate the meshlets for each loaded model.
 		for (size_t i = 0; i < loadedModels.size(); ++i) {
 			auto& curModel = loadedModels[i];
@@ -338,8 +343,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				lastDrawMeshTasksDurationMs = glm::mix(lastDrawMeshTasksDurationMs, mLastDrawMeshTasksDuration * 1e-6 * timestampPeriod, 0.05);
 				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "Frame time (timer queries): %.3lf ms", lastFrameDurationMs);
 				ImGui::TextColored(ImVec4(.8f, .1f, .6f, 1.f), "drawMeshTasks took        : %.3lf ms", lastDrawMeshTasksDurationMs);
-				ImGui::Text(                                   "#task shader invocations  : %u", mNumTaskShaderInvocations);
-				ImGui::Text(                                   "#mesh shader invocations  : %u", mNumMeshShaderInvocations);
+				ImGui::Text(                                   "mPipelineStats[0]         : %llu", mPipelineStats[0]);
+				ImGui::Text(                                   "mPipelineStats[1]         : %llu", mPipelineStats[1]);
+				ImGui::Text(                                   "mPipelineStats[2]         : %llu", mPipelineStats[2]);
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
 				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
@@ -366,8 +372,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		mPipelineStatsPool = avk::context().create_query_pool_for_pipeline_statistics_queries(
-			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()),
-			vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT
+			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()) * 3,
+			vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT | vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations
 		);
 	}
 
@@ -398,14 +404,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void render() override
 	{
-		auto mainWnd = avk::context().main_window();
+		using namespace avk;
+
+		auto mainWnd = context().main_window();
 		auto inFlightIndex = mainWnd->current_in_flight_index();
 
 		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
 		auto emptyCmd = mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = context().get_command_pool_for_single_use_command_buffers(*mQueue);
 
 		// The swap chain provides us with an "image available semaphore" for the current frame.
 		// Only after the swapchain image has become available, we may start rendering into it.
@@ -423,52 +431,53 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mLastFrameDuration = timers[1] - mLastTimestamp;
 			mLastTimestamp = timers[1];
 
-			mNumTaskShaderInvocations = mPipelineStatsPool->get_result<uint32_t>(inFlightIndex, vk::QueryResultFlagBits::eWait);
+			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(static_cast<uint32_t>(inFlightIndex) * 3, {});
 		}
 
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
-		avk::context().record({
-				mPipelineStatsPool->reset(inFlightIndex, 1),
-				mPipelineStatsPool->begin_query(inFlightIndex, {}),
+		context().record({
+				mPipelineStatsPool->reset(static_cast<uint32_t>(inFlightIndex) * 3, 3),
+				mPipelineStatsPool->begin_query(static_cast<uint32_t>(inFlightIndex) * 3, {}),
 				mTimestampPool->reset(firstQueryIndex, 2),     // reset the two values relevant for the current frame in flight
-				mTimestampPool->write_timestamp(firstQueryIndex + 0, avk::stage::all_commands), // measure before drawMeshTasks*
+				mTimestampPool->write_timestamp(firstQueryIndex + 0, stage::all_commands), // measure before drawMeshTasks*
 
-				avk::command::render_pass(pipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
-					avk::command::bind_pipeline(pipeline.as_reference()),
-					avk::command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
-						avk::descriptor_binding(0, 0, avk::as_combined_image_samplers(mImageSamplers, avk::layout::shader_read_only_optimal)),
-						avk::descriptor_binding(0, 1, mViewProjBuffers[inFlightIndex]),
-						avk::descriptor_binding(1, 0, mMaterialBuffer),
-						avk::descriptor_binding(3, 0, avk::as_uniform_texel_buffer_views(mPositionBuffers)),
-						avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
-						avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
-						avk::descriptor_binding(4, 0, mMeshletsBuffer)
+				command::render_pass(pipeline->renderpass_reference(), context().main_window()->current_backbuffer_reference(), {
+					command::bind_pipeline(pipeline.as_reference()),
+					command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						descriptor_binding(0, 0, as_combined_image_samplers(mImageSamplers, layout::shader_read_only_optimal)),
+						descriptor_binding(0, 1, mViewProjBuffers[inFlightIndex]),
+						descriptor_binding(1, 0, mMaterialBuffer),
+						descriptor_binding(3, 0, as_uniform_texel_buffer_views(mPositionBuffers)),
+						descriptor_binding(3, 2, as_uniform_texel_buffer_views(mNormalBuffers)),
+						descriptor_binding(3, 3, as_uniform_texel_buffer_views(mTexCoordsBuffers)),
+						descriptor_binding(4, 0, mMeshletsBuffer)
 					})),
 
-					avk::command::push_constants(pipeline->layout(), push_constants{
+					command::push_constants(pipeline->layout(), push_constants{
 						mHighlightMeshlets,
 						static_cast<int32_t>(mShowMeshletsFrom),
 						static_cast<int32_t>(mShowMeshletsTo)
 					}),
 
 					// Draw all the meshlets with just one single draw call:
-					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) {
+					command::custom_commands([&,this](command_buffer_t& cb) {
 						if (mUseNvPipeline.value_or(false)) {
-							cb.handle().drawMeshTasksNV(avk::div_ceil(mNumMeshlets, 32), 0);
+							cb.handle().drawMeshTasksNV(div_ceil(mNumMeshlets, 32), 0);
 						}
 						else {
-							cb.handle().drawMeshTasksEXT(avk::div_ceil(mNumMeshlets, 32), 1, 1);
+							cb.handle().drawMeshTasksEXT(div_ceil(mNumMeshlets, 32), 1, 1);
 						}
-					}),
+					})
+				}),
 
-					mTimestampPool->write_timestamp(firstQueryIndex + 1, avk::stage::mesh_shader),
-					mPipelineStatsPool->end_query(inFlightIndex),
-				})
+				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
+				sync::global_memory_barrier(stage::all_graphics + access::memory_write >> stage::all_commands + access::memory_read),
+				mPipelineStatsPool->end_query(static_cast<uint32_t>(inFlightIndex) * 3),
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mQueue)
 			// Do not start to render before the image has become available:
-			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.waiting_for(imageAvailableSemaphore >> stage::color_attachment_output)
 			.submit();
 					
 		mainWnd->handle_lifetime(std::move(cmdBfr));
@@ -505,8 +514,7 @@ private: // v== Member variables ==v
 	uint64_t mLastFrameDuration = 0;
 
 	avk::query_pool mPipelineStatsPool;
-	uint32_t mNumTaskShaderInvocations = 0;
-	uint32_t mNumMeshShaderInvocations = 0;
+	std::array<uint64_t, 3> mPipelineStats;
 
 }; // static_meshlets_app
 
