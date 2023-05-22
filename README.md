@@ -31,14 +31,14 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 
 *Note:* At the first run, the _Post Build Helper_ tool is being built. Watch Visual Studio's "Output" tab for status messages and possible instructions.
 
-## Visual Studio 2019 or 2022
-A preconfigured project setup is provided for Visual Studio 2019 on Windows. The projects can be automatically converted to Visual Studio 2022.
+## Visual Studio 2022
+A preconfigured project setup is provided for Visual Studio 2022 on Windows.
 
 Requirements:
 * Windows 10 or 11
-* Visual Studio 2019 or 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
+* Visual Studio 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
 * A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer.          
-  Latest stable and tested version: Vulkan SDK 1.3.216.0
+  Latest stable and tested version: Vulkan SDK 1.3.243.0
 
 Setup and build instructions:
 * Clone this repository
