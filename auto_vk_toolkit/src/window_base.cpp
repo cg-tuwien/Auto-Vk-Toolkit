@@ -1,5 +1,3 @@
-#include <auto_vk_toolkit.hpp>
-
 #include "context_vulkan.hpp"
 
 namespace avk

@@ -1,4 +1,3 @@
-#include <auto_vk_toolkit.hpp>
 #include <set>
 #include "context_vulkan.hpp"
 #include "context_generic_glfw.hpp"

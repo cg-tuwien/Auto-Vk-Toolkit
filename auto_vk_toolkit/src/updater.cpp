@@ -1,5 +1,3 @@
-#include <auto_vk_toolkit.hpp>
-
 #include "updater.hpp"
 
 namespace avk

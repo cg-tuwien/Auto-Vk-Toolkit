@@ -1,6 +1,4 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
-
 #include "key_code.hpp"
 #include "key_state.hpp"
 

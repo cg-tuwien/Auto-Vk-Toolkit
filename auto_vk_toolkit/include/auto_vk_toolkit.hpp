@@ -110,7 +110,7 @@
 #define DISPATCH_LOADER_EXT_TYPE vk::DispatchLoaderDynamic
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #define AVK_USE_VMA
-#include <avk/avk.hpp>
+#include "avk/avk.hpp"
 
 // -------------------- Auto-Vk-Toolkit Includes --------------------
 #include "format_for.hpp"

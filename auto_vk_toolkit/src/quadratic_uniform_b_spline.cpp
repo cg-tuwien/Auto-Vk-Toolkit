@@ -1,5 +1,3 @@
-#include <auto_vk_toolkit.hpp>
-
 #include "quadratic_uniform_b_spline.hpp"
 
 namespace avk
