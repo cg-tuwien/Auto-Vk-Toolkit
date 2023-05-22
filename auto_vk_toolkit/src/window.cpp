@@ -479,7 +479,11 @@ namespace avk
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
 				.setPSignalSemaphoreInfos(&sigSemInfo);
+#ifdef AVK_USE_SYNCHRONIZATION2_INSTEAD_OF_CORE
 			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), context().dispatch_loader_ext());
+#else
+			mActivePresentationQueue->handle().submit2(1u, &submitInfo, fence->handle(), context().dispatch_loader_core());
+#endif
 
 			// Consequently, the present call must wait on the temporary semaphore only:
 			waitSemHandles.clear();
