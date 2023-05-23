@@ -94,9 +94,6 @@
     <ClCompile Include="..\..\auto_vk_toolkit\src\files_changed_event.cpp">
       <Filter>auto_vk_toolkit_src\updater</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp">
-      <Filter>auto_vk_src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\bezier_curve.cpp">
       <Filter>auto_vk_toolkit_src\utils</Filter>
     </ClCompile>

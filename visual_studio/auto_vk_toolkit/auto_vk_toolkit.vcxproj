@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
-    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\timer_globals.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
