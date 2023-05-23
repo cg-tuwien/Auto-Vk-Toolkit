@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
-    <ClCompile Include="..\..\auto_vk\src\vk_mem_alloc.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\timer_globals.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
@@ -229,6 +228,8 @@
       </ForcedIncludeFiles>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">
       </ForcedIncludeFiles>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish_Vulkan|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_Vulkan|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\auto_vk_toolkit\src\input_buffer.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\log.cpp" />

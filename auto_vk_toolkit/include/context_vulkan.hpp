@@ -106,7 +106,7 @@ namespace avk
 #if defined(AVK_USE_VMA)
 		const VmaAllocator& memory_allocator() const override                   { return mMemoryAllocator; }
 #else
-		const std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() override { return mMemoryAllocator; }
+		const std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() const override { return mMemoryAllocator; }
 #endif
 
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }

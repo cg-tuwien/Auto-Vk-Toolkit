@@ -5,8 +5,8 @@
 // https://github.com/SaschaWillems/Vulkan#ComputeShader Copyright (c) 2016 Sascha Willems
 //
 
-#include <imgui.h>
-#include <imgui_impl_vulkan.h>
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
 
 #include "configure_and_compose.hpp"
 #include "imgui_manager.hpp"

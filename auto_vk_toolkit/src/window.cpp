@@ -479,7 +479,17 @@ namespace avk
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
 				.setPSignalSemaphoreInfos(&sigSemInfo);
-			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), context().dispatch_loader_ext());
+#ifdef AVK_USE_SYNCHRONIZATION2_INSTEAD_OF_CORE
+			auto errorCode = mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), context().dispatch_loader_ext());
+			if (vk::Result::eSuccess != errorCode) {
+				AVK_LOG_WARNING("submit2KHR returned " + vk::to_string(errorCode));
+			}
+#else
+			auto errorCode = mActivePresentationQueue->handle().submit2(1u, &submitInfo, fence->handle(), context().dispatch_loader_core());
+			if (vk::Result::eSuccess != errorCode) {
+				AVK_LOG_WARNING("submit2 returned " + vk::to_string(errorCode));
+			}
+#endif
 
 			// Consequently, the present call must wait on the temporary semaphore only:
 			waitSemHandles.clear();
@@ -491,7 +501,7 @@ namespace avk
 		try
 		{
 			// SIGNAL -> PRESENT
-			auto presentInfo = vk::PresentInfoKHR()
+			auto presentInfo = vk::PresentInfoKHR{}
 				.setWaitSemaphoreCount(waitSemHandles.size())
 				.setPWaitSemaphores(waitSemHandles.data())
 				.setSwapchainCount(1u)
