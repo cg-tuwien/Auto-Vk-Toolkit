@@ -461,14 +461,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}),
 
 					// Draw all the meshlets with just one single draw call:
-					command::custom_commands([&,this](command_buffer_t& cb) {
-						if (mUseNvPipeline.value_or(false)) {
-							cb.handle().drawMeshTasksNV(div_ceil(mNumMeshlets, 32), 0);
-						}
-						else {
-							cb.handle().drawMeshTasksEXT(div_ceil(mNumMeshlets, 32), 1, 1);
-						}
-					})
+					command::conditional(
+						[this]() { return mUseNvPipeline.value_or(false); }, 
+						[this]() { return command::draw_mesh_tasks_nv(div_ceil(mNumMeshlets, 32), 0); },
+						[this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, 32), 1, 1); }
+					)
 				}),
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
