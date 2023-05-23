@@ -211,10 +211,9 @@ namespace avk
 		/** Setup debug report callbacks from VK_EXT_debug_report */
 		void setup_vk_debug_report_callback();
 
-		/** Returns a vector containing all elements from @ref sRequiredDeviceExtensions
-		 *  and settings::gRequiredDeviceExtensions
+		/** Returns a vector containing all extensions which are either required or optional and supported.
 		 */
-		std::vector<const char*> get_all_required_device_extensions();
+		const std::vector<const char*>& get_all_enabled_device_extensions() const;
 
 		/** Checks if the given physical device supports the shading rate image feature
 		 */
@@ -222,11 +221,11 @@ namespace avk
 		bool shading_rate_image_extension_requested();
 		
 #if VK_HEADER_VERSION >= 239
-		bool supports_ext_mesh_shader(const vk::PhysicalDevice& device);
-		bool ext_mesh_shader_extension_requested();
+		bool supports_mesh_shader_ext(const vk::PhysicalDevice& device);
+		bool is_mesh_shader_ext_requested();
 #endif
-		bool supports_nv_mesh_shader(const vk::PhysicalDevice& device);
-		bool nv_mesh_shader_extension_requested();
+		bool supports_mesh_shader_nv(const vk::PhysicalDevice& device);
+		bool is_mesh_shader_nv_requested();
 
 #if VK_HEADER_VERSION >= 162
 		bool ray_tracing_pipeline_extension_requested();
@@ -238,11 +237,10 @@ namespace avk
 		bool ray_tracing_extension_requested();
 #endif
 		
-		/** Checks whether the given physical device supports all the required extensions,
-		 *	namely those stored in @ref settings::gRequiredDeviceExtensions. 
-		 *	Returns true if it does, false otherwise.
+		/** Checks whether the given physical device supports given extensions.
+		 *	@return True if the physical device supports all the extensions, false otherwise.
 		 */
-		bool supports_all_required_extensions(const vk::PhysicalDevice& device);
+		bool supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const;
 
 		/** Pick the physical device which looks to be the most promising one */
 		void pick_physical_device();
@@ -264,6 +262,7 @@ namespace avk
 		void set_requested_vulkan11_device_features(vk::PhysicalDeviceVulkan11Features aNewValue) { mRequestedVulkan11DeviceFeatures = aNewValue; }
 
 	public:
+		static std::vector<const char*> sRequiredInstanceExtensions;
 		static std::vector<const char*> sRequiredDeviceExtensions;
 
 		// A mutex which protects the vulkan context from concurrent access from different threads
@@ -273,6 +272,7 @@ namespace avk
 		static std::mutex sConcurrentAccessMutex;
 
 		settings mSettings;
+		std::vector<const char*> mEnabledDeviceExtensions;
 		
 		vk::Instance mInstance;
 		VkDebugUtilsMessengerEXT mDebugUtilsCallbackHandle;

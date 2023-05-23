@@ -55,6 +55,13 @@ namespace avk
 	}
 
 	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, optional_device_extensions& aValue, Args&... args)
+	{
+		s.mOptionalDeviceExtensions = aValue;
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
+	}
+
+	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
 	{
 		w.push_back(aValue);

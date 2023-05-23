@@ -296,7 +296,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		mUpdater.emplace();
 		mUpdater->on(avk::shader_files_changed_event(mPipelineEXT.as_reference())).update(mPipelineEXT);
 
-		if (avk::context().supports_nv_mesh_shader(avk::context().physical_device())) {
+		if (avk::context().supports_mesh_shader_nv(avk::context().physical_device())) {
 			vk::PhysicalDeviceMeshShaderPropertiesNV meshShaderPropsNv{};
 			phProps2.pNext = &meshShaderPropsNv;
 			avk::context().physical_device().getProperties2(&phProps2);
@@ -548,8 +548,8 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Static Meshlets"),
 			// Gotta enable the mesh shader extension, ...
-			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME)
-				.add_extension(VK_NV_MESH_SHADER_EXTENSION_NAME),
+			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME),
+			avk::optional_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME),
 			// ... and enable the mesh shader features that we need:
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);
