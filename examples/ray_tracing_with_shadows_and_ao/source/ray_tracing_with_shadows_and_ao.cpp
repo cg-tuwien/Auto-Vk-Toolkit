@@ -285,8 +285,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		const auto firstQueryIndex = static_cast<uint32_t>(inFlightIndex) * 2;
 		if (mainWnd->current_frame() > mainWnd->number_of_frames_in_flight()) // otherwise we will wait forever
 		{
-			auto timers = mTimestampPool->get_results<uint64_t, 2>(
-				firstQueryIndex, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait); // => ensure that the results are available
+			auto timers = mTimestampPool->get_results<uint64_t, 2>(firstQueryIndex, 2, vk::QueryResultFlagBits::eWait); // => ensure that the results are available
 			mLastTraceRaysDuration = timers[1] - timers[0];
 			mLastFrameDuration = timers[1] - mLastTimestamp;
 			mLastTimestamp = timers[1];
