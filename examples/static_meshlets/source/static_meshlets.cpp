@@ -372,8 +372,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		mPipelineStatsPool = avk::context().create_query_pool_for_pipeline_statistics_queries(
-			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight()) * 3,
-			vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT | vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations
+			vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations | vk::QueryPipelineStatisticFlagBits::eMeshShaderInvocationsEXT | vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT,
+			avk::context().main_window()->number_of_frames_in_flight()
 		);
 	}
 
@@ -426,18 +426,19 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (mainWnd->current_frame() > mainWnd->number_of_frames_in_flight()) // otherwise we will wait forever
 		{
 			auto timers = mTimestampPool->get_results<uint64_t, 2>(
-				firstQueryIndex, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait); // => ensure that the results are available
+				firstQueryIndex, 2, vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait // => ensure that the results are available
+			);
 			mLastDrawMeshTasksDuration = timers[1] - timers[0];
 			mLastFrameDuration = timers[1] - mLastTimestamp;
 			mLastTimestamp = timers[1];
 
-			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(static_cast<uint32_t>(inFlightIndex) * 3, {});
+			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(inFlightIndex, 1, vk::QueryResultFlagBits::e64);
 		}
 
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
 		context().record({
-				mPipelineStatsPool->reset(static_cast<uint32_t>(inFlightIndex) * 3, 3),
-				mPipelineStatsPool->begin_query(static_cast<uint32_t>(inFlightIndex) * 3, {}),
+				mPipelineStatsPool->reset(inFlightIndex, 1),
+				mPipelineStatsPool->begin_query(inFlightIndex),
 				mTimestampPool->reset(firstQueryIndex, 2),     // reset the two values relevant for the current frame in flight
 				mTimestampPool->write_timestamp(firstQueryIndex + 0, stage::all_commands), // measure before drawMeshTasks*
 
@@ -472,7 +473,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
 				sync::global_memory_barrier(stage::all_graphics + access::memory_write >> stage::all_commands + access::memory_read),
-				mPipelineStatsPool->end_query(static_cast<uint32_t>(inFlightIndex) * 3),
+				mPipelineStatsPool->end_query(inFlightIndex),
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mQueue)
@@ -553,6 +554,7 @@ int main() // <== Starting point ==
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);
 				meshShaderFeatures.setTaskShader(VK_TRUE);
+				meshShaderFeatures.setMeshShaderQueries(VK_TRUE);
 			},
 			[](vk::PhysicalDeviceFeatures& features) {
 				features.setPipelineStatisticsQuery(VK_TRUE);

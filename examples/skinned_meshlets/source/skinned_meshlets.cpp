@@ -624,10 +624,10 @@ int main() // <== Starting point ==
 				features.setStorageBuffer8BitAccess(VK_TRUE);
 			},
 			// Pass windows:
-				mainWnd,
-				// Pass invokees:
-				app, ui
-				);
+			mainWnd,
+			// Pass invokees:
+			app, ui
+		);
 
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):
