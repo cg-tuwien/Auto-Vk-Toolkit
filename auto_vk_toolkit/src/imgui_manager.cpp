@@ -50,19 +50,19 @@ namespace avk
 		// allocate more than one descriptor set, therefore setting this to 1 should be sufficient.
 		const uint32_t magicImguiFactor = 1;
 		auto allocRequest = avk::descriptor_alloc_request{};
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampler,				 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampler,              magicImguiFactor });
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eCombinedImageSampler, std::max(magicImguiFactor, 32u) }); // User could alloc several of these via imgui_manager::get_or_create_texture_descriptor
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampledImage,		 magicImguiFactor });
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageImage,		 magicImguiFactor });
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformTexelBuffer,	 magicImguiFactor });
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageTexelBuffer,	 magicImguiFactor });
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer,		 magicImguiFactor });
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBuffer,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eSampledImage,         magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageImage,         magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformTexelBuffer,   magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageTexelBuffer,   magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer,        magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBuffer,        magicImguiFactor });
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through avk::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through avk::binding?
-		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,		 magicImguiFactor });
+		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,      magicImguiFactor });
 		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
-		mDescriptorPool = context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
+		mDescriptorPool = context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());
 
 		// DescriptorSet chache for user textures
 		mImTextureDescriptorCache = context().create_descriptor_cache("imgui_manager's texture descriptor cache");
@@ -122,13 +122,13 @@ namespace avk
 				construct_render_pass(); // reconstruct render pass
 				restartImGui();
 				ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
-				});
+			});
 		}
 		mUpdater->on(avk::concurrent_frames_count_changed_event(wnd)).invoke([restartImGui]() {
 			ImGui::EndFrame(); //end previous (not rendered) frame
 			restartImGui();
 			ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
-			});
+		});
 
 		// Init it:
 		ImGui_ImplVulkan_Init(&init_info, mRenderpass->handle());
@@ -145,7 +145,7 @@ namespace avk
 #if defined(_WIN32)
 		context().dispatch_to_main_thread([]() {
 			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(context().main_window()->handle()->mHandle);
-			});
+		});
 #endif
 
 		// Upload fonts:
@@ -163,7 +163,8 @@ namespace avk
 
 		if (mUserInteractionEnabled) {
 			// Cursor position:
-			static const auto input = []() { return composition_interface::current()->input(); };
+			static const auto input = []() -> input_buffer& { return composition_interface::current()->input(); };
+
 			const auto cursorPos = input().cursor_position();
 			io.AddMousePosEvent(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
 
