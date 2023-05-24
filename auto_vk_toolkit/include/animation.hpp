@@ -1,5 +1,6 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "model_types.hpp"
 
 namespace avk
 {

@@ -1,5 +1,11 @@
 #pragma once
 #include "auto_vk_toolkit.hpp"
+
+#include "animation.hpp"
+#include "lightsource_gpu_data.hpp"
+#include "material_gpu_data.hpp"
+#include "orca_scene.hpp"
+
 /** cereal binary archive */
 #include "cereal/cereal.hpp"
 #include "cereal/archives/binary.hpp"

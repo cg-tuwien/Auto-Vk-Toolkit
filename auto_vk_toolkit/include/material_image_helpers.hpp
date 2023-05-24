@@ -1,5 +1,10 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "image_data.hpp"
+#include "material_gpu_data_ext.hpp"
+#include "model.hpp"
+#include "serializer.hpp"
+#include "context_vulkan.hpp"
 
 namespace avk
 {
@@ -1706,7 +1711,7 @@ namespace avk
 		if (numWhiteTexUsages > 0) {
 			auto [tex, cmds] = create_1px_texture_cached({ 255, 255, 255, 255 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
-			auto imgView = avk::context().create_image_view(std::move(tex));
+			auto imgView = context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
 			{
@@ -1716,7 +1721,7 @@ namespace avk
 			{
 				smplr = context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
 			}
-			imageSamplers.push_back(avk::context().create_image_sampler(std::move(imgView), std::move(smplr)));
+			imageSamplers.push_back(context().create_image_sampler(std::move(imgView), std::move(smplr)));
 
 			// Assign this image_sampler's index wherever it is referenced:
 			if (!aSerializer ||
@@ -1732,7 +1737,7 @@ namespace avk
 		if (numStraightUpNormalTexUsages > 0) {
 			auto [tex, cmds] = create_1px_texture_cached({ 127, 127, 255, 0 }, avk::layout::shader_read_only_optimal, vk::Format::eR8G8B8A8Unorm, avk::memory_usage::device, aImageUsage, aSerializer);
 			commandsToReturn.mNestedCommandsAndSyncInstructions.push_back(std::move(cmds));
-			auto imgView = avk::context().create_image_view(std::move(tex));
+			auto imgView = context().create_image_view(std::move(tex));
 			avk::sampler smplr;
 			if (aSerializer)
 			{
@@ -1742,7 +1747,7 @@ namespace avk
 			{
 				smplr = context().create_sampler(avk::filter_mode::nearest_neighbor, avk::border_handling_mode::repeat);
 			}
-			imageSamplers.push_back(avk::context().create_image_sampler(std::move(imgView), std::move(smplr)));
+			imageSamplers.push_back(context().create_image_sampler(std::move(imgView), std::move(smplr)));
 
 			// Assign this image_sampler's index wherever it is referenced:
 			if (!aSerializer ||

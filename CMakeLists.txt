@@ -104,15 +104,6 @@ set(avk_toolkit_Sources
         external/universal/src/FileWatcher/FileWatcherOSX.cpp
         external/universal/src/FileWatcher/FileWatcherWin32.cpp
 
-        # ImGui
-        external/universal/src/imgui.cpp
-        external/universal/src/imgui_demo.cpp
-        external/universal/src/imgui_draw.cpp
-        external/universal/src/imgui_impl_glfw.cpp
-        external/universal/src/imgui_impl_vulkan.cpp
-        external/universal/src/imgui_tables.cpp
-        external/universal/src/imgui_widgets.cpp
-
         # Auto-Vk-Toolkit framework files:
         auto_vk_toolkit/src/animation.cpp
         auto_vk_toolkit/src/bezier_curve.cpp
@@ -140,6 +131,7 @@ set(avk_toolkit_Sources
         auto_vk_toolkit/src/quake_camera.cpp
         auto_vk_toolkit/src/swapchain_resized_event.cpp
         auto_vk_toolkit/src/transform.cpp
+        auto_vk_toolkit/src/timer_globals.cpp
         auto_vk_toolkit/src/updater.cpp
         auto_vk_toolkit/src/varying_update_timer.cpp
         auto_vk_toolkit/src/vk_convenience_functions.cpp
@@ -182,6 +174,15 @@ target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
     Vulkan::Vulkan)
+
+# Dear ImGui
+include(cmake/imgui.cmake)
+if (UNIX)
+    target_include_directories(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
+            ${avk_toolkit_imguiIncludeDirectories})
+endif(UNIX)
+target_sources(${PROJECT_NAME} ${avk_toolkit_SourceScope}
+        ${avk_toolkit_imguiSources})
 
 # stb
 # NOTE: Windows builds use a modified version of stb (including a small custom DLL).

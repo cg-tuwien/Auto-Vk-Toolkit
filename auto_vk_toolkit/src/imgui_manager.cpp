@@ -1,12 +1,19 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DEFINE_MATH_OPERATORS
+#endif
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
-#include <imgui_internal.h>
+
+#include "imgui_manager.hpp"
+#include "composition_interface.hpp"
+#include "vk_convenience_functions.hpp"
+#include "timer_interface.hpp"
 
 namespace avk
 {
@@ -15,7 +22,7 @@ namespace avk
 		LOG_DEBUG_VERBOSE("Setting up IMGUI...");
 
 		// Get the main window's handle:
-		auto* wnd = avk::context().main_window();
+		auto* wnd = context().main_window();
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -55,18 +62,18 @@ namespace avk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through avk::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,		 magicImguiFactor });
 		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
-		mDescriptorPool = avk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
+		mDescriptorPool = context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());;
 
 		// DescriptorSet chache for user textures
-		mImTextureDescriptorCache = avk::context().create_descriptor_cache("imgui_manager's texture descriptor cache");
+		mImTextureDescriptorCache = context().create_descriptor_cache("imgui_manager's texture descriptor cache");
 
 		init_info.DescriptorPool = mDescriptorPool.handle();
 		init_info.Allocator = nullptr; // TODO: Maybe use an allocator?
 
-		mCommandPool = &avk::context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
+		mCommandPool = &context().get_command_pool_for_resettable_command_buffers(*mQueue).get(); // TODO: Support other queues!
 		mCommandBuffers = mCommandPool->alloc_command_buffers(static_cast<uint32_t>(wnd->number_of_frames_in_flight()));
 		for (avk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
-			mRenderFinishedSemaphores.push_back(avk::context().create_semaphore());
+			mRenderFinishedSemaphores.push_back(context().create_semaphore());
 			mRenderFinishedSemaphores.back().enable_shared_ownership();
 		}
 
@@ -76,10 +83,10 @@ namespace avk
 		// Source: https://frguthmann.github.io/posts/vulkan_imgui/
 		// ImGui has a hard-coded floor for MinImageCount which is 2.
 		// Take the max of min image count supported by the phys. device and imgui:
-		auto surfaceCap = avk::context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
+		auto surfaceCap = context().physical_device().getSurfaceCapabilitiesKHR(wnd->surface());
 		init_info.MinImageCount = std::max(2u, surfaceCap.minImageCount);
 		init_info.ImageCount = std::max(init_info.MinImageCount, std::max(static_cast<uint32_t>(wnd->get_config_number_of_concurrent_frames()), wnd->get_config_number_of_presentable_images()));
-		init_info.CheckVkResultFn = avk::context().check_vk_result;
+		init_info.CheckVkResultFn = context().check_vk_result;
 
 		// copy current state of init_info in for later use
 		// this shenanigans is necessary for ImGui to keep functioning when certain rendering properties (renderpass) are changed (and to give it new image count)
@@ -98,7 +105,7 @@ namespace avk
 			// Re-create all the semaphores because the number of concurrent frames could have changed:
 			mRenderFinishedSemaphores.clear();
 			for (avk::window::frame_id_t i = 0; i < wnd->number_of_frames_in_flight(); ++i) {
-				mRenderFinishedSemaphores.push_back(avk::context().create_semaphore());
+				mRenderFinishedSemaphores.push_back(context().create_semaphore());
 				mRenderFinishedSemaphores.back().enable_shared_ownership();
 			}
 		};
@@ -136,8 +143,8 @@ namespace avk
 		//io.ClipboardUserData = g_Window;
 
 #if defined(_WIN32)
-		avk::context().dispatch_to_main_thread([]() {
-			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(avk::context().main_window()->handle()->mHandle);
+		context().dispatch_to_main_thread([]() {
+			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(context().main_window()->handle()->mHandle);
 			});
 #endif
 
@@ -149,13 +156,14 @@ namespace avk
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
-		auto wndSize = avk::context().main_window()->resolution(); // TODO: What about multiple windows?
+		auto wndSize = context().main_window()->resolution(); // TODO: What about multiple windows?
 		io.DisplaySize = ImVec2((float)wndSize.x, (float)wndSize.y);
 		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 		io.DeltaTime = avk::time().delta_time();
 
 		if (mUserInteractionEnabled) {
 			// Cursor position:
+			static const auto input = []() { return composition_interface::current()->input(); };
 			const auto cursorPos = input().cursor_position();
 			io.AddMousePosEvent(static_cast<float>(cursorPos.x), static_cast<float>(cursorPos.y));
 
@@ -236,50 +244,14 @@ namespace avk
 			io.AddKeyEvent(ImGuiKey_Z, input().key_down(key_code::z));
 
 			// Modifiers are not reliable across systems
-			bool ctrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
-			bool shift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
-			bool alt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
-			bool super = input().key_down(key_code::left_super) || input().key_down(key_code::right_super);
-			ImGuiKeyModFlags mods = (ctrl ? ImGuiKeyModFlags_Ctrl : 0) | (shift ? ImGuiKeyModFlags_Shift : 0) | (alt ? ImGuiKeyModFlags_Alt : 0) | (super ? ImGuiKeyModFlags_Super : 0);
-			io.AddKeyModsEvent(mods);
-
+			io.KeyCtrl = input().key_down(key_code::left_control) || input().key_down(key_code::right_control);
+			io.KeyShift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
+			io.KeyAlt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
+			io.KeySuper = input().key_down(key_code::left_super) || input().key_down(key_code::right_super);
 
 			// Characters:
 			for (auto c : input().entered_characters()) {
 				io.AddInputCharacter(c);
-			}
-			// Update gamepads:
-			memset(io.NavInputs, 0, sizeof(io.NavInputs));
-			if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == ImGuiConfigFlags_NavEnableGamepad) {
-				// TODO: Need abstraction for glfwGetJoystickButtons in avk::input() for this to work properly
-				//// Update gamepad inputs
-				//#define MAP_BUTTON(NAV_NO, BUTTON_NO)       { if (buttons_count > BUTTON_NO && buttons[BUTTON_NO] == GLFW_PRESS) io.NavInputs[NAV_NO] = 1.0f; }
-				//#define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float v = (axes_count > AXIS_NO) ? axes[AXIS_NO] : V0; v = (v - V0) / (V1 - V0); if (v > 1.0f) v = 1.0f; if (io.NavInputs[NAV_NO] < v) io.NavInputs[NAV_NO] = v; }
-				//int axes_count = 0, buttons_count = 0;
-				//const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
-				//const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &buttons_count);
-				//MAP_BUTTON(ImGuiNavInput_Activate,   0);     // Cross / A
-				//MAP_BUTTON(ImGuiNavInput_Cancel,     1);     // Circle / B
-				//MAP_BUTTON(ImGuiNavInput_Menu,       2);     // Square / X
-				//MAP_BUTTON(ImGuiNavInput_Input,      3);     // Triangle / Y
-				//MAP_BUTTON(ImGuiNavInput_DpadLeft,   13);    // D-Pad Left
-				//MAP_BUTTON(ImGuiNavInput_DpadRight,  11);    // D-Pad Right
-				//MAP_BUTTON(ImGuiNavInput_DpadUp,     10);    // D-Pad Up
-				//MAP_BUTTON(ImGuiNavInput_DpadDown,   12);    // D-Pad Down
-				//MAP_BUTTON(ImGuiNavInput_FocusPrev,  4);     // L1 / LB
-				//MAP_BUTTON(ImGuiNavInput_FocusNext,  5);     // R1 / RB
-				//MAP_BUTTON(ImGuiNavInput_TweakSlow,  4);     // L1 / LB
-				//MAP_BUTTON(ImGuiNavInput_TweakFast,  5);     // R1 / RB
-				//MAP_ANALOG(ImGuiNavInput_LStickLeft, 0,  -0.3f,  -0.9f);
-				//MAP_ANALOG(ImGuiNavInput_LStickRight,0,  +0.3f,  +0.9f);
-				//MAP_ANALOG(ImGuiNavInput_LStickUp,   1,  +0.3f,  +0.9f);
-				//MAP_ANALOG(ImGuiNavInput_LStickDown, 1,  -0.3f,  -0.9f);
-				//#undef MAP_BUTTON
-				//#undef MAP_ANALOG
-				//if (axes_count > 0 && buttons_count > 0)
-				//    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-				//else
-				//    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
 			}
 		}
 		// start of new frame and callback invocations have to be in the update() call of the invokee,
@@ -297,7 +269,7 @@ namespace avk
 
 		auto& cmdBfr = aCommandBuffer;
 
-		auto mainWnd = avk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 
 		// if no invokee has written on the attachment (no previous render calls this frame),
 		// reset layout (cannot be "store_in_presentable_format").
@@ -354,10 +326,10 @@ namespace avk
 			{}, // no resource-specific sync hints
 			[
 				this,
-				lMainWnd = avk::context().main_window(), // TODO: ImGui shall not only support main_mindow, but all windows!
+				lMainWnd = context().main_window(), // TODO: ImGui shall not only support main_mindow, but all windows!
 				lFramebufferPtr = aTargetFramebuffer.has_value()
 					? &aTargetFramebuffer.value().get_const_reference()
-					: &avk::context().main_window()->current_backbuffer_reference()
+					: &context().main_window()->current_backbuffer_reference()
 			](avk::command_buffer_t& cmdBfr) {
 				for (auto& cb : mCallback) {
 					cb();
@@ -398,7 +370,7 @@ namespace avk
 			return;
 		}
 
-		auto mainWnd = avk::context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
+		auto mainWnd = context().main_window(); // TODO: ImGui shall not only support main_mindow, but all windows!
 		const auto ifi = mainWnd->current_in_flight_index();
 		auto& cmdBfr = mCommandBuffers[ifi];
 
@@ -448,23 +420,26 @@ namespace avk
 
 	void imgui_manager::upload_fonts()
 	{
-		auto cmdBfr = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue)->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		auto cmdBfr = context().get_command_pool_for_single_use_command_buffers(*mQueue)->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		cmdBfr->begin_recording();
 		ImGui_ImplVulkan_CreateFontsTexture(cmdBfr->handle());
 		cmdBfr->end_recording();
 		cmdBfr->set_custom_deleter([]() { ImGui_ImplVulkan_DestroyFontUploadObjects(); });
 
 		if (mUsingSemaphoreInsteadOfFenceForFontUpload) {
-			auto semaphore = avk::context().create_semaphore();
+			auto semaphore = context().create_semaphore();
 			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(avk::stage::transfer >> semaphore);
 
+			// Let the semaphore handle the command buffer's lifetime:
+			semaphore->handle_lifetime_of(std::move(cmdBfr));
+
 			// The following is not totally correct, i.e., living on the edge:
-			auto* mainWnd = avk::context().main_window();
+			auto* mainWnd = context().main_window();
 			mainWnd->add_present_dependency_for_current_frame(std::move(semaphore));
 		}
 		else {
-			auto fen = avk::context().create_fence();
+			auto fen = context().create_fence();
 			mQueue->submit(cmdBfr.as_reference())
 				.signaling_upon_completion(fen);
 
@@ -477,7 +452,7 @@ namespace avk
 	{
 		using namespace avk;
 
-		auto* wnd = avk::context().main_window();
+		auto* wnd = context().main_window();
 		std::vector<attachment> attachments;
 		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, usage::color(0), on_store::store.in_layout(layout::present_src)));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {
@@ -539,7 +514,7 @@ namespace avk
 	{
 		std::vector<avk::descriptor_set> sets = mImTextureDescriptorCache->get_or_create_descriptor_sets({
 			avk::descriptor_binding(0, 0, aImageSampler.as_combined_image_sampler(aImageLayout), avk::shader_type::fragment)
-			});
+		});
 
 		// The vector should never contain more than 1 DescriptorSet for the provided image_sampler
 		assert(sets.size() == 1);

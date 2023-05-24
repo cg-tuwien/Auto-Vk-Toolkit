@@ -1,5 +1,9 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include <string>
+
+#include "input_buffer.hpp"
+#include "avk/avk_error.hpp"
 
 namespace avk
 {
@@ -126,4 +130,12 @@ namespace avk
 		/** The (single) currently active composition_interface */
 		static composition_interface* sCurrentComposition;
 	};
+
+	static inline composition_interface* current_composition() {
+		return composition_interface::current();
+	}
+
+	static inline input_buffer& input() {
+		return composition_interface::current()->input();
+	}
 }

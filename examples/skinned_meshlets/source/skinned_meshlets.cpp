@@ -1,6 +1,17 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+#include "auto_vk_toolkit.hpp"
+#include "imgui.h"
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "meshlet_helpers.hpp"
+#include "model.hpp"
+#include "serializer.hpp"
+#include "quake_camera.hpp"
+#include "sequential_invoker.hpp"
 #include "../shaders/cpu_gpu_shared_config.h"
+#include "vk_convenience_functions.hpp"
 
 #define USE_CACHE 1
 
@@ -568,7 +579,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mMeshletDataBuffers;
 #endif
 
-	bool mHighlightMeshlets;
+	bool mHighlightMeshlets = false;
 
 }; // skinned_meshlets_app
 

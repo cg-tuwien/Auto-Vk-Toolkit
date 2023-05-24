@@ -1,6 +1,5 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
-
+#include "avk/avk_error.hpp"
 #include <GLFW/glfw3.h>
 
 namespace avk

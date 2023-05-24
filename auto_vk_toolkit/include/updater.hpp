@@ -1,6 +1,18 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
 #include <FileWatcher/FileWatcher.h>
+
+#include "concurrent_frames_count_changed_event.hpp"
+#include "destroying_events.hpp"
+#include "event.hpp"
+#include "files_changed_event.hpp"
+#include "swapchain_resized_event.hpp"
+#include "swapchain_changed_event.hpp"
+#include "swapchain_format_changed_event.hpp"
+#include "swapchain_additional_attachments_changed_event.hpp"
+
+#include "context_vulkan.hpp"
+
 
 namespace avk
 {
@@ -154,11 +166,11 @@ namespace avk
 		/**	Specify one or multiple events which shall trigger an action.
 		 *  Possible events are the following:
 		 *   - files_changed_event ............................ Triggered after files have changed on disk.                          Example: `avk::shader_files_changed_event(mPipeline)`
-		 *   - swapchain_changed_event ........................ Triggered after the swapchain has changed.                           Example: `avk::swapchain_changed_event(avk::context().main_window())`
-		 *   - swapchain_resized_event ........................ Triggered after the swapchain has been resized.                      Example: `avk::swapchain_resized_event(avk::context().main_window())`
-		 *   - swapchain_format_changed_event ................. Triggered after the swapchain format has changed.                    Example: `avk::swapchain_format_changed_event(avk::context().main_window())`
-		 *   - concurrent_frames_count_changed_event........... Triggered after window #framesInFlight has changed.                  Example: `avk::concurrent_frames_count_changed_event(avk::context().main_window())`
-		 *   - swapchain_additional_attachments_changed_event.. Triggered after window additional attachments have changed.          Example: `avk::swapchain_additional_attachments_changed_event(avk::context().main_window())`
+		 *   - swapchain_changed_event ........................ Triggered after the swapchain has changed.                           Example: `avk::swapchain_changed_event(context().main_window())`
+		 *   - swapchain_resized_event ........................ Triggered after the swapchain has been resized.                      Example: `avk::swapchain_resized_event(context().main_window())`
+		 *   - swapchain_format_changed_event ................. Triggered after the swapchain format has changed.                    Example: `avk::swapchain_format_changed_event(context().main_window())`
+		 *   - concurrent_frames_count_changed_event........... Triggered after window #framesInFlight has changed.                  Example: `avk::concurrent_frames_count_changed_event(context().main_window())`
+		 *   - swapchain_additional_attachments_changed_event.. Triggered after window additional attachments have changed.          Example: `avk::swapchain_additional_attachments_changed_event(context().main_window())`
 		 *   - destroying_graphics_pipeline_event ............. Triggered before an old, outdated graphics pipeline is destroyed.    Example: `avk::destroying_graphics_pipeline_event()`
 		 *   - destroying_compute_pipeline_event .............. Triggered before an old, outdated compute pipeline is destroyed.     Example: `avk::destroying_compute_pipeline_event()`
 		 *   - destroying_ray_tracing_pipeline_event .......... Triggered before an old, outdated ray tracing pipeline is destroyed. Example: `avk::destroying_ray_tracing_pipeline_event()`
@@ -173,7 +185,7 @@ namespace avk
 			window::frame_id_t ttl = 0;
 			((ttl = std::max(ttl, get_ttl(events))), ...);
 			if (0 == ttl) {
-				avk::context().execute_for_each_window([&ttl](window* w){
+				context().execute_for_each_window([&ttl](window* w){
 					ttl = std::max(ttl, w->number_of_frames_in_flight());
 				});
 			}
@@ -243,7 +255,7 @@ namespace avk
 		window::frame_id_t ttl = 0;
 		((ttl = std::max(ttl, mUpdater->get_ttl(events))), ...);
 		if (0 == ttl) {
-			avk::context().execute_for_each_window([&ttl](window* w) {
+			context().execute_for_each_window([&ttl](window* w) {
 				ttl = std::max(ttl, w->number_of_frames_in_flight());
 				});
 		}

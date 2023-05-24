@@ -1,4 +1,4 @@
-#include <auto_vk_toolkit.hpp>
+#include "context_vulkan.hpp"
 
 namespace avk
 {
@@ -469,7 +469,7 @@ namespace avk
 			assert(fence->handle() == mFramesInFlightFences[fenceIndex]->handle());
 
 			// Using a temporary semaphore for the signal operation:
-			auto sigSem = avk::context().create_semaphore();
+			auto sigSem = context().create_semaphore();
 			vk::SemaphoreSubmitInfoKHR sigSemInfo{ sigSem->handle() };
 			
 			// Waiting on the same semaphores here and during vkPresentKHR should be fine: (TODO: is it?)
@@ -479,7 +479,17 @@ namespace avk
 				.setCommandBufferInfoCount(0u)    // Submit ZERO command buffers :O
 				.setSignalSemaphoreInfoCount(1u)
 				.setPSignalSemaphoreInfos(&sigSemInfo);
-			mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), avk::context().dispatch_loader_ext());
+#ifdef AVK_USE_SYNCHRONIZATION2_INSTEAD_OF_CORE
+			auto errorCode = mActivePresentationQueue->handle().submit2KHR(1u, &submitInfo, fence->handle(), context().dispatch_loader_ext());
+			if (vk::Result::eSuccess != errorCode) {
+				AVK_LOG_WARNING("submit2KHR returned " + vk::to_string(errorCode));
+			}
+#else
+			auto errorCode = mActivePresentationQueue->handle().submit2(1u, &submitInfo, fence->handle(), context().dispatch_loader_core());
+			if (vk::Result::eSuccess != errorCode) {
+				AVK_LOG_WARNING("submit2 returned " + vk::to_string(errorCode));
+			}
+#endif
 
 			// Consequently, the present call must wait on the temporary semaphore only:
 			waitSemHandles.clear();
@@ -491,7 +501,7 @@ namespace avk
 		try
 		{
 			// SIGNAL -> PRESENT
-			auto presentInfo = vk::PresentInfoKHR()
+			auto presentInfo = vk::PresentInfoKHR{}
 				.setWaitSemaphoreCount(waitSemHandles.size())
 				.setPWaitSemaphores(waitSemHandles.data())
 				.setSwapchainCount(1u)
@@ -810,11 +820,11 @@ namespace avk
 			auto newRenderPass = context().create_renderpass(renderpassAttachments, {
 				// We only create one subpass here => create default dependencies as per specification chapter 8.1) Render Pass Creation:
 				avk::subpass_dependency{avk::subpass::external >> avk::subpass::index(0),
-					avk::stage::none  >> avk::stage::all_commands,
+					avk::stage::none  >> avk::stage::all_graphics,
 					avk::access::none >> avk::access::input_attachment_read | avk::access::color_attachment_read | avk::access::color_attachment_write | avk::access::depth_stencil_attachment_read | avk::access::depth_stencil_attachment_write
 				},
 				avk::subpass_dependency{avk::subpass::index(0) >> avk::subpass::external,
-					avk::stage::all_commands                                                          >> avk::stage::none,
+					avk::stage::all_graphics                                                          >> avk::stage::none,
 					avk::access::color_attachment_write | avk::access::depth_stencil_attachment_write >> avk::access::none
 				}
 			});
@@ -838,7 +848,7 @@ namespace avk
 			if (aCreationMode == swapchain_creation_mode::update_existing_swapchain && !additionalAttachmentsChanged && i < mBackBuffers.size()) {
 				const auto& backBufferImageViews = mBackBuffers[i]->image_views();
 				for (int j = 1; j < backBufferImageViews.size(); j++) {
-					imageViews.emplace_back(avk::context().create_image_view_from_template(*backBufferImageViews[j], imageResize));
+					imageViews.emplace_back(context().create_image_view_from_template(*backBufferImageViews[j], imageResize));
 				}
 			}
 			else {
@@ -853,7 +863,7 @@ namespace avk
 					}
 				}
 			}
-			auto& ref = newBuffers.emplace_back(avk::context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), extent.x, extent.y));
+			auto& ref = newBuffers.emplace_back(context().create_framebuffer(mBackBufferRenderpass, std::move(imageViews), extent.x, extent.y));
 			ref.enable_shared_ownership();
 		}
 

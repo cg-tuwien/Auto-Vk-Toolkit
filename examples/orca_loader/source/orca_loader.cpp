@@ -1,8 +1,18 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+#include "imgui.h"
 // Use ImGui::FileBrowser from here: https://github.com/AirGuanZ/imgui-filebrowser
-#include "imfilebrowser.h"
 #include <glm/gtx/euler_angles.hpp>
+
+#include "configure_and_compose.hpp"
+#include "imfilebrowser.h"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "model.hpp"
+#include "orca_scene.hpp"
+#include "serializer.hpp"
+#include "sequential_invoker.hpp"
+#include "quake_camera.hpp"
+#include "vk_convenience_functions.hpp"
 
 #define USE_SERIALIZER 1
 

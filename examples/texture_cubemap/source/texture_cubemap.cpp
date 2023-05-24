@@ -1,5 +1,15 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+
+#include "imgui.h"
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "model.hpp"
+#include "serializer.hpp"
+#include "sequential_invoker.hpp"
+#include "quake_camera.hpp"
+#include "math_utils.hpp"
 
 // There are several options for this example application:
 enum struct options

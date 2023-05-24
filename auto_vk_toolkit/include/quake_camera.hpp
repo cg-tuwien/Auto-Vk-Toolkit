@@ -1,5 +1,7 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "camera.hpp"
+#include "sequential_invoker.hpp"
 
 namespace avk
 {

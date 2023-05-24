@@ -1,5 +1,13 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+
+#include "imgui.h"
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "quake_camera.hpp"
+#include "sequential_invoker.hpp"
+#include "vk_convenience_functions.hpp"
+#include "conversion_utils.hpp"
 
 class ray_tracing_custom_intersection_app : public avk::invokee
 {

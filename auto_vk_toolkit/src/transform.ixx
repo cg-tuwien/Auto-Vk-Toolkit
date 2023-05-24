@@ -1,5 +1,9 @@
-#pragma once
+module;
+#include <auto_vk_toolkit.hpp>
 
+export module transform;
+
+export
 namespace avk
 {
 	class transform : std::enable_shared_from_this<transform>
@@ -55,7 +59,7 @@ namespace avk
 
 		/** Gets the local translation */
 		glm::vec3 translation() const { return mTranslation; }
-		
+
 		/** Gets the local rotation */
 		glm::quat rotation() const { return mRotation; }
 
@@ -67,7 +71,7 @@ namespace avk
 
 		/* Look along the given direction, or put differently: orient -z towards aDirection. */
 		void look_along(const glm::vec3& aDirection);
-		
+
 		/** Returns true if this transform is a child has a parent transform. */
 		bool has_parent();
 		/** Returns true if this transform has child transforms. */
@@ -78,7 +82,7 @@ namespace avk
 	private:
 		/** Updates the internal matrix based on translation, rotation scale */
 		void update_matrix_from_transforms();
-		/** Extracts translation, rotation and scale from the matrix and sets the internal fields' values */ 
+		/** Extracts translation, rotation and scale from the matrix and sets the internal fields' values */
 		void update_transforms_from_matrix();
 
 	protected:
@@ -99,24 +103,24 @@ namespace avk
 		std::vector<transform::ptr> mChilds;
 	};
 
-	static inline glm::mat4 matrix_from_transforms(glm::vec3 aTranslation, glm::quat aRotation, glm::vec3 aScale)
+	glm::mat4 matrix_from_transforms(glm::vec3 aTranslation, glm::quat aRotation, glm::vec3 aScale)
 	{
 		auto x = aRotation * glm::vec3{ 1.0f, 0.0f, 0.0f };
 		auto y = aRotation * glm::vec3{ 0.0f, 1.0f, 0.0f };
 		auto z = glm::cross(x, y);
 		y = glm::cross(z, x);
 		return glm::mat4{
-			glm::vec4{x, 0.0f} * aScale.x,
-			glm::vec4{y, 0.0f} * aScale.y,
-			glm::vec4{z, 0.0f} * aScale.z,
+			glm::vec4{x, 0.0f} *aScale.x,
+			glm::vec4{y, 0.0f} *aScale.y,
+			glm::vec4{z, 0.0f} *aScale.z,
 			glm::vec4{aTranslation, 1.0f}
 		};
 	}
 
-	static inline std::tuple<glm::vec3, glm::quat, glm::vec3> transforms_from_matrix(glm::mat4 aMatrix)
+	std::tuple<glm::vec3, glm::quat, glm::vec3> transforms_from_matrix(glm::mat4 aMatrix)
 	{
-		auto translation = glm::vec3{aMatrix[3]};
-		auto scale = glm::vec3 {
+		auto translation = glm::vec3{ aMatrix[3] };
+		auto scale = glm::vec3{
 			glm::length(glm::vec3{aMatrix[0]}),
 			glm::length(glm::vec3{aMatrix[1]}),
 			glm::length(glm::vec3{aMatrix[2]})
@@ -125,31 +129,31 @@ namespace avk
 			aMatrix[0] / scale.x,
 			aMatrix[1] / scale.y,
 			aMatrix[2] / scale.z
-		});
+			});
 		return std::make_tuple(translation, rotation, scale);
 	}
 
 	void attach_transform(transform::ptr pParent, transform::ptr pChild);
 	void detach_transform(transform::ptr pParent, transform::ptr pChild);
 
-	static glm::vec3 back () { return glm::vec3{ 0.f,  0.f,  1.f}; } // "back" together with "right" and "up" forms a right-handed coordinate system.
-	static glm::vec3 front() { return glm::vec3{ 0.f,  0.f, -1.f}; } // Auto-Vk-Toolkit convention is: the negative z-direction means "front" 
-	static glm::vec3 right() { return glm::vec3{ 1.f,  0.f,  0.f}; }
-	static glm::vec3 left () { return glm::vec3{-1.f,  0.f,  0.f}; }
-	static glm::vec3 up   () { return glm::vec3{ 0.f,  1.f,  0.f}; }
-	static glm::vec3 down () { return glm::vec3{ 0.f, -1.f,  0.f}; }
-	static glm::vec3 back (const transform& pTransform) { return  pTransform.z_axis(); }
-	static glm::vec3 front(const transform& pTransform) { return -pTransform.z_axis(); }
-	static glm::vec3 right(const transform& pTransform) { return  pTransform.x_axis(); }
-	static glm::vec3 left (const transform& pTransform) { return -pTransform.x_axis(); }
-	static glm::vec3 up   (const transform& pTransform) { return  pTransform.y_axis(); }
-	static glm::vec3 down (const transform& pTransform) { return -pTransform.y_axis(); }
+	glm::vec3 back() { return glm::vec3{ 0.f,  0.f,  1.f }; } // "back" together with "right" and "up" forms a right-handed coordinate system.
+	glm::vec3 front() { return glm::vec3{ 0.f,  0.f, -1.f }; } // Auto-Vk-Toolkit convention is: the negative z-direction means "front" 
+	glm::vec3 right() { return glm::vec3{ 1.f,  0.f,  0.f }; }
+	glm::vec3 left() { return glm::vec3{ -1.f,  0.f,  0.f }; }
+	glm::vec3 up() { return glm::vec3{ 0.f,  1.f,  0.f }; }
+	glm::vec3 down() { return glm::vec3{ 0.f, -1.f,  0.f }; }
+	glm::vec3 back(const transform& pTransform) { return  pTransform.z_axis(); }
+	glm::vec3 front(const transform& pTransform) { return -pTransform.z_axis(); }
+	glm::vec3 right(const transform& pTransform) { return  pTransform.x_axis(); }
+	glm::vec3 left(const transform& pTransform) { return -pTransform.x_axis(); }
+	glm::vec3 up(const transform& pTransform) { return  pTransform.y_axis(); }
+	glm::vec3 down(const transform& pTransform) { return -pTransform.y_axis(); }
 	glm::vec3 front_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
-	glm::vec3 back_wrt (const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
+	glm::vec3 back_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
 	glm::vec3 right_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
-	glm::vec3 left_wrt (const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
-	glm::vec3 up_wrt   (const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
-	glm::vec3 down_wrt (const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
+	glm::vec3 left_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
+	glm::vec3 up_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
+	glm::vec3 down_wrt(const transform& pTransform, glm::mat4 pReference = glm::mat4(1.0f));
 	void translate(transform& pTransform, const glm::vec3& pTranslation);
 	void rotate(transform& pTransform, const glm::quat& pRotation);
 	void scale(transform& pTransform, const glm::vec3& pScale);

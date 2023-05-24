@@ -1,5 +1,9 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "invokee.hpp"
+#include "composition_interface.hpp"
+#include "context_vulkan.hpp"
+#include "timer_interface.hpp"
 
 #define SINGLE_THREADED 1
 
@@ -372,12 +376,12 @@ namespace avk
 
 					// TODO: This is a bit (read: a lot) stupid, that this is tied to the main_window => support multiple windows here gracefully:
 					int width = 0, height = 0;
-				    glfwGetFramebufferSize(avk::context().main_window()->handle()->mHandle, &width, &height);
+				    glfwGetFramebufferSize(context().main_window()->handle()->mHandle, &width, &height);
 				    while (width == 0 || height == 0) {
-				        glfwGetFramebufferSize(avk::context().main_window()->handle()->mHandle, &width, &height);
+				        glfwGetFramebufferSize(context().main_window()->handle()->mHandle, &width, &height);
 				        glfwWaitEvents();
 				    }
-					avk::context().main_window()->update_resolution();
+					context().main_window()->update_resolution();
 					
 #if !SINGLE_THREADED
 					// resume render_thread:

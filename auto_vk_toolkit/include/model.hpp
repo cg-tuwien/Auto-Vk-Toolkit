@@ -1,5 +1,9 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "animation.hpp"
+#include "camera.hpp"
+#include "lightsource.hpp"
+#include "material_config.hpp"
 
 namespace avk
 {

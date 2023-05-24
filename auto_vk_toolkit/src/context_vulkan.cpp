@@ -1,5 +1,6 @@
-#include <auto_vk_toolkit.hpp>
 #include <set>
+#include "context_vulkan.hpp"
+#include "context_generic_glfw.hpp"
 
 #if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -1042,10 +1043,13 @@ namespace avk
 		return extent;
 	}
 
-	// Defalt to a varying_update_timer if no other has been set:
-	void set_default_timer()
-	{
-		static varying_update_timer sDefaultTimer;
-		timer_reference() = &sDefaultTimer;
+	// function get current context time from outside 
+	// without knowledge about the entire context content
+	double get_context_time() {		
+		return context().get_time();
+	}
+
+	bool are_we_on_the_main_thread() {
+		return context().are_we_on_the_main_thread();
 	}
 }

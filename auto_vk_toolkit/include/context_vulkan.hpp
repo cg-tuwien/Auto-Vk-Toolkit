@@ -1,5 +1,7 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "context_generic_glfw.hpp"
+#include "settings.hpp"
 
 namespace avk
 {	
@@ -13,7 +15,13 @@ namespace avk
 	class context_vulkan : public context_generic_glfw, public avk::root
 	{
 	public:
+		static context_vulkan& get() {
+			static context_vulkan instance;
+			return instance;
+		};
+	private:
 		context_vulkan() = default;
+	public:		
 		context_vulkan(const context_vulkan&) = delete;
 		context_vulkan(context_vulkan&&) = delete;
 		context_vulkan& operator=(const context_vulkan&) = delete;
@@ -95,7 +103,7 @@ namespace avk
 #if defined(AVK_USE_VMA)
 		const VmaAllocator& memory_allocator() const override                   { return mMemoryAllocator; }
 #else
-		const std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() override { return mMemoryAllocator; }
+		const std::tuple<vk::PhysicalDevice, vk::Device>& memory_allocator() const override { return mMemoryAllocator; }
 #endif
 
 		const std::vector<uint32_t>& all_queue_family_indices() const { return mDistinctQueueFamilies; }
@@ -293,4 +301,9 @@ namespace avk
 
 	};
 
+	static inline auto& context() {
+		return avk::context_vulkan::get();
+	}
 }
+
+

@@ -1,5 +1,7 @@
-#include <auto_vk_toolkit.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+#include "animation.hpp"
+#include "transform.hpp"
 
 namespace avk
 {

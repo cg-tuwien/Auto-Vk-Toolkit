@@ -1,5 +1,6 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include <type_traits>
 
 namespace avk
 {

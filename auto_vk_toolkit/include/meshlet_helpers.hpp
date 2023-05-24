@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "material_image_helpers.hpp"
+#include "serializer.hpp"
 
 namespace avk
 {
