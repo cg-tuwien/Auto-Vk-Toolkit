@@ -35,7 +35,7 @@ jobs:
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
-        vulkan-sdk: ["latest", "1.3.216.0"]
+        vulkan-sdk: ["latest", "1.3.224.1"]
 
     steps:
       - name: Checkout repository and submodules
@@ -111,7 +111,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.216.0"]
+        vulkan-sdk: ["latest", "1.2.176.1"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -132,7 +132,9 @@ jobs:
           } Else {
             curl -LS -o vulkan-sdk.exe https://sdk.lunarg.com/sdk/download/${{ matrix.vulkan-sdk }}/windows/VulkanSDK-${{ matrix.vulkan-sdk }}-Installer.exe
           }
-          7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}" install com.lunarg.vulkan.vma
+          7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
+          mkdir "${{ env.vulkan_sdk }}Include/vma/"
+          curl -LS -o "${{ env.vulkan_sdk }}Include/vma/vk_mem_alloc.h" https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h?raw=true
           cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
@@ -167,7 +169,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.216.0"]
+        vulkan-sdk: ["latest", "1.2.176.1"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -188,7 +190,9 @@ jobs:
           } Else {
             curl -LS -o vulkan-sdk.exe https://sdk.lunarg.com/sdk/download/${{ matrix.vulkan-sdk }}/windows/VulkanSDK-${{ matrix.vulkan-sdk }}-Installer.exe
           }
-          7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}" install com.lunarg.vulkan.vma
+          7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
+          mkdir "${{ env.vulkan_sdk }}Include/vma/"
+          curl -LS -o "${{ env.vulkan_sdk }}Include/vma/vk_mem_alloc.h" https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h?raw=true
           cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
