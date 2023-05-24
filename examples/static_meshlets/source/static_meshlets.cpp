@@ -1,4 +1,5 @@
 #include "imgui.h"
+#include "vk_convenience_functions.hpp"
 
 #include "configure_and_compose.hpp"
 #include "imgui_manager.hpp"
