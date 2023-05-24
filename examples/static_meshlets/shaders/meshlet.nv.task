@@ -4,7 +4,7 @@
 #extension GL_KHR_shader_subgroup_ballot     : require
 
 layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
-// ^  same as  v 
+//           ^  same as  v 
 layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
 out taskNV block

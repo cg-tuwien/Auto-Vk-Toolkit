@@ -1,6 +1,4 @@
 #include "imgui.h"
-#include "vk_convenience_functions.hpp"
-
 #include "configure_and_compose.hpp"
 #include "imgui_manager.hpp"
 #include "invokee.hpp"
@@ -117,9 +115,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		glm::mat4 globalTransform = glm::translate(glm::vec3(0.f, -0.5f, -3.f)) * glm::scale(glm::vec3(1.f));
 		std::vector<avk::model> loadedModels;
 		// Load a model from file:
-		auto bunny = avk::model_t::load_from_file("assets/stanford_bunny.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
+		auto model = avk::model_t::load_from_file("assets/stanford_bunny.obj", aiProcess_Triangulate | aiProcess_PreTransformVertices);
 
-		loadedModels.push_back(std::move(bunny));
+		loadedModels.push_back(std::move(model));
 
 		std::vector<avk::material_config> allMatConfigs; // <-- Gather the material config from all models to be loaded
 		std::vector<std::vector<glm::mat4>> meshRootMatricesPerModel;
@@ -238,6 +236,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mImageSamplers = std::move(imageSamplers);
 
+		// Before creating a pipeline, let's query the VK_EXT_mesh_shader-specific device properties:
+		// Also, just out of curiosity, query the subgroup properties too:
 		vk::PhysicalDeviceMeshShaderPropertiesEXT meshShaderProps{};
 		vk::PhysicalDeviceSubgroupProperties subgroupProps;
 		vk::PhysicalDeviceProperties2 phProps2{};
@@ -250,19 +250,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			subgroupProps.subgroupSize));
 		LOG_INFO(std::format("This device supports the following subgroup operations: {}", vk::to_string(subgroupProps.supportedOperations)));
 		LOG_INFO(std::format("This device supports subgroup operations in the following stages: {}", vk::to_string(subgroupProps.supportedStages)));
+		mTaskInvocationsExt = meshShaderProps.maxPreferredTaskWorkGroupInvocations;
 
-		// Create our rasterization graphics pipeline with the required configuration:
-		auto createGraphicsMeshPipeline = [this](auto taskShader, auto meshShader, uint32_t taskWorkGroups, uint32_t meshWorkGroups) {
-			// Before creating a pipeline, let's query the VK_EXT_mesh_shader-specific device properties:
-			// Also, just out of curiosity, query the subgroup properties too:
-			
+		// Create our graphics mesh pipeline with the required configuration:
+		auto createGraphicsMeshPipeline = [this](auto taskShader, auto meshShader, uint32_t taskInvocations, uint32_t meshInvocations) {			
 			return avk::context().create_graphics_pipeline_for(
 				// Specify which shaders the pipeline consists of:
 				avk::task_shader(taskShader)
-					.set_specialization_constant(0, taskWorkGroups),
+					.set_specialization_constant(0, taskInvocations),
 				avk::mesh_shader(meshShader)
-					.set_specialization_constant(0, taskWorkGroups)
-					.set_specialization_constant(1, meshWorkGroups),
+					.set_specialization_constant(0, taskInvocations)
+					.set_specialization_constant(1, meshInvocations),
 				avk::fragment_shader("shaders/diffuse_shading_fixed_lightsource.frag"),
 				// Some further settings:
 				avk::cfg::front_face::define_front_faces_to_be_counter_clockwise(),
@@ -286,29 +284,28 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 		};
 		
-		mPipelineEXT = createGraphicsMeshPipeline(
+		mPipelineExt = createGraphicsMeshPipeline(
 			"shaders/meshlet.task", "shaders/meshlet.mesh", 
 			meshShaderProps.maxPreferredTaskWorkGroupInvocations, 
 			meshShaderProps.maxPreferredMeshWorkGroupInvocations
 		);
-		// set up updater
 		// we want to use an updater, so create one:
-		
 		mUpdater.emplace();
-		mUpdater->on(avk::shader_files_changed_event(mPipelineEXT.as_reference())).update(mPipelineEXT);
+		mUpdater->on(avk::shader_files_changed_event(mPipelineExt.as_reference())).update(mPipelineExt);
 
 		if (avk::context().supports_mesh_shader_nv(avk::context().physical_device())) {
 			vk::PhysicalDeviceMeshShaderPropertiesNV meshShaderPropsNv{};
 			phProps2.pNext = &meshShaderPropsNv;
 			avk::context().physical_device().getProperties2(&phProps2);
+			mTaskInvocationsNv = meshShaderPropsNv.maxTaskWorkGroupInvocations;
 
-			mPipelineNV = createGraphicsMeshPipeline(
+			mPipelineNv = createGraphicsMeshPipeline(
 				"shaders/meshlet.nv.task", "shaders/meshlet.nv.mesh",
 				meshShaderPropsNv.maxTaskWorkGroupInvocations,
 				meshShaderPropsNv.maxMeshWorkGroupInvocations
 			);
 
-			mUpdater->on(avk::shader_files_changed_event(mPipelineNV.as_reference())).update(mPipelineNV);
+			mUpdater->on(avk::shader_files_changed_event(mPipelineNv.as_reference())).update(mPipelineNv);
 
 			mUseNvPipeline = false;
 		}
@@ -436,7 +433,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(inFlightIndex, 1, vk::QueryResultFlagBits::e64);
 		}
 
-		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNV : mPipelineEXT;
+		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNv : mPipelineExt;
 		context().record({
 				mPipelineStatsPool->reset(inFlightIndex, 1),
 				mPipelineStatsPool->begin_query(inFlightIndex),
@@ -464,14 +461,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					// Draw all the meshlets with just one single draw call:
 					command::conditional(
 						[this]() { return mUseNvPipeline.value_or(false); }, 
-						[this]() { return command::draw_mesh_tasks_nv(div_ceil(mNumMeshlets, 32), 0); },
-						[this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, 32), 1, 1); }
+						[this]() { return command::draw_mesh_tasks_nv (div_ceil(mNumMeshlets, mTaskInvocationsNv ), 0);    },
+						[this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, mTaskInvocationsExt), 1, 1); }
 					)
 				}),
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
 				sync::global_memory_barrier(stage::all_graphics + access::memory_write >> stage::all_commands + access::memory_read),
-				mPipelineStatsPool->end_query(inFlightIndex),
+				mPipelineStatsPool->end_query(inFlightIndex)
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mQueue)
@@ -493,10 +490,12 @@ private: // v== Member variables ==v
 	std::vector<avk::image_sampler> mImageSamplers;
 
 	std::vector<data_for_draw_call> mDrawCalls;
-	avk::graphics_pipeline mPipelineEXT;
-	avk::graphics_pipeline mPipelineNV;
+	avk::graphics_pipeline mPipelineExt;
+	avk::graphics_pipeline mPipelineNv;
 	avk::quake_camera mQuakeCam;
 	uint32_t mNumMeshlets;
+	uint32_t mTaskInvocationsExt;
+	uint32_t mTaskInvocationsNv;
 
 	std::vector<avk::buffer_view> mPositionBuffers;
 	std::vector<avk::buffer_view> mTexCoordsBuffers;
