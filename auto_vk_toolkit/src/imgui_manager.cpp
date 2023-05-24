@@ -62,7 +62,6 @@ namespace avk
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBufferDynamic, magicImguiFactor }); // TODO: Q1: Is this really required? Q2: Why is the type not abstracted through avk::binding?
 		allocRequest.add_size_requirements(vk::DescriptorPoolSize{ vk::DescriptorType::eInputAttachment,      magicImguiFactor });
 		allocRequest.set_num_sets(static_cast<uint32_t>(allocRequest.accumulated_pool_sizes().size() * magicImguiFactor));
-		mDescriptorPool = avk::context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());
 		mDescriptorPool = context().create_descriptor_pool(allocRequest.accumulated_pool_sizes(), allocRequest.num_sets());
 
 		// DescriptorSet chache for user textures
