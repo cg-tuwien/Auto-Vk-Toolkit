@@ -60,7 +60,8 @@ layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
 layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
 #if USE_REDIRECTED_GPU_DATA
-layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
+layout(std430, set = 3, binding = 4) buffer IndicesBuffer    { uint mIndices[];    } indicesBuffers[];
+layout(std430, set = 3, binding = 4) buffer IndicesBuffer_u8 { uint8_t mIndices[]; } indicesBuffers_u8[];
 #endif
 layout(set = 3, binding = 5) uniform usamplerBuffer boneIndicesBuffers[];
 layout(set = 3, binding = 6) uniform  samplerBuffer boneWeightsBuffers[];
@@ -119,7 +120,7 @@ void main()
 #if !USE_REDIRECTED_GPU_DATA
 		uint vi = meshletsBuffer.mValues[meshletIndex].mGeometry.mVertices[i];
 #else
-		uint vi = texelFetch(meshletVertexIndices[texelBufferIndex], int(meshletsBuffer.values[meshletIndex].mGeometry.mDataOffset + i)).x;
+		uint vi = uint(indicesBuffers[texelBufferIndex].mIndices[int(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + i)]);
 #endif
 		// Get vertex data from the appropriate texel buffers and vertex indices:
 		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
@@ -185,14 +186,14 @@ void main()
 		);
 	}
 #else // USE_REDIRECTED_GPU_DATA
-	// Here we have the indices packed into an uint, so we can write each of the uints at once:
-	uint indexGroupCount = (triangleCount * 3 + 3) / 4; // need to calculate how many packed uints we have
 	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
 	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
-		uint index = uint(texelFetch(meshletVertexIndices[texelBufferIndex], int(indexOffset + i))).x;
-		// Unpack and then write the indices for the vertices:
-		gl_PrimitiveTriangleIndicesEXT[i] = uvec3((index >> 16) & 0xFF, (index >> 8) & 0xFF, (index >> 0) & 0xFF);
+		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
+			uint(indicesBuffers_u8[texelBufferIndex].mIndices[int(indexOffset*4 + i*3 + 0)]),
+			uint(indicesBuffers_u8[texelBufferIndex].mIndices[int(indexOffset*4 + i*3 + 1)]),
+			uint(indicesBuffers_u8[texelBufferIndex].mIndices[int(indexOffset*4 + i*3 + 2)])
+		);
 	}
 #endif
 }

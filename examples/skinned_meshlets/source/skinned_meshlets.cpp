@@ -151,8 +151,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #if USE_REDIRECTED_GPU_DATA
 			drawCall.mMeshletDataBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
 				avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
-				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData),
-				avk::uniform_texel_buffer_meta::create_from_data(drawCallData.mMeshletData).describe_only_member(drawCallData.mMeshletData[0])
+				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData)
 			);
 #endif
 
@@ -184,7 +183,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mNormalBuffers.push_back(avk::context().create_buffer_view(drawCall.mNormalsBuffer));
 			mTexCoordsBuffers.push_back(avk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
 #if USE_REDIRECTED_GPU_DATA
-			mMeshletDataBuffers.push_back(avk::context().create_buffer_view(drawCall.mMeshletDataBuffer));
+			mMeshletDataBuffers.push_back(drawCall.mMeshletDataBuffer);
 #endif
 			mBoneIndicesBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneIndicesBuffer));
 			mBoneWeightsBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneWeightsBuffer));
@@ -353,7 +352,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		avk::context().record_and_submit_with_fence({
 			mMeshletsBuffer->fill(meshletsGeometry.data(), 0),
 			matCommands
-			}, * mQueue)->wait_until_signalled();
+		}, *mQueue)->wait_until_signalled();
 
 		// One for each concurrent frame
 		const auto concurrentFrames = avk::context().main_window()->number_of_frames_in_flight();
@@ -392,7 +391,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto createGraphicsMeshPipeline = [this](auto taskShader, auto meshShader, uint32_t taskInvocations, uint32_t meshInvocations) {
 			return avk::context().create_graphics_pipeline_for(
 			    // Specify which shaders the pipeline consists of:
-			    // Specify which shaders the pipeline consists of:
 				avk::task_shader(taskShader)
 					.set_specialization_constant(0, taskInvocations),
 				avk::mesh_shader(meshShader)
@@ -419,7 +417,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			    avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			    avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if USE_REDIRECTED_GPU_DATA
-			    avk::descriptor_binding(3, 4, avk::as_uniform_texel_buffer_views(mMeshletDataBuffers)),
+			    avk::descriptor_binding(3, 4, avk::as_storage_buffers(mMeshletDataBuffers)),
 #endif
 			    avk::descriptor_binding(3, 5, avk::as_uniform_texel_buffer_views(mBoneIndicesBuffers)),
 			    avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
@@ -456,7 +454,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Add the camera to the composition (and let it handle the updates)
 		mQuakeCam.set_translation({ 0.0f, -1.0f, 8.0f });
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
 		avk::current_composition()->add_element(mQuakeCam);
 
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
@@ -613,7 +610,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						descriptor_binding(3, 2, as_uniform_texel_buffer_views(mNormalBuffers)),
 						descriptor_binding(3, 3, as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if USE_REDIRECTED_GPU_DATA
-						descriptor_binding(3, 4, as_uniform_texel_buffer_views(mMeshletDataBuffers)),
+						descriptor_binding(3, 4, avk::as_storage_buffers(mMeshletDataBuffers)),
 #endif
 						descriptor_binding(3, 5, as_uniform_texel_buffer_views(mBoneIndicesBuffers)),
 						descriptor_binding(3, 6, as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
@@ -635,13 +632,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}),
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
-				sync::global_memory_barrier(stage::all_graphics + access::memory_write >> stage::all_commands + access::memory_read),
 				mPipelineStatsPool->end_query(inFlightIndex)
 			))
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mQueue)
 			// Do not start to render before the image has become available:
-			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.waiting_for(imageAvailableSemaphore >> stage::color_attachment_output)
 			.submit();
 					
 		mainWnd->handle_lifetime(std::move(cmdBfr));
@@ -674,7 +670,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mBoneWeightsBuffers;
 	std::vector<avk::buffer_view> mBoneIndicesBuffers;
 #if USE_REDIRECTED_GPU_DATA
-	std::vector<avk::buffer_view> mMeshletDataBuffers;
+	std::vector<avk::buffer> mMeshletDataBuffers;
 #endif
 
 	bool mHighlightMeshlets = false;

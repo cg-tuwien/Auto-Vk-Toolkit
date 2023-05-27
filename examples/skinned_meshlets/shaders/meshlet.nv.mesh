@@ -63,11 +63,11 @@ layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
 layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
 layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
 #if USE_REDIRECTED_GPU_DATA
-layout(set = 3, binding = 4) uniform usamplerBuffer meshletVertexIndices[];
+layout(std430, set = 3, binding = 4) buffer IndicesBuffer { uint mIndices[]; } indicesBuffers[];
 #endif
 layout(set = 3, binding = 5) uniform usamplerBuffer boneIndicesBuffers[];
 layout(set = 3, binding = 6) uniform  samplerBuffer boneWeightsBuffers[];
-layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet values[]; } meshletsBuffer;
+layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet mValues[]; } meshletsBuffer;
 //-------------------------------------
 
 //////////////////////////////////////////////////////////////////////
@@ -104,15 +104,15 @@ void main()
 	uint invocationId = gl_LocalInvocationID.x;
 
 	// Get all the meshlet data:
-	uint vertexCount          = uint(meshletsBuffer.values[meshletIndex].mGeometry.mVertexCount);
-	uint triangleCount        = uint(meshletsBuffer.values[meshletIndex].mGeometry.mTriangleCount);
-	uint materialIndex        = meshletsBuffer.values[meshletIndex].mMaterialIndex;
-	mat4 transformationMatrix = meshletsBuffer.values[meshletIndex].mTransformationMatrix;
+	uint vertexCount          = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mVertexCount);
+	uint triangleCount        = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mTriangleCount);
+	uint materialIndex        = meshletsBuffer.mValues[meshletIndex].mMaterialIndex;
+	mat4 transformationMatrix = meshletsBuffer.mValues[meshletIndex].mTransformationMatrix;
 
-	uint modelIdx			  = meshletsBuffer.values[meshletIndex].mModelIndex;
-	uint texelBufferIndex     = meshletsBuffer.values[meshletIndex].mTexelBufferIndex;
+	uint modelIdx			  = meshletsBuffer.mValues[meshletIndex].mModelIndex;
+	uint texelBufferIndex     = meshletsBuffer.mValues[meshletIndex].mTexelBufferIndex;
 #if USE_REDIRECTED_GPU_DATA
-	uint indexOffset = uint(meshletsBuffer.values[meshletIndex].mGeometry.mDataOffset + vertexCount);
+	uint indexOffset = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + vertexCount);
 #endif
 	
 	// Step by NUM_MESH_SHADER_INVOCATIONS as we have that many threads but potentially more vertices to calculate:
@@ -122,7 +122,7 @@ void main()
 #if !USE_REDIRECTED_GPU_DATA
 		uint vi = meshletsBuffer.values[meshletIndex].mGeometry.mVertices[i];
 #else
-		uint vi = texelFetch(meshletVertexIndices[texelBufferIndex], int(meshletsBuffer.values[meshletIndex].mGeometry.mDataOffset + i)).x;
+		uint vi = uint(indicesBuffers[texelBufferIndex].mIndices[int(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + i)]);
 #endif
 		// Get vertex data from the appropriate texel buffers and vertex indices:
 		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
@@ -185,11 +185,20 @@ void main()
 	// Here we have the indices packed into an uint, so we can write each of the uints at once:
 	uint indexGroupCount = (triangleCount * 3 + 3) / 4; // need to calculate how many packed uints we have
 	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
-	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
+	for (uint i = invocationId; i < indexGroupCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
-		uint index = uint(texelFetch(meshletVertexIndices[texelBufferIndex], int(indexOffset + i))).x;
+		uint index = uint(indicesBuffers[texelBufferIndex].mIndices[int(indexOffset + i)]);
 		// This writes the whole uint at once:
 		writePackedPrimitiveIndices4x8NV(i * 4, index);
+		// ^ from the GLSL_NV_mesh_shader spec:
+		// > void writePackedPrimitiveIndices4x8NV(uint indexOffset,
+        // >                                       uint packedIndices)
+		// > Interprets the <packedIndices> as four 8 bit unsigned int values and
+        // > stores them into the gl_PrimitiveIndicesNV array starting from the
+        // > provided <indexOffset>, which must be a multiple of four.
+        // > Lower bytes are stored at lower addresses in the array.
+        // > The write operations must not exceed the size of the
+        // > gl_PrimitiveIndicesNV array.
 	}
 #endif
 }

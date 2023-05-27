@@ -432,13 +432,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(inFlightIndex, 1, vk::QueryResultFlagBits::e64);
 		}
-
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNv : mPipelineExt;
 		context().record({
 				mPipelineStatsPool->reset(inFlightIndex, 1),
 				mPipelineStatsPool->begin_query(inFlightIndex),
 				mTimestampPool->reset(firstQueryIndex, 2),     // reset the two values relevant for the current frame in flight
 				mTimestampPool->write_timestamp(firstQueryIndex + 0, stage::all_commands), // measure before drawMeshTasks*
+
+				// Upload the updated bone matrices into the buffer for the current frame (considering that we have cConcurrentFrames-many concurrent frames):
+mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0),
+
+		        sync::global_memory_barrier(stage::all_commands >> stage::all_commands, access::memory_write >> access::memory_write | access::memory_read),
 
 				command::render_pass(pipeline->renderpass_reference(), context().main_window()->current_backbuffer_reference(), {
 					command::bind_pipeline(pipeline.as_reference()),
@@ -467,7 +471,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				}),
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
-				sync::global_memory_barrier(stage::all_graphics + access::memory_write >> stage::all_commands + access::memory_read),
 				mPipelineStatsPool->end_query(inFlightIndex)
 			})
 			.into_command_buffer(cmdBfr)
