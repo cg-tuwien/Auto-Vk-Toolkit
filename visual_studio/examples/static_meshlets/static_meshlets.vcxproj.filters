@@ -11,9 +11,6 @@
     <Filter Include="precompiled_headers">
       <UniqueIdentifier>{a498e4bc-580a-49d7-9a8e-ec57803fdcd4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="shared">
-      <UniqueIdentifier>{064141dd-28bf-4502-bd4f-aef5a4d1f6d1}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\examples\static_meshlets\shaders\diffuse_shading_fixed_lightsource.frag">
@@ -25,11 +22,14 @@
     <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.task">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\static_meshlets\shaders\glsl_helpers.glsl">
-      <Filter>shared</Filter>
-    </None>
     <None Include="..\..\..\assets\3rd_party\models\stanford_bunny\stanford_bunny.obj">
       <Filter>assets</Filter>
+    </None>
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.mesh">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\static_meshlets\shaders\meshlet.nv.task">
+      <Filter>shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -38,9 +38,6 @@
     </ClInclude>
     <ClInclude Include="cg_targetver.hpp">
       <Filter>precompiled_headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\examples\static_meshlets\shaders\cpu_gpu_shared_config.h">
-      <Filter>shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

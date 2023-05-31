@@ -157,6 +157,26 @@ namespace avk
 		std::vector<const char*> mExtensions;
 	};
 
+	/** Fill this vector with optional device extensions */
+	struct optional_device_extensions
+	{
+		optional_device_extensions(const char* aExtensionName = nullptr)
+		{
+			if (nullptr != aExtensionName) {
+				mExtensions.push_back(aExtensionName);
+			}
+		}
+
+		optional_device_extensions& add_extension(const char* aExtensionName)
+		{
+			assert(nullptr != aExtensionName);
+			mExtensions.push_back(aExtensionName);
+			return *this;
+		}
+
+		std::vector<const char*> mExtensions;
+	};
+
 	/** Pass a function to modify the requested physical device features.
 	 *	@typedef	F		void(vk::PhysicalDeviceFeatures&)
 	 *						Modify the values of the passed reference to vk::PhysicalDeviceFeatures& directly!
@@ -204,6 +224,7 @@ namespace avk
 		required_instance_extensions mRequiredInstanceExtensions;
 		validation_layers mValidationLayers;
 		required_device_extensions mRequiredDeviceExtensions;
+		optional_device_extensions mOptionalDeviceExtensions;
 		vk::DebugUtilsMessageSeverityFlagsEXT mEnabledDebugUtilsMessageSeverities = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
 		vk::DebugUtilsMessageTypeFlagsEXT mEnabledDebugUtilsMessageTypes = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 	};

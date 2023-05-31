@@ -4,145 +4,164 @@
 
 namespace avk
 {
-#if VK_HEADER_VERSION >= 162
-#define RAY_TRACING_CONFIG_PARAMETERS vk::PhysicalDeviceAccelerationStructureFeaturesKHR& acsFtrs, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& rtpFtrs, vk::PhysicalDeviceRayQueryFeaturesKHR& rquFtrs
-#define RAY_TRACING_PASS_ON_PARAMETERS acsFtrs, rtpFtrs, rquFtrs
+#if VK_HEADER_VERSION >= 239
+#define CONFIG_STRUCTS_DECLARATIONS vk::PhysicalDeviceAccelerationStructureFeaturesKHR& acsFtrs, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& rtpFtrs, vk::PhysicalDeviceRayQueryFeaturesKHR& rquFtrs, vk::PhysicalDeviceMeshShaderFeaturesEXT& meShFtr
+#define CONFIG_PARAMETERS_PASSED_ON acsFtrs, rtpFtrs, rquFtrs, meShFtr
+#elif VK_HEADER_VERSION >= 162
+#define CONFIG_STRUCTS_DECLARATIONS vk::PhysicalDeviceAccelerationStructureFeaturesKHR& acsFtrs, vk::PhysicalDeviceRayTracingPipelineFeaturesKHR& rtpFtrs, vk::PhysicalDeviceRayQueryFeaturesKHR& rquFtrs
+#define CONFIG_PARAMETERS_PASSED_ON acsFtrs, rtpFtrs, rquFtrs
 #else
-#define RAY_TRACING_CONFIG_PARAMETERS vk::PhysicalDeviceRayTracingFeaturesKHR& rtf
-#define RAY_TRACING_PASS_ON_PARAMETERS rtf
+#define CONFIG_STRUCTS_DECLARATIONS vk::PhysicalDeviceRayTracingFeaturesKHR& rtf
+#define CONFIG_PARAMETERS_PASSED_ON rtf
 #endif
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w)
 	{ }
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_selection_hint& aValue, Args&... args)
 	{
 		s.mPhysicalDeviceSelectionHint = aValue;
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, application_name& aValue, Args&... args)
 	{
 		s.mApplicationName = aValue;
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, application_version& aValue, Args&... args)
 	{
 		s.mApplicationVersion = aValue;
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
 	{
 		s.mRequiredInstanceExtensions = aValue;
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
 	{
 		s.mRequiredDeviceExtensions = aValue;
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, optional_device_extensions& aValue, Args&... args)
+	{
+		s.mOptionalDeviceExtensions = aValue;
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
+	}
+
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, window* aValue, Args&... args)
 	{
 		w.push_back(aValue);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, invokee& aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, invokee& aValue, Args&... args)
 	{
 		e.push_back(&aValue);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, invokee* aValue, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, invokee* aValue, Args&... args)
 	{
 		e.push_back(aValue);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(validation_layers&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(validation_layers&)> fu, Args&... args)
 	{
 		fu(s.mValidationLayers);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceFeatures&)> fu, Args&... args)
 	{
 		fu(phdf);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan11Features&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan11Features&)> fu, Args&... args)
 	{
 		fu(v11f);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan12Features&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceVulkan12Features&)> fu, Args&... args)
 	{
 		fu(v12f);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 #if VK_HEADER_VERSION >= 162
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceAccelerationStructureFeaturesKHR&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceAccelerationStructureFeaturesKHR&)> fu, Args&... args)
 	{
 		fu(acsFtrs);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR&)> fu, Args&... args)
 	{
 		fu(rtpFtrs);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 	
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)> fu, Args&... args)
 	{
 		fu(rquFtrs);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 #else
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceRayTracingFeaturesKHR&)> fu, Args&... args)
 	{
 		fu(rtf);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 #endif
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageSeverityFlagsEXT&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageSeverityFlagsEXT&)> fu, Args&... args)
 	{
 		fu(s.mEnabledDebugUtilsMessageSeverities);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
-	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, RAY_TRACING_CONFIG_PARAMETERS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)> fu, Args&... args)
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)> fu, Args&... args)
 	{
 		fu(s.mEnabledDebugUtilsMessageTypes);
-		add_config(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS, e, w, args...);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
+
+#if VK_HEADER_VERSION >= 239
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, std::function<void(vk::PhysicalDeviceMeshShaderFeaturesEXT&)> fu, Args&... args)
+	{
+		fu(meShFtr);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
+	}
+#endif
 
 	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
 	 *
@@ -163,6 +182,7 @@ namespace avk
 	 *	- std::function<void(vk::PhysicalDeviceRayQueryFeaturesKHR&)>	              ... A function which can be used to modify the vk::PhysicalDeviceRayQueryFeaturesKHR. Modify the values of the passed vk::PhysicalDeviceRayQueryFeaturesKHR directly!
 	 *	- std::function<void(vk::DebugUtilsMessageSeverityFlagsEXT&)>                 ... A function which can be used to modify the vk::DebugUtilsMessageSeverityFlagsEXT flags which will be enabled for the debug utils.
 	 *	- std::function<void(vk::DebugUtilsMessageTypeFlagsEXT&)>                     ... A function which can be used to modify the vk::DebugUtilsMessageTypeFlagsEXT flags which will be enabled for the debug utils.
+	 *	- std::function<void(vk::PhysicalDeviceMeshShaderFeaturesEXT&)>               ... A function which can be used to modify the vk::PhysicalDeviceMeshShaderFeaturesEXT. Modify the values of the passed vk::PhysicalDeviceMeshShaderFeaturesEXT directly!
 	 */
 	template <typename... Args>
 	static avk::composition configure_and_compose(Args&&... args)
@@ -197,19 +217,18 @@ namespace avk
 		vk::PhysicalDeviceRayTracingFeaturesKHR rtf = vk::PhysicalDeviceRayTracingFeaturesKHR{}
 		.setRayTracing(VK_FALSE);
 #endif
+#if VK_HEADER_VERSION >= 239
+		auto meShFtr = vk::PhysicalDeviceMeshShaderFeaturesEXT{}; // all set to false
+#endif
 
 		std::vector<invokee*> e;
 		std::vector<window*> w;
 		add_config(s, phdf, v11f, v12f,
-#if VK_HEADER_VERSION >= 162
-			acsFtrs, rtpFtrs, rquFtrs,
-#else
-			rtf,
-#endif
+			CONFIG_PARAMETERS_PASSED_ON,
 			e, w, args...
 		);
 
-		context().initialize(s, phdf, v11f, v12f, RAY_TRACING_PASS_ON_PARAMETERS);
+		context().initialize(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON);
 		return avk::composition{ w, e };
 		// Context goes out of scope later, all good
 	}

@@ -1,0 +1,126 @@
+#version 460
+#extension GL_EXT_shader_16bit_storage   : require
+#extension GL_EXT_shader_8bit_storage    : require
+#extension GL_NV_mesh_shader             : require
+#extension GL_EXT_nonuniform_qualifier   : require
+
+layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
+layout (constant_id = 1) const uint NUM_MESH_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
+layout(local_size_x_id = 1, local_size_y = 1, local_size_z = 1) in;
+// The max_vertices and max_primitives numbers have been recommended by Nvidia:
+layout(triangles, max_vertices = 64, max_primitives = 126) out;
+
+layout(set = 0, binding = 1) uniform CameraTransform
+{
+	mat4 mViewProjMatrix;
+} ubo;
+
+in taskNV block
+{
+	uint meshletIndices[NUM_TASK_SHADER_INVOCATIONS];
+};
+
+//////////////////////////////////////////////////////////////////////
+// Meshlet data passed from the host side:
+struct meshlet
+{
+	uint    mVertices[64];
+	uint8_t mIndices[378]; // 126 triangles * 3 indices
+	uint8_t mVertexCount;
+	uint8_t mTriangleCount;
+};
+
+struct extended_meshlet
+{
+	mat4 mTransformationMatrix;
+	uint mMaterialIndex;
+	uint mTexelBufferIndex;
+	meshlet mGeometry;
+};
+
+layout(set = 3, binding = 0) uniform  samplerBuffer positionBuffers[];
+layout(set = 3, binding = 2) uniform  samplerBuffer normalBuffers[];
+layout(set = 3, binding = 3) uniform  samplerBuffer texCoordsBuffers[];
+layout(set = 4, binding = 0) buffer MeshletsBuffer { extended_meshlet mValues[]; } meshletsBuffer;
+
+//////////////////////////////////////////////////////////////////////
+// Mesh shader output block:
+layout (location = 0) out PerVertexData
+{
+	vec3 positionWS;
+	vec3 normalWS;
+	vec2 texCoord;
+	flat int materialIndex;
+	vec3 color;
+} v_out[];   // [max_vertices]
+ 
+// Color table for drawing each meshlet with a different color:
+#define MAX_COLORS 10
+vec3 meshletcolors[MAX_COLORS] = {
+  vec3(0.47, 0.73, 0.38),
+  vec3(0.50, 0.85, 0.50),
+  vec3(0.60, 0.90, 0.60),
+  vec3(0.70, 0.95, 0.70),
+  vec3(0.56, 0.87, 0.56),
+  vec3(0.52, 0.90, 0.52),
+  vec3(0.32, 0.65, 0.32),
+  vec3(0.58, 0.71, 0.50),
+  vec3(0.55, 0.65, 0.47),
+  vec3(0.97, 0.98, 0.95) 
+};
+
+//////////////////////////////////////////////////////////////////////
+// Mesh Shader Main:
+void main() 
+{
+	uint meshletIndex = meshletIndices[gl_WorkGroupID.x];
+	uint invocationId = gl_LocalInvocationID.x;
+
+	// Get all the meshlet data:
+	uint vertexCount          = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mVertexCount);
+	uint triangleCount        = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mTriangleCount);
+	uint materialIndex        = meshletsBuffer.mValues[meshletIndex].mMaterialIndex;
+	mat4 transformationMatrix = meshletsBuffer.mValues[meshletIndex].mTransformationMatrix;
+
+	uint texelBufferIndex     = meshletsBuffer.mValues[meshletIndex].mTexelBufferIndex;
+	
+	// Step by NUM_MESH_SHADER_INVOCATIONS as we have that many threads but potentially more vertices to calculate:
+	for (uint i = invocationId; i < vertexCount; i += NUM_MESH_SHADER_INVOCATIONS)
+	{
+		// Get the vertex index:
+		uint vi = meshletsBuffer.mValues[meshletIndex].mGeometry.mVertices[i];
+		// Get vertex data from the appropriate texel buffers and vertex indices:
+		vec4 posMshSp = vec4(texelFetch(positionBuffers[texelBufferIndex], int(vi)).xyz, 1.0);
+		vec3 nrmMshSp = texelFetch(normalBuffers[texelBufferIndex], int(vi)).xyz;
+
+		// Standard transformation:
+		vec4 posWS = transformationMatrix * posMshSp;
+		vec4 posCS = ubo.mViewProjMatrix * posWS;
+ 
+		// Set the vertex position:
+		gl_MeshVerticesNV[i].gl_Position = posCS;
+ 
+		// Set the per vertex data for the fragment shader:
+		v_out[i].positionWS = posWS.xyz;
+		v_out[i].normalWS = mat3(transformationMatrix) * nrmMshSp;
+		v_out[i].texCoord = texelFetch(texCoordsBuffers[texelBufferIndex], int(vi)).st;
+		v_out[i].materialIndex = int(materialIndex);
+		v_out[i].color = meshletcolors[meshletIndex % MAX_COLORS];
+	}
+ 
+	// Sets the actual output size of the primitives and vertices that the 
+	// mesh shader workgroup will emit upon completion:
+	if (invocationId == 0)
+	{
+		gl_PrimitiveCountNV = triangleCount;
+	}
+ 
+	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
+	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
+	{
+		// Write the indices for the vertices:
+		gl_PrimitiveIndicesNV[i * 3 + 0] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 0]);
+		gl_PrimitiveIndicesNV[i * 3 + 1] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 1]);
+		gl_PrimitiveIndicesNV[i * 3 + 2] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 2]);
+	}
+}

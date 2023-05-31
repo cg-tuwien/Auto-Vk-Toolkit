@@ -31,6 +31,12 @@
     <None Include="..\..\..\assets\3rd_party\models\dancing_crab\crab.fbx">
       <Filter>assets</Filter>
     </None>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.nv.mesh">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\..\examples\skinned_meshlets\shaders\meshlet.nv.task">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\examples\skinned_meshlets\shaders\cpu_gpu_shared_config.h">

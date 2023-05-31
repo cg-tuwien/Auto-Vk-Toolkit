@@ -236,14 +236,23 @@ namespace avk
 	
 	/** Converts meshlets into a GPU usable representation.
 	 *	@param	aMeshlets	The meshlets to convert
-	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
-	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
-	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
-	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4]
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_redirected_gpu_data.
+	 *	                    - meshlet_gpu_data => The output will be one vector of meshlet_gpu_data elements, and the
+	 *	                      second tuple element will be empty.
+	 *	                    - meshlet_redirected_gpu_data => Two vectors are returned: Firstly, a vector of meshlet_redirected_gpu_data elements
+	 *						  which contains index offsets, and for the second tuple element a vector of meshlet indices is returned.
+	 *						  Attention: The vector of indices contains two different regions:
+	 *						   1) The meshlet data contains the vertex indices from [mDataOffset .. mDataOffset+mVertexCount).
+	 *						   2) The indices into the vertex indices, where groups of four uint8_t values are packed into a single uint32_t value.
+	 *						      Region 2 is stored in [mDataOffset+mVertexCount .. mDataOffset+mVertexCount+(mIndexCount+3)/4)
+	 *                      The advantage of the non-redirected representation is easier handling, while the index data must be copied.
+	 *                      The advantage of the redirected representation can be more compressed data, while there is another indirection.
 	 *  @tparam NV			The number of vertices
 	 *  @tparam NI			The number of indices
-	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
-	 *						is used.
+	 *  @returns			A Tuple of the following structure:
+	 *                      <0>: The input meshlets, converted into the provided output meshlet type.
+	 *                           If T is meshlet_redirected_gpu_data, it will contain offsets into the second tuple element:
+	 *                      <1>: Meshlet indices data, if the redirected representation is used. (For more details, see description of T.)
 	 */
 	template <typename T, size_t NV, size_t NI>
 	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& aMeshlets)
@@ -285,13 +294,21 @@ namespace avk
 
 	/** Converts meshlets into a GPU usable representation.
 	 *	@param	aMeshlets	The meshlets to convert
-	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
-	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
-	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
-	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4]
-	 *						T must provide static members ::sNumVertices and ::sNumIndices
-	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
-	 *						is used.
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_redirected_gpu_data.
+	 *	                    - meshlet_gpu_data => The output will be one vector of meshlet_gpu_data elements, and the
+	 *	                      second tuple element will be empty.
+	 *	                    - meshlet_redirected_gpu_data => Two vectors are returned: Firstly, a vector of meshlet_redirected_gpu_data elements
+	 *						  which contains index offsets, and for the second tuple element a vector of meshlet indices is returned.
+	 *						  Attention: The vector of indices contains two different regions:
+	 *						   1) The meshlet data contains the vertex indices from [mDataOffset .. mDataOffset+mVertexCount).
+	 *						   2) The indices into the vertex indices, where groups of four uint8_t values are packed into a single uint32_t value.
+	 *						      Region 2 is stored in [mDataOffset+mVertexCount .. mDataOffset+mVertexCount+(mIndexCount+3)/4)
+	 *                      The advantage of the non-redirected representation is easier handling, while the index data must be copied.
+	 *                      The advantage of the redirected representation can be more compressed data, while there is another indirection.
+	 *  @returns			A Tuple of the following structure:
+	 *                      <0>: The input meshlets, converted into the provided output meshlet type.
+	 *                           If T is meshlet_redirected_gpu_data, it will contain offsets into the second tuple element:
+	 *                      <1>: Meshlet indices data, if the redirected representation is used. (For more details, see description of T.)
 	 */
 	template <typename T> requires has_static_num_vertices_and_num_indices<T>
 	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage(const std::vector<meshlet>& aMeshlets)
@@ -302,14 +319,23 @@ namespace avk
 	/** Converts meshlets into a GPU usable representation.
 	 *  @param  aSerializer The serializer for the meshlet gpu data.
 	 *	@param	aMeshlets	The meshlets to convert
-	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
-	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
-	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
-	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4]
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_redirected_gpu_data.
+	 *	                    - meshlet_gpu_data => The output will be one vector of meshlet_gpu_data elements, and the
+	 *	                      second tuple element will be empty.
+	 *	                    - meshlet_redirected_gpu_data => Two vectors are returned: Firstly, a vector of meshlet_redirected_gpu_data elements
+	 *						  which contains index offsets, and for the second tuple element a vector of meshlet indices is returned.
+	 *						  Attention: The vector of indices contains two different regions:
+	 *						   1) The meshlet data contains the vertex indices from [mDataOffset .. mDataOffset+mVertexCount).
+	 *						   2) The indices into the vertex indices, where groups of four uint8_t values are packed into a single uint32_t value.
+	 *						      Region 2 is stored in [mDataOffset+mVertexCount .. mDataOffset+mVertexCount+(mIndexCount+3)/4)
+	 *                      The advantage of the non-redirected representation is easier handling, while the index data must be copied.
+	 *                      The advantage of the redirected representation can be more compressed data, while there is another indirection.
 	 *  @tparam NV			The number of vertices
-	 *	@tparam NI			The number of indices
-	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
-	 *						is used.
+	 *  @tparam NI			The number of indices
+	 *  @returns			A Tuple of the following structure:
+	 *                      <0>: The input meshlets, converted into the provided output meshlet type.
+	 *                           If T is meshlet_redirected_gpu_data, it will contain offsets into the second tuple element:
+	 *                      <1>: Meshlet indices data, if the redirected representation is used. (For more details, see description of T.)
 	 */
 	template <typename T, size_t NV, size_t NI>
 	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage_cached(serializer& aSerializer, const std::vector<meshlet>& aMeshlets)
@@ -341,13 +367,21 @@ namespace avk
 	/** Converts meshlets into a GPU usable representation.
 	 *  @param  aSerializer The serializer for the meshlet gpu data.
 	 *	@param	aMeshlets	The meshlets to convert
-	 *	@tparam	T			Either meshlet_gpu_data or meshlet_indirect_gpu_data. If the indirect representation is used, the meshlet data will also be returned.
-	 *						The meshlet data contains the vertex indices from [mDataOffset] to [mDataOffset + mVertexCount].
-	 *						It also contains the indices into the vertex indices, four uint8 packed into a single uint32,
-	 *						from [mDataOffset + mVertexCount] to [mDataOffset + mVertexCount + (mIndexCount+3)/4].
-	 *						T must provide static members ::sNumVertices and ::sNumIndices
-	 *  @returns			A Tuple of the converted meshlets into the provided type and the optional meshlet data when the indirect representation
-	 *						is used.
+	 *	@tparam	T			Either meshlet_gpu_data or meshlet_redirected_gpu_data.
+	 *	                    - meshlet_gpu_data => The output will be one vector of meshlet_gpu_data elements, and the
+	 *	                      second tuple element will be empty.
+	 *	                    - meshlet_redirected_gpu_data => Two vectors are returned: Firstly, a vector of meshlet_redirected_gpu_data elements
+	 *						  which contains index offsets, and for the second tuple element a vector of meshlet indices is returned.
+	 *						  Attention: The vector of indices contains two different regions:
+	 *						   1) The meshlet data contains the vertex indices from [mDataOffset .. mDataOffset+mVertexCount).
+	 *						   2) The indices into the vertex indices, where groups of four uint8_t values are packed into a single uint32_t value.
+	 *						      Region 2 is stored in [mDataOffset+mVertexCount .. mDataOffset+mVertexCount+(mIndexCount+3)/4)
+	 *						The advantage of the non-redirected representation is easier handling, while the index data must be copied.
+	 *                      The advantage of the redirected representation can be more compressed data, while there is another indirection.
+	 *  @returns			A Tuple of the following structure:
+	 *                      <0>: The input meshlets, converted into the provided output meshlet type.
+	 *                           If T is meshlet_redirected_gpu_data, it will contain offsets into the second tuple element:
+	 *                      <1>: Meshlet indices data, if the redirected representation is used. (For more details, see description of T.)
 	 */
 	template <typename T> requires has_static_num_vertices_and_num_indices<T>
 	std::tuple<std::vector<T>, std::optional<std::vector<uint32_t>>> convert_for_gpu_usage_cached(serializer& aSerializer, const std::vector<meshlet>& aMeshlets)

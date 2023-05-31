@@ -1,0 +1,46 @@
+#version 460
+#extension GL_EXT_shader_16bit_storage   : require
+#extension GL_EXT_shader_8bit_storage    : require
+#extension GL_NV_mesh_shader                 : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_ballot     : require
+
+layout (constant_id = 0) const uint NUM_TASK_SHADER_INVOCATIONS = 1; // <- Expected to be set to 32 for Nvidia on host side.
+//           ^  same as  v 
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+out taskNV block
+{
+	uint meshletIndices[NUM_TASK_SHADER_INVOCATIONS];
+};
+
+layout(push_constant) uniform PushConstants {
+	bool mHighlightMeshlets;
+	int  mVisibleMeshletIndexFrom;
+	int  mVisibleMeshletIndexTo;  
+} pushConstants;
+
+void main() 
+{
+	// Calculate and set the meshlet index for this execution:
+	uint groupId      = gl_WorkGroupID.x;
+	uint invocationId = gl_LocalInvocationID.x;
+	uint meshletIndex = groupId * NUM_TASK_SHADER_INVOCATIONS + invocationId;
+
+	// See if this meshlet shall be rendered, and if so, add it to the array:
+	bool meshletVisible = meshletIndex >= pushConstants.mVisibleMeshletIndexFrom && meshletIndex < pushConstants.mVisibleMeshletIndexTo;
+	uint insertIndex = subgroupExclusiveAdd(uint(meshletVisible));
+	meshletIndices[insertIndex] = meshletIndex;		
+
+	// Find out how many meshlets been added to the array by the other invocations in this subgroup:
+	uvec4 voteResult  = subgroupBallot(meshletVisible);
+	uint  numMeshlets = subgroupBallotBitCount(voteResult);
+
+	// With this number at hand, spawn the same amount of mesh shader GROUPS from this task shader:
+	// I.e., in total, we spawn (numMeshlets * NUM_MESH_SHADER_INVOCATIONS * 1 * 1) invocations.
+	if (invocationId == 0)
+	{
+		gl_TaskCountNV = numMeshlets;
+	}
+}
+

@@ -73,9 +73,10 @@ layout (location = 0) in PerVertexData
 } v_in;
 
 layout(push_constant) uniform PushConstants {
-	uint highlightMeshlets;
+	bool mHighlightMeshlets;
+	int  mVisibleMeshletIndexFrom;
+	int  mVisibleMeshletIndexTo;  
 } pushConstants;
-
 
 layout (location = 0) out vec4 fs_out;
 
@@ -92,7 +93,7 @@ void main()
 	vec3 illum = vec3(ambient) + diffuse * max(0.0, dot(normalize(v_in.normalWS), toLight));
 	color *= illum;
 	
-	if(pushConstants.highlightMeshlets == 1) {
+	if(pushConstants.mHighlightMeshlets) {
 		color = mix(color, v_in.color, 0.5);
 	}
 
