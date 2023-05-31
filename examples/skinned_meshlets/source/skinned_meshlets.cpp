@@ -43,7 +43,7 @@ class skinned_meshlets_app : public avk::invokee
 		avk::buffer mBoneIndicesBuffer;
 		avk::buffer mBoneWeightsBuffer;
 #if USE_REDIRECTED_GPU_DATA
-		avk::buffer mMeshletDataBuffer;
+		avk::buffer mIndicesDataBuffer;
 #endif
 
 		glm::mat4 mModelMatrix;
@@ -62,7 +62,7 @@ class skinned_meshlets_app : public avk::invokee
 		std::vector<glm::uvec4> mBoneIndices;
 		std::vector<glm::vec4> mBoneWeights;
 #if USE_REDIRECTED_GPU_DATA
-		std::vector<uint32_t> mMeshletData;
+		std::vector<uint32_t> mIndicesData;
 #endif
 
 		glm::mat4 mModelMatrix;
@@ -149,9 +149,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 
 #if USE_REDIRECTED_GPU_DATA
-			drawCall.mMeshletDataBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
-				avk::vertex_buffer_meta::create_from_data(drawCallData.mMeshletData),
-				avk::storage_buffer_meta::create_from_data(drawCallData.mMeshletData)
+			drawCall.mIndicesDataBuffer = avk::context().create_buffer(avk::memory_usage::device, {},
+				avk::vertex_buffer_meta::create_from_data(drawCallData.mIndicesData),
+				avk::storage_buffer_meta::create_from_data(drawCallData.mIndicesData)
 			);
 #endif
 
@@ -174,7 +174,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				drawCall.mBoneIndicesBuffer->fill(drawCallData.mBoneIndices.data(), 0),
 				drawCall.mBoneWeightsBuffer->fill(drawCallData.mBoneWeights.data(), 0)
 #if USE_REDIRECTED_GPU_DATA
-				, drawCall.mMeshletDataBuffer->fill(drawCallData.mMeshletData.data(), 0)
+				, drawCall.mIndicesDataBuffer->fill(drawCallData.mIndicesData.data(), 0)
 #endif
 				}, *mQueue)->wait_until_signalled();
 
@@ -183,7 +183,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mNormalBuffers.push_back(avk::context().create_buffer_view(drawCall.mNormalsBuffer));
 			mTexCoordsBuffers.push_back(avk::context().create_buffer_view(drawCall.mTexCoordsBuffer));
 #if USE_REDIRECTED_GPU_DATA
-			mMeshletDataBuffers.push_back(drawCall.mMeshletDataBuffer);
+			mIndicesDataBuffers.push_back(drawCall.mIndicesDataBuffer);
 #endif
 			mBoneIndicesBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneIndicesBuffer));
 			mBoneWeightsBuffers.push_back(avk::context().create_buffer_view(drawCall.mBoneWeightsBuffer));
@@ -290,11 +290,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #else
 #if USE_CACHE
 				avk::serializer serializer("redirected_meshlets-" + meshname + "-" + std::to_string(mpos) + ".cache");
-				auto [gpuMeshlets, generatedMeshletData] = avk::convert_for_gpu_usage_cached<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
+				auto [gpuMeshlets, gpuIndicesData] = avk::convert_for_gpu_usage_cached<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(serializer, cpuMeshlets);
 #else
 				auto [gpuMeshlets, generatedMeshletData] = avk::convert_for_gpu_usage<avk::meshlet_redirected_gpu_data, sNumVertices, sNumIndices>(cpuMeshlets);
 #endif
-				drawCallData.mMeshletData = std::move(generatedMeshletData.value());
+				drawCallData.mIndicesData = std::move(gpuIndicesData.value());
 #endif
 
 				// fill our own meshlets with the loaded/generated data
@@ -417,7 +417,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			    avk::descriptor_binding(3, 2, avk::as_uniform_texel_buffer_views(mNormalBuffers)),
 			    avk::descriptor_binding(3, 3, avk::as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if USE_REDIRECTED_GPU_DATA
-			    avk::descriptor_binding(3, 4, avk::as_storage_buffers(mMeshletDataBuffers)),
+			    avk::descriptor_binding(3, 4, avk::as_storage_buffers(mIndicesDataBuffers)),
 #endif
 			    avk::descriptor_binding(3, 5, avk::as_uniform_texel_buffer_views(mBoneIndicesBuffers)),
 			    avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
@@ -610,7 +610,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						descriptor_binding(3, 2, as_uniform_texel_buffer_views(mNormalBuffers)),
 						descriptor_binding(3, 3, as_uniform_texel_buffer_views(mTexCoordsBuffers)),
 #if USE_REDIRECTED_GPU_DATA
-						descriptor_binding(3, 4, avk::as_storage_buffers(mMeshletDataBuffers)),
+						descriptor_binding(3, 4, avk::as_storage_buffers(mIndicesDataBuffers)),
 #endif
 						descriptor_binding(3, 5, as_uniform_texel_buffer_views(mBoneIndicesBuffers)),
 						descriptor_binding(3, 6, as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
@@ -670,7 +670,7 @@ private: // v== Member variables ==v
 	std::vector<avk::buffer_view> mBoneWeightsBuffers;
 	std::vector<avk::buffer_view> mBoneIndicesBuffers;
 #if USE_REDIRECTED_GPU_DATA
-	std::vector<avk::buffer> mMeshletDataBuffers;
+	std::vector<avk::buffer> mIndicesDataBuffers;
 #endif
 
 	bool mHighlightMeshlets = false;

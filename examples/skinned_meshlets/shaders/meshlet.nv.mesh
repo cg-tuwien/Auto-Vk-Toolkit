@@ -112,6 +112,8 @@ void main()
 	uint modelIdx			  = meshletsBuffer.mValues[meshletIndex].mModelIndex;
 	uint texelBufferIndex     = meshletsBuffer.mValues[meshletIndex].mTexelBufferIndex;
 #if USE_REDIRECTED_GPU_DATA
+	// Note: There is another set of indices contained in the indicesBuffers, which starts at an offset of vertexCount.
+	//       For more details, see meshlet_helpers.hpp!
 	uint indexOffset = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + vertexCount);
 #endif
 	
@@ -120,7 +122,7 @@ void main()
 	{
 		// Get the vertex index:
 #if !USE_REDIRECTED_GPU_DATA
-		uint vi = meshletsBuffer.values[meshletIndex].mGeometry.mVertices[i];
+		uint vi = meshletsBuffer.mValues[meshletIndex].mGeometry.mVertices[i];
 #else
 		uint vi = uint(indicesBuffers[texelBufferIndex].mIndices[int(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + i)]);
 #endif
@@ -177,9 +179,9 @@ void main()
 	// Write for each triangle, also note the NUM_MESH_SHADER_INVOCATIONS stepping
 	for (uint i = invocationId; i < triangleCount; i += NUM_MESH_SHADER_INVOCATIONS)
 	{
-		gl_PrimitiveIndicesNV[i*3 + 0] = uint(meshletsBuffer.values[meshletIndex].mGeometry.mIndices[i * 3 + 0]);
-		gl_PrimitiveIndicesNV[i*3 + 1] = uint(meshletsBuffer.values[meshletIndex].mGeometry.mIndices[i * 3 + 1]);
-		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.values[meshletIndex].mGeometry.mIndices[i * 3 + 2]);
+		gl_PrimitiveIndicesNV[i*3 + 0] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 0]);
+		gl_PrimitiveIndicesNV[i*3 + 1] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 1]);
+		gl_PrimitiveIndicesNV[i*3 + 2] = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mIndices[i * 3 + 2]);
 	}
 #else // USE_REDIRECTED_GPU_DATA
 	// Here we have the indices packed into an uint, so we can write each of the uints at once:

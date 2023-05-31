@@ -110,6 +110,8 @@ void main()
 	uint modelIdx			  = meshletsBuffer.mValues[meshletIndex].mModelIndex;
 	uint texelBufferIndex     = meshletsBuffer.mValues[meshletIndex].mTexelBufferIndex;
 #if USE_REDIRECTED_GPU_DATA
+	// Note: There is another set of indices contained in the indicesBuffers, which starts at an offset of vertexCount.
+	//       For more details, see meshlet_helpers.hpp!
 	uint indexOffset = uint(meshletsBuffer.mValues[meshletIndex].mGeometry.mDataOffset + vertexCount);
 #endif
 	
