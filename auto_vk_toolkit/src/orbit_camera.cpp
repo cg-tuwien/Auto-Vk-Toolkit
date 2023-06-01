@@ -21,13 +21,11 @@ namespace avk
 
 	void orbit_camera::on_enable()
 	{
-		composition_interface::current()->input().set_cursor_mode(cursor::hand_cursor);
 		calculate_lateral_speed();
 	}
 
 	void orbit_camera::on_disable()
 	{
-		composition_interface::current()->input().set_cursor_mode(cursor::arrow_cursor);
 	}
 
 	void orbit_camera::update()
@@ -51,10 +49,10 @@ namespace avk
 			const auto rotSpeed = mRotationSpeed
 		        * ((input().key_down(key_code::left_shift)   || input().key_down(key_code::right_shift))   ? mFastMultiplier : 1.f)
 			    * ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
-			glm::quat rotHoriz = glm::angleAxis( rotSpeed * static_cast<float>(mouseMoved.x), glm::vec3(0.f, 1.f, 0.f));
-			glm::quat rotVert =  glm::angleAxis(-rotSpeed * static_cast<float>(mouseMoved.y), glm::vec3(1.f, 0.f, 0.f));
+			glm::quat rotHoriz = glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.x), up());
+			glm::quat rotVert =  glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.y), right(*this));
 			const auto oldPos = back(*this) * mPivotDistance;
-			const auto newPos = rotHoriz * oldPos * rotVert;
+			const auto newPos = rotHoriz * (rotVert * oldPos);
 			translate(*this, newPos - oldPos);
 			look_along(-newPos);
 		}
@@ -107,6 +105,5 @@ namespace avk
 		auto resy = nullptr != wnd ? static_cast<float>(wnd->resolution().y) : 1000.f;
 		resy *= 0.5f;
 		mLateralSpeed = glm::abs(mPivotDistance / projection_matrix()[1][1]) / resy;
-		LOG_INFO(fmt::format("mPivotDistance[{}], mLateralSpeed[{}]", mPivotDistance - mNear, mLateralSpeed));
 	}
 }
