@@ -20,7 +20,7 @@ namespace avk
 		quake_camera(const quake_camera&) noexcept = default;
 		quake_camera& operator=(quake_camera&&) noexcept = default;
 		quake_camera& operator=(const quake_camera&) noexcept = default;
-		~quake_camera();
+		~quake_camera() override = default;
 
 		// Invoked when this camera becomes active
 		void on_enable() override;

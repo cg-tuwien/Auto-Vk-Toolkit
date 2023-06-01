@@ -1,6 +1,7 @@
 #include "imgui.h"
 
 #include "camera_path.hpp"
+#include "orbit_camera.hpp"
 #include "configure_and_compose.hpp"
 #include "imgui_manager.hpp"
 #include "invokee.hpp"
@@ -363,22 +364,22 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			}
 		}
 
-		// Automatic camera path:
-		if (avk::input().key_pressed(avk::key_code::c)) {
-			if (avk::input().key_down(avk::key_code::left_shift)) { // => disable
-				if (mCameraPath.has_value()) {
-					avk::current_composition()->remove_element_immediately(mCameraPath.value());
-					mCameraPath.reset();
-				}
-			}
-			else { // => enable
-				if (mCameraPath.has_value()) {
-					avk::current_composition()->remove_element_immediately(mCameraPath.value());
-				}
-				mCameraPath.emplace(mQuakeCam);
-				avk::current_composition()->add_element(mCameraPath.value());
-			}
-		}
+		//// Automatic camera path:
+		//if (avk::input().key_pressed(avk::key_code::c)) {
+		//	if (avk::input().key_down(avk::key_code::left_shift)) { // => disable
+		//		if (mCameraPath.has_value()) {
+		//			avk::current_composition()->remove_element_immediately(mCameraPath.value());
+		//			mCameraPath.reset();
+		//		}
+		//	}
+		//	else { // => enable
+		//		if (mCameraPath.has_value()) {
+		//			avk::current_composition()->remove_element_immediately(mCameraPath.value());
+		//		}
+		//		mCameraPath.emplace(mQuakeCam);
+		//		avk::current_composition()->add_element(mCameraPath.value());
+		//	}
+		//}
 	}
 
 private: // v== Member variables ==v
@@ -394,7 +395,7 @@ private: // v== Member variables ==v
 
 	std::vector<data_for_draw_call> mDrawCalls;
 	avk::graphics_pipeline mPipeline;
-	avk::quake_camera mQuakeCam;
+	avk::orbit_camera mQuakeCam;
 
 	glm::vec3 mScale;
 

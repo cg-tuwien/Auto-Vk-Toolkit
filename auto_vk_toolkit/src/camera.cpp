@@ -15,12 +15,8 @@ namespace avk
 		, mTop{ 0 }
 		, mBottom{ 0 }
 	{}
-
-	camera::~camera()
-	{}
-
-
-	camera& camera::set_projection_matrix(const glm::mat4& aMatrix)
+	
+    camera& camera::set_projection_matrix(const glm::mat4& aMatrix)
 	{
 		mProjectionType = projection_type::unknown;
 		mProjectionMatrix = aMatrix;
@@ -133,10 +129,9 @@ namespace avk
 		return depth;
 	}
 
-	float camera::get_z_buffer_depth(transform& aTransform)
+	float camera::get_z_buffer_depth(const transform& aTransform)
 	{
-		// TODO: pass transform's world space position:
-		return get_z_buffer_depth(glm::vec3{ 0.f, 0.f, 0.f });
+		return get_z_buffer_depth(aTransform.translation());
 	}
 
 

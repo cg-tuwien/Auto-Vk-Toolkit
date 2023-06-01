@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auto_vk\src\avk.cpp" />
+    <ClCompile Include="..\..\auto_vk_toolkit\src\orbit_camera.cpp" />
     <ClCompile Include="..\..\auto_vk_toolkit\src\timer_globals.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug_Vulkan|x64'">
@@ -391,6 +392,7 @@
     <ClInclude Include="..\..\auto_vk_toolkit\include\meshlet_helpers.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\model.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\model_types.hpp" />
+    <ClInclude Include="..\..\auto_vk_toolkit\include\orbit_camera.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\orca_scene.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\quadratic_uniform_b_spline.hpp" />
     <ClInclude Include="..\..\auto_vk_toolkit\include\quake_camera.hpp" />
