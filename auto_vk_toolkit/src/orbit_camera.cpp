@@ -46,13 +46,19 @@ namespace avk
 		constexpr uint8_t LMB = 0;
 		constexpr uint8_t RMB = 1;
 		if (input().mouse_button_down(LMB)) {
-			const auto rotSpeed = mRotationSpeed
+			auto rotSpeed = mRotationSpeed
 		        * ((input().key_down(key_code::left_shift)   || input().key_down(key_code::right_shift))   ? mFastMultiplier : 1.f)
 			    * ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
+
 			glm::quat rotHoriz = glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.x), up());
+
+		    rotSpeed = rotSpeed
+		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), back(*this)))
+		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), front(*this)));
 			glm::quat rotVert =  glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.y), right(*this));
-			const auto oldPos = back(*this) * mPivotDistance;
-			const auto newPos = rotHoriz * (rotVert * oldPos);
+
+		    const auto oldPos = back(*this) * mPivotDistance;
+			const auto newPos = (rotHoriz * rotVert) * oldPos;
 			translate(*this, newPos - oldPos);
 			look_along(-newPos);
 		}
