@@ -7,6 +7,7 @@
 #include "model.hpp"
 #include "serializer.hpp"
 #include "sequential_invoker.hpp"
+#include "orbit_camera.hpp"
 #include "quake_camera.hpp"
 #include "vk_convenience_functions.hpp"
 
@@ -315,9 +316,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		});
 
 		// Add the camera to the composition (and let it handle the updates)
-		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
-		mQuakeCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		mOrbitCam.set_translation({ 0.0f, 0.0f, 8.0f });
+		mQuakeCam.set_translation({ 0.0f, 0.0f, 8.0f });
+		mOrbitCam.set_perspective_projection(glm::radians(45.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		mQuakeCam.set_perspective_projection(glm::radians(45.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
+		avk::current_composition()->add_element(mOrbitCam);
 		avk::current_composition()->add_element(mQuakeCam);
+		mQuakeCam.disable();
 
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
@@ -329,7 +334,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					return static_cast<double>(props.limits.timestampPeriod);
 				}),
 				lastFrameDurationMs = 0.0,
-				lastDrawMeshTasksDurationMs = 0.0
+				lastDrawMeshTasksDurationMs = 0.0,
+				windowHoveredLastFrame = false
 			]() mutable {
 				ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
@@ -344,9 +350,33 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text(                                   "mPipelineStats[0]         : %llu", mPipelineStats[0]);
 				ImGui::Text(                                   "mPipelineStats[1]         : %llu", mPipelineStats[1]);
 				ImGui::Text(                                   "mPipelineStats[2]         : %llu", mPipelineStats[2]);
+
 				ImGui::Separator();
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+				bool quakeCamEnabled = mQuakeCam.is_enabled();
+				if (ImGui::Checkbox("Enable Quake Camera", &quakeCamEnabled)) {
+					if (quakeCamEnabled) { // => should be enabled
+						mQuakeCam.set_matrix(mOrbitCam.matrix());
+						mQuakeCam.enable();
+						mOrbitCam.disable();
+					}
+				}
+				if (quakeCamEnabled) {
+					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
+					if (avk::input().key_pressed(avk::key_code::f1)) {
+						mOrbitCam.set_matrix(mQuakeCam.matrix());
+						mOrbitCam.enable();
+						mQuakeCam.disable();
+					}
+				}
+				const bool windowHoveredThisFrame = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+				if (windowHoveredThisFrame && !windowHoveredLastFrame && mOrbitCam.is_enabled()) {
+					mOrbitCam.disable();
+				}
+				if (windowHoveredLastFrame && !windowHoveredThisFrame && !mQuakeCam.is_enabled()) {
+					mOrbitCam.enable();
+				}
+				windowHoveredLastFrame = windowHoveredThisFrame;
+				ImGui::Separator();
 
 				ImGui::Separator();
 				if (mUseNvPipeline.has_value()) {
@@ -386,18 +416,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
-
-		if (avk::input().key_pressed(avk::key_code::f1)) {
-			auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
-			if (mQuakeCam.is_enabled()) {
-				mQuakeCam.disable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
-			}
-			else {
-				mQuakeCam.enable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
-			}
-		}
 	}
 
 	void render() override
@@ -407,7 +425,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = context().main_window();
 		auto inFlightIndex = mainWnd->current_in_flight_index();
 
-		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		auto viewProjMat = mQuakeCam.is_enabled()
+			? mQuakeCam.projection_and_view_matrix()
+			: mOrbitCam.projection_and_view_matrix();
 		auto emptyCmd = mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
@@ -495,8 +515,11 @@ private: // v== Member variables ==v
 	std::vector<data_for_draw_call> mDrawCalls;
 	avk::graphics_pipeline mPipelineExt;
 	avk::graphics_pipeline mPipelineNv;
+
+	avk::orbit_camera mOrbitCam;
 	avk::quake_camera mQuakeCam;
-	uint32_t mNumMeshlets;
+
+    uint32_t mNumMeshlets;
 	uint32_t mTaskInvocationsExt;
 	uint32_t mTaskInvocationsNv;
 

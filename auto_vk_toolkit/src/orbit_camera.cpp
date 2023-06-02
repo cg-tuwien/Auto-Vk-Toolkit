@@ -7,7 +7,7 @@ namespace avk
 {
 	orbit_camera::orbit_camera(std::string aName, bool aIsEnabled)
 		: invokee(std::move(aName), aIsEnabled)
-		, mRotationSpeed(0.0025f)
+		, mRotationSpeed(0.002f)
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
@@ -107,7 +107,6 @@ namespace avk
 	{
 		const auto* wnd = context().main_window();
 		auto resy = nullptr != wnd ? static_cast<float>(wnd->resolution().y) : 1000.f;
-		resy *= 0.5f;
 		mLateralSpeed = glm::abs(mPivotDistance / projection_matrix()[1][1]) / resy;
 	}
 }
