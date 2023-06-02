@@ -61,13 +61,13 @@ namespace avk
 			look_along(-newPos);
 		}
 		if (input().mouse_button_down(RMB)) {
-			const auto latSpeed = mLateralSpeed * 0.1f
+			const auto latSpeed = mLateralSpeed
 			    * ((input().key_down(key_code::left_shift)   || input().key_down(key_code::right_shift))   ? mFastMultiplier : 1.f)
 			    * ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
 
 			const auto t
-		        = down(*this)  * static_cast<float>(deltaCursor.y) * latSpeed
-		        + right(*this) * static_cast<float>(deltaCursor.x) * latSpeed;
+		        = down(*this)  * static_cast<float>(deltaCursor.y) * latSpeed.x
+		        + right(*this) * static_cast<float>(deltaCursor.x) * latSpeed.x;
 			translate(*this, t);
 		}
 
@@ -103,10 +103,22 @@ namespace avk
 		}
 	}
 
+	void orbit_camera::set_pivot_distance(float aDistanceFromCamera) {
+		mPivotDistance = glm::clamp(aDistanceFromCamera, mMinPivotDistance, mMaxPivotDistance);
+		calculate_lateral_speed();
+	}
+
+	float orbit_camera::pivot_distance() const {
+		return mPivotDistance;
+	}
+
 	void orbit_camera::calculate_lateral_speed()
 	{
 		const auto* wnd = context().main_window();
-		auto resy = nullptr != wnd ? static_cast<float>(wnd->resolution().y) : 1000.f;
-		mLateralSpeed = glm::abs(mPivotDistance / projection_matrix()[1][1]) / resy;
+		auto resi = nullptr != wnd ? wnd->resolution() : glm::uvec2{1920, 1080};
+		mLateralSpeed = glm::vec2{
+			(mPivotDistance / (static_cast<float>(resi.x) * 2.f)) / near_plane_distance(),
+			(mPivotDistance / (static_cast<float>(resi.y) * 2.f)) / near_plane_distance()
+		};
 	}
 }

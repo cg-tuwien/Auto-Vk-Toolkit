@@ -89,6 +89,29 @@ namespace avk
 			mUsingSemaphoreInsteadOfFenceForFontUpload = true;
 		}
 
+        /** Indicates whether or not ImGui wants to occupy the mouse.
+         *  This could be because the mouse is over a window, or currently dragging
+         *	some ImGui control.
+         *  \return True if ImGui wants to occupy the mouse in the current frame.
+         */
+        bool want_to_occupy_mouse() const {
+			return mOccupyMouse;
+		}
+
+		/** Indicates whether or not ImGui wants to START occupying the mouse.
+		 *  \return True if ImGui wants to occupy the mouse in the current frame, but didn't in the previous frame.
+		 */
+		bool begin_wanting_to_occupy_mouse() const {
+			return mOccupyMouse && !mOccupyMouseLastFrame;
+		}
+
+		/** Indicates whether or not ImGui ENDS its desire for occupying the mouse.
+		 *  \return True if ImGui wanted to occupy the mouse in the previous frame, but doesn't want anymore.
+		 */
+		bool end_wanting_to_occupy_mouse() const {
+			return !mOccupyMouse && mOccupyMouseLastFrame;
+		}
+
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -113,6 +136,8 @@ namespace avk
 		bool mUserInteractionEnabled;
 		bool mAlreadyRendered;
 		bool mUsingSemaphoreInsteadOfFenceForFontUpload;
+		bool mOccupyMouse = false;
+		bool mOccupyMouseLastFrame = false;
 	};
 
 }

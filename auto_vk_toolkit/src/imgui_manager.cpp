@@ -161,7 +161,10 @@ namespace avk
 		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f); // TODO: If the framebuffer has a different resolution as the window
 		io.DeltaTime = avk::time().delta_time();
 
+		mOccupyMouseLastFrame = mOccupyMouse;
 		if (mUserInteractionEnabled) {
+			mOccupyMouse = io.WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+
 			// Cursor position:
 			static const auto input = []() -> input_buffer& { return composition_interface::current()->input(); };
 
@@ -255,6 +258,10 @@ namespace avk
 				io.AddInputCharacter(c);
 			}
 		}
+		else {
+			mOccupyMouse = false;
+		}
+		
 		// start of new frame and callback invocations have to be in the update() call of the invokee,
 		// ... to give the updater an opportunity to clean up (callbacks themselves may cause update events)
 		mAlreadyRendered = false;

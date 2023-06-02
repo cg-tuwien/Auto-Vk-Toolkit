@@ -30,6 +30,18 @@ namespace avk
 		// Invoked every frame to handle input and update the camera's position
 		void update() override;
 
+		/**	Sets the pivot distance, which is the distance along the front vector
+		 *	of the camera which this camera orbits around.
+		 *	Note: The passed value might get clamped to min/max bounds.
+		 *	@param aDistanceFromCamera	The desired distance along the front vector.
+		 */
+		void set_pivot_distance(float aDistanceFromCamera);
+
+        /** Gets the current pivot distance
+         *  @return The currently used pivot distance.
+         */
+        float pivot_distance() const;
+
 	private:
 		void calculate_lateral_speed();
 
@@ -40,7 +52,7 @@ namespace avk
 		float mMinPivotDistance;
 		float mMaxPivotDistance;
 		float mPivotDistanceSlowDownRange;
-		float mLateralSpeed;
+		glm::vec2 mLateralSpeed;
 		float mFastMultiplier;
 		float mSlowMultiplier;
 	};

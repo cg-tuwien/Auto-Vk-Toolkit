@@ -433,10 +433,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([
-				this,
-				windowHoveredLastFrame = false
-			]() mutable {
+			imguiManager->add_callback([this, imguiManager] {
 		        ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
@@ -459,14 +456,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						mQuakeCam.disable();
 					}
 				}
-				const bool windowHoveredThisFrame = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
-				if (windowHoveredThisFrame && !windowHoveredLastFrame && mOrbitCam.is_enabled()) {
+				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
 					mOrbitCam.disable();
 				}
-				if (windowHoveredLastFrame && !windowHoveredThisFrame && !mQuakeCam.is_enabled()) {
+				if (imguiManager->end_wanting_to_occupy_mouse() && !mQuakeCam.is_enabled()) {
 					mOrbitCam.enable();
 				}
-				windowHoveredLastFrame = windowHoveredThisFrame;
 				ImGui::Separator();
 
 				ImGui::DragFloat3("Rotate Objects", glm::value_ptr(mRotateObjects), 0.005f, -glm::pi<float>(), glm::pi<float>());

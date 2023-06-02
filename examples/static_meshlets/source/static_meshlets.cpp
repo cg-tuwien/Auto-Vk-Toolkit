@@ -316,8 +316,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		});
 
 		// Add the camera to the composition (and let it handle the updates)
-		mOrbitCam.set_translation({ 0.0f, 0.0f, 8.0f });
-		mQuakeCam.set_translation({ 0.0f, 0.0f, 8.0f });
+		mOrbitCam.set_translation({ 0.0f, 0.0f, 0.0f });
+		mOrbitCam.set_pivot_distance(3.0f);
+		mQuakeCam.set_translation({ 0.0f, 0.0f, 5.0f });
 		mOrbitCam.set_perspective_projection(glm::radians(45.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		mQuakeCam.set_perspective_projection(glm::radians(45.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		avk::current_composition()->add_element(mOrbitCam);
@@ -327,15 +328,14 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if (nullptr != imguiManager) {
 			imguiManager->add_callback([
-				this,
+				this, imguiManager,
 				timestampPeriod = std::invoke([]() {
 					// get timestamp period from physical device, could be different for other GPUs
 					auto props = avk::context().physical_device().getProperties();
 					return static_cast<double>(props.limits.timestampPeriod);
 				}),
 				lastFrameDurationMs = 0.0,
-				lastDrawMeshTasksDurationMs = 0.0,
-				windowHoveredLastFrame = false
+				lastDrawMeshTasksDurationMs = 0.0
 			]() mutable {
 				ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
@@ -368,14 +368,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 						mQuakeCam.disable();
 					}
 				}
-				const bool windowHoveredThisFrame = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
-				if (windowHoveredThisFrame && !windowHoveredLastFrame && mOrbitCam.is_enabled()) {
+				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
 					mOrbitCam.disable();
 				}
-				if (windowHoveredLastFrame && !windowHoveredThisFrame && !mQuakeCam.is_enabled()) {
+				if (imguiManager->end_wanting_to_occupy_mouse() && !mQuakeCam.is_enabled()) {
 					mOrbitCam.enable();
 				}
-				windowHoveredLastFrame = windowHoveredThisFrame;
 				ImGui::Separator();
 
 				ImGui::Separator();
