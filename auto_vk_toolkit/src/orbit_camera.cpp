@@ -7,7 +7,7 @@ namespace avk
 {
 	orbit_camera::orbit_camera(std::string aName, bool aIsEnabled)
 		: invokee(std::move(aName), aIsEnabled)
-		, mRotationSpeed(0.01f)
+		, mRotationSpeed(0.0025f)
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
@@ -37,11 +37,9 @@ namespace avk
 
 		// query the position of the mouse cursor
 		auto mousePos = input().cursor_position();
-		//LOG_INFO(fmt::format("mousePos[{},{}]", mousePos.x, mousePos.y));
 
 		// calculate how much the cursor has moved from the center of the screen
 		auto mouseMoved = deltaCursor;
-		//LOG_INFO_EM(fmt::format("mouseMoved[{},{}]", mouseMoved.x, mouseMoved.y));
 
 		constexpr uint8_t LMB = 0;
 		constexpr uint8_t RMB = 1;

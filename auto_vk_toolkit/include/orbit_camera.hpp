@@ -7,10 +7,12 @@ namespace avk
 {
 	// An orbit camera or arcball camera, mostly by clicking and dragging the mouse.
 	// Controls
-	//  - Left click down .... Camera rotates around rotation center if the mouse is moved
-	//  - Right click down ... Camera is moved with the mouse movements (rotation center moves along)
-	//  - Scroll ............. Move towards or away from rotation center.
-	//                         If too close/too far away, rotation center is moved too.
+	//  - Left click down ............... Camera rotates around rotation center if the mouse is moved
+	//  - Right click down .............. Camera and rotation center is moved with the mouse movements.
+	//  - Scroll ........................ Move towards or away from rotation center.
+	//  - Alt || right click + scroll ... Move camera and rotation center in forward/back direction.
+	//  - Ctrl .......................... Slower movements
+	//  - Shift ......................... Faster movements
 	class orbit_camera : public camera, public invokee
 	{
 	public:
