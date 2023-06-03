@@ -1,6 +1,7 @@
 #include "imgui.h"
 
 #include "camera_path.hpp"
+#include "orbit_camera.hpp"
 #include "configure_and_compose.hpp"
 #include "imgui_manager.hpp"
 #include "invokee.hpp"
@@ -188,6 +189,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mUpdater->on(avk::swapchain_resized_event(avk::context().main_window())).invoke([this]() {
 			this->mQuakeCam.set_aspect_ratio(avk::context().main_window()->aspect_ratio());
+			this->mOrbitCam.set_aspect_ratio(avk::context().main_window()->aspect_ratio());
 		});
 
 		//first make sure render pass is updated
@@ -208,22 +210,49 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		).update(mPipeline);
 
 
-		// Add the camera to the composition (and let it handle the updates)
+		// Add the cameras to the composition (and let them handle updates)
+		mOrbitCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
+		mOrbitCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
+		avk::current_composition()->add_element(mOrbitCam);
 		avk::current_composition()->add_element(mQuakeCam);
+		mQuakeCam.disable();
 
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([this](){
+			imguiManager->add_callback([this, imguiManager] {
 				bool isEnabled = this->is_enabled();
 		        ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+
+				ImGui::Separator();
+				bool quakeCamEnabled = mQuakeCam.is_enabled();
+				if (ImGui::Checkbox("Enable Quake Camera", &quakeCamEnabled)) {
+					if (quakeCamEnabled) { // => should be enabled
+						mQuakeCam.set_matrix(mOrbitCam.matrix());
+						mQuakeCam.enable();
+						mOrbitCam.disable();
+					}
+				}
+				if (quakeCamEnabled) {
+				    ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
+					if (avk::input().key_pressed(avk::key_code::f1)) {
+						mOrbitCam.set_matrix(mQuakeCam.matrix());
+						mOrbitCam.enable();
+						mQuakeCam.disable();
+					}
+				}
+				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
+					mOrbitCam.disable();
+				}
+				if (imguiManager->end_wanting_to_occupy_mouse() && !mQuakeCam.is_enabled()) {
+					mOrbitCam.enable();
+				}
+				ImGui::Separator();
+
 				ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.005f, 0.01f, 10.0f);
 				ImGui::Checkbox("Enable/Disable invokee", &isEnabled);
 				if (isEnabled != this->is_enabled())
@@ -249,7 +278,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto mainWnd = avk::context().main_window();
 		auto ifi = mainWnd->current_in_flight_index();
 
-		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		auto viewProjMat = mQuakeCam.is_enabled()
+		    ? mQuakeCam.projection_and_view_matrix()
+		    : mOrbitCam.projection_and_view_matrix();
 		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
@@ -351,18 +382,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mQuakeCam.look_at(glm::vec3{0.0f, 0.0f, 0.0f});
 		}
 
-		if (avk::input().key_pressed(avk::key_code::f1)) {
-			auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
-			if (mQuakeCam.is_enabled()) {
-				mQuakeCam.disable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
-			}
-			else {
-				mQuakeCam.enable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
-			}
-		}
-
 		// Automatic camera path:
 		if (avk::input().key_pressed(avk::key_code::c)) {
 			if (avk::input().key_down(avk::key_code::left_shift)) { // => disable
@@ -394,10 +413,10 @@ private: // v== Member variables ==v
 
 	std::vector<data_for_draw_call> mDrawCalls;
 	avk::graphics_pipeline mPipeline;
+    glm::vec3 mScale;
+
+	avk::orbit_camera mOrbitCam;
 	avk::quake_camera mQuakeCam;
-
-	glm::vec3 mScale;
-
 	std::optional<camera_path> mCameraPath;
 
 	// imgui elements

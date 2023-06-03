@@ -129,6 +129,7 @@ set(avk_toolkit_Sources
         auto_vk_toolkit/src/orca_scene.cpp
         auto_vk_toolkit/src/quadratic_uniform_b_spline.cpp
         auto_vk_toolkit/src/quake_camera.cpp
+        auto_vk_toolkit/src/orbit_camera.cpp
         auto_vk_toolkit/src/swapchain_resized_event.cpp
         auto_vk_toolkit/src/transform.cpp
         auto_vk_toolkit/src/timer_globals.cpp

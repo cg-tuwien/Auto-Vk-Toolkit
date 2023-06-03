@@ -13,11 +13,7 @@ namespace avk
 		, mSlowMultiplier(0.2f) // 0.9 m/s
 	{
 	}
-
-	quake_camera::~quake_camera()
-	{
-	}
-
+	
 	void quake_camera::on_enable()
 	{
 		composition_interface::current()->input().set_cursor_mode(cursor::cursor_disabled_raw_input);
@@ -30,7 +26,7 @@ namespace avk
 
 	void quake_camera::update()
 	{
-		static const auto input = []() { return composition_interface::current()->input(); };
+		static const auto input = []()->input_buffer& { return composition_interface::current()->input(); };
 		// display info about myself
 		if (input().key_pressed(key_code::i)
 			&& (input().key_down(key_code::left_control) || input().key_down(key_code::right_control))) {

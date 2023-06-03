@@ -11,6 +11,7 @@
 #include "orca_scene.hpp"
 #include "serializer.hpp"
 #include "sequential_invoker.hpp"
+#include "orbit_camera.hpp"
 #include "quake_camera.hpp"
 #include "vk_convenience_functions.hpp"
 
@@ -418,10 +419,13 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 #endif
 
 		// Add the camera to the composition (and let it handle the updates)
+		mOrbitCam.set_translation({ 0.0f, 0.0f, 0.0f });
 		mQuakeCam.set_translation({ 0.0f, 0.0f, 0.0f });
+		mOrbitCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
 		mQuakeCam.set_perspective_projection(glm::radians(60.0f), avk::context().main_window()->aspect_ratio(), 0.3f, 1000.0f);
-		//mQuakeCam.set_orthographic_projection(-5, 5, -5, 5, 0.5, 100);
+		avk::current_composition()->add_element(mOrbitCam);
 		avk::current_composition()->add_element(mQuakeCam);
+		mQuakeCam.disable();
 
 		// UI:
 	    mFileBrowser.SetTitle("Select ORCA scene file");
@@ -429,13 +433,37 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
-			imguiManager->add_callback([this](){
+			imguiManager->add_callback([this, imguiManager] {
 		        ImGui::Begin("Info & Settings");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1]: Toggle input-mode");
-				ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), " (UI vs. scene navigation)");
+
+				ImGui::Separator();
+				bool quakeCamEnabled = mQuakeCam.is_enabled();
+				if (ImGui::Checkbox("Enable Quake Camera", &quakeCamEnabled)) {
+					if (quakeCamEnabled) { // => should be enabled
+						mQuakeCam.set_matrix(mOrbitCam.matrix());
+						mQuakeCam.enable();
+						mOrbitCam.disable();
+					}
+				}
+				if (quakeCamEnabled) {
+					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
+					if (avk::input().key_pressed(avk::key_code::f1)) {
+						mOrbitCam.set_matrix(mQuakeCam.matrix());
+						mOrbitCam.enable();
+						mQuakeCam.disable();
+					}
+				}
+				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
+					mOrbitCam.disable();
+				}
+				if (imguiManager->end_wanting_to_occupy_mouse() && !mQuakeCam.is_enabled()) {
+					mOrbitCam.enable();
+				}
+				ImGui::Separator();
+
 				ImGui::DragFloat3("Rotate Objects", glm::value_ptr(mRotateObjects), 0.005f, -glm::pi<float>(), glm::pi<float>());
 				ImGui::DragFloat3("Rotate Scene", glm::value_ptr(mRotateScene), 0.005f, -glm::pi<float>(), glm::pi<float>());
 				ImGui::Separator();
@@ -482,17 +510,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
-		if (avk::input().key_pressed(avk::key_code::f1)) {
-			auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
-			if (mQuakeCam.is_enabled()) {
-				mQuakeCam.disable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(true); }
-			}
-			else {
-				mQuakeCam.enable();
-				if (nullptr != imguiManager) { imguiManager->enable_user_interaction(false); }
-			}
-		}
 	}
 	
 	void render() override
@@ -508,7 +525,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mDestroyOldResourcesInFrame.reset();
 		}
 
-		auto viewProjMat = mQuakeCam.projection_matrix() * mQuakeCam.view_matrix();
+		auto viewProjMat = mQuakeCam.is_enabled()
+			? mQuakeCam.projection_and_view_matrix()
+			: mOrbitCam.projection_and_view_matrix();
 		auto emptyCmd = mViewProjBuffers[ifi]->fill(glm::value_ptr(viewProjMat), 0);
 		
 		// Get a command pool to allocate command buffers from:
@@ -587,6 +606,7 @@ private: // v== Member variables ==v
 	std::optional<avk::buffer> mOldMaterialBuffer;
 	std::optional<avk::graphics_pipeline> mOldPipeline;
 	
+	avk::orbit_camera mOrbitCam;
 	avk::quake_camera mQuakeCam;
 
 	glm::vec3 mRotateObjects = { 0.f, 0.f, 0.f };

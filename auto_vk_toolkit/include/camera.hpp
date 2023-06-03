@@ -19,7 +19,7 @@ namespace avk
 		camera(const camera&) noexcept = default;
 		camera& operator=(camera&&) noexcept = default;
 		camera& operator=(const camera&) noexcept = default;
-		virtual ~camera();
+		virtual ~camera() = default;
 
 		// Returns the type of projection matrix used
 		enum projection_type projection_type() const { return mProjectionType; }
@@ -78,7 +78,7 @@ namespace avk
 		// calculates the z-buffer depth of the specified position in world space
 		float get_z_buffer_depth(const glm::vec3& aWorldSpacePosition);
 		// Calculates the z-buffer depth of a given transform's position
-		float get_z_buffer_depth(transform& aTransform);
+		float get_z_buffer_depth(const transform& aTransform);
 
 		// Calculates and returns the view matrix of this camera.
 		glm::mat4 view_matrix() const;
