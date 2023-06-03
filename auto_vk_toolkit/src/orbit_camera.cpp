@@ -66,7 +66,7 @@ namespace avk
 			    * ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
 
 			const auto t
-		        = down(*this)  * static_cast<float>(deltaCursor.y) * latSpeed.x
+		        = down(*this)  * static_cast<float>(deltaCursor.y) * latSpeed.y
 		        + right(*this) * static_cast<float>(deltaCursor.x) * latSpeed.x;
 			translate(*this, t);
 		}
@@ -116,9 +116,9 @@ namespace avk
 	{
 		const auto* wnd = context().main_window();
 		auto resi = nullptr != wnd ? wnd->resolution() : glm::uvec2{1920, 1080};
-		mLateralSpeed = glm::vec2{
-			(mPivotDistance / (static_cast<float>(resi.x) * 2.f)) / near_plane_distance(),
-			(mPivotDistance / (static_cast<float>(resi.y) * 2.f)) / near_plane_distance()
-		};
+		mLateralSpeed = glm::vec2{                                              // This  v  accounts for different FOVs
+			mPivotDistance / static_cast<float>(resi.x) / (near_plane_distance() * -projection_matrix()[1][1]),
+			mPivotDistance / static_cast<float>(resi.x) / (near_plane_distance() * -projection_matrix()[1][1])
+		};                     // No idea why there  ^  must .x for both axes. *shrug*
 	}
 }
