@@ -4,7 +4,7 @@ Notable _Auto-Vk-Toolkit_ versions in date-wise decending order:
 
 ### v0.99
 
-**Date:** 02.06.2023
+**Date:** 03.06.2023
 
 Major changes:
 - Gone is the overly huge precompiled header (PCH) configuration.
@@ -12,6 +12,7 @@ Major changes:
 	- This should get rid of some bad compile/build experiences.
 - Ported `static_meshlets` and `skinned_meshlets` examples to using both `VK_EXT_mesh_shader` and `VK_NV_mesh_shader`.
 - Added a new camera: `orbit_camera`
+    - It is used in several example applications: `model_loader`, `orca_loader`, `static_meshlets`, and `skinned_meshlets`.
 
 ### v0.98
 
