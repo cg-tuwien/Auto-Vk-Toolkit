@@ -1,5 +1,6 @@
-#include <auto_vk_toolkit.hpp>
 #include <set>
+#include "context_vulkan.hpp"
+#include "context_generic_glfw.hpp"
 
 #if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -7,6 +8,9 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace avk
 {
+	std::vector<const char*> context_vulkan::sRequiredInstanceExtensions = {
+	};
+
 	std::vector<const char*> context_vulkan::sRequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
@@ -112,6 +116,9 @@ namespace avk
 #else
 		vk::PhysicalDeviceRayTracingFeaturesKHR aRayTracingFeatures
 #endif
+#if VK_HEADER_VERSION >= 239
+		, vk::PhysicalDeviceMeshShaderFeaturesEXT& aMeshShaderFeatures
+#endif
 	)
 	{
 		mSettings = std::move(aSettings);
@@ -160,11 +167,30 @@ namespace avk
 		// Initialization will continue after the first window (and it's surface) have been created.
 		// Only after the first window's surface has been created, the vulkan context can complete
 		//   initialization and enter the context state of fully_initialized.
+		if ((contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) 
+			|| contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_RAY_QUERY_EXTENSION_NAME))
+			&& !contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)) {
+			mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+		}
+		if (contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) 
+			&& !contains(mSettings.mRequiredDeviceExtensions.mExtensions, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)) {
+			mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+		}
 
 		LOG_DEBUG_VERBOSE("Picking physical device...");
 
 		// Select the best suitable physical device which supports all requested extensions
 		context().pick_physical_device();
+
+		assert(mPhysicalDevice);
+		mEnabledDeviceExtensions.assign(std::begin(sRequiredDeviceExtensions), std::end(sRequiredDeviceExtensions));
+		mEnabledDeviceExtensions.insert(std::end(mEnabledDeviceExtensions), std::begin(mSettings.mRequiredDeviceExtensions.mExtensions), std::end(mSettings.mRequiredDeviceExtensions.mExtensions));
+		for (auto optionalEx : mSettings.mOptionalDeviceExtensions.mExtensions) {
+			if (supports_given_extensions(mPhysicalDevice, { optionalEx })) {
+				mEnabledDeviceExtensions.push_back(optionalEx);
+			}
+		}
+
 		work_off_event_handlers();
 
 		LOG_DEBUG_VERBOSE("Creating logical device...");
@@ -204,13 +230,6 @@ namespace avk
 			.setShadingRateCoarseSampleOrder(VK_TRUE);
 		auto activateShadingRateImage = shading_rate_image_extension_requested() && supports_shading_rate_image(context().physical_device());
 
-		// Always prepare the mesh shader feature descriptor, but only use it if the extension has been requested
-		auto meshShaderFeatureNV = VkPhysicalDeviceMeshShaderFeaturesNV{};
-		meshShaderFeatureNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
-		meshShaderFeatureNV.taskShader = VK_TRUE;
-		meshShaderFeatureNV.meshShader = VK_TRUE;
-		auto activateMeshShaderFeature = mesh_shader_extension_requested() && supports_mesh_shader(context().physical_device());
-
 		auto queueCreateInfos = avk::queue::get_queue_config_for_DeviceCreateInfo(std::begin(mQueues), std::end(mQueues));
 		// Iterate over all vk::DeviceQueueCreateInfo entries and set the queue priorities pointers properly (just to be safe!)
 		for (auto i = 0; i < std::get<0>(queueCreateInfos).size(); ++i) {
@@ -234,25 +253,17 @@ namespace avk
 		assert(nullptr == aAccStructureFeatures.pNext);
 		assert(nullptr == aRayTracingPipelineFeatures.pNext);
 		assert(nullptr == aRayQueryFeatures.pNext);
-		if ((ray_tracing_pipeline_extension_requested() || ray_query_extension_requested()) && !acceleration_structure_extension_requested()) {
-			mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-
-			if (ray_query_extension_requested()) {
-				aRayQueryFeatures.setPNext(deviceFeatures.pNext);
-				deviceFeatures.setPNext(&aRayQueryFeatures);
-			}
-			if (ray_tracing_pipeline_extension_requested()) {
-				aRayTracingPipelineFeatures.setPNext(deviceFeatures.pNext);
-				deviceFeatures.setPNext(&aRayTracingPipelineFeatures);
-			}
+		if (ray_query_extension_requested()) {
+			aRayQueryFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aRayQueryFeatures);
+		}
+		if (ray_tracing_pipeline_extension_requested()) {
+			aRayTracingPipelineFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aRayTracingPipelineFeatures);
 		}
 		if (acceleration_structure_extension_requested()) {
 			deviceVulkan12Features.setDescriptorIndexing(VK_TRUE);
 			deviceVulkan12Features.setBufferDeviceAddress(VK_TRUE);
-
-			if (!deferred_host_operations_extension_requested()) {
-				mSettings.mRequiredDeviceExtensions.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-			}
 
 			aAccStructureFeatures.setPNext(deviceFeatures.pNext);
 			deviceFeatures.setPNext(&aAccStructureFeatures);
@@ -266,7 +277,18 @@ namespace avk
 		}
 #endif
 
-		if (activateMeshShaderFeature) {
+#if VK_HEADER_VERSION >= 239
+		if (is_mesh_shader_ext_requested()) {
+			aMeshShaderFeatures.setPNext(deviceFeatures.pNext);
+			deviceFeatures.setPNext(&aMeshShaderFeatures);
+		}
+#endif
+		// Always prepare the mesh shader feature descriptor, but only use it if the extension has been requested
+		auto meshShaderFeatureNV = VkPhysicalDeviceMeshShaderFeaturesNV{};
+		meshShaderFeatureNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+		meshShaderFeatureNV.taskShader = VK_TRUE;
+		meshShaderFeatureNV.meshShader = VK_TRUE;
+		if (is_mesh_shader_nv_requested() && supports_mesh_shader_nv(context().physical_device())) {
 			meshShaderFeatureNV.pNext = deviceFeatures.pNext;
 			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
@@ -277,15 +299,14 @@ namespace avk
 			.setSynchronization2(VK_TRUE);
 		deviceFeatures.setPNext(&physicalDeviceSync2Features);
 
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
+		const auto& devex = get_all_enabled_device_extensions();
 		auto deviceCreateInfo = vk::DeviceCreateInfo()
 			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
 			.setPQueueCreateInfos(std::get<0>(queueCreateInfos).data())
 			.setPNext(&deviceVulkan12Features) // instead of :setPEnabledFeatures(&deviceFeatures) because we are using vk::PhysicalDeviceFeatures2
 			// Whether the device supports these extensions has already been checked during device selection in @ref pick_physical_device
-			// TODO: Are these the correct extensions to set here?
-			.setEnabledExtensionCount(static_cast<uint32_t>(allRequiredDeviceExtensions.size()))
-			.setPpEnabledExtensionNames(allRequiredDeviceExtensions.data())
+			.setEnabledExtensionCount(static_cast<uint32_t>(devex.size()))
+			.setPpEnabledExtensionNames(devex.data())
 			.setEnabledLayerCount(static_cast<uint32_t>(supportedValidationLayers.size()))
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
@@ -589,9 +610,8 @@ namespace avk
 		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 		std::vector<const char*> requiredExtensions;
 		requiredExtensions.assign(glfwExtensions, static_cast<const char**>(glfwExtensions + glfwExtensionCount));
-		requiredExtensions.insert(
-			std::end(requiredExtensions),
-			std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions));
+		requiredExtensions.insert(std::end(requiredExtensions), std::begin(sRequiredInstanceExtensions), std::end(sRequiredInstanceExtensions));
+		requiredExtensions.insert(std::end(requiredExtensions), std::begin(mSettings.mRequiredInstanceExtensions.mExtensions), std::end(mSettings.mRequiredInstanceExtensions.mExtensions));
 
 		// Check for each validation layer if it exists and activate all which do.
 		std::vector<const char*> supportedValidationLayers = assemble_validation_layers();
@@ -842,12 +862,10 @@ namespace avk
 #endif
 	}
 
-	std::vector<const char*> context_vulkan::get_all_required_device_extensions()
+	const std::vector<const char*>& context_vulkan::get_all_enabled_device_extensions() const
 	{
-		std::vector<const char*> combined;
-		combined.assign(std::begin(mSettings.mRequiredDeviceExtensions.mExtensions), std::end(mSettings.mRequiredDeviceExtensions.mExtensions));
-		combined.insert(std::end(combined), std::begin(sRequiredDeviceExtensions), std::end(sRequiredDeviceExtensions));
-		return combined;
+		assert(!mEnabledDeviceExtensions.empty());
+		return mEnabledDeviceExtensions;
 	}
 
 	bool context_vulkan::supports_shading_rate_image(const vk::PhysicalDevice& device)
@@ -855,111 +873,120 @@ namespace avk
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
 		auto shadingRateImageFeatureNV = vk::PhysicalDeviceShadingRateImageFeaturesNV{};
 		supportedExtFeatures.pNext = &shadingRateImageFeatureNV;
-		device.getFeatures2(&supportedExtFeatures);
+		device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
 		return shadingRateImageFeatureNV.shadingRateImage && shadingRateImageFeatureNV.shadingRateCoarseSampleOrder && supportedExtFeatures.features.shaderStorageImageExtendedFormats;
-	}
-
-	bool context_vulkan::supports_mesh_shader(const vk::PhysicalDevice& device)
-	{
-		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
-		auto meshShaderFeaturesNV = vk::PhysicalDeviceMeshShaderFeaturesNV{};
-		supportedExtFeatures.pNext = &meshShaderFeaturesNV;
-		device.getFeatures2(&supportedExtFeatures);
-		return meshShaderFeaturesNV.meshShader == VK_TRUE && meshShaderFeaturesNV.taskShader == VK_TRUE;
 	}
 
 	bool context_vulkan::shading_rate_image_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME)) != std::end(devex);
 	}
 
-	bool context_vulkan::mesh_shader_extension_requested()
+#if VK_HEADER_VERSION >= 239
+	bool context_vulkan::supports_mesh_shader_ext(const vk::PhysicalDevice& device)
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesEXT{};
+		supportedExtFeatures.pNext = &meshShaderFeatures;
+		device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
+		return meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE;
+	}
+
+	bool context_vulkan::is_mesh_shader_ext_requested()
+	{
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_EXT_MESH_SHADER_EXTENSION_NAME)) != std::end(devex);
+	}
+#endif
+
+	bool context_vulkan::supports_mesh_shader_nv(const vk::PhysicalDevice& device)
+	{
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto meshShaderFeatures = vk::PhysicalDeviceMeshShaderFeaturesNV{};
+		supportedExtFeatures.pNext = &meshShaderFeatures;
+		device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
+		return meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE;
+	}
+
+	bool context_vulkan::is_mesh_shader_nv_requested()
+	{
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(devex);
 	}	
 
 #if VK_HEADER_VERSION >= 162
 	bool context_vulkan::ray_tracing_pipeline_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) != std::end(devex);
 	}
 
 	bool context_vulkan::acceleration_structure_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)) != std::end(devex);
 	}
 
 	bool context_vulkan::ray_query_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_QUERY_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_RAY_QUERY_EXTENSION_NAME)) != std::end(devex);
 	}
 
 	bool context_vulkan::pipeline_library_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)) != std::end(devex);
 	}
 
 	bool context_vulkan::deferred_host_operations_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)) != std::end(devex);
 	}
 #else
 	bool context_vulkan::ray_tracing_extension_requested()
 	{
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		return std::find(std::begin(allRequiredDeviceExtensions), std::end(allRequiredDeviceExtensions), std::string(VK_KHR_RAY_TRACING_EXTENSION_NAME)) != std::end(allRequiredDeviceExtensions);
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_RAY_TRACING_EXTENSION_NAME)) != std::end(devex);
 	}
 #endif
 
-	bool context_vulkan::supports_all_required_extensions(const vk::PhysicalDevice& device)
+	bool context_vulkan::supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const
 	{
-		bool allExtensionsSupported = true;
-		auto allRequiredDeviceExtensions = get_all_required_device_extensions();
-		if (allRequiredDeviceExtensions.size() > 0) {
-			// Search for each extension requested!
-			for (const auto& required : allRequiredDeviceExtensions) {
-				auto deviceExtensions = device.enumerateDeviceExtensionProperties();
-				// See if we can find the current requested extension in the array of all device extensions
-				auto result = std::find_if(std::begin(deviceExtensions), std::end(deviceExtensions),
-										   [required](const vk::ExtensionProperties& devext) {
-											   return strcmp(required, devext.extensionName) == 0;
-										   });
-				if (result == std::end(deviceExtensions)) {
-					// could not find the device extension
-					allExtensionsSupported = false;
-				}
+	    // Search for each extension requested!
+		for (const auto& extensionName : aExtensionsInQuestion) {
+			auto deviceExtensions = aPhysicalDevice.enumerateDeviceExtensionProperties();
+			// See if we can find the current requested extension in the array of all device extensions
+			auto result = std::ranges::find_if(deviceExtensions,
+                                               [extensionName](const vk::ExtensionProperties& devext) {
+                                                   return strcmp(extensionName, devext.extensionName) == 0;
+                                               });
+			if (result == std::end(deviceExtensions)) {
+				// could not find the device extension
+				return false;
 			}
 		}
-
-		auto shadingRateImageExtensionRequired = shading_rate_image_extension_requested();
-		allExtensionsSupported = allExtensionsSupported && (!shadingRateImageExtensionRequired || shadingRateImageExtensionRequired && supports_shading_rate_image(device));
-
-		return allExtensionsSupported;
+		return true; // All extensions supported
 	}
 
 	void context_vulkan::pick_physical_device()
 	{
 		assert(mInstance);
-		auto devices = mInstance.enumeratePhysicalDevices();
-		if (devices.size() == 0) {
+		auto physicalDevices = mInstance.enumeratePhysicalDevices();
+		if (physicalDevices.size() == 0) {
 			throw avk::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 		const vk::PhysicalDevice* currentSelection = nullptr;
 		uint32_t currentScore = 0; // device score
 		
 		// Iterate over all devices
-		for (const auto& device : devices) {
+		for (const auto& physicalDevice : physicalDevices) {
 			// get features and queues
-			auto properties = device.getProperties();
-			const auto supportedFeatures = device.getFeatures();
-			auto queueFamilyProps = device.getQueueFamilyProperties();
+			auto properties = physicalDevice.getProperties();
+			const auto supportedFeatures = physicalDevice.getFeatures();
+			auto queueFamilyProps = physicalDevice.getQueueFamilyProperties();
 			// check for required features
 			bool graphicsBitSet = false;
 			bool computeBitSet = false;
@@ -969,43 +996,63 @@ namespace avk
 			}
 
 			uint32_t score =
-				(graphicsBitSet ? 10 : 0) +
-				(computeBitSet ? 10 : 0) +
+				(graphicsBitSet ? 10'000 : 0) +
+				(computeBitSet  ? 10'000 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 10 : 0) +
 				(properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ? 5 : 0);
 
 			const auto deviceName = std::string(static_cast<const char*>(properties.deviceName));
 			
 			if (!mSettings.mPhysicalDeviceSelectionHint.mValue.empty()) {
-				score += avk::find_case_insensitive(deviceName, mSettings.mPhysicalDeviceSelectionHint.mValue, 0) != std::string::npos ? 1000 : 0;
-			}
-
-			// Check if extensions are required
-			if (!supports_all_required_extensions(device)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all required extensions.", properties.deviceName));
-				score = 0;
+				score += avk::find_case_insensitive(deviceName, mSettings.mPhysicalDeviceSelectionHint.mValue, 0) != std::string::npos ? 100'000 : 0;
 			}
 
 			// Check if anisotropy is supported
-			if (!supportedFeatures.samplerAnisotropy) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not sampler anisotropy.", properties.deviceName));
-				score = 0;
+			if (supportedFeatures.samplerAnisotropy) {
+				score += 30;
+			}
+			else {
+				LOG_INFO(fmt::format("Physical device \"{}\" does not support samplerAnisotropy.", properties.deviceName));
 			}
 
 			// Check if descriptor indexing is supported
 			{
-				//auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{};
-				//auto features = vk::PhysicalDeviceFeatures2KHR{}
-				//	.setPNext(&indexingFeatures);
-				//device.getFeatures2KHR(&features, dispatch_loader_ext());
+				auto indexingFeatures = vk::PhysicalDeviceDescriptorIndexingFeaturesEXT{};
+				auto features = vk::PhysicalDeviceFeatures2{}
+					.setPNext(&indexingFeatures);
+				physicalDevice.getFeatures2(&features, dispatch_loader_core());
+				if (indexingFeatures.descriptorBindingVariableDescriptorCount > 0) {
+				    score += 40;
+				}
+				else {
+					LOG_INFO(fmt::format("Physical device \"{}\" does not provide any descriptorBindingVariableDescriptor.", properties.deviceName));
+				}
+			}
 
-				//if (!indexingFeatures.descriptorBindingVariableDescriptorCount) {
-				//	score = 0;
-				//}
+			// Check if extensions are required
+			if (!supports_given_extensions(physicalDevice, sRequiredDeviceExtensions)) {
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName));
+				score = 0;
+			}
+
+			// Check if extensions are required
+			if (!supports_given_extensions(physicalDevice, mSettings.mRequiredDeviceExtensions.mExtensions)) {
+				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName));
+				score = 0;
+			}
+
+			// Check which optional extensions are supported
+			for (auto ex : mSettings.mOptionalDeviceExtensions.mExtensions) {
+				if (supports_given_extensions(physicalDevice, { ex })) {
+				    score += 100;
+			    }
+				else {
+					LOG_WARNING(fmt::format("Physical device \"{}\" does not support the optional extension \"{}\".", properties.deviceName, ex));
+				}
 			}
 
 			if (score > currentScore) {
-				currentSelection = &device;
+				currentSelection = &physicalDevice;
 				currentScore = score;
 			}	
 		}
@@ -1042,10 +1089,13 @@ namespace avk
 		return extent;
 	}
 
-	// Defalt to a varying_update_timer if no other has been set:
-	void set_default_timer()
-	{
-		static varying_update_timer sDefaultTimer;
-		timer_reference() = &sDefaultTimer;
+	// function get current context time from outside 
+	// without knowledge about the entire context content
+	double get_context_time() {		
+		return context().get_time();
+	}
+
+	bool are_we_on_the_main_thread() {
+		return context().are_we_on_the_main_thread();
 	}
 }

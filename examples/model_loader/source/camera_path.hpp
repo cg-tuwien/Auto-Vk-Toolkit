@@ -1,5 +1,9 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "bezier_curve.hpp"
+#include "invokee.hpp"
+#include "quake_camera.hpp"
+#include "timer_interface.hpp"
 
 class camera_path : public avk::invokee
 {

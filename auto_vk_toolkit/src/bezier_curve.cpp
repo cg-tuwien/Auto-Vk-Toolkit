@@ -1,4 +1,5 @@
-#include <auto_vk_toolkit.hpp>
+#include "bezier_curve.hpp"
+#include "math_utils.hpp"
 
 namespace avk
 {

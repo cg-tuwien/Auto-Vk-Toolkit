@@ -1,4 +1,7 @@
-#include <auto_vk_toolkit.hpp>
+
+#include "image_data.hpp"
+#include "material_image_helpers.hpp"
+#include "serializer.hpp"
 
 namespace avk
 {

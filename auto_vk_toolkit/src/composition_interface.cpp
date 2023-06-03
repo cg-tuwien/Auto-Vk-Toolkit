@@ -1,4 +1,4 @@
-#include <auto_vk_toolkit.hpp>
+#include "composition_interface.hpp"
 
 namespace avk
 {

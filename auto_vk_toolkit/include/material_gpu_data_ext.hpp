@@ -1,5 +1,6 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "material_gpu_data.hpp"
 
 namespace avk
 {

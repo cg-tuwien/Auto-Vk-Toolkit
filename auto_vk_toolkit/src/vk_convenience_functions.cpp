@@ -1,5 +1,7 @@
 #include "vk_convenience_functions.hpp"
 
+#include "context_vulkan.hpp"
+
 namespace avk
 {
 	vk::Format default_rgb8_4comp_format() noexcept
@@ -73,7 +75,7 @@ namespace avk
 			vk::Format::eD32SfloatS8Uint
 		);
 
-		if (avk::context().state() < context_state::fully_initialized) {
+		if (context().state() < context_state::fully_initialized) {
 			return formatCandidates[0];
 		}
 
@@ -81,7 +83,7 @@ namespace avk
 		size_t topScorer = 0;
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
-			auto formatProps = avk::context().physical_device().getFormatProperties(formatCandidates[i]);
+			auto formatProps = context().physical_device().getFormatProperties(formatCandidates[i]);
 			candidateScores[i] = static_cast<uint32_t>(formatProps.optimalTilingFeatures)
 							   + static_cast<uint32_t>(formatProps.linearTilingFeatures)
 							   + static_cast<uint32_t>(formatProps.bufferFeatures);
@@ -102,7 +104,7 @@ namespace avk
 			vk::Format::eD32SfloatS8Uint
 		);
 		
-		if (avk::context().state() < context_state::fully_initialized) {
+		if (context().state() < context_state::fully_initialized) {
 			return formatCandidates[0];
 		}
 
@@ -110,7 +112,7 @@ namespace avk
 		size_t topScorer = 0;
 		
 		for (size_t i = 0; i < formatCandidates.size(); ++i) {
-			auto formatProps = avk::context().physical_device().getFormatProperties(formatCandidates[i]);
+			auto formatProps = context().physical_device().getFormatProperties(formatCandidates[i]);
 			candidateScores[i] = static_cast<uint32_t>(formatProps.optimalTilingFeatures)
 							   + static_cast<uint32_t>(formatProps.linearTilingFeatures)
 							   + static_cast<uint32_t>(formatProps.bufferFeatures);
@@ -127,7 +129,7 @@ namespace avk
 	vk::Format format_from_window_color_buffer(window* aWindow)
 	{
 		if (nullptr == aWindow) {
-			aWindow = avk::context().main_window();
+			aWindow = context().main_window();
 		}
 		return aWindow->swap_chain_image_format();
 	}
@@ -136,7 +138,7 @@ namespace avk
 	vk::Format format_from_window_depth_buffer(window* aWindow)
 	{
 		if (nullptr == aWindow) {
-			aWindow = avk::context().main_window();
+			aWindow = context().main_window();
 		}
 		for (auto& a : aWindow->get_additional_back_buffer_attachments()) {
 			if (a.is_used_as_depth_stencil_attachment()) {

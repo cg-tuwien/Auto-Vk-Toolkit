@@ -1,6 +1,8 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
 #include <FileWatcher/FileWatcher.h>
+
+#include "event.hpp"
 
 namespace avk
 {

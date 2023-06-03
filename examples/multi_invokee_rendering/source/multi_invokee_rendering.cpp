@@ -1,5 +1,11 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+#include "imgui.h"
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "sequential_invoker.hpp"
+
+#include "vk_convenience_functions.hpp"
 
 class multi_invokee_rendering_app : public avk::invokee
 {

@@ -1,4 +1,4 @@
-#include <auto_vk_toolkit.hpp>
+#include "catmull_rom_spline.hpp"
 
 namespace avk
 {

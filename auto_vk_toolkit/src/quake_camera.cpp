@@ -1,4 +1,7 @@
-#include <auto_vk_toolkit.hpp>
+
+#include "quake_camera.hpp"
+#include "composition_interface.hpp"
+#include "timer_interface.hpp"
 
 namespace avk
 {
@@ -10,23 +13,20 @@ namespace avk
 		, mSlowMultiplier(0.2f) // 0.9 m/s
 	{
 	}
-
-	quake_camera::~quake_camera()
-	{
-	}
-
+	
 	void quake_camera::on_enable()
 	{
-		input().set_cursor_mode(cursor::cursor_disabled_raw_input);
+		composition_interface::current()->input().set_cursor_mode(cursor::cursor_disabled_raw_input);
 	}
 
 	void quake_camera::on_disable()
 	{
-		input().set_cursor_mode(cursor::arrow_cursor);
+		composition_interface::current()->input().set_cursor_mode(cursor::arrow_cursor);
 	}
 
 	void quake_camera::update()
 	{
+		static const auto input = []()->input_buffer& { return composition_interface::current()->input(); };
 		// display info about myself
 		if (input().key_pressed(key_code::i)
 			&& (input().key_down(key_code::left_control) || input().key_down(key_code::right_control))) {
@@ -77,10 +77,10 @@ namespace avk
 	void quake_camera::translate_myself(const glm::vec3& translation, double deltaTime)
 	{
 		float speedMultiplier = 1.0f;
-		if (input().key_down(key_code::left_shift)) {
+		if (composition_interface::current()->input().key_down(key_code::left_shift)) {
 			speedMultiplier = mFastMultiplier;
 		}
-		if (input().key_down(key_code::left_control)) {
+		if (composition_interface::current()->input().key_down(key_code::left_control)) {
 			speedMultiplier = mSlowMultiplier;
 		}
 		translate(*this, mMoveSpeed * speedMultiplier * static_cast<float>(deltaTime) * translation);

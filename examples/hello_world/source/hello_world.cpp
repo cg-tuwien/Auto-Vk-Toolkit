@@ -1,6 +1,11 @@
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
-#include <imgui_impl_vulkan.h>
+
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
+
+#include "configure_and_compose.hpp"
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "sequential_invoker.hpp"
 
 class draw_a_triangle_app : public avk::invokee
 {

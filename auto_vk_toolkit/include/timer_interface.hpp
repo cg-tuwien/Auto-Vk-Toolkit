@@ -1,5 +1,6 @@
 #pragma once
-#include <auto_vk_toolkit.hpp>
+
+#include "timer_frame_type.hpp"
 
 namespace avk
 {
@@ -84,5 +85,28 @@ namespace avk
 		/** @brief The scale at which the time is passing in double precision
 		*/
 		virtual double time_scale_dp() const = 0;
-	};
+	};	
+}
+
+namespace avk
+{
+#pragma region global data representing the currently active composition
+	/**	@brief Get the current timer, which represents the current game-/render-time
+	 *	This can be nullptr! Use time() for a version which will not return nullptr.
+	 */
+	 /**	@brief Get the current timer, which represents the current game-/render-time
+  *	This can be nullptr! Use time() for a version which will not return nullptr.
+  */
+	extern timer_interface*& timer_reference();
+
+	/**	@brief Sets a new timer.
+	 *	ATTENTION: This timer must live until the end of the application!
+	 */
+	extern void set_timer(timer_interface* const aPointerToNewTimer);
+
+	/**	@brief Get the current timer, which represents the current game-/render-time
+	 */
+	extern timer_interface& time();
+
+	extern void set_default_timer();
 }

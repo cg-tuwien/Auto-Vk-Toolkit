@@ -1,7 +1,10 @@
-#include <auto_vk_toolkit.hpp>
+
+#include "input_buffer.hpp"
 
 namespace avk
 {
+	extern bool are_we_on_the_main_thread();
+
 	void input_buffer::reset(std::optional<window> pWindow) // TODO: Where is this used??
 	{
 		std::fill(std::begin(mKeyboardKeys), std::end(mKeyboardKeys), key_state::none);
@@ -46,7 +49,7 @@ namespace avk
 		}
 
 		if (pBackBufferToBe.mCenterCursorPosition.has_value() || pBackBufferToBe.mSetCursorPosition.has_value()) {
-			assert(context().are_we_on_the_main_thread());
+			assert(are_we_on_the_main_thread());
 			if (pBackBufferToBe.mCenterCursorPosition.has_value()) {
 				auto res = pWindow->resolution();
 				pWindow->set_cursor_pos({ res.x / 2.0, res.y / 2.0 });
@@ -63,7 +66,7 @@ namespace avk
 		}
 
 		if (pBackBufferToBe.mSetCursorMode.has_value()) {
-			assert(context().are_we_on_the_main_thread());
+			assert(are_we_on_the_main_thread());
 			pWindow->set_cursor_mode(pBackBufferToBe.mSetCursorMode.value());
 			// Mark action as done:
 			pBackBufferToBe.mSetCursorMode = std::nullopt;

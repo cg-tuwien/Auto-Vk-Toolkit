@@ -1,7 +1,9 @@
-#include <auto_vk_toolkit.hpp>
+#include "varying_update_timer.hpp"
 
 namespace avk
 {
+	extern double get_context_time();
+
 	varying_update_timer::varying_update_timer()
 		: mStartTime(0.0),
 		mLastTime(0.0),
@@ -9,12 +11,12 @@ namespace avk
 		mTimeSinceStart(0.0),
 		mDeltaTime(0.0)
 	{
-		mAbsTime = mStartTime = context().get_time();
+		mAbsTime = mStartTime = get_context_time();
 	}
 
 	timer_frame_type varying_update_timer::tick()
 	{
-		mAbsTime = context().get_time();
+		mAbsTime = get_context_time();
 		mTimeSinceStart = mAbsTime - mStartTime;
 		mDeltaTime = mTimeSinceStart - mLastTime;
 		mLastTime = mTimeSinceStart;
@@ -69,5 +71,12 @@ namespace avk
 	double varying_update_timer::time_scale_dp() const
 	{
 		return 1.0;
+	}
+
+	// Defalt to a varying_update_timer if no other has been set:
+	void set_default_timer()
+	{
+		static varying_update_timer sDefaultTimer;
+		timer_reference() = &sDefaultTimer;
 	}
 }

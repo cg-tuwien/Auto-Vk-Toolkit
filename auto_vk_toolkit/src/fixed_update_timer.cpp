@@ -1,7 +1,9 @@
-#include <auto_vk_toolkit.hpp>
+#include "fixed_update_timer.hpp"
 
 namespace avk
 {
+	extern double get_context_time();
+
 	fixed_update_timer::fixed_update_timer() :
 		mTimeSinceStart(0.0),
 		mLastTime(0.0),
@@ -12,13 +14,13 @@ namespace avk
 		mFixedHz(60.0),
 		mFixedDeltaTime(1.0 / 60.0)
 	{
-		mLastFixedTick = mAbsTime = mStartTime = context().get_time();
+		mLastFixedTick = mAbsTime = mStartTime = get_context_time();
 		mNextFixedTick = mLastFixedTick + mFixedDeltaTime;
 	}
 
 	timer_frame_type fixed_update_timer::tick()
 	{
-		mAbsTime = context().get_time();
+		mAbsTime = get_context_time();
 		mTimeSinceStart = mAbsTime - mStartTime;
 
 		auto dt = mTimeSinceStart - mLastTime;

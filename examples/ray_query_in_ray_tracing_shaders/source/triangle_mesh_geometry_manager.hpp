@@ -1,8 +1,16 @@
 #pragma once
 
-#include <auto_vk_toolkit.hpp>
-#include <imgui.h>
+#include "auto_vk_toolkit.hpp"
+#include "imgui.h"
 #include <imgui_internal.h>
+
+#include "imgui_manager.hpp"
+#include "invokee.hpp"
+#include "material_image_helpers.hpp"
+#include "model.hpp"
+#include "orca_scene.hpp"
+#include "conversion_utils.hpp"
+
 
 // An invokee that handles triangle mesh geometry:
 class triangle_mesh_geometry_manager : public avk::invokee
