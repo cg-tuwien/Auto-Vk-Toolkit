@@ -37,7 +37,7 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 - [Creating a New Project](#creating-a-new-project)
 - [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper)
 - [What's the difference between Auto-Vk-Toolkit and Auto-Vk?](#whats-the-difference-between-auto-vk-toolkit-and-auto-vk)
-- [Automatic Resource-Updates](#automatic-resource-updates)
+- [Documentation](#documentation)
 - [FAQs, Known Issues, Troubleshooting](#faqs-known-issues-troubleshooting)
 
 # Installation
@@ -167,9 +167,14 @@ vk::material_gpu_data`)
   * If shader files contain errors, popup messages are created displaying the error, and providing a `[->VS]` button to navigate to the line that contains the error _within_ Visual Studio.
   * By default, "Debug" and "Release" build configurations symlink resources to save space, but "Publish" build configurations deploy all required files into the target directory so that a built program can easily be transfered to another PC. No more tedious resource gathering is required in such situations since that is all handled by the Post Build Helper.
 
-# Automatic Resource-Updates
+# Documentation
 
-See: [Automatic Resource-Updates](./docs/updater.md)
+There are some documentation pages containing further information:
+- [Usage of ImGui for User Interfaces](./docs/ImGui.md)
+- [CMake](./docs/cmake.md) setup and build instructions
+- [Meshlets](./docs/meshlets.md)-specfic functionality for dividing geometry into small clusters and using them for rendering in Graphics Mesh Pipelines
+- [Serializer](./docs/serializer.md) functionality for storing and loading resources to/from file
+- [Automatic Resource-Updates](./docs/updater.md) through the `avk::updater` class.
 
 # FAQs, Known Issues, Troubleshooting
 
