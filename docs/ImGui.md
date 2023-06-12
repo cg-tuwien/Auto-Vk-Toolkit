@@ -1,3 +1,10 @@
+# Table of Contents
+
+- [Usage of ImGui for User Interfaces](#usage-of-imgui-for-user-interfaces)
+  - [imgui_manager and Establishing Callbacks](#imgui_manager-and-establishing-callbacks)
+  - [Rendering Textures with get_or_create_texture_descriptor](#rendering-textures-with-get_or_create_texture_descriptor)
+  - [Additional Image Utils](#additional-image-utils)
+
 # Usage of ImGui for User Interfaces
 
 _Auto-Vk-Toolkit_ offers support for usage of the graphical user interface library [Dear ImGui](https://github.com/ocornut/imgui). Its headers are not included by default.

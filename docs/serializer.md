@@ -1,3 +1,11 @@
+# Table of Contents
+
+- [Serializer](#serializer)
+  - [How to use](#how-to-use)
+  - [\*\_cached functions](#_cached-functions)
+      - [Available \*\_cached variants of scene and model loading functions](#available-_cached-variants-of-scene-and-model-loading-functions)
+  - [Custom type serialization](#custom-type-serialization)
+
 # Serializer
 _Auto-Vk-Toolkit_ features an object serializer to improve load times of resources like huge 3D models or ORCA scenes by serializing all the processed and ready to use data into a cache file during the first run. In further runs, the data can be directly deserialized into types and structures used by _Auto-Vk-Toolkit_ and expensive parsing and processing of huge models or scenes can be avoided.
 

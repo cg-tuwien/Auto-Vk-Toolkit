@@ -1,3 +1,13 @@
+# Table of Contents
+
+- [Meshlets](#meshlets)
+  - [Dividing Meshes into Meshlets in Auto-Vk-Toolkit](#dividing-meshes-into-meshlets-in-auto-vk-toolkit)
+    - [Using a Custom Division Function](#using-a-custom-division-function)
+      - [Example for Vertices and Indices:](#example-for-vertices-and-indices)
+      - [Example for Indices Only:](#example-for-indices-only)
+      - [Example That Uses a 3rd Party Library:](#example-that-uses-a-3rd-party-library)
+  - [Converting Into a Format for GPU Usage](#converting-into-a-format-for-gpu-usage)
+
 # Meshlets
 
 When using _graphics mesh pipelines_ with _task_ and _mesh shaders_, a typical use case is to segmented meshes into smaller segments called meshlets, and process these. These meshlets contain multiple triangles that should ideally be structured in a meaningful way in memory in order to enable efficient processing, like for example good memory and cache coherency. Meshlets of triangle meshes typically consist of relatively small packages of vertices and triangles of the original mesh geometry.

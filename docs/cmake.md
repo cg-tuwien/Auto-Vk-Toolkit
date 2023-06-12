@@ -1,3 +1,16 @@
+# Table of Contents
+
+- [CMake](#cmake)
+  - [CLion](#clion)
+    - [Linux: Ubuntu](#linux-ubuntu)
+    - [Windows](#windows)
+    - [CMake Options](#cmake-options)
+      - [Windows CMake build settings](#windows-cmake-build-settings)
+    - [Creating a New Project (CMake)](#creating-a-new-project-cmake)
+      - [Resource Management (Cmake)](#resource-management-cmake)
+        - [Shaders](#shaders)
+        - [Caveats](#caveats)
+
 # CMake
 
 _Auto-Vk-Toolkit_ also supports building with CMake on Linux (*GCC* or *Clang*) and Windows (*MSVC*).
