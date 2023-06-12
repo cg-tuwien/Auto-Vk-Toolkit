@@ -37,8 +37,7 @@ A preconfigured project setup is provided for Visual Studio 2022 on Windows.
 ### Requirements
 * Windows 10 or 11
 * Visual Studio 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
-* A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.3.250.0 or newer.          
-  Latest stable and tested version: Vulkan SDK 1.3.243.0
+* A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.3.250.0 or newer.
 
 ### Setup and build instructions
 * Clone or download this repository
