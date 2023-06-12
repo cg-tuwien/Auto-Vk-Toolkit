@@ -25,7 +25,7 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 - Support for dividing meshes into [meshlets](./docs/meshlets.md) which can be rendered with task and mesh shaders.
 - Handling of bone hierarchies, supporting animation of skinned meshes.
 
-**Table of Contents:**
+## Table of Contents
 
 - [Installation](#installation)
   - [Visual Studio 2022](#visual-studio-2022)
