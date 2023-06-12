@@ -1,3 +1,7 @@
+# Setup
+
+For fundamental installation instructions and basic setup, please refer to the main [README.md](../README.md)'s [Visual Studio 2022](../README.md#visual-studio-2022) section.
+
 # Project Management with Visual Studio
 
 The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](./tools/executables) and is invoked as a build step of _Auto-Vk-Toolkit_'s example applications. 
