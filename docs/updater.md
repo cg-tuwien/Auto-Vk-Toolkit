@@ -3,7 +3,7 @@
 - [Automatic Resource-Updates](#automatic-resource-updates)
   - [How to use](#how-to-use)
     - [Code Examples](#code-examples)
-      - [Updating the graphics pipeline](#updating-the-graphics-pipeline)
+      - [Updating a graphics pipeline](#updating-a-graphics-pipeline)
       - [Establishing an ordered update chain](#establishing-an-ordered-update-chain)
   - [Common Use-Cases](#common-use-cases)
   - [Notes on Swapchain recreation](#notes-on-swapchain-recreation)
@@ -59,7 +59,7 @@ It is important to note that the order in which the events are evaluated is not 
 
 ### Code Examples
 
-#### Updating the graphics pipeline  
+#### Updating a graphics pipeline  
 ```
 mUpdater->on(avk::swapchain_resized_event(avk::context().main_window()), 
         avk::shader_files_changed_event(mPipeline.as_reference())
