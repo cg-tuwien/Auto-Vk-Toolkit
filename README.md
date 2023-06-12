@@ -170,11 +170,11 @@ vk::material_gpu_data`)
 # Documentation
 
 There are some documentation pages containing further information:
-- [Usage of ImGui for User Interfaces](./docs/ImGui.md)
+- [Usage of ImGui for User Interfaces](./docs/ImGui.md), describing how to use [Dear ImGui](https://github.com/ocornut/imgui) in an _Auto-Vk-Toolkit_ project
 - [CMake](./docs/cmake.md) setup and build instructions
-- [Meshlets](./docs/meshlets.md)-specfic functionality for dividing geometry into small clusters and using them for rendering in Graphics Mesh Pipelines
-- [Serializer](./docs/serializer.md) functionality for storing and loading resources to/from file
-- [Automatic Resource-Updates](./docs/updater.md) through the `avk::updater` class.
+- [Meshlets](./docs/meshlets.md)-specfic functionality for dividing geometry into small clusters and using them for rendering in graphics mesh pipelines (those with task and mesh shaders)
+- [Serializer](./docs/serializer.md) functionality for storing and loading resources to/from file, such as 3D models, images, or custom structs
+- [Automatic Resource-Updates](./docs/updater.md) through the `avk::updater` class, enabling shwapchain recreation and shader hot reloading
 
 # FAQs, Known Issues, Troubleshooting
 
