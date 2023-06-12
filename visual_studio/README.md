@@ -11,16 +11,16 @@
   - [Post Build Helper](#post-build-helper)
     - [Deployment of Dependent Assets](#deployment-of-dependent-assets)
     - [Symbolic Links/Copies depending on Build Configuration](#symbolic-linkscopies-depending-on-build-configuration)
-    - [_Post Build Helper_ Troubleshooting](#_post-build-helper_-troubleshooting)
-      - [Build is stuck at "Going to invoke[...]MSBuild.exe" step, displayed in Visual Studio's _Output_ tab](#build-is-stuck-at-going-to-invokemsbuildexe-step-displayed-in-visual-studios-_output_-tab)
-      - [_Post Build Helper_ can't be built automatically/via MSBuild.exe](#_post-build-helper_-cant-be-built-automaticallyvia-msbuildexe)
+    - [_Post Build Helper_ Troubleshooting](#post-build-helper-troubleshooting)
+      - [Build is stuck at "Going to invoke[...]MSBuild.exe" step, displayed in Visual Studio's _Output_ tab](#build-is-stuck-at-going-to-invokemsbuildexe-step-displayed-in-visual-studios-output-tab)
+      - [_Post Build Helper_ can't be built automatically/via MSBuild.exe](#post-build-helper-cant-be-built-automaticallyvia-msbuildexe)
       - [Too few resources are being deployed](#too-few-resources-are-being-deployed)
       - [Application could not start at first try (maybe due to missing assets or DLLs)](#application-could-not-start-at-first-try-maybe-due-to-missing-assets-or-dlls)
       - [Error message about denied access to DLL files (DLLs are not re-deployed)](#error-message-about-denied-access-to-dll-files-dlls-are-not-re-deployed)
       - [Slow performance when showing lists within the Post Build Helper](#slow-performance-when-showing-lists-within-the-post-build-helper)
       - [Error message in the UI of Post Build Helper: "Could not find part of the path '...'"](#error-message-in-the-ui-of-post-build-helper-could-not-find-part-of-the-path-)
       - [Error message in the console: `can't fopen`, or `!RUNTIME ERROR! Couldn't load image from '...'` or similar](#error-message-in-the-console-cant-fopen-or-runtime-error-couldnt-load-image-from--or-similar)
-    - [_Post Build Helper_ Settings](#_post-build-helper_-settings)
+    - [_Post Build Helper_ Settings](#post-build-helper-settings)
 
 # Setup
 
