@@ -25,6 +25,18 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 - Support for dividing meshes into [meshlets](./docs/meshlets.md) which can be rendered with task and mesh shaders.
 - Handling of bone hierarchies, supporting animation of skinned meshes.
 
+**Table of Contents:**
+
+- [Installation](#installation)
+  - [Visual Studio 2022](#visual-studio-2022)
+  - [CMake](#cmake)
+- [Examples](#examples)
+- [Creating a New Project](#creating-a-new-project)
+- [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper)
+- [What's the difference between Auto-Vk-Toolkit and Auto-Vk?](#whats-the-difference-between-auto-vk-toolkit-and-auto-vk)
+- [Automatic Resource-Updates](#automatic-resource-updates)
+- [FAQs, Known Issues, Troubleshooting](#faqs-known-issues-troubleshooting)
+
 # Installation
 
 *Auto-Vk-Toolkit* is ready to go with Visual Studio or CMake. If your system meets the system requirements, everything is set up to build an run right out of the box. E.g., for Visual Studio, open [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), set one of the example projects as startup project, build and run!
