@@ -2,7 +2,7 @@
 
 - [Serializer](#serializer)
   - [How to use](#how-to-use)
-  - [\*\_cached functions](#cached-functions)
+  - [\*\_cached functions](#_cached-functions)
       - [Available \*\_cached variants of scene and model loading functions](#available-cached-variants-of-scene-and-model-loading-functions)
   - [Custom type serialization](#custom-type-serialization)
 
