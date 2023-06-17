@@ -117,7 +117,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				// ^ No need for any synchronization in-between, because the commands do not depend on each other.
 				}, * mQueue, { vk::PipelineStageFlagBits2::eAllTransfer }, 1);
 			// Wait on the host until the device is done:
-			timelineSemaphore->wait_until_signalled(1);
+			timelineSemaphore->wait_until_signaled(1);
 		}
 
 		// For all the different materials, transfer them in structs which are well
@@ -143,7 +143,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			std::move(materialCommands),
 			mMaterialBuffer->fill(gpuMaterials.data(), 0)
 		}, *mQueue, {vk::PipelineStageFlagBits2::eAllCommands}, 1);
-		matTSemaphore->wait_until_signalled(1);
+		matTSemaphore->wait_until_signaled(1);
 
 		// Create a buffer for the transformation matrices in a host coherent memory region (one for each frame in flight):
 		for (int i = 0; i < 10; ++i) { // Up to 10 concurrent frames can be configured through the UI.
