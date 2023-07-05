@@ -476,7 +476,7 @@ namespace avk
 
 	avk::semaphore context_vulkan::record_and_submit_with_timeline_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, uint64_t aSignalValue, uint64_t aInitialValue, vk::CommandBufferUsageFlags aUsageFlags) {
 		auto sem = create_timeline_semaphore(aInitialValue);
-		record_and_submit_with_timeline_semaphore(aRecordedCommandsAndSyncInstructions, aQueue, aSrcSignalStage >> sem | aSignalValue, aUsageFlags);
+		record_and_submit_with_timeline_semaphore(aRecordedCommandsAndSyncInstructions, aQueue, (aSrcSignalStage >> sem).to_value(aSignalValue) , aUsageFlags);
 		return sem;
 	}
 
