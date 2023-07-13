@@ -25,6 +25,21 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 - Support for dividing meshes into [meshlets](./docs/meshlets.md) which can be rendered with task and mesh shaders.
 - Handling of bone hierarchies, supporting animation of skinned meshes.
 
+## Table of Contents
+
+- [Installation](#installation)
+  - [Visual Studio 2022](#visual-studio-2022)
+    - [Requirements](#requirements)
+    - [Setup and build instructions](#setup-and-build-instructions)
+    - [Set up your own project](#set-up-your-own-project)
+  - [CMake](#cmake)
+- [Examples](#examples)
+- [Creating a New Project](#creating-a-new-project)
+- [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper)
+- [What's the difference between Auto-Vk-Toolkit and Auto-Vk?](#whats-the-difference-between-auto-vk-toolkit-and-auto-vk)
+- [Documentation](#documentation)
+- [FAQs, Known Issues, Troubleshooting](#faqs-known-issues-troubleshooting)
+
 # Installation
 
 *Auto-Vk-Toolkit* is ready to go with Visual Studio or CMake. If your system meets the system requirements, everything is set up to build an run right out of the box. E.g., for Visual Studio, open [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), set one of the example projects as startup project, build and run!
@@ -34,20 +49,26 @@ Some of its highlight-features (besides the awesome features of [_Auto-Vk_](http
 ## Visual Studio 2022
 A preconfigured project setup is provided for Visual Studio 2022 on Windows.
 
-Requirements:
+### Requirements
 * Windows 10 or 11
 * Visual Studio 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
-* A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.2.141.0 or newer.          
-  Latest stable and tested version: Vulkan SDK 1.3.243.0
+* A [Vulkan SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.3.250.0 or newer.
 
-Setup and build instructions:
-* Clone this repository
-* Execute a `git submodule update --init` to pull the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework which is added as a submodule under `auto_vk`
+### Setup and build instructions
+* Clone or download this repository
+* Execute `git submodule update --init` to pull the [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk) framework which is added as a submodule under `auto_vk`
+* Download and install one of the latest [Vulkan SDKs for Windows](https://vulkan.lunarg.com/sdk/home#windows)! (At time of writing, the most recent version is 1.3.250.0.)
+    * Select the `Vulkan Memory Allocator header.` option so that the [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) (VMA) library is installed. 
+    * _Note:_ VMA can be installed through the Vulkan installer or its maintenance tool (e.g., `maintenancetool.exe` on Windows) by selecting the `Vulkan Memory Allocator header.` option.
+* Download and install [Visual Studio Community 2022](https://visualstudio.microsoft.com/vs/community/), or a newer version.
+    * Select the `Desktop development with C++` workload in the installer!
+* _Recommended:_ Install the [GLSL language integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL2022) extension for syntax highlighting in shader files!
+    * _Hint:_ Go to `Tools -> Options -> GLSL language integration`. For Vulkan shader development, either set `Live compiling` to `False` (syntax highlighting only), or set the `External compiler executable file` to, e.g., the path to `glslangValidator.exe`!
 * Open the Visual Studio solution file [`visual_studio/auto_vk_toolkit.sln`](./visual_studio/), and build the solution
 * During building, you'll recognize messages from the _Post Build Helper_ tool in Visual Studio's `Output`-tab, some popup messages, and an icon in the system tray. Please have a look at section [Resource Mangement and the Post Build Helper](#resource-mangement-and-the-post-build-helper) for additional information.
 * Several example applications are available in the solution file. Set one of them as startup project, and run.
 
-Set up your own project:
+### Set up your own project
 * To add _Auto-Vk-Toolkit_ to one of your custom repositories, you might want to add it as a GIT submodule. You could execute `git submodule add https://github.com/cg-tuwien/Auto-Vk-Toolkit.git auto_vk_toolkit` to add _Auto-Vk-Toolkit_ as submodule in directory `auto_vk_toolkit`.
 * Execute `git submodule update --init --recursive` in order to pull both, _Auto-Vk-Toolkit_ and [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk).
 * The steps described under section [Creating a New Project](#creating-a-new-project) might be helpful for setting up a custom Visual Studio project that links against _Auto-Vk-Toolkit_.
@@ -146,9 +167,14 @@ vk::material_gpu_data`)
   * If shader files contain errors, popup messages are created displaying the error, and providing a `[->VS]` button to navigate to the line that contains the error _within_ Visual Studio.
   * By default, "Debug" and "Release" build configurations symlink resources to save space, but "Publish" build configurations deploy all required files into the target directory so that a built program can easily be transfered to another PC. No more tedious resource gathering is required in such situations since that is all handled by the Post Build Helper.
 
-# Automatic Resource-Updates
+# Documentation
 
-See: [Automatic Resource-Updates](./docs/updater.md)
+There are some documentation pages containing further information:
+- [Usage of ImGui for User Interfaces](./docs/ImGui.md), describing how to use [Dear ImGui](https://github.com/ocornut/imgui) in an _Auto-Vk-Toolkit_ project
+- [CMake](./docs/cmake.md) setup and build instructions
+- [Meshlets](./docs/meshlets.md)-specfic functionality for dividing geometry into small clusters and using them for rendering in graphics mesh pipelines (those with task and mesh shaders)
+- [Serializer](./docs/serializer.md) functionality for storing and loading resources to/from file, such as 3D models, images, or custom structs
+- [Automatic Resource-Updates](./docs/updater.md) through the `avk::updater` class, enabling shwapchain recreation and shader hot reloading
 
 # FAQs, Known Issues, Troubleshooting
 

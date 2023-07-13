@@ -1,3 +1,31 @@
+# Table of Contents
+
+- [Setup](#setup)
+- [Project Management with Visual Studio](#project-management-with-visual-studio)
+  - [Creating a New Project](#creating-a-new-project)
+  - [Resource Management](#resource-management)
+    - [Dependent Assets](#dependent-assets)
+    - [Known Issues and Troubleshooting w.r.t. Asset Handling](#known-issues-and-troubleshooting-wrt-asset-handling)
+      - [Build errors when adding assets](#build-errors-when-adding-assets)
+      - [Asset is not deployed because it is not saved in the Visual Studio's filters-file](#asset-is-not-deployed-because-it-is-not-saved-in-the-visual-studios-filters-file)
+  - [Post Build Helper](#post-build-helper)
+    - [Deployment of Dependent Assets](#deployment-of-dependent-assets)
+    - [Symbolic Links/Copies depending on Build Configuration](#symbolic-linkscopies-depending-on-build-configuration)
+    - [_Post Build Helper_ Troubleshooting](#post-build-helper-troubleshooting)
+      - [Build is stuck at "Going to invoke[...]MSBuild.exe" step, displayed in Visual Studio's _Output_ tab](#build-is-stuck-at-going-to-invokemsbuildexe-step-displayed-in-visual-studios-output-tab)
+      - [_Post Build Helper_ can't be built automatically/via MSBuild.exe](#post-build-helper-cant-be-built-automaticallyvia-msbuildexe)
+      - [Too few resources are being deployed](#too-few-resources-are-being-deployed)
+      - [Application could not start at first try (maybe due to missing assets or DLLs)](#application-could-not-start-at-first-try-maybe-due-to-missing-assets-or-dlls)
+      - [Error message about denied access to DLL files (DLLs are not re-deployed)](#error-message-about-denied-access-to-dll-files-dlls-are-not-re-deployed)
+      - [Slow performance when showing lists within the Post Build Helper](#slow-performance-when-showing-lists-within-the-post-build-helper)
+      - [Error message in the UI of Post Build Helper: "Could not find part of the path '...'"](#error-message-in-the-ui-of-post-build-helper-could-not-find-part-of-the-path-)
+      - [Error message in the console: `can't fopen`, or `!RUNTIME ERROR! Couldn't load image from '...'` or similar](#error-message-in-the-console-cant-fopen-or-runtime-error-couldnt-load-image-from--or-similar)
+    - [_Post Build Helper_ Settings](#post-build-helper-settings)
+
+# Setup
+
+For fundamental installation instructions and basic setup, please refer to the main [README.md](../README.md)'s [Visual Studio 2022](../README.md#visual-studio-2022) section.
+
 # Project Management with Visual Studio
 
 The Visual Studio projects can be used for resource management and there is a _Post Build Helper_ tool which handles SPIR-V compilation of shader files and deployment of resource files to the target directory. Its located under [`visual_studio/tools/executables/`](./tools/executables) and is invoked as a build step of _Auto-Vk-Toolkit_'s example applications. 
