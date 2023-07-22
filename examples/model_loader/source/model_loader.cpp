@@ -115,7 +115,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				std::move(nrmFillCmd),
 				std::move(idxFillCmd)
 				// ^ No need for any synchronization in-between, because the commands do not depend on each other.
-				}, * mQueue, { vk::PipelineStageFlagBits2::eAllTransfer }, 1);
+				}, *mQueue, avk::stage::all_transfer, 1);
 			// Wait on the host until the device is done:
 			timelineSemaphore->wait_until_signaled(1);
 		}
@@ -142,7 +142,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto matTSemaphore = avk::context().record_and_submit_with_timeline_semaphore({
 			std::move(materialCommands),
 			mMaterialBuffer->fill(gpuMaterials.data(), 0)
-		}, *mQueue, {vk::PipelineStageFlagBits2::eAllCommands}, 1);
+		}, *mQueue, avk::stage::all_commands, 1);
 		matTSemaphore->wait_until_signaled(1);
 
 		// Create a buffer for the transformation matrices in a host coherent memory region (one for each frame in flight):
@@ -467,6 +467,9 @@ int main() // <== Starting point ==
 			avk::application_name("Auto-Vk-Toolkit Example: Model Loader"),
 			[](avk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
+			[](vk::PhysicalDeviceVulkan12Features& features) {
+				features.setTimelineSemaphore(VK_TRUE);
 			},
 			// Pass windows:
 			mainWnd,

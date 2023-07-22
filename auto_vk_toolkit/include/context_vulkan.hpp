@@ -178,22 +178,23 @@ namespace avk
 		avk::command_buffer record_and_submit(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
 		avk::semaphore record_and_submit_with_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		/** \brief Records and submits commands to a queue together with a newly created timeline semaphore, which is signalled upon completion.
-		* \param aRecordedCommandsAndSyncInstructions	List of commands to record and submit.
-		* \param aQueue									The queue to submit the commands to.
-		* \param aSrcSignalStage						Defines in which stage it is safe to signal the created timeline semaphore.
-		* \param aSignalValue							The value to SIGNAL the timeline semaphore to.
-		* \param aInitialValue				(optional)	The value to INITIALIZE the newly created timeline semaphore with.
-		* \param aUsageFlags				(optional)	CommandBuffer usage flags.
-		* \return The newly created timeline semaphore.
+
+		/** @brief Records and submits commands to a queue together with a newly created timeline semaphore, which is signaled upon completion.
+		*   @param aRecordedCommandsAndSyncInstructions List of commands to record and submit.
+		*   @param aQueue                               The queue to submit the commands to.
+		*   @param aSrcSignalStage                      Defines in which stage it is safe to signal the created timeline semaphore.
+		*   @param aSignalValue                         The value to SIGNAL the timeline semaphore to.
+		*   @param aInitialValue                        (optional) The value to INITIALIZE the newly created timeline semaphore with.
+		*   @param aUsageFlags                          (optional) CommandBuffer usage flags.
+		*   @return The newly created timeline semaphore.
 		*/
 		avk::semaphore record_and_submit_with_timeline_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::stage::pipeline_stage_flags aSrcSignalStage, uint64_t aSignalValue, uint64_t aInitialValue = 0, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-		/** \brief Records and submits commands to a queue together with the given timeline semaphore, which is signalled upon completion.
-		* \param aRecordedCommandsAndSyncInstructions	List of commands to record and submit.
-		* \param aQueue									The queue to submit the commands to.
-		* \param aSignalInfo							Used to specify the timeline semaphore, after which stage it's supposed to be triggered, and to which value it should be set.
-		* \param aUsageFlags				(optional)	CommandBuffer usage flags.
+		/** @brief Records and submits commands to a queue together with the given timeline semaphore, which is signaled upon completion.
+		*   @param aRecordedCommandsAndSyncInstructions List of commands to record and submit.
+		*   @param aQueue                               The queue to submit the commands to.
+		*   @param aSignalInfo                          Used to specify the timeline semaphore, after which stage it's supposed to be triggered, and to which value it should be set.
+		*   @param aUsageFlags                          (optional) CommandBuffer usage flags.
 		*/
 		void record_and_submit_with_timeline_semaphore(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, avk::semaphore_signal_info aSignalInfo, vk::CommandBufferUsageFlags aUsageFlags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 

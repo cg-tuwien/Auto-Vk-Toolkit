@@ -216,7 +216,6 @@ namespace avk
 			.setShaderUniformTexelBufferArrayDynamicIndexing(VK_TRUE)
 			.setShaderStorageTexelBufferArrayDynamicIndexing(VK_TRUE)
 			.setDescriptorIndexing(VK_TRUE)
-			.setTimelineSemaphore(VK_TRUE)
 			.setBufferDeviceAddress(VK_FALSE);
 
 #if VK_HEADER_VERSION >= 162
