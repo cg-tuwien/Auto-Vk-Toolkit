@@ -299,6 +299,17 @@ namespace avk
 			.setSynchronization2(VK_TRUE);
 		deviceFeatures.setPNext(&physicalDeviceSync2Features);
 
+		// And here add all the pNext stuff from aPhysicalDeviceFeaturePNexts
+		struct DummyForVkStructs {
+			VkStructureType sType;
+			void* pNext;
+		};
+		for (auto extToBeAdded : mSettings.mPhysicalDeviceFeaturesPNextChainEntries) {
+			auto* extStruct = reinterpret_cast<DummyForVkStructs*>(extToBeAdded.pNext);
+			extStruct->pNext     = deviceFeatures.pNext;
+			deviceFeatures.pNext = extToBeAdded.pNext;
+		}
+
 		const auto& devex = get_all_enabled_device_extensions();
 		auto deviceCreateInfo = vk::DeviceCreateInfo()
 			.setQueueCreateInfoCount(static_cast<uint32_t>(std::get<0>(queueCreateInfos).size()))
