@@ -50,15 +50,15 @@ namespace avk
 
 			glm::quat rotHoriz = glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.x), up());
 
-		    rotSpeed = rotSpeed
-		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), back(*this)))
-		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), front(*this)));
-			glm::quat rotVert =  glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.y), right(*this));
-
-		    const auto oldPos = back(*this) * mPivotDistance;
-			const auto newPos = (rotHoriz * rotVert) * oldPos;
-			translate(*this, newPos - oldPos);
-			look_along(-newPos);
+			auto mouseMoveRot  = rotSpeed * static_cast<float>(mouseMoved.y);
+			auto maxAllowdRot  = 1.0f - glm::dot(up(), back(*this));
+			glm::quat rotVert  =  glm::angleAxis(mouseMoveRot, right(*this));
+		    const auto oldPos  = back(*this) * mPivotDistance;
+			const auto rotQuat = (rotHoriz * rotVert);
+			const auto newPos  = rotQuat * oldPos;
+		    // With everything at hand, translate and rotate:	
+		    translate(*this, newPos - oldPos);
+		    set_rotation(rotQuat * rotation()); // <-- Rotate existing rotation
 		}
 		if (input().mouse_button_down(RMB)) {
 			const auto latSpeed = mLateralSpeed
