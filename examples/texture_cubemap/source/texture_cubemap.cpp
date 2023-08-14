@@ -298,7 +298,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}

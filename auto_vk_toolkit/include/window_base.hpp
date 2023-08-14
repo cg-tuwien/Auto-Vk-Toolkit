@@ -113,6 +113,11 @@ namespace avk
 		 */
 		bool is_cursor_disabled() const;
 
+		/** Returns true if the window should be closed.
+		 *  Attention: Could be that a positive result is returned with a delay of 1 frame.
+		 */
+		bool should_be_closed();
+
 	protected:
 		/** Static variable which holds the ID that the next window will get assigned */
 		static uint32_t mNextWindowId;
@@ -149,5 +154,8 @@ namespace avk
 
 		// Whether or not the cursor is operating in disabled-mode
 		cursor mCursorMode;
+
+		// Initially false, set to true if window should close.
+		bool mShouldClose;
 	};
 }

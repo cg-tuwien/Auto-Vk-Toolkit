@@ -509,7 +509,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto resolution = avk::context().main_window()->resolution();
 			avk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (!mQuakeCam.is_enabled() && avk::input().key_pressed(avk::key_code::escape)) {
+		if (!mQuakeCam.is_enabled() && avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}

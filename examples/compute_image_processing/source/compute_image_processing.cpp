@@ -245,7 +245,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mUpdateToRenderDependency = std::move(semaphore);
 		}
 
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::composition_interface::current()->stop();
 		}
