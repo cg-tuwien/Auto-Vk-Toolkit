@@ -361,12 +361,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}
 				}
 				if (quakeCamEnabled) {
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
-					if (avk::input().key_pressed(avk::key_code::f1)) {
+					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[Esc] to exit Quake Camera navigation");
+					if (avk::input().key_pressed(avk::key_code::escape)) {
 						mOrbitCam.set_matrix(mQuakeCam.matrix());
 						mOrbitCam.enable();
 						mQuakeCam.disable();
 					}
+				}
+				else {
+					ImGui::TextColored(ImVec4(.8f, .4f, .4f, 1.f), "[Esc] to exit application");
 				}
 				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
 					mOrbitCam.disable();
@@ -410,7 +413,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto resolution = avk::context().main_window()->resolution();
 			avk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (!mQuakeCam.is_enabled() && avk::input().key_pressed(avk::key_code::escape)) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
