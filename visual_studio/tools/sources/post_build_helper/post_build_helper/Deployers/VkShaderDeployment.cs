@@ -34,34 +34,21 @@ namespace CgbPostBuildHelper.Deployers
 			Directory.CreateDirectory(outFile.DirectoryName);
 
 			// Read file using StreamReader line by line and search for #inclue directives
-			using (StreamReader file = new StreamReader(_inputFile.FullName))
+            var textFromFile = File.ReadAllLines(_inputFile.FullName);
+            foreach (var line in textFromFile)
 			{
-				bool done = false;
-				string ln;
-				while (!done && (ln = file.ReadLine()) != null)
+				var ln = line.TrimStart();
+				var m = IncludeDirectiveRegex.Match(ln);
+				if (m.Success)
 				{
-					ln = ln.TrimStart();
-					if (!ln.StartsWith("#"))
+                    FilesDeployed.Add(new FileDeploymentData
                     {
-						done = true;
-                    }
-					else
-                    {
-						var m = IncludeDirectiveRegex.Match(ln);
-						if (m.Success)
-						{
-                            FilesDeployed.Add(new FileDeploymentData
-                            {
-                                DeploymentType = DeploymentType.Dependency,
-                                FileType = FileType.Generic,
-                                InputFilePath = Path.Combine(new FileInfo(_inputFile.FullName).DirectoryName, m.Groups[1].Value),
-                                OutputFilePath = null
-                            });
-                        }
-
-					}
-				}
-				file.Close();
+                        DeploymentType = DeploymentType.Dependency,
+                        FileType = FileType.Generic,
+                        InputFilePath = Path.Combine(new FileInfo(_inputFile.FullName).DirectoryName, m.Groups[1].Value),
+                        OutputFilePath = null
+                    });
+                }
 			}
 
 			var cmdLineParams = string.Format(GlslangValidatorParams, _inputFile.FullName, outFile.FullName);
