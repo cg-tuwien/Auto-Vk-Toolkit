@@ -418,7 +418,7 @@ namespace avk
 			context().end_composition(); // Performs a waitIdle
 
 			for (auto* w : mWindows) {
-				w->clean_up_command_buffers_for_frame(std::numeric_limits<window::frame_id_t>().max());
+				w->clean_up_resources_for_frame(std::numeric_limits<window::frame_id_t>().max());
 				w->remove_all_present_semaphore_dependencies_for_frame(std::numeric_limits<window::frame_id_t>().max());
 			}
 			mWindows.clear();
