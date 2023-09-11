@@ -86,19 +86,45 @@ namespace avk
 		    const auto moveCloser = scrollDist > 0.f;
 		    const auto moveAway   = scrollDist < 0.f;
 
+			auto getMoveSpeed = [this](float x) {
+				x = glm::round(x * 20.f) / 20.f;
+                auto spd = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, x) * glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, x);
+				return spd;
+			};
+
 		    if (moveCloser) {
-			    auto len = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, mPivotDistance);
-			    auto move = front(*this) * len * pivDistSpeed;
+			    auto spd = getMoveSpeed(mPivotDistance);
+                if (mPivotDistance - mMinPivotDistance > mMaxPivotDistance - mPivotDistance) {
+                    // try to match the moveAway speed
+                    auto candidate = mPivotDistance - spd * pivDistSpeed;
+                    for (int safety = 0; safety < 10 && mPivotDistance - candidate - getMoveSpeed(candidate) * pivDistSpeed < -1e-5; ++safety) {
+                        LOG_DEBUG(fmt::format("    entered loop, currently at pos {} w.r.t. mPivotDistance {} ", candidate - getMoveSpeed(candidate) * pivDistSpeed, mPivotDistance));
+                        spd       = getMoveSpeed(candidate);
+                        candidate = mPivotDistance - spd * pivDistSpeed;
+                    }
+                }
+                auto move = front(*this) * spd * pivDistSpeed;
 			    translate(*this, move);
-			    mPivotDistance -= len * pivDistSpeed;
+                mPivotDistance -= spd * pivDistSpeed;
+				LOG_DEBUG(fmt::format("moveCloser mPivotDistance[{}]", mPivotDistance));
 				calculate_lateral_speed();
 			}
 		    if (moveAway) {
-			    auto len = glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, mPivotDistance);
-			    auto move = back(*this) * len * pivDistSpeed;
+                auto spd  = getMoveSpeed(mPivotDistance);
+				if (mPivotDistance - mMinPivotDistance < mMaxPivotDistance - mPivotDistance) {
+					// try to match the moveCloser speed
+                    auto candidate = mPivotDistance + spd * pivDistSpeed;
+                    for (int safety = 0; safety < 10 && candidate - getMoveSpeed(candidate) * pivDistSpeed - mPivotDistance < -1e-5; ++safety) {
+                        LOG_DEBUG_EM(fmt::format("    entered loop, currently at pos {} w.r.t. mPivotDistance {}", candidate - getMoveSpeed(candidate) * pivDistSpeed, mPivotDistance));
+                        spd       = getMoveSpeed(candidate);
+                        candidate = mPivotDistance + spd * pivDistSpeed;
+                    }
+				}
+                auto move = back(*this) * spd * pivDistSpeed;
 			    translate(*this, move);
-			    mPivotDistance += len * pivDistSpeed;
-				calculate_lateral_speed();
+                mPivotDistance += spd * pivDistSpeed;
+                LOG_DEBUG(fmt::format("moveAway   mPivotDistance[{}]", mPivotDistance));
+                calculate_lateral_speed();
 			}
 		}
 	}
