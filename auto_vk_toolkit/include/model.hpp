@@ -128,7 +128,7 @@ namespace avk
 		 *				`tangents_for_mesh`, `bitangents_for_mesh`, `colors_for_mesh`, 
 		 *				and `texture_coordinates_for_mesh`
 		 */
-		inline size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
+		size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the positions for the mesh at the given index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
