@@ -12,7 +12,7 @@ namespace avk
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
 		, mMaxPivotDistance{ 30.f }
-		, mPivotDistanceSlowDownRange{ 10.f }
+		, mPivotDistanceSlowDownRange{ 3.333f }
 		, mLateralSpeed{ 1.f }
 		, mFastMultiplier(6.0f)
 		, mSlowMultiplier(0.2f)
@@ -126,8 +126,11 @@ namespace avk
 	}
 
 	void orbit_camera::set_pivot_distance(float aDistanceFromCamera) {
-		mPivotDistance = glm::clamp(aDistanceFromCamera, mMinPivotDistance, mMaxPivotDistance);
+		mPivotDistance = aDistanceFromCamera;
 		calculate_lateral_speed();
+		mPivotDistanceSpeed = mPivotDistance / 20.f;
+		mPivotDistanceSlowDownRange = mPivotDistance / 3.f;
+		mMaxPivotDistance = mPivotDistance * 3.f;
 	}
 
 	float orbit_camera::pivot_distance() const {
