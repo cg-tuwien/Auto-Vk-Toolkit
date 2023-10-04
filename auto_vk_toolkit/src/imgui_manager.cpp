@@ -252,6 +252,10 @@ namespace avk
 			io.KeyShift = input().key_down(key_code::left_shift) || input().key_down(key_code::right_shift);
 			io.KeyAlt = input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt);
 			io.KeySuper = input().key_down(key_code::left_super) || input().key_down(key_code::right_super);
+            io.AddKeyEvent(ImGuiMod_Ctrl, io.KeyCtrl);
+            io.AddKeyEvent(ImGuiMod_Shift, io.KeyShift);
+            io.AddKeyEvent(ImGuiMod_Alt, io.KeyAlt);
+            io.AddKeyEvent(ImGuiMod_Super, io.KeySuper);
 
 			// Characters:
 			for (auto c : input().entered_characters()) {
