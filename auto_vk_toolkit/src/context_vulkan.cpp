@@ -967,19 +967,25 @@ namespace avk
 	bool context_vulkan::supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const
 	{
 	    // Search for each extension requested!
+		auto deviceExtensions = aPhysicalDevice.enumerateDeviceExtensionProperties();
+        return supports_given_extensions(deviceExtensions, aExtensionsInQuestion);
+	}
+
+	bool context_vulkan::supports_given_extensions(const std::vector<vk::ExtensionProperties>& aPhysicalDeviceExtensionsAvailable, const std::vector<const char*>& aExtensionsInQuestion) const
+	{
 		for (const auto& extensionName : aExtensionsInQuestion) {
-			auto deviceExtensions = aPhysicalDevice.enumerateDeviceExtensionProperties();
-			// See if we can find the current requested extension in the array of all device extensions
-			auto result = std::ranges::find_if(deviceExtensions,
+			// See if we can find the current requested extension in the array of all device extensions:
+            auto result = std::ranges::find_if(aPhysicalDeviceExtensionsAvailable,
                                                [extensionName](const vk::ExtensionProperties& devext) {
                                                    return strcmp(extensionName, devext.extensionName) == 0;
                                                });
-			if (result == std::end(deviceExtensions)) {
+            if (result == std::end(aPhysicalDeviceExtensionsAvailable)) {
 				// could not find the device extension
 				return false;
 			}
 		}
 		return true; // All extensions supported
+
 	}
 
 	void context_vulkan::pick_physical_device()
@@ -1040,15 +1046,34 @@ namespace avk
 				}
 			}
 
-			// Check if extensions are required
-			if (!supports_given_extensions(physicalDevice, sRequiredDeviceExtensions)) {
+			// Check if Auto-Vk-Toolkit-required extensions are supported
+            auto deviceExtensions = physicalDevice.enumerateDeviceExtensionProperties();
+            if (!supports_given_extensions(deviceExtensions, sRequiredDeviceExtensions)) {
 				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName));
+                for (const auto& extensionName : sRequiredDeviceExtensions) {
+                    auto extensionInfo = std::string("    - ") + extensionName + " ...";
+                    while (extensionInfo.length() < 60) {
+                        extensionInfo += ".";
+                    }
+                    auto result = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName) == 0; });
+                    extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
+                    LOG_WARNING(extensionInfo);
+                }
 				score = 0;
 			}
 
-			// Check if extensions are required
+			// Check if user-requested extensions are supported
 			if (!supports_given_extensions(physicalDevice, mSettings.mRequiredDeviceExtensions.mExtensions)) {
 				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName));
+                for (const auto& extensionName : mSettings.mRequiredDeviceExtensions.mExtensions) {
+                    auto extensionInfo = std::string("    - ") + extensionName + " ...";
+                    while (extensionInfo.length() < 60) {
+                        extensionInfo += ".";
+                    }
+                    auto result           = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName) == 0; });
+                    extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
+                    LOG_WARNING(extensionInfo);
+                }
 				score = 0;
 			}
 
