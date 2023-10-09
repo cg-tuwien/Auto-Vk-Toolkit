@@ -98,7 +98,6 @@ namespace avk
                     // try to match the moveAway speed
                     auto candidate = mPivotDistance - spd * pivDistSpeed;
                     for (int safety = 0; safety < 10 && mPivotDistance - candidate - getMoveSpeed(candidate) * pivDistSpeed < -1e-5; ++safety) {
-                        LOG_DEBUG(fmt::format("    entered loop, currently at pos {} w.r.t. mPivotDistance {} ", candidate - getMoveSpeed(candidate) * pivDistSpeed, mPivotDistance));
                         spd       = getMoveSpeed(candidate);
                         candidate = mPivotDistance - spd * pivDistSpeed;
                     }
@@ -106,7 +105,6 @@ namespace avk
                 auto move = front(*this) * spd * pivDistSpeed;
 			    translate(*this, move);
                 mPivotDistance -= spd * pivDistSpeed;
-				LOG_DEBUG(fmt::format("moveCloser mPivotDistance[{}]", mPivotDistance));
 				calculate_lateral_speed();
 			}
 		    if (moveAway) {
@@ -115,7 +113,6 @@ namespace avk
 					// try to match the moveCloser speed
                     auto candidate = mPivotDistance + spd * pivDistSpeed;
                     for (int safety = 0; safety < 10 && candidate - getMoveSpeed(candidate) * pivDistSpeed - mPivotDistance < -1e-5; ++safety) {
-                        LOG_DEBUG_EM(fmt::format("    entered loop, currently at pos {} w.r.t. mPivotDistance {}", candidate - getMoveSpeed(candidate) * pivDistSpeed, mPivotDistance));
                         spd       = getMoveSpeed(candidate);
                         candidate = mPivotDistance + spd * pivDistSpeed;
                     }
@@ -123,7 +120,6 @@ namespace avk
                 auto move = back(*this) * spd * pivDistSpeed;
 			    translate(*this, move);
                 mPivotDistance += spd * pivDistSpeed;
-                LOG_DEBUG(fmt::format("moveAway   mPivotDistance[{}]", mPivotDistance));
                 calculate_lateral_speed();
 			}
 		}
