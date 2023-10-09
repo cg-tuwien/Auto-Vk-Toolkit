@@ -372,7 +372,7 @@ namespace avk
 
 		/** Gets the backbuffer's render pass
 		 */
-		[[nodiscard]] avk::renderpass renderpass() const { return mBackBufferRenderpass; }
+		[[nodiscard]] avk::renderpass get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	This is intended to be used as a command buffer lifetime handler for `avk::old_sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish

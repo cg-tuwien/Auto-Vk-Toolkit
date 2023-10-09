@@ -56,7 +56,7 @@ public:
 			fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 
 		// Create vertex buffers --- namely one for each frame in flight.
