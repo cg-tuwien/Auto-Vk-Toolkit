@@ -1084,16 +1084,26 @@ namespace CgbPostBuildHelper
 
 			foreach (var w in watches)
 			{
-				var watchDir = new WatchedDirectoryVM(this, inst, w.Key);
-
-				foreach (var f in w.Value)
+				try 
 				{
-					watchDir.Files.Add(f);
-				}
+				    var watchDir = new WatchedDirectoryVM(this, inst, w.Key);
 
-				// Start to watch:
-				inst.CurrentlyWatchedDirectories.Add(watchDir);
-				watchDir.NightGathersAndNowMyWatchBegins();
+				    foreach (var f in w.Value)
+				    {
+					    watchDir.Files.Add(f);
+				    }
+
+				    // Start to watch:
+				    inst.CurrentlyWatchedDirectories.Add(watchDir);
+				    watchDir.NightGathersAndNowMyWatchBegins();
+				}
+				catch (Exception ex) 
+                {
+                    AddToMessagesList(Message.Create(MessageType.Error, $"Failed to establish FileSystemWatcher for {w.Key}", () =>
+                    {
+                        MessageBox.Show(ex.Message);
+                    }), inst);
+				}
 			}
 		}
 
