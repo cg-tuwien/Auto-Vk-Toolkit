@@ -6,6 +6,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #ifdef _WIN32
+//#include "imgui_impl_win32.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 #include <GLFW/glfw3native.h>   // for glfwGetWin32Window
@@ -31,8 +32,26 @@ namespace avk
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 		// Setup Dear ImGui style
-		//ImGui::StyleColorsDark();
-		ImGui::StyleColorsClassic();
+		ImGui::StyleColorsDark();
+
+		auto& style                              = ImGui::GetStyle();
+        style.Colors[ImGuiCol_TitleBg]           = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
+        style.Colors[ImGuiCol_TitleBgActive]     = ImVec4(0.0f, 166.0f / 255.f, 187.0f / 255.f, 244.f / 255.f);
+        style.Colors[ImGuiCol_MenuBarBg]         = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
+        style.Colors[ImGuiCol_TitleBgCollapsed]  = ImVec4(0.0f, 111.0f / 255.f, 125.0f / 255.f, 110.f / 255.f);
+        style.Colors[ImGuiCol_Header]            = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 107.f / 255.f);
+        style.Colors[ImGuiCol_CheckMark]         = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+        style.Colors[ImGuiCol_Button]            = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
+        style.Colors[ImGuiCol_ButtonHovered]     = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
+        style.Colors[ImGuiCol_ButtonActive]      = ImVec4(216.f / 255.f, 42.f / 255.f, 99.f / 255.f, 242.f / 255.f);
+        style.ChildRounding                      = 3.f;
+        style.FrameRounding                      = 3.f;
+        style.GrabRounding                       = 3.f;
+        style.PopupRounding                      = 3.f;
+        style.PopupRounding                      = 3.f;
+        style.ScrollbarRounding                  = 3.f;
+        style.TabRounding                        = 3.f;
+        style.WindowRounding                     = 3.f;
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(wnd->handle()->mHandle, true); // TODO: Don't install callbacks (get rid of them during 'fixed/varying-input Umstellung DOUBLECHECK')
@@ -130,6 +149,17 @@ namespace avk
 			ImGui::NewFrame(); // got to start a new frame since ImGui::Render is next
 		});
 
+
+#if defined(_WIN32)
+        context().dispatch_to_main_thread([]() {
+            auto wndHandle = context().main_window()->handle()->mHandle;
+            auto hwnd = (void*)glfwGetWin32Window(wndHandle);
+            ImGui::GetMainViewport()->PlatformHandleRaw = hwnd;
+			//float scale = ImGui_ImplWin32_GetDpiScaleForHwnd(hwnd);
+            //ImGui::GetStyle().ScaleAllSizes(glm::round(scale));
+		});
+#endif
+
 		// Init it:
 		ImGui_ImplVulkan_Init(&init_info, mRenderpass->handle());
 
@@ -141,13 +171,6 @@ namespace avk
 		//io.SetClipboardTextFn = ImGui_ImplGlfw_SetClipboardText; // TODO clipboard abstraction via avk::input()
 		//io.GetClipboardTextFn = ImGui_ImplGlfw_GetClipboardText;
 		//io.ClipboardUserData = g_Window;
-
-#if defined(_WIN32)
-		context().dispatch_to_main_thread([]() {
-			ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(context().main_window()->handle()->mHandle);
-		});
-#endif
-
 		// Upload fonts:
 		upload_fonts();
 	}
