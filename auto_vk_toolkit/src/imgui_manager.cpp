@@ -15,6 +15,7 @@
 #include "composition_interface.hpp"
 #include "vk_convenience_functions.hpp"
 #include "timer_interface.hpp"
+#include "JetBrainsMono-Regular.hpp"
 
 namespace avk
 {
@@ -34,6 +35,31 @@ namespace avk
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
+		// Try to determine the display scale s.t. we can scale the font and the UI accordingly:
+		auto assignedMonitor = wnd->monitor();
+	    std::atomic_bool contentScaleRetrieved = false;
+		float contentScale = 0.f;
+		context().dispatch_to_main_thread([&contentScaleRetrieved, assignedMonitor, &contentScale]{
+			auto* monitorHandle = assignedMonitor.has_value() ? assignedMonitor->mHandle : glfwGetPrimaryMonitor();
+			float xscale, yscale;
+			glfwGetMonitorContentScale(monitorHandle, &xscale, &yscale);
+			contentScale = (xscale + yscale) * 0.5; // Note: xscale and yscale are probably the same
+		    contentScaleRetrieved = true;
+		});
+		context().signal_waiting_main_thread();
+		while(!contentScaleRetrieved) { LOG_DEBUG("Waiting for main thread..."); }
+
+		io.Fonts->Clear();
+		const float baseFontSize = 15.f;
+		float fontSize = glm::round(baseFontSize * contentScale);
+		auto  font_cfg = ImFontConfig();
+		ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", JetBrainsMono_Regular::get_font_name(), fontSize);
+		auto [data_size, data] = JetBrainsMono_Regular::get_size_and_bytes();
+		io.Fonts->AddFontFromMemoryTTF(data, (int)data_size, fontSize, &font_cfg, nullptr);
+
+		// Scale the UI according to the rounded font size:
+		float uiScale  = fontSize / baseFontSize;
+
 		auto& style                              = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg]           = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
         style.Colors[ImGuiCol_TitleBgActive]     = ImVec4(0.0f, 166.0f / 255.f, 187.0f / 255.f, 244.f / 255.f);
@@ -52,6 +78,7 @@ namespace avk
         style.ScrollbarRounding                  = 3.f;
         style.TabRounding                        = 3.f;
         style.WindowRounding                     = 3.f;
+		style.ScaleAllSizes(uiScale);
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(wnd->handle()->mHandle, true); // TODO: Don't install callbacks (get rid of them during 'fixed/varying-input Umstellung DOUBLECHECK')
@@ -155,8 +182,6 @@ namespace avk
             auto wndHandle = context().main_window()->handle()->mHandle;
             auto hwnd = (void*)glfwGetWin32Window(wndHandle);
             ImGui::GetMainViewport()->PlatformHandleRaw = hwnd;
-			//float scale = ImGui_ImplWin32_GetDpiScaleForHwnd(hwnd);
-            //ImGui::GetStyle().ScaleAllSizes(glm::round(scale));
 		});
 #endif
 
@@ -173,6 +198,7 @@ namespace avk
 		//io.ClipboardUserData = g_Window;
 		// Upload fonts:
 		upload_fonts();
+		delete [] data;
 	}
 
 	void imgui_manager::update()
