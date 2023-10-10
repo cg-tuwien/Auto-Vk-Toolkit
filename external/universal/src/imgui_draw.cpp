@@ -147,6 +147,7 @@ namespace IMGUI_STB_NAMESPACE
 #else
 #include "imstb_truetype.h"
 #endif
+#include <fstream>
 #endif
 #endif // IMGUI_ENABLE_STB_TRUETYPE
 
@@ -2239,6 +2240,25 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
         IM_ASSERT_USER_ERROR(0, "Could not load font file!");
         return NULL;
     }
+
+    std::ofstream myfile("I:/workwork/jetbrains_bytes.txt");
+    char* begin = (char*)data;
+    auto* end = begin + data_size;
+    std::string writeee = "";
+    char hex_string[20];
+    while (begin != end) {
+        int n = (int)(0xFF & *begin);
+        sprintf(hex_string, "%X", n);
+        writeee += std::string("0x") + ((const char*)hex_string) + ", ";
+        if (writeee.length() > 80) {
+            myfile << writeee << std::endl;
+            writeee = "";
+        }
+        begin++;
+    }
+    myfile << writeee << std::endl;
+    myfile.close();
+
     ImFontConfig font_cfg = font_cfg_template ? *font_cfg_template : ImFontConfig();
     if (font_cfg.Name[0] == '\0')
     {
