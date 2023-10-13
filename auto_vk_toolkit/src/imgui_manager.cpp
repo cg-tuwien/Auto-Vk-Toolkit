@@ -53,6 +53,7 @@ namespace avk
 		const float baseFontSize = 15.f;
 		float fontSize = glm::round(baseFontSize * contentScale);
 		auto  font_cfg = ImFontConfig();
+		font_cfg.FontDataOwnedByAtlas = false;
 		ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", JetBrainsMono_Regular::get_font_name(), fontSize);
 		auto [data_size, data] = JetBrainsMono_Regular::get_size_and_bytes();
 		io.Fonts->AddFontFromMemoryTTF(data, (int)data_size, fontSize, &font_cfg, nullptr);
