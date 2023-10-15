@@ -118,6 +118,7 @@ set(avk_toolkit_Sources
         auto_vk_toolkit/src/files_changed_event.cpp
         auto_vk_toolkit/src/fixed_update_timer.cpp
         auto_vk_toolkit/src/imgui_manager.cpp
+        auto_vk_toolkit/src/JetBrainsMono-Regular.cpp
         auto_vk_toolkit/src/imgui_utils.cpp
         auto_vk_toolkit/src/image_data.cpp
         auto_vk_toolkit/src/input_buffer.cpp
