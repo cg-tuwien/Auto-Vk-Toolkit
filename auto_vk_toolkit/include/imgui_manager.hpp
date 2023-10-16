@@ -10,13 +10,22 @@ namespace avk
 	class imgui_manager : public invokee
 	{
 	public:
+		enum struct custom_font_mode
+		{
+			automatic, // choose font automatically, based on the display scale
+			use_default_font,
+			use_custom_font
+		};
+
 		/**	Create an ImGui manager element.
-		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui_manager".
+		 *	@param		aName							You *can* give it a name, but you can also leave it at the default name "imgui_manager".
+		 *	@param		aAlterSettingsBeforeCreation	Allows to modify the ImGui style
 		 */
-		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {})
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, std::function<void(float uiScale)> aAlterSettingsBeforeCreation = {})
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mUserInteractionEnabled{ true }
+			, mAlterSettingsBeforeCreation{ std::move(aAlterSettingsBeforeCreation) }
 		{
 			if (aRenderpassToUse.has_value()) {
 				mRenderpass = std::move(aRenderpassToUse.value());
@@ -89,6 +98,10 @@ namespace avk
 			mUsingSemaphoreInsteadOfFenceForFontUpload = true;
 		}
 
+		void set_custom_font_mode(custom_font_mode aMode) {
+			mCustomFontMode = aMode;
+		}
+
         /** Indicates whether or not ImGui wants to occupy the mouse.
          *  This could be because the mouse is over a window, or currently dragging
          *	some ImGui control.
@@ -111,7 +124,6 @@ namespace avk
 		bool end_wanting_to_occupy_mouse() const {
 			return !mOccupyMouse && mOccupyMouseLastFrame;
 		}
-
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -138,6 +150,10 @@ namespace avk
 		bool mUsingSemaphoreInsteadOfFenceForFontUpload;
 		bool mOccupyMouse = false;
 		bool mOccupyMouseLastFrame = false;
+
+		// customization
+		std::function<void(float uiScale)> mAlterSettingsBeforeCreation = {};
+		custom_font_mode mCustomFontMode = custom_font_mode::automatic;
 	};
 
 }

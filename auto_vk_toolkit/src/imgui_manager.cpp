@@ -55,7 +55,8 @@ namespace avk
 		float uiScale  = fontSize / baseFontSize;
 
 		uint8_t* data = nullptr;
-		if (glm::abs(uiScale - 1.f) < 1e-5f) {
+		bool use_default_font = (mCustomFontMode == custom_font_mode::automatic) ? (glm::abs(uiScale - 1.f) < 1e-5f) : (mCustomFontMode == custom_font_mode::use_default_font);
+		if (use_default_font) {
 			io.Fonts->AddFontDefault();
 		}
 		else {
@@ -86,6 +87,10 @@ namespace avk
         style.TabRounding                        = 2.f;
         style.WindowRounding                     = 2.f;
 		style.ScaleAllSizes(uiScale);
+
+		if (mAlterSettingsBeforeCreation) {
+			mAlterSettingsBeforeCreation(uiScale); // allow the user to change the style
+		}
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(wnd->handle()->mHandle, true); // TODO: Don't install callbacks (get rid of them during 'fixed/varying-input Umstellung DOUBLECHECK')
