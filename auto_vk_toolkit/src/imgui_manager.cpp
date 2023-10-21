@@ -55,9 +55,9 @@ namespace avk
 		float uiScale  = fontSize / baseFontSize;
 
 		uint8_t* data = nullptr;
-		bool useDefaultFont = mCustomFontMode == custom_font_mode::automatic
+		bool useDefaultFont = mCustomFontMode == font_mode::automatic
 		                        ? glm::abs(uiScale - 1.f) < 1e-5f 
-			                    : mCustomFontMode == custom_font_mode::use_default_font;
+		                        : mCustomFontMode == font_mode::use_default_font;
 		if (useDefaultFont) {
 			io.Fonts->AddFontDefault();
 		}
