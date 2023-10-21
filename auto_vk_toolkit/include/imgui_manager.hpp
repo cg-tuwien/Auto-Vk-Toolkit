@@ -10,22 +10,35 @@ namespace avk
 	class imgui_manager : public invokee
 	{
 	public:
-		enum struct custom_font_mode
+		/** Enum for configuring which font ImGui shall use
+		 */
+		enum struct font_mode
 		{
-			automatic, // choose font automatically, based on the display scale
+			/** Automatically select whether to use ImGui's default font or a TTF, based on the UI scale. */
+			automatic, 
+
+			/** Use ImGui's default font */
 			use_default_font,
-			use_custom_font
+
+			/** Use a True Type Font which comes bundled with Auto-Vk-Toolkit */
+			use_ttf
 		};
 
 		/**	Create an ImGui manager element.
-		 *	@param		aName							You *can* give it a name, but you can also leave it at the default name "imgui_manager".
-		 *	@param		aAlterSettingsBeforeCreation	Allows to modify the ImGui style
+		 *	@param		aName								You *can* give it a name, but you can also leave it at the default name "imgui_manager".
+		 *	@param		aAlterSettingsBeforeInitialization	Allows to modify the ImGui style, e.g., like follows:
+		 *													[](float uiScale) {
+		 *														auto& style = ImGui::GetStyle();
+		 *														style = ImGuiStyle(); // reset to default style (for non-color settings, like rounded corners)
+		 *														ImGui::StyleColorsClassic(); // change color theme
+		 *														style.ScaleAllSizes(uiScale); // and scale
+		 *													}
 		 */
-		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, std::function<void(float uiScale)> aAlterSettingsBeforeCreation = {})
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, std::function<void(float)> aAlterSettingsBeforeInitialization = {})
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mUserInteractionEnabled{ true }
-			, mAlterSettingsBeforeCreation{ std::move(aAlterSettingsBeforeCreation) }
+			, mAlterSettingsBeforeInitialization{ std::move(aAlterSettingsBeforeInitialization) }
 		{
 			if (aRenderpassToUse.has_value()) {
 				mRenderpass = std::move(aRenderpassToUse.value());
@@ -98,8 +111,11 @@ namespace avk
 			mUsingSemaphoreInsteadOfFenceForFontUpload = true;
 		}
 
-		void set_custom_font_mode(custom_font_mode aMode) {
-			mCustomFontMode = aMode;
+		/** Configure imgui_manager which font to use. 
+		 *  @param aMode	Pass font_mode::automatic to let imgui_manager decide, or a different value to decide on your own.
+		 */
+		void set_font_mode(font_mode aMode) {
+			mFontMode = aMode;
 		}
 
         /** Indicates whether or not ImGui wants to occupy the mouse.
@@ -152,8 +168,8 @@ namespace avk
 		bool mOccupyMouseLastFrame = false;
 
 		// customization
-		std::function<void(float uiScale)> mAlterSettingsBeforeCreation = {};
-		custom_font_mode mCustomFontMode = custom_font_mode::automatic;
+		std::function<void(float)> mAlterSettingsBeforeInitialization = {};
+		font_mode mFontMode = font_mode::automatic;
 	};
 
 }

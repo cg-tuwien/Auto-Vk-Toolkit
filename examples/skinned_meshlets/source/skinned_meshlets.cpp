@@ -421,7 +421,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			    avk::descriptor_binding(3, 4, avk::as_storage_buffers(mIndicesDataBuffers)),
 #endif
 			    avk::descriptor_binding(3, 5, avk::as_uniform_texel_buffer_views(mBoneIndicesBuffers)),
-			    avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mBoneWeightsBuffers)),
+			    avk::descriptor_binding(3, 6, avk::as_uniform_texel_buffer_views(mBonhttps://github.com/cg-tuwien/MeshShaderSkinningCulling/tree/master/assetseWeightsBuffers)),
 			    avk::descriptor_binding(4, 0, mMeshletsBuffer)
 		    );
 		};
