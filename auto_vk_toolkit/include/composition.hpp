@@ -347,7 +347,9 @@ namespace avk
 
 #if !SINGLE_THREADED
 			// off it goes
-			std::thread renderThread(render_thread, this, std::move(aUpdateCallback), std::move(aRenderCallback));
+			std::thread renderThread(
+				render_thread<decltype(aUpdateCallback), decltype(aRenderCallback)>,
+				this, std::move(aUpdateCallback), std::move(aRenderCallback));
 #endif
 			
 			while (!mShouldStop)
