@@ -226,6 +226,8 @@ namespace avk
 #endif
 		bool supports_mesh_shader_nv(const vk::PhysicalDevice& device);
 		bool is_mesh_shader_nv_requested();
+		bool supports_dynamic_rendering(const vk::PhysicalDevice& device);
+		bool is_dynamic_rendering_requested();
 
 #if VK_HEADER_VERSION >= 162
 		bool ray_tracing_pipeline_extension_requested();

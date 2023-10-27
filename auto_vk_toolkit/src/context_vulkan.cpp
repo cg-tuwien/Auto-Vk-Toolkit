@@ -293,6 +293,14 @@ namespace avk
 			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
 
+		auto dynamicRenderingFeature = VkPhysicalDeviceDynamicRenderingFeaturesKHR{};
+		dynamicRenderingFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		dynamicRenderingFeature.dynamicRendering = VK_TRUE;
+		if(is_dynamic_rendering_requested() && supports_dynamic_rendering(context().physical_device())){
+			dynamicRenderingFeature.pNext = deviceFeatures.pNext;
+			deviceFeatures.setPNext(&dynamicRenderingFeature);
+		}
+
 		// Unconditionally enable Synchronization2, because synchronization abstraction depends on it; it is just not implemented for Synchronization1:
 		auto physicalDeviceSync2Features = vk::PhysicalDeviceSynchronization2FeaturesKHR{}
 			.setPNext(deviceFeatures.pNext)
@@ -911,6 +919,28 @@ namespace avk
 	}
 #endif
 
+	bool context_vulkan::supports_dynamic_rendering(const vk::PhysicalDevice& device)
+	{
+		vk::PhysicalDeviceProperties2 physicalProperties;
+		device.getProperties2(&physicalProperties, dispatch_loader_core());
+		bool dynamic_rendering_supported = false;
+
+		// Dynamic rendering is promoted to core in vulkan 1.3
+		if(VK_API_VERSION_MINOR(physicalProperties.properties.apiVersion) >= 3)
+		{
+			dynamic_rendering_supported = true;
+		}
+		else
+		{
+			vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+			auto dynamicRenderingFeatures = VkPhysicalDeviceDynamicRenderingFeaturesKHR{};
+			supportedExtFeatures.pNext = &dynamicRenderingFeatures;
+			device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
+			dynamic_rendering_supported = dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
+		}
+		return dynamic_rendering_supported;
+	}
+
 	bool context_vulkan::supports_mesh_shader_nv(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
@@ -925,6 +955,11 @@ namespace avk
 		const auto& devex = get_all_enabled_device_extensions();
 		return std::find(std::begin(devex), std::end(devex), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(devex);
 	}	
+	bool context_vulkan::is_dynamic_rendering_requested()
+	{
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) != std::end(devex);
+	}
 
 #if VK_HEADER_VERSION >= 162
 	bool context_vulkan::ray_tracing_pipeline_extension_requested()

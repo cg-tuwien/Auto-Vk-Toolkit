@@ -166,7 +166,7 @@ public:
 				// avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), avk::stage::auto_stage >> avk::stage::vertex_attribute_input, avk::access:: auto_access >> avk::access::vertex_attribute_read),
 
 				// Begin and end one renderpass:
-				avk::command::render_pass(mPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(*mPipeline->renderpass_pointer().value(), avk::context().main_window()->current_backbuffer_reference(), {
 					// And within, bind a pipeline and perform an indexed draw call:
 					avk::command::bind_pipeline(mPipeline.as_reference()),
 					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())

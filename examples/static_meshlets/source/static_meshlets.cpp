@@ -465,7 +465,7 @@ mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0),
 
 		        sync::global_memory_barrier(stage::all_commands >> stage::all_commands, access::memory_write >> access::memory_write | access::memory_read),
 
-				command::render_pass(pipeline->renderpass_reference(), context().main_window()->current_backbuffer_reference(), {
+				command::render_pass(*pipeline->renderpass_pointer().value(), context().main_window()->current_backbuffer_reference(), {
 					command::bind_pipeline(pipeline.as_reference()),
 					command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						descriptor_binding(0, 0, as_combined_image_samplers(mImageSamplers, layout::shader_read_only_optimal)),
