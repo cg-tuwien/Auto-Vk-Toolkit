@@ -18,7 +18,7 @@
 
 class dynamic_rendering_app : public avk::invokee
 {
-public: // v== xk::invokee overrides which will be invoked by the framework ==v
+public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	dynamic_rendering_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
 		, mXSplit{0.5f}
@@ -100,7 +100,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 		avk::image_t const & swapchainImage = mainWnd->current_image_reference(); 
 		avk::attachment colorAttachment = avk::attachment::declare_for(swapchainImageView.as_reference(), avk::on_load::clear, avk::usage::color(0), avk::on_store::store);
 
-		std::vector<avk::recorded_commands_t> render_commands = {};
+		std::vector<avk::recorded_commands_t> renderCommands = {};
 		// First we transition the swapchain image into color attachment format
 		render_commands.emplace_back(
 			avk::sync::image_memory_barrier(swapchainImage,

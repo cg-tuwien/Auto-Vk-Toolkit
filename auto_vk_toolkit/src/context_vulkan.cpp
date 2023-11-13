@@ -923,7 +923,7 @@ namespace avk
 	{
 		vk::PhysicalDeviceProperties2 physicalProperties;
 		device.getProperties2(&physicalProperties, dispatch_loader_core());
-		bool dynamic_rendering_supported = false;
+		bool dynamicRenderingSupported = false;
 
 		// Dynamic rendering is promoted to core in vulkan 1.3
 		if(VK_API_VERSION_MINOR(physicalProperties.properties.apiVersion) >= 3)
