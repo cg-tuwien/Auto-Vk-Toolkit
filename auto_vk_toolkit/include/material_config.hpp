@@ -97,7 +97,7 @@ namespace avk
 			, mExtraTexBorderHandlingMode		{ { avk::border_handling_mode::clamp_to_edge, avk::border_handling_mode::clamp_to_edge } }
 		{}
 
-		material_config(material_config &&) = default;
+		material_config(material_config&&) = default;
 		material_config(const material_config&) = default;
 		material_config& operator=(material_config&&) = default;
 		material_config& operator=(const material_config&) = default;
