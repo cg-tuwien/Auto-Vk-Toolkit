@@ -47,12 +47,12 @@ namespace avk
 			assert(!aImageData.empty());
 
 			if (aImageData.target() != vk::ImageType::e2D) {
-				throw avk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as 2D image. Can't load it.", aImageData.path()));
+				throw avk::runtime_error(std::format("The image loaded from '{}' is not intended to be used as 2D image. Can't load it.", aImageData.path()));
 			}
 
 			bool is_cube_compatible = (static_cast<int>(aImageUsage) & static_cast<int>(avk::image_usage::cube_compatible)) > 0;
 			if (is_cube_compatible && aImageData.faces() != 6) {
-				throw avk::runtime_error(fmt::format("The image loaded from '{}' is not intended to be used as a cube map image.", aImageData.path()));
+				throw avk::runtime_error(std::format("The image loaded from '{}' is not intended to be used as a cube map image.", aImageData.path()));
 			}
 
 			width = aImageData.extent().width;
@@ -176,7 +176,7 @@ namespace avk
 				}
 				else if (aSerializer && aSerializer->get().mode() == avk::serializer::mode::deserialize) {
 					aSerializer->get().archive_buffer(*sb);
-					LOG_INFO(fmt::format("Buffer of size {} loaded from cache", sb->meta_at_index<avk::buffer_meta>(0).total_size()));
+					LOG_INFO(std::format("Buffer of size {} loaded from cache", sb->meta_at_index<avk::buffer_meta>(0).total_size()));
 				}
 
 				// Memory writes are not overlapping => no barriers should be fine.

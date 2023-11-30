@@ -35,7 +35,7 @@ namespace avk
 				[](auto name) {
 					auto supported = is_validation_layer_supported(name);
 					if (!supported) {
-						LOG_WARNING(fmt::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
+						LOG_WARNING(std::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
 					}
 					return supported;
 				});
@@ -570,7 +570,7 @@ namespace avk
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw avk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw avk::runtime_error(std::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
 			vk::ObjectDestroy<vk::Instance, DISPATCH_LOADER_CORE_TYPE> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
@@ -702,7 +702,7 @@ namespace avk
 
 		if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_ERROR___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_ERROR___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber, 
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -710,7 +710,7 @@ namespace avk
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_WARNING___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_WARNING___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -719,13 +719,13 @@ namespace avk
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			assert(pCallbackData);
 			if (std::string("Loader Message") == pCallbackData->pMessageIdName) {
-				LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+				LOG_VERBOSE___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
 			}
 			else {
-				LOG_INFO___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+				LOG_INFO___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
 					pCallbackData->pMessageIdName,
 					pCallbackData->pMessage));
@@ -734,7 +734,7 @@ namespace avk
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_VERBOSE___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
 				pCallbackData->pMessageIdName,
 				pCallbackData->pMessage));
@@ -807,27 +807,27 @@ namespace avk
 		void* pUserData)
 	{
 		if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0) {
-			LOG_ERROR___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_ERROR___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) != 0) {
-			LOG_WARNING___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_WARNING___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) != 0) {
-			LOG_DEBUG___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_DEBUG___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
-		LOG_INFO___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+		LOG_INFO___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 			to_string(vk::DebugReportFlagsEXT{ flags }),
 			to_string(vk::DebugReportObjectTypeEXT(objectType)),
 			pMessage));
@@ -1029,7 +1029,7 @@ namespace avk
 				score += 30;
 			}
 			else {
-				LOG_INFO(fmt::format("Physical device \"{}\" does not support samplerAnisotropy.", properties.deviceName));
+				LOG_INFO(std::format("Physical device \"{}\" does not support samplerAnisotropy.", properties.deviceName.data()));
 			}
 
 			// Check if descriptor indexing is supported
@@ -1042,20 +1042,20 @@ namespace avk
 				    score += 40;
 				}
 				else {
-					LOG_INFO(fmt::format("Physical device \"{}\" does not provide any descriptorBindingVariableDescriptor.", properties.deviceName));
+					LOG_INFO(std::format("Physical device \"{}\" does not provide any descriptorBindingVariableDescriptor.", properties.deviceName.data()));
 				}
 			}
 
 			// Check if Auto-Vk-Toolkit-required extensions are supported
             auto deviceExtensions = physicalDevice.enumerateDeviceExtensionProperties();
             if (!supports_given_extensions(deviceExtensions, sRequiredDeviceExtensions)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName));
+				LOG_WARNING(std::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName.data()));
                 for (const auto& extensionName : sRequiredDeviceExtensions) {
                     auto extensionInfo = std::string("    - ") + extensionName + " ...";
                     while (extensionInfo.length() < 60) {
                         extensionInfo += ".";
                     }
-                    auto result = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName) == 0; });
+                    auto result = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName.data()) == 0; });
                     extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
                     LOG_WARNING(extensionInfo);
                 }
@@ -1064,13 +1064,13 @@ namespace avk
 
 			// Check if user-requested extensions are supported
 			if (!supports_given_extensions(physicalDevice, mSettings.mRequiredDeviceExtensions.mExtensions)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName));
+				LOG_WARNING(std::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName.data()));
                 for (const auto& extensionName : mSettings.mRequiredDeviceExtensions.mExtensions) {
                     auto extensionInfo = std::string("    - ") + extensionName + " ...";
                     while (extensionInfo.length() < 60) {
                         extensionInfo += ".";
                     }
-                    auto result           = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName) == 0; });
+                    auto result           = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName.data()) == 0; });
                     extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
                     LOG_WARNING(extensionInfo);
                 }
@@ -1083,7 +1083,7 @@ namespace avk
 				    score += 100;
 			    }
 				else {
-					LOG_WARNING(fmt::format("Physical device \"{}\" does not support the optional extension \"{}\".", properties.deviceName, ex));
+					LOG_WARNING(std::format("Physical device \"{}\" does not support the optional extension \"{}\".", properties.deviceName.data(), ex));
 				}
 			}
 
@@ -1104,7 +1104,7 @@ namespace avk
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
 		mContextState = avk::context_state::physical_device_selected;
-		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
+		LOG_INFO(std::format("Going to use {}", mPhysicalDevice.getProperties().deviceName.data()));
 	}
 
 	glm::uvec2 context_vulkan::get_resolution_for_window(window* aWindow)

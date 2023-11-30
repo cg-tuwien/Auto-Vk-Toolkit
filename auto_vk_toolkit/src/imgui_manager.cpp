@@ -206,9 +206,6 @@ namespace avk
 		//io.ClipboardUserData = g_Window;
 		// Upload fonts:
 		upload_fonts();
-		if (nullptr != data) {
-			delete [] data;
-		}
 	}
 
 	void imgui_manager::update()
