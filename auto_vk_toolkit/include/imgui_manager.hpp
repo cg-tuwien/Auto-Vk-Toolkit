@@ -100,7 +100,7 @@ namespace avk
 		/** Configure imgui_manager which font to use. 
 		 *  @param aPathToTtfFont	Path to a custom TTF font file to be used, or empty for using ImGui's bundled default font.
 		 */
-        void set_font_mode(std::string aPathToTtfFont = {}) {
+        void set_custom_font(std::string aPathToTtfFont = {}) {
 			mCustomTtfFont = std::move(aPathToTtfFont);
 		}
 
