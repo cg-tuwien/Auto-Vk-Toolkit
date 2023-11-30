@@ -10,20 +10,6 @@ namespace avk
 	class imgui_manager : public invokee
 	{
 	public:
-		/** Enum for configuring which font ImGui shall use
-		 */
-		enum struct font_mode
-		{
-			/** Automatically select whether to use ImGui's default font or a TTF, based on the UI scale. */
-			automatic, 
-
-			/** Use ImGui's default font */
-			use_default_font,
-
-			/** Use a True Type Font which comes bundled with Auto-Vk-Toolkit */
-			use_ttf
-		};
-
 		/**	Create an ImGui manager element.
 		 *	@param		aName								You *can* give it a name, but you can also leave it at the default name "imgui_manager".
 		 *	@param		aAlterSettingsBeforeInitialization	Allows to modify the ImGui style, e.g., like follows:
@@ -112,10 +98,10 @@ namespace avk
 		}
 
 		/** Configure imgui_manager which font to use. 
-		 *  @param aMode	Pass font_mode::automatic to let imgui_manager decide, or a different value to decide on your own.
+		 *  @param aPathToTtfFont	Path to a custom TTF font file to be used, or empty for using ImGui's bundled default font.
 		 */
-		void set_font_mode(font_mode aMode) {
-			mFontMode = aMode;
+        void set_font_mode(std::string aPathToTtfFont = {}) {
+			mCustomTtfFont = std::move(aPathToTtfFont);
 		}
 
         /** Indicates whether or not ImGui wants to occupy the mouse.
@@ -169,7 +155,7 @@ namespace avk
 
 		// customization
 		std::function<void(float)> mAlterSettingsBeforeInitialization = {};
-		font_mode mFontMode = font_mode::automatic;
+		std::string mCustomTtfFont = {};
 	};
 
 }

@@ -53,20 +53,15 @@ namespace avk
 		// Scale the UI according to the rounded font size:
 		float uiScale  = fontSize / baseFontSize;
 
-		uint8_t* data = nullptr;
-		bool useDefaultFont = mFontMode == font_mode::automatic
-		                        ? glm::abs(uiScale - 1.f) < 1e-5f 
-		                        : mFontMode == font_mode::use_default_font;
-		if (useDefaultFont) {
+		if (mCustomTtfFont.empty()) {
 			io.Fonts->AddFontDefault();
 		}
 		else {
 			auto  font_cfg = ImFontConfig();
 			font_cfg.FontDataOwnedByAtlas = false;
-			ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", JetBrainsMono_Regular::get_font_name(), fontSize);
+			ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", mCustomTtfFont.c_str(), fontSize);
 			size_t data_size;
-			std::tie(data_size, data) = JetBrainsMono_Regular::get_size_and_bytes();
-			io.Fonts->AddFontFromMemoryTTF(data, (int)data_size, fontSize, &font_cfg, nullptr);
+			io.Fonts->AddFontFromFileTTF(mCustomTtfFont.c_str(), fontSize, &font_cfg, nullptr);
 		}
 
 		auto& style                              = ImGui::GetStyle();
