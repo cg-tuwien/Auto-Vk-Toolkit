@@ -15,7 +15,6 @@
 #include "composition_interface.hpp"
 #include "vk_convenience_functions.hpp"
 #include "timer_interface.hpp"
-#include "JetBrainsMono-Regular.hpp"
 
 namespace avk
 {
@@ -33,7 +32,7 @@ namespace avk
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
+		ImGui::StyleColorsClassic();
 
 		// Try to determine the display scale s.t. we can scale the font and the UI accordingly:
 		auto assignedMonitor = wnd->monitor();
@@ -49,17 +48,26 @@ namespace avk
 		context().signal_waiting_main_thread();
 		while(!contentScaleRetrieved) { LOG_DEBUG("Waiting for main thread..."); }
 
-		io.Fonts->Clear();
 		const float baseFontSize = 15.f;
 		float fontSize = glm::round(baseFontSize * contentScale);
-		auto  font_cfg = ImFontConfig();
-		font_cfg.FontDataOwnedByAtlas = false;
-		ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", JetBrainsMono_Regular::get_font_name(), fontSize);
-		auto [data_size, data] = JetBrainsMono_Regular::get_size_and_bytes();
-		io.Fonts->AddFontFromMemoryTTF(data, (int)data_size, fontSize, &font_cfg, nullptr);
-
 		// Scale the UI according to the rounded font size:
 		float uiScale  = fontSize / baseFontSize;
+
+		uint8_t* data = nullptr;
+		bool useDefaultFont = mFontMode == font_mode::automatic
+		                        ? glm::abs(uiScale - 1.f) < 1e-5f 
+		                        : mFontMode == font_mode::use_default_font;
+		if (useDefaultFont) {
+			io.Fonts->AddFontDefault();
+		}
+		else {
+			auto  font_cfg = ImFontConfig();
+			font_cfg.FontDataOwnedByAtlas = false;
+			ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", JetBrainsMono_Regular::get_font_name(), fontSize);
+			size_t data_size;
+			std::tie(data_size, data) = JetBrainsMono_Regular::get_size_and_bytes();
+			io.Fonts->AddFontFromMemoryTTF(data, (int)data_size, fontSize, &font_cfg, nullptr);
+		}
 
 		auto& style                              = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg]           = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
@@ -71,15 +79,19 @@ namespace avk
         style.Colors[ImGuiCol_Button]            = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
         style.Colors[ImGuiCol_ButtonHovered]     = ImVec4(0.0f, 150.0f / 255.f, 169.0f / 255.f, 159.f / 255.f);
         style.Colors[ImGuiCol_ButtonActive]      = ImVec4(216.f / 255.f, 42.f / 255.f, 99.f / 255.f, 242.f / 255.f);
-        style.ChildRounding                      = 3.f;
-        style.FrameRounding                      = 3.f;
-        style.GrabRounding                       = 3.f;
-        style.PopupRounding                      = 3.f;
-        style.PopupRounding                      = 3.f;
-        style.ScrollbarRounding                  = 3.f;
-        style.TabRounding                        = 3.f;
-        style.WindowRounding                     = 3.f;
+        style.ChildRounding                      = 2.f;
+        style.FrameRounding                      = 2.f;
+        style.GrabRounding                       = 2.f;
+        style.PopupRounding                      = 2.f;
+        style.PopupRounding                      = 2.f;
+        style.ScrollbarRounding                  = 2.f;
+        style.TabRounding                        = 2.f;
+        style.WindowRounding                     = 2.f;
 		style.ScaleAllSizes(uiScale);
+
+		if (mAlterSettingsBeforeInitialization) {
+			mAlterSettingsBeforeInitialization(uiScale); // allow the user to change the style
+		}
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(wnd->handle()->mHandle, true); // TODO: Don't install callbacks (get rid of them during 'fixed/varying-input Umstellung DOUBLECHECK')
@@ -199,7 +211,9 @@ namespace avk
 		//io.ClipboardUserData = g_Window;
 		// Upload fonts:
 		upload_fonts();
-		delete [] data;
+		if (nullptr != data) {
+			delete [] data;
+		}
 	}
 
 	void imgui_manager::update()
