@@ -56,13 +56,18 @@ jobs:
             sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
           fi
 
+          # For GCC-13
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
+
           # Update package lists
           sudo apt-get update -qq
           # Install dependencies
           sudo apt-get install -y \
             vulkan-sdk \
             libassimp-dev \
-            xorg-dev
+            xorg-dev \
+            g++-13 \
+            gcc-13
 
           # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
           if [ "${{ matrix.config.cc }}" = "clang" ]; then
