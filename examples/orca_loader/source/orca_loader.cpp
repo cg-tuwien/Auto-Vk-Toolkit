@@ -641,6 +641,7 @@ int main() // <== Starting point ==
 		auto app = orca_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = avk::imgui_manager(singleQueue);
+		ui.set_custom_font("assets/JetBrainsMono-Regular.ttf");
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
