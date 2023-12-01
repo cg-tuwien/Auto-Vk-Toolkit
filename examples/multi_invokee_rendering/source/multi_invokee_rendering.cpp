@@ -160,7 +160,7 @@ int main() // <== Starting point ==
 
 			for (auto* app : apps) {
 				bool isEnabled = app->is_enabled();
-				std::string name = fmt::format("Disable/Enable Invokee [{}]", app->name());
+				std::string name = std::format("Disable/Enable Invokee [{}]", app->name());
 				ImGui::Checkbox(name.c_str(), &isEnabled);
 				if (isEnabled != app->is_enabled())
 				{

@@ -161,12 +161,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = avk::context().get_time();
 
 		for (auto& t : times) {
-			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+			LOG_INFO(std::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
 		auto end = avk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("load_orca_scene took {} in total", diff));
+		LOG_INFO(std::format("load_orca_scene took {} in total", diff));
 
 
 		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
@@ -360,12 +360,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = avk::context().get_time();
 
 		for (auto& t : times) {
-			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+			LOG_INFO(std::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
 		auto end = avk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("load_orca_scene_cached took {} in total", diff));
+		LOG_INFO(std::format("load_orca_scene_cached took {} in total", diff));
 
 		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
