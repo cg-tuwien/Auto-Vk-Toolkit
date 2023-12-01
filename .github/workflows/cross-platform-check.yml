@@ -30,8 +30,8 @@ jobs:
           #}
           - {
             name: "linux: gcc",
-            cc: "gcc-10",
-            cxx: "g++-10"
+            cc: "gcc-13",
+            cxx: "g++-13"
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
