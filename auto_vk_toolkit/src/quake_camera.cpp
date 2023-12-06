@@ -30,11 +30,11 @@ namespace avk
 		// display info about myself
 		if (input().key_pressed(key_code::i)
 			&& (input().key_down(key_code::left_control) || input().key_down(key_code::right_control))) {
-			LOG_INFO(fmt::format("quake_camera's position: {}", to_string(translation())));
-			LOG_INFO(fmt::format("quake_camera's view-dir: {}", to_string(front(*this))));
-			LOG_INFO(fmt::format("quake_camera's up-vec:   {}", to_string(up(*this))));
-			LOG_INFO(fmt::format("quake_camera's position and orientation:\n{}", to_string(mMatrix)));
-			LOG_INFO(fmt::format("quake_camera's view-mat:\n{}", to_string(view_matrix())));
+			LOG_INFO(std::format("quake_camera's position: {}", to_string(translation())));
+			LOG_INFO(std::format("quake_camera's view-dir: {}", to_string(front(*this))));
+			LOG_INFO(std::format("quake_camera's up-vec:   {}", to_string(up(*this))));
+			LOG_INFO(std::format("quake_camera's position and orientation:\n{}", to_string(mMatrix)));
+			LOG_INFO(std::format("quake_camera's view-mat:\n{}", to_string(view_matrix())));
 		}
 
 		auto deltaCursor = input().delta_cursor_position();
@@ -42,11 +42,11 @@ namespace avk
 
 		// query the position of the mouse cursor
 		auto mousePos = input().cursor_position();
-		//LOG_INFO(fmt::format("mousePos[{},{}]", mousePos.x, mousePos.y));
+		//LOG_INFO(std::format("mousePos[{},{}]", mousePos.x, mousePos.y));
 
 		// calculate how much the cursor has moved from the center of the screen
 		auto mouseMoved = deltaCursor;
-		//LOG_INFO_EM(fmt::format("mouseMoved[{},{}]", mouseMoved.x, mouseMoved.y));
+		//LOG_INFO_EM(std::format("mouseMoved[{},{}]", mouseMoved.x, mouseMoved.y));
 
 		// accumulate values and create rotation-matrix
 		glm::quat rotHoriz = glm::angleAxis(mRotationSpeed * static_cast<float>(mouseMoved.x), glm::vec3(0.f, 1.f, 0.f));

@@ -22,6 +22,9 @@
     <None Include="..\..\..\assets\sponza_and_terrain.fscene">
       <Filter>assets</Filter>
     </None>
+    <None Include="..\..\..\assets\3rd_party\fonts\JetBrainsMono-2.304\fonts\ttf\JetBrainsMono-Regular.ttf">
+      <Filter>assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\examples\orca_loader\source\orca_loader.cpp" />

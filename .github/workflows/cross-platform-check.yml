@@ -30,8 +30,8 @@ jobs:
           #}
           - {
             name: "linux: gcc",
-            cc: "gcc-10",
-            cxx: "g++-10"
+            cc: "gcc-13",
+            cxx: "g++-13"
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
@@ -56,13 +56,18 @@ jobs:
             sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
           fi
 
+          # For GCC-13
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
+
           # Update package lists
           sudo apt-get update -qq
           # Install dependencies
           sudo apt-get install -y \
             vulkan-sdk \
             libassimp-dev \
-            xorg-dev
+            xorg-dev \
+            g++-13 \
+            gcc-13
 
           # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
           if [ "${{ matrix.config.cc }}" = "clang" ]; then
@@ -97,7 +102,7 @@ jobs:
         run: cmake --build .
 
   windows:
-    name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
+    name: ${{ matrix.config.name }}, windows-2019, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-2019
     env:
       vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
@@ -155,7 +160,7 @@ jobs:
         run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
 
   windows-latest:
-    name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
+    name: ${{ matrix.config.name }}, windows-latest, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-latest
     env:
       vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"

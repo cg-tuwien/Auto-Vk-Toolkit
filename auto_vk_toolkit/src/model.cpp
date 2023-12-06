@@ -13,7 +13,7 @@ namespace avk
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw avk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+			throw avk::runtime_error(std::format("Loading model from '{}' failed.", aPath));
 		}
 		result.initialize_materials();
 		return result;
@@ -584,7 +584,7 @@ namespace avk
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mNormals) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f, 1.f);
 			}
@@ -605,7 +605,7 @@ namespace avk
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mTangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 0.f);
 			}
@@ -626,7 +626,7 @@ namespace avk
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mBitangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 1.f, 0.f);
 			}
@@ -648,7 +648,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_COLOR_SETS);
 		if (nullptr == paiMesh->mColors[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 1.f, 1.f);
 			}
@@ -669,7 +669,7 @@ namespace avk
 		std::vector<glm::vec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 0.f, 0.f);
 			}
@@ -714,7 +714,7 @@ namespace avk
 				}
 			}
 			if (hasNonNormalizedBoneWeights) {
-				LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
+				LOG_WARNING(std::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
 			}
 		}
 		return result;
@@ -728,7 +728,7 @@ namespace avk
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
 			const uint32_t fallbackIndex = aBoneIndexOffset;
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex);
 			}
@@ -1202,7 +1202,7 @@ namespace avk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+				LOG_ERROR(std::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -1247,7 +1247,7 @@ namespace avk
 
 					auto it = mapNameToNode.find(to_string(bone->mName));
 					if (it == std::end(mapNameToNode)) {
-						LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
+						LOG_ERROR(std::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
 						continue;
 					}
 
@@ -1284,7 +1284,7 @@ namespace avk
 			auto uniqueEnd = std::unique(std::begin(sanityCheck), std::end(sanityCheck));
 			if (uniqueEnd != std::end(sanityCheck)) {
 				LOG_WARNING(
-					fmt::format(
+					std::format(
 						"Some nodes are contained multiple times in the animation channels of animation[{}]. Don't know if that's going to lead to correct results."
 						, aAnimationIndex));
 			}
@@ -1297,7 +1297,7 @@ namespace avk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+				LOG_ERROR(std::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -1307,7 +1307,7 @@ namespace avk
 			while (nullptr != parent) {
 				if (isNodeModifiedByBones(parent) && !isNodeAlreadyAdded(parent).has_value()) {
 					boneAnimatedParents.push(parent);
-					LOG_DEBUG(fmt::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
+					LOG_DEBUG(std::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
 				}
 				parent = parent->mParent;
 			}
