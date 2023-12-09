@@ -100,6 +100,13 @@ Several example applications are included in this repository:
 - [Ray Tracing Custom Intersection](./examples/ray_tracing_custom_intersection): How to build acceleration structures from AABBs and from triangle meshes.
 - [Texture Cubemap](./examples/texture_cubemap): How to load and use cube maps.
 
+Controls:
+* **WASD**
+* **E/Q** for up/down
+* **Shift** to go faster
+* **Esc** to exit
+* **F1** to Toggle input-mode (UI vs. scene navigation)
+
 Skinned Meshlets           | Ray Query and Ray Tracing | RTX Custom Intersection |   Texture Cubemap    
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 ![Screenshot of the skinned_meshlets example application](./docs/images/example_skinned_meshlets.png) | ![Screenshot of the ray_query_in_ray_tracing_shaders example application](./docs/images/example_ray_tracing_shadows_ao.png) | ![Screenshot of the ray_tracing_custom_intersection example application](./docs/images/example_ray_tracing_custom_intersection.png) |  ![Screenshot of the texture_cubemap example application](./docs/images/example_texture_cubemap.png)
