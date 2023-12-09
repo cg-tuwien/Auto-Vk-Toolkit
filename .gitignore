@@ -7,3 +7,4 @@ out/
 
 # CLion cache
 .idea/
+cmake-*/
