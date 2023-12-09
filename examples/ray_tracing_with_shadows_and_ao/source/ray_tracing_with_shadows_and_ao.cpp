@@ -465,6 +465,7 @@ int main() // <== Starting point ==
 			avk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing with Shadows and AO"),
 			avk::required_device_extensions()
 			// We need several extensions for ray tracing:
+            .add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
 			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 			.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 			.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)

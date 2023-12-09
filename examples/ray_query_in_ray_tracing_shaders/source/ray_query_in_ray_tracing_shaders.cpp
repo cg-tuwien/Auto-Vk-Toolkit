@@ -463,6 +463,7 @@ int main() // <== Starting point ==
 			avk::application_name("Auto-Vk-Toolkit Example: Ray Query in Ray Tracing Shaders"),
 			avk::required_device_extensions()
 			// We need several extensions for ray tracing:
+            .add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
 			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 			.add_extension(VK_KHR_RAY_QUERY_EXTENSION_NAME)
 			.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
