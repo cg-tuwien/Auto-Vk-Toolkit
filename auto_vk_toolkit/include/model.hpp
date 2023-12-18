@@ -128,7 +128,7 @@ namespace avk
 		 *				`tangents_for_mesh`, `bitangents_for_mesh`, `colors_for_mesh`, 
 		 *				and `texture_coordinates_for_mesh`
 		 */
-		inline size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
+		size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the positions for the mesh at the given index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -260,7 +260,7 @@ namespace avk
 		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(T(*aTransformFunc)(const T&), mesh_index_t aMeshIndex, int aSet = 0) const
 		{
-			throw avk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+			throw avk::logic_error(std::format("unsupported type {}", typeid(T).name()));
 		}
 
 		/** Gets all the texture coordinates of a UV-set for the mesh at the given index.
@@ -432,7 +432,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f);
 			}
@@ -452,7 +452,7 @@ namespace avk
 				}
 				break;
 			default:
-				throw avk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
+				throw avk::logic_error(std::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
@@ -467,7 +467,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f, 0.f);
 			}
@@ -491,7 +491,7 @@ namespace avk
 				}
 				break;
 			default:
-				throw avk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
+				throw avk::logic_error(std::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
@@ -512,7 +512,7 @@ namespace avk
 		// Check whether all of the vertex data has the same length!
 		auto countOfNext = get_vertex_count(aRest...);
 		if (countOfNext != aFirst.size()) {
-			throw avk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, aFirst.size()));
+			throw avk::logic_error(std::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, aFirst.size()));
 		}
 #endif
 		return aFirst.size();

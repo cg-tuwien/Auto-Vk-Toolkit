@@ -289,7 +289,7 @@ namespace avk
 
 	void context_generic_glfw::glfw_error_callback(int error, const char* description)
 	{
-		LOG_ERROR(fmt::format("GLFW-Error: hex[0x{0:x}] int[{0}] description[{1}]", error, description));
+		LOG_ERROR(std::format("GLFW-Error: hex[0x{0:x}] int[{0}] description[{1}]", error, description));
 	}
 
 	void context_generic_glfw::start_receiving_input_from_window(const window& _Window, input_buffer& _InputBuffer)
@@ -327,7 +327,7 @@ namespace avk
 				});
 
 			if (position == mWindows.end()) {
-				throw avk::runtime_error(fmt::format("Window[{}] not found in collection of windows", fmt::ptr(aMainWindowToBe)));
+				throw avk::runtime_error(std::format("Window[{}] not found in collection of windows", reinterpret_cast<intptr_t>(aMainWindowToBe)));
 			}
 
 			mMainWindowIndex = std::distance(std::begin(mWindows), position);

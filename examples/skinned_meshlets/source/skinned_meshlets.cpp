@@ -647,8 +647,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					// Draw all the meshlets with just one single draw call:
 					command::conditional(
 						[this]() { return mUseNvPipeline.value_or(false); },
-						[this]() { return command::draw_mesh_tasks_nv(div_ceil(mNumMeshlets, mTaskInvocationsNv), 0);    },
-						[this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, mTaskInvocationsExt), 1, 1); }
+						[this]() { return command::draw_mesh_tasks_nv(div_ceil(mNumMeshlets, mTaskInvocationsNv), 0);    }
+#if VK_HEADER_VERSION >= 239
+						, [this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, mTaskInvocationsExt), 1, 1); }
+#endif
 					)
 				}),
 
@@ -743,12 +745,14 @@ int main() // <== Starting point ==
 			// Gotta enable the mesh shader extension, ...
 			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME),
 			avk::optional_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME),
+#if VK_HEADER_VERSION >= 239
 			// ... and enable the mesh shader features that we need:
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);
 				meshShaderFeatures.setTaskShader(VK_TRUE);
 				meshShaderFeatures.setMeshShaderQueries(VK_TRUE);
 			},
+#endif
 			[](vk::PhysicalDeviceFeatures& features) {
 				features.setPipelineStatisticsQuery(VK_TRUE);
 			},

@@ -402,7 +402,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		mPipelineStatsPool = avk::context().create_query_pool_for_pipeline_statistics_queries(
 			vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations | vk::QueryPipelineStatisticFlagBits::eMeshShaderInvocationsEXT | vk::QueryPipelineStatisticFlagBits::eTaskShaderInvocationsEXT,
-			avk::context().main_window()->number_of_frames_in_flight()
+			static_cast<uint32_t>(avk::context().main_window()->number_of_frames_in_flight())
 		);
 	}
 
@@ -451,12 +451,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mLastFrameDuration = timers[1] - mLastTimestamp;
 			mLastTimestamp = timers[1];
 
-			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(inFlightIndex, 1, vk::QueryResultFlagBits::e64);
+			mPipelineStats = mPipelineStatsPool->get_results<uint64_t, 3>(static_cast<uint32_t>(inFlightIndex), 1, vk::QueryResultFlagBits::e64);
 		}
 		auto& pipeline = mUseNvPipeline.value_or(false) ? mPipelineNv : mPipelineExt;
 		context().record({
-				mPipelineStatsPool->reset(inFlightIndex, 1),
-				mPipelineStatsPool->begin_query(inFlightIndex),
+				mPipelineStatsPool->reset(static_cast<uint32_t>(inFlightIndex), 1),
+				mPipelineStatsPool->begin_query(static_cast<uint32_t>(inFlightIndex)),
 				mTimestampPool->reset(firstQueryIndex, 2),     // reset the two values relevant for the current frame in flight
 				mTimestampPool->write_timestamp(firstQueryIndex + 0, stage::all_commands), // measure before drawMeshTasks*
 
@@ -486,13 +486,15 @@ mViewProjBuffers[inFlightIndex]->fill(glm::value_ptr(viewProjMat), 0),
 					// Draw all the meshlets with just one single draw call:
 					command::conditional(
 						[this]() { return mUseNvPipeline.value_or(false); }, 
-						[this]() { return command::draw_mesh_tasks_nv (div_ceil(mNumMeshlets, mTaskInvocationsNv ), 0);    },
-						[this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, mTaskInvocationsExt), 1, 1); }
+						[this]() { return command::draw_mesh_tasks_nv (div_ceil(mNumMeshlets, mTaskInvocationsNv ), 0);    }
+#if VK_HEADER_VERSION >= 239
+						, [this]() { return command::draw_mesh_tasks_ext(div_ceil(mNumMeshlets, mTaskInvocationsExt), 1, 1); }
+#endif
 					)
 				}),
 
 				mTimestampPool->write_timestamp(firstQueryIndex + 1, stage::mesh_shader),
-				mPipelineStatsPool->end_query(inFlightIndex)
+				mPipelineStatsPool->end_query(static_cast<uint32_t>(inFlightIndex))
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mQueue)
@@ -574,12 +576,14 @@ int main() // <== Starting point ==
 			// Gotta enable the mesh shader extension, ...
 			avk::required_device_extensions(VK_EXT_MESH_SHADER_EXTENSION_NAME),
 			avk::optional_device_extensions(VK_NV_MESH_SHADER_EXTENSION_NAME),
+#if VK_HEADER_VERSION >= 239
 			// ... and enable the mesh shader features that we need:
 			[](vk::PhysicalDeviceMeshShaderFeaturesEXT& meshShaderFeatures) {
 				meshShaderFeatures.setMeshShader(VK_TRUE);
 				meshShaderFeatures.setTaskShader(VK_TRUE);
 				meshShaderFeatures.setMeshShaderQueries(VK_TRUE);
 			},
+#endif
 			[](vk::PhysicalDeviceFeatures& features) {
 				features.setPipelineStatisticsQuery(VK_TRUE);
 			},

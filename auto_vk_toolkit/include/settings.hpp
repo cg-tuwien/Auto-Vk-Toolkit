@@ -64,7 +64,7 @@ namespace avk
 				mLayers.push_back(aLayerName);
 			}
 			else {
-				LOG_INFO(fmt::format("Validation layer '{}' was already added.", std::string(aLayerName)));
+				LOG_INFO(std::format("Validation layer '{}' was already added.", std::string(aLayerName)));
 			}
 			return *this;
 		}
@@ -76,7 +76,7 @@ namespace avk
 				mLayers.erase(it);
 			}
 			else {
-				LOG_INFO(fmt::format("Validation layer '{}' not found.", aLayerName));
+				LOG_INFO(std::format("Validation layer '{}' not found.", aLayerName));
 			}
 			return *this;
 		}

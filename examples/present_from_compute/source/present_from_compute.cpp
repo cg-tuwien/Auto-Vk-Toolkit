@@ -56,7 +56,7 @@ public:
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 
 		// Create compute pipeline:
@@ -82,7 +82,7 @@ public:
 								avk::on_store::store.in_layout(avk::layout::color_attachment_optimal)
 							)
 						},
-						mainWnd->renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
+						mainWnd->get_renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
 					),
 					avk::context().create_image_view(avk::context().create_image(mainWnd->resolution().x, mainWnd->resolution().y, mainWnd->swap_chain_image_format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment | avk::image_usage::sampled | avk::image_usage::shader_storage))
 				)

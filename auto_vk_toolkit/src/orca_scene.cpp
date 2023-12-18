@@ -22,12 +22,12 @@ namespace avk
 		std::ifstream stream(aPath, std::ifstream::in);
 		if (!stream.good() || !stream || stream.fail())
 		{
-			throw avk::runtime_error(fmt::format("Unable to load scene from path[{}]", aPath));
+			throw avk::runtime_error(std::format("Unable to load scene from path[{}]", aPath));
 		}
 		std::string filecontents = std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
 		if (filecontents.empty())
 		{
-			throw avk::runtime_error(fmt::format("Filecontents empty when loading scene from path[{}]", aPath));
+			throw avk::runtime_error(std::format("Filecontents empty when loading scene from path[{}]", aPath));
 		}
 
 		nlohmann::json j = nlohmann::json::parse(filecontents);
@@ -164,7 +164,7 @@ namespace avk
 	{
 		std::vector<float> v = j;
 		if (v.size() != 3) {
-			LOG_ERROR(fmt::format("Called function convert_json_to_vec3, but vector contains {} values", v.size()));
+			LOG_ERROR(std::format("Called function convert_json_to_vec3, but vector contains {} values", v.size()));
 			return glm::vec3{};
 		}
 		return glm::vec3(v[0], v[1], v[2]);
