@@ -12,7 +12,7 @@ namespace avk
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
 		, mMaxPivotDistance{ 50.f }
-		, mPivotDistanceSlowDownRange{ 0.5f }
+		, mPivotDistanceSlowDownRange{ 3.0f }
 		, mLateralSpeed{ 1.f }
 		, mFastMultiplier(5.0f)
 		, mSlowMultiplier(0.1f)
