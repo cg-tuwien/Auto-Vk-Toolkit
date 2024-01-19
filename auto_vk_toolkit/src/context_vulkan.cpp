@@ -613,8 +613,8 @@ namespace avk
 
 		// Information about the application for the instance creation call
 		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
-										   "Auto-Vk-Toolkit", VK_MAKE_VERSION(0, 98, 1), // TODO: Real version of Auto-Vk-Toolkit
-										   VK_API_VERSION_1_2);
+										   "Auto-Vk-Toolkit", VK_MAKE_VERSION(0, 99, 1),
+										   VK_API_VERSION_1_3);
 
 		// GLFW requires several extensions to interface with the window system. Query them.
 		uint32_t glfwExtensionCount = 0;
