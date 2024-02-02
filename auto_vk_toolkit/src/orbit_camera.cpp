@@ -11,7 +11,7 @@ namespace avk
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
-		, mMaxPivotDistance{ 50.f }
+		//, mMaxPivotDistance{ 50.f }
 		, mPivotDistanceSlowDownRange{ 3.0f }
 		, mLateralSpeed{ 1.f }
 		, mFastMultiplier(5.0f)
@@ -82,46 +82,54 @@ namespace avk
 			// ...and leave mPivotDistance unchanged.
 		}
 		else {
-			// Move camera towards/away from camera
-		    const auto moveCloser = scrollDist > 0.f;
-		    const auto moveAway   = scrollDist < 0.f;
-
-			auto getMoveSpeed = [this](float x) {
-				x = glm::round(x * 20.f) / 20.f;
-                auto spd = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, x) * glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, x);
-				return spd;
-			};
-
-		    if (moveCloser) {
-			    auto spd = getMoveSpeed(mPivotDistance);
-                if (mPivotDistance - mMinPivotDistance > mMaxPivotDistance - mPivotDistance) {
-                    // try to match the moveAway speed
-                    auto candidate = mPivotDistance - spd * pivDistSpeed;
-                    for (int safety = 0; safety < 10 && mPivotDistance - candidate - getMoveSpeed(candidate) * pivDistSpeed < -1e-5; ++safety) {
-                        spd       = getMoveSpeed(candidate);
-                        candidate = mPivotDistance - spd * pivDistSpeed;
-                    }
-                }
-                auto move = front(*this) * spd * pivDistSpeed;
-			    translate(*this, move);
-                mPivotDistance -= spd * pivDistSpeed;
-				calculate_lateral_speed();
+			if (scrollDist != 0.0f) {
+				auto newPos = scrollDist < 0.0
+					? mPivotDistance * 1.1f
+					: mPivotDistance / 1.1f;
+				translate(*this, front(*this) * (mPivotDistance - newPos));
+				mPivotDistance = newPos;
 			}
-		    if (moveAway) {
-                auto spd  = getMoveSpeed(mPivotDistance);
-				if (mPivotDistance - mMinPivotDistance < mMaxPivotDistance - mPivotDistance) {
-					// try to match the moveCloser speed
-                    auto candidate = mPivotDistance + spd * pivDistSpeed;
-                    for (int safety = 0; safety < 10 && candidate - getMoveSpeed(candidate) * pivDistSpeed - mPivotDistance < -1e-5; ++safety) {
-                        spd       = getMoveSpeed(candidate);
-                        candidate = mPivotDistance + spd * pivDistSpeed;
-                    }
-				}
-                auto move = back(*this) * spd * pivDistSpeed;
-			    translate(*this, move);
-                mPivotDistance += spd * pivDistSpeed;
-                calculate_lateral_speed();
-			}
+
+//			// Move camera towards/away from camera
+//		    const auto moveCloser = scrollDist > 0.f;
+//		    const auto moveAway   = scrollDist < 0.f;
+//
+//			auto getMoveSpeed = [this](float x) {
+//				x = glm::round(x * 20.f) / 20.f;
+//                auto spd = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, x) * glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, x);
+//				return spd;
+//			};
+//
+//		    if (moveCloser) {
+//			    auto spd = getMoveSpeed(mPivotDistance);
+//                if (mPivotDistance - mMinPivotDistance > mMaxPivotDistance - mPivotDistance) {
+//                    // try to match the moveAway speed
+//                    auto candidate = mPivotDistance - spd * pivDistSpeed;
+//                    for (int safety = 0; safety < 10 && mPivotDistance - candidate - getMoveSpeed(candidate) * pivDistSpeed < -1e-5; ++safety) {
+//                        spd       = getMoveSpeed(candidate);
+//                        candidate = mPivotDistance - spd * pivDistSpeed;
+//                    }
+//                }
+//                auto move = front(*this) * spd * pivDistSpeed;
+//			    translate(*this, move);
+//                mPivotDistance -= spd * pivDistSpeed;
+//				calculate_lateral_speed();
+//			}
+//		    if (moveAway) {
+//                auto spd  = getMoveSpeed(mPivotDistance);
+//				if (mPivotDistance - mMinPivotDistance < mMaxPivotDistance - mPivotDistance) {
+//					// try to match the moveCloser speed
+//                    auto candidate = mPivotDistance + spd * pivDistSpeed;
+//                    for (int safety = 0; safety < 10 && candidate - getMoveSpeed(candidate) * pivDistSpeed - mPivotDistance < -1e-5; ++safety) {
+//                        spd       = getMoveSpeed(candidate);
+//                        candidate = mPivotDistance + spd * pivDistSpeed;
+//                    }
+//				}
+//                auto move = back(*this) * spd * pivDistSpeed;
+//			    translate(*this, move);
+//                mPivotDistance += spd * pivDistSpeed;
+//                calculate_lateral_speed();
+//			}
 		}
 	}
 
@@ -130,7 +138,7 @@ namespace avk
 		calculate_lateral_speed();
 		mPivotDistanceSpeed = mPivotDistance / 20.f;
 		mPivotDistanceSlowDownRange = mPivotDistance / 3.f;
-		mMaxPivotDistance = mPivotDistance * 3.f;
+		//mMaxPivotDistance = mPivotDistance * 3.f;
 	}
 
 	float orbit_camera::pivot_distance() const {

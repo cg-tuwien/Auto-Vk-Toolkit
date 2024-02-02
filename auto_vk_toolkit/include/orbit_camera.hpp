@@ -50,7 +50,7 @@ namespace avk
 		float mPivotDistance;
 		float mPivotDistanceSpeed;
 		float mMinPivotDistance;
-		float mMaxPivotDistance;
+		//float mMaxPivotDistance;
 		float mPivotDistanceSlowDownRange;
 		glm::vec2 mLateralSpeed;
 		float mFastMultiplier;
