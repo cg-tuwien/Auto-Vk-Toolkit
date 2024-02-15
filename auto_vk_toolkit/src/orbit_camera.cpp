@@ -11,7 +11,7 @@ namespace avk
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
-		//, mMaxPivotDistance{ 50.f }
+		, mMaxPivotDistance{ 500.f }
 		, mPivotDistanceSlowDownRange{ 3.0f }
 		, mLateralSpeed{ 1.f }
 		, mFastMultiplier(5.0f)
@@ -82,18 +82,20 @@ namespace avk
 			// ...and leave mPivotDistance unchanged.
 		}
 		else {
+			// Move camera towards/away from camera
+		    const auto moveCloser = scrollDist > 0.f;
+		    const auto moveAway   = scrollDist < 0.f;
+
 			if (scrollDist != 0.0f) {
+				auto moveAwayFactor = 1.07f;
+				auto moveCloserFactor = moveCloser ? 1.f + .07f * glm::smoothstep(0.0f, 1.0f, mPivotDistance) : 1.0f;
 				auto newPos = scrollDist < 0.0
-					? mPivotDistance * 1.1f
-					: mPivotDistance / 1.1f;
+					? mPivotDistance * moveAwayFactor
+					: mPivotDistance / moveCloserFactor;
 				translate(*this, front(*this) * (mPivotDistance - newPos));
 				mPivotDistance = newPos;
 			}
 
-//			// Move camera towards/away from camera
-//		    const auto moveCloser = scrollDist > 0.f;
-//		    const auto moveAway   = scrollDist < 0.f;
-//
 //			auto getMoveSpeed = [this](float x) {
 //				x = glm::round(x * 20.f) / 20.f;
 //                auto spd = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, x) * glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, x);
