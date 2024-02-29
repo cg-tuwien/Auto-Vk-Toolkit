@@ -40,7 +40,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if(nullptr != imguiManager) {
 			imguiManager->add_callback([this](){	
 				bool isEnabled = this->is_enabled();
-		        ImGui::Begin("Hello, world!");
+		        ImGui::Begin("Particles & Timeline Semaphores");
 				ImGui::SetWindowPos(ImVec2(1.0f, 1.0f), ImGuiCond_FirstUseEver);
 				ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
@@ -63,12 +63,6 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		// On H pressed,
-		if (avk::input().key_pressed(avk::key_code::h)) {
-			// log a message:
-			LOG_INFO_EM("Hello Auto-Vk-Toolkit!");
-		}
-
 		// On C pressed,
 		if (avk::input().key_pressed(avk::key_code::c)) {
 			// center the cursor:
@@ -139,7 +133,7 @@ int main() // <== Starting point ==
 	int result = EXIT_FAILURE;
 	try {
 		// Create a window and open it
-		auto mainWnd = avk::context().create_window("Hello World");
+		auto mainWnd = avk::context().create_window("Particles & Timeline Semaphores");
 		mainWnd->set_resolution({ 640, 480 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
