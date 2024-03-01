@@ -1,6 +1,6 @@
 #version 450
 
-#define PARTICLE_CNT 100000
+#define PARTICLE_CNT 3
 #define COLLIDER_CNT 10
 
 struct Particle {
@@ -37,19 +37,32 @@ struct ParticleSystem{
 	float particleLifetime;
 };
 
-layout (local_size_x = 16, local_size_y = 16) in;
+layout (local_size_x = 1, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) buffer Particles {
 	Particle p[];
 } particles;
 
-layout (set = 0, binding = 1) uniform Metadata {
+/*layout (set = 0, binding = 1) uniform Metadata {
 	uint targetBuffer;
 	float deltaTime;
 	ParticleSystem systemProperties;
 	Colliders colliders;
-} metadata;
+} metadata;*/
 
 void main() {
-
+	particles.p[0].pos = vec3(-0.5, -0.5, 0.0);
+	particles.p[0].vel = vec3(0.);
+	particles.p[0].size = 0.5;
+	particles.p[0].age = 0.5;
+	
+	particles.p[1].pos = vec3(-0.5, 0.5, 0.0);
+	particles.p[1].vel = vec3(0.);
+	particles.p[1].size = 0.5;
+	particles.p[1].age = 0.5;
+	
+	particles.p[2].pos = vec3(0.5, -0.5, 0.0);
+	particles.p[2].vel = vec3(0.);
+	particles.p[2].size = 0.5;
+	particles.p[2].age = 0.5;
 }

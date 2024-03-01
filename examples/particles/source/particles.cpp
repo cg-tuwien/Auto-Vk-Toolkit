@@ -8,6 +8,7 @@
 #include "sequential_invoker.hpp"
 
 constexpr static auto kConcurrentFrames = 3u;
+constexpr uint64_t kParticleBufferSize = 3;
 
 struct Particle {
 	alignas(16) glm::vec3 pos;
@@ -17,39 +18,39 @@ struct Particle {
 };
 
 struct AACube {
-	glm::vec3 min;
-	glm::vec3 max;
+	alignas(16) glm::vec3 min;
+	alignas(16) glm::vec3 max;
 };
 
 struct Sphere {
-	glm::vec3 origin;
-	float radius;
+	alignas(16) glm::vec3 origin;
+	alignas(4) float radius;
 };
 
 template<size_t COUNT>
 struct Colliders {
-	glm::uint cubeCount;
-	glm::uint sphereCount;
-	std::array<AACube, COUNT> cubes;
-	std::array<Sphere, COUNT> spheres;
+	alignas(4) glm::uint cubeCount;
+	alignas(4) glm::uint sphereCount;
+	alignas(16) std::array<AACube, COUNT> cubes;
+	alignas(16) std::array<Sphere, COUNT> spheres;
 };
 
 struct ParticleSystem{
-	glm::vec3 origin;
-	float spawnRadius;
-	float spawnRate;
-	glm::vec3 initialVelocity;
-	glm::vec3 gravity;
-	float particleSize;
-	float particleLifetime;
+	alignas(16) glm::vec3 origin;
+	alignas(4) float spawnRadius;
+	alignas(4) float spawnRate;
+	alignas(16) glm::vec3 initialVelocity;
+	alignas(16) glm::vec3 gravity;
+	alignas(4) float particleSize;
+	alignas(4) float particleLifetime;
 };
 
 template<size_t COUNT = 10>
 struct Metadata {
-	glm::uint targetBuffer;
-	float deltaTime;
-	ParticleSystem systemProperties;
-	Colliders<COUNT> colliders;
+	alignas(16) glm::uint targetBuffer;
+	alignas(4) float deltaTime;
+	alignas(16) ParticleSystem systemProperties;
+	alignas(16) Colliders<COUNT> colliders;
 };
 
 class draw_particle_system_app : public avk::invokee
@@ -63,21 +64,23 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Print some information about the available memory on the selected physical device:
 		avk::context().print_available_memory_types();
 
-		constexpr uint64_t kBufferSize = 100000;
-
 		// Create a descriptor cache that helps us to conveniently create descriptor sets:
 		mDescriptorCache = avk::context().create_descriptor_cache();
 
-		auto createParticleBuffer = [&]() {
-			return avk::context().create_buffer(avk::memory_usage::device, {}, avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kBufferSize));
-		};
+		mParticleComputeBuffer = avk::context().create_buffer(
+			avk::memory_usage::device, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc,
+			avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kParticleBufferSize)
+		);
 
-		mParticleComputeBuffer = createParticleBuffer();
-
-		mParticleIntermediateBuffer = createParticleBuffer();
+		mParticleIntermediateBuffer = avk::context().create_buffer(
+			avk::memory_usage::device, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eUniformBuffer,
+			avk::uniform_buffer_meta::create_from_size(sizeof(Particle) * kParticleBufferSize)
+		);
 
 		for(size_t i = 0; i < kConcurrentFrames; i++) {
-			mParticleVertexBuffers.push_back(createParticleBuffer());
+			mParticleVertexBuffers.push_back(
+				avk::context().create_buffer(avk::memory_usage::device, {}, avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kParticleBufferSize))
+			);
 		}
 
 		mHostParticleBuffer = avk::context().create_buffer(avk::memory_usage::host_coherent, {}, avk::uniform_buffer_meta::create_from_size(sizeof(Particle) * 3));
@@ -88,8 +91,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a particle pipeline:
 		mParticlePipeline = avk::context().create_compute_pipeline_for(
 			avk::compute_shader("shaders/particles.comp"),
-			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),  // add a descriptor for the particle buffer
-			avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
+			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer())  // add a descriptor for the particle buffer
+			//,avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
 		);
 		
 		// Create a graphics pipeline:
@@ -185,31 +188,41 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
-		std::array<Particle, 3> pts = {
-			Particle{glm::vec3(-0.5, -0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), -1.0, 0.5},
-			Particle{glm::vec3(0.5, 0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.5, 0.5},
-			Particle{glm::vec3(0.5, -0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.5, 0.5}
-		};
-
-		auto pbufferSem = avk::context().record_and_submit_with_semaphore(
-			{ mHostParticleBuffer->fill(pts.data(),0) }, *mRenderQueue, avk::stage::all_commands);
 
 		avk::context().record({
+			avk::command::bind_pipeline(mParticlePipeline.as_reference()),
+			avk::command::bind_descriptors(mParticlePipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+				avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer())
+			})),
+			avk::command::dispatch(1,1,1),
+
+			avk::sync::buffer_memory_barrier(
+				mParticleComputeBuffer.as_reference(),
+				avk::stage::compute_shader >> avk::stage::all_transfer,
+				avk::access::shader_storage_write >> avk::access::transfer_read
+			),
+
+			avk::copy_buffer_to_another(mParticleComputeBuffer, mParticleIntermediateBuffer),
+
+			avk::sync::buffer_memory_barrier(
+				mParticleIntermediateBuffer.as_reference(),
+				avk::stage::all_transfer >> avk::stage::vertex_shader,
+				avk::access::transfer_write >> avk::access::uniform_read
+			),
+
 			// Begin and end one renderpass:
 			avk::command::render_pass(mRenderPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
 					avk::command::bind_pipeline(mRenderPipeline.as_reference()),
 					avk::command::bind_descriptors(mRenderPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
-						avk::descriptor_binding(0, 0, mHostParticleBuffer)
+						avk::descriptor_binding(0, 0, mParticleIntermediateBuffer)
 					})),
-					avk::command::draw(pts.size() * 6, pts.size() * 2, 0u, 0u)
+					avk::command::draw(kParticleBufferSize * 6, kParticleBufferSize * 2, 0u, 0u)
 				})
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mRenderQueue)
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
-			.waiting_for(pbufferSem >> avk::stage::vertex_shader)
 			.submit();
-		cmdBfr->handle_lifetime_of(pbufferSem);
 
 		// Use a convenience function of avk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
