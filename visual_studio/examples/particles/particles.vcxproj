@@ -23,8 +23,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\examples\particles\shaders\a_triangle.frag" />
-    <None Include="..\..\..\examples\particles\shaders\a_triangle.vert" />
+    <None Include="..\..\..\examples\particles\shaders\particle.frag" />
+    <None Include="..\..\..\examples\particles\shaders\particle.vert" />
     <None Include="..\..\..\examples\particles\shaders\particles.comp" />
   </ItemGroup>
   <ItemGroup>

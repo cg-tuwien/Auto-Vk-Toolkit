@@ -94,8 +94,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		// Create a graphics pipeline:
 		mRenderPipeline = avk::context().create_graphics_pipeline_for(
-			avk::vertex_shader("shaders/a_triangle.vert"),
-			avk::fragment_shader("shaders/a_triangle.frag"),
+			avk::vertex_shader("shaders/particle.vert"),
+			avk::fragment_shader("shaders/particle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
 			//avk::from_buffer_binding(0)->stream_per_vertex(&Particle::pos)->to_location(0),

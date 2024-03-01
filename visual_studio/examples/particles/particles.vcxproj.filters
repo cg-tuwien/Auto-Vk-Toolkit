@@ -19,10 +19,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\examples\particles\shaders\a_triangle.frag">
+    <None Include="..\..\..\examples\particles\shaders\particle.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="..\..\..\examples\particles\shaders\a_triangle.vert">
+    <None Include="..\..\..\examples\particles\shaders\particle.vert">
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\..\examples\particles\shaders\particles.comp">
