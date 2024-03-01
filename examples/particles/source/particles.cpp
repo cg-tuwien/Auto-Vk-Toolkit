@@ -10,10 +10,10 @@
 constexpr static auto kConcurrentFrames = 3u;
 
 struct Particle {
-	glm::vec3 pos;
-	glm::vec3 vel;
-	float size;
-	float age;
+	alignas(16) glm::vec3 pos;
+	alignas(16) glm::vec3 vel;
+	alignas(4) float size;
+	alignas(4) float age;
 };
 
 struct AACube {
@@ -65,6 +65,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		constexpr uint64_t kBufferSize = 100000;
 
+		// Create a descriptor cache that helps us to conveniently create descriptor sets:
+		mDescriptorCache = avk::context().create_descriptor_cache();
+
 		auto createParticleBuffer = [&]() {
 			return avk::context().create_buffer(avk::memory_usage::device, {}, avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kBufferSize));
 		};
@@ -77,22 +80,27 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mParticleVertexBuffers.push_back(createParticleBuffer());
 		}
 
+		mHostParticleBuffer = avk::context().create_buffer(avk::memory_usage::host_coherent, {}, avk::uniform_buffer_meta::create_from_size(sizeof(Particle) * 3));
+
 		mMetadata = {};
 		mMetadataBuffer = avk::context().create_buffer(avk::memory_usage::host_visible, {}, avk::uniform_buffer_meta::create_from_data(mMetadata));
 
-		// the create particle pipeline
-		avk::context().create_compute_pipeline_for(
+		// Create a particle pipeline:
+		mParticlePipeline = avk::context().create_compute_pipeline_for(
 			avk::compute_shader("shaders/particles.comp"),
-			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),  // add descriptors for particle buffers
+			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),  // add a descriptor for the particle buffer
 			avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
 		);
 		
 		// Create a graphics pipeline:
-		mPipeline = avk::context().create_graphics_pipeline_for(
+		mRenderPipeline = avk::context().create_graphics_pipeline_for(
 			avk::vertex_shader("shaders/a_triangle.vert"),
 			avk::fragment_shader("shaders/a_triangle.frag"),
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
+			//avk::from_buffer_binding(0)->stream_per_vertex(&Particle::pos)->to_location(0),
+			//avk::from_buffer_binding(0)->stream_per_vertex(&Particle::size)->to_location(1),
+			avk::descriptor_binding(0,0, mHostParticleBuffer->as_uniform_buffer()),
 			// Just use the main window's renderpass for this pipeline:
 			avk::context().main_window()->get_renderpass()
 		);
@@ -100,10 +108,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// We want to use an updater => gotta create one:
 		mUpdater.emplace();
 		mUpdater->on(
-			avk::swapchain_resized_event(avk::context().main_window()), // In the case of window resizes,
-			avk::shader_files_changed_event(mPipeline.as_reference())   // or in the case of changes to the shader files (hot reloading), ...
+			avk::swapchain_resized_event(avk::context().main_window()),       // In the case of window resizes,
+			avk::shader_files_changed_event(mRenderPipeline.as_reference()),  // or in the case of changes to the shader files (hot reloading), ...
+			avk::shader_files_changed_event(mParticlePipeline.as_reference()) // or in the case of changes to the shader files (hot reloading), ...
 		)
-		.update(mPipeline); // ... it will recreate the pipeline.		
+		.update(mRenderPipeline, mParticlePipeline); // ... it will recreate the pipelines.
 
 		auto imguiManager = avk::current_composition()->element_by_type<avk::imgui_manager>();
 		if(nullptr != imguiManager) {
@@ -176,18 +185,31 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
+		std::array<Particle, 3> pts = {
+			Particle{glm::vec3(-0.5, -0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), -1.0, 0.5},
+			Particle{glm::vec3(0.5, 0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.5, 0.5},
+			Particle{glm::vec3(0.5, -0.5, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.5, 0.5}
+		};
+
+		auto pbufferSem = avk::context().record_and_submit_with_semaphore(
+			{ mHostParticleBuffer->fill(pts.data(),0) }, *mRenderQueue, avk::stage::all_commands);
+
 		avk::context().record({
-				// Begin and end one renderpass:
-				avk::command::render_pass(mPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
-					// And within, bind a pipeline and draw three vertices:
-					avk::command::bind_pipeline(mPipeline.as_reference()),
-					avk::command::draw(3u, 1u, 0u, 0u)
+			// Begin and end one renderpass:
+			avk::command::render_pass(mRenderPipeline->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), {
+					avk::command::bind_pipeline(mRenderPipeline.as_reference()),
+					avk::command::bind_descriptors(mRenderPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
+						avk::descriptor_binding(0, 0, mHostParticleBuffer)
+					})),
+					avk::command::draw(pts.size() * 6, pts.size() * 2, 0u, 0u)
 				})
 			})
 			.into_command_buffer(cmdBfr)
 			.then_submit_to(*mRenderQueue)
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.waiting_for(pbufferSem >> avk::stage::vertex_shader)
 			.submit();
+		cmdBfr->handle_lifetime_of(pbufferSem);
 
 		// Use a convenience function of avk::window to take care of the command buffer's lifetime:
 		// It will get deleted in the future after #concurrent-frames have passed by.
@@ -200,10 +222,14 @@ private: // v== Member variables ==v
 	avk::queue* mParticleQueue;
 	avk::buffer mParticleComputeBuffer;
 	avk::buffer mParticleIntermediateBuffer;
+	avk::buffer mHostParticleBuffer;
 	std::vector<avk::buffer> mParticleVertexBuffers;
 	avk::buffer mMetadataBuffer;
 	Metadata<10> mMetadata;
-	avk::graphics_pipeline mPipeline;
+	avk::graphics_pipeline mRenderPipeline;
+	avk::compute_pipeline mParticlePipeline;
+
+	avk::descriptor_cache mDescriptorCache;
 
 }; // draw_particle_system_app
 
