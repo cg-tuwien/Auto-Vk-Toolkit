@@ -25,6 +25,9 @@
     <None Include="..\..\..\examples\particles\shaders\a_triangle.vert">
       <Filter>shaders</Filter>
     </None>
+    <None Include="..\..\..\examples\particles\shaders\particles.comp">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp">

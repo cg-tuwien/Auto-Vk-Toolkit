@@ -25,6 +25,7 @@
   <ItemGroup>
     <None Include="..\..\..\examples\particles\shaders\a_triangle.frag" />
     <None Include="..\..\..\examples\particles\shaders\a_triangle.vert" />
+    <None Include="..\..\..\examples\particles\shaders\particles.comp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cg_stdafx.hpp" />

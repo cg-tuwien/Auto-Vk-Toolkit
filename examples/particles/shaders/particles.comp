@@ -1,0 +1,55 @@
+#version 450
+
+#define PARTICLE_CNT 100000
+#define COLLIDER_CNT 10
+
+struct Particle {
+	vec3 pos;
+	vec3 vel;
+	float size;
+	float age;
+};
+
+struct AACube {
+	vec3 min;
+	vec3 max;
+};
+
+struct Sphere {
+	vec3 origin;
+	float radius;
+};
+
+struct Colliders {
+	uint cubeCount;
+	uint sphereCount;
+	AACube cubes[COLLIDER_CNT];
+	Sphere spheres[COLLIDER_CNT];
+};
+
+struct ParticleSystem{
+	vec3 origin;
+	float spawnRadius;
+	float spawnRate;
+	vec3 initialVelocity;
+	vec3 gravity;
+	float particleSize;
+	float particleLifetime;
+};
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) buffer Particles {
+	Particle p[];
+} particles;
+
+layout (set = 0, binding = 1) uniform Metadata {
+	uint targetBuffer;
+	float deltaTime;
+	ParticleSystem systemProperties;
+	Colliders colliders;
+} metadata;
+
+void main() {
+
+}

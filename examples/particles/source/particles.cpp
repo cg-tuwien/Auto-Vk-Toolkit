@@ -7,16 +7,85 @@
 #include "invokee.hpp"
 #include "sequential_invoker.hpp"
 
-class draw_a_triangle_app : public avk::invokee
+constexpr static auto kConcurrentFrames = 3u;
+
+struct Particle {
+	glm::vec3 pos;
+	glm::vec3 vel;
+	float size;
+	float age;
+};
+
+struct AACube {
+	glm::vec3 min;
+	glm::vec3 max;
+};
+
+struct Sphere {
+	glm::vec3 origin;
+	float radius;
+};
+
+template<size_t COUNT>
+struct Colliders {
+	glm::uint cubeCount;
+	glm::uint sphereCount;
+	std::array<AACube, COUNT> cubes;
+	std::array<Sphere, COUNT> spheres;
+};
+
+struct ParticleSystem{
+	glm::vec3 origin;
+	float spawnRadius;
+	float spawnRate;
+	glm::vec3 initialVelocity;
+	glm::vec3 gravity;
+	float particleSize;
+	float particleLifetime;
+};
+
+template<size_t COUNT = 10>
+struct Metadata {
+	glm::uint targetBuffer;
+	float deltaTime;
+	ParticleSystem systemProperties;
+	Colliders<COUNT> colliders;
+};
+
+class draw_particle_system_app : public avk::invokee
 {
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
-	draw_a_triangle_app(avk::queue& aQueue) : mQueue{ &aQueue }
+	draw_particle_system_app(avk::queue& aRenderQueue, avk::queue& aParticleQueue) : mRenderQueue{ &aRenderQueue }, mParticleQueue{ &aParticleQueue }
 	{}
 
 	void initialize() override
 	{
 		// Print some information about the available memory on the selected physical device:
 		avk::context().print_available_memory_types();
+
+		constexpr uint64_t kBufferSize = 100000;
+
+		auto createParticleBuffer = [&]() {
+			return avk::context().create_buffer(avk::memory_usage::device, {}, avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kBufferSize));
+		};
+
+		mParticleComputeBuffer = createParticleBuffer();
+
+		mParticleIntermediateBuffer = createParticleBuffer();
+
+		for(size_t i = 0; i < kConcurrentFrames; i++) {
+			mParticleVertexBuffers.push_back(createParticleBuffer());
+		}
+
+		mMetadata = {};
+		mMetadataBuffer = avk::context().create_buffer(avk::memory_usage::host_visible, {}, avk::uniform_buffer_meta::create_from_data(mMetadata));
+
+		// the create particle pipeline
+		avk::context().create_compute_pipeline_for(
+			avk::compute_shader("shaders/particles.comp"),
+			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),  // add descriptors for particle buffers
+			avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
+		);
 		
 		// Create a graphics pipeline:
 		mPipeline = avk::context().create_graphics_pipeline_for(
@@ -61,6 +130,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 	}
 
+	void finalize() override {
+		// TODO stop & join runtime and issue-particle-tick threads 
+	}
+
 	void update() override
 	{
 		// On C pressed,
@@ -98,7 +171,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto imageAvailableSemaphore = mainWnd->consume_current_image_available_semaphore();
 
 		// Get a command pool to allocate command buffers from:
-		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mQueue);
+		auto& commandPool = avk::context().get_command_pool_for_single_use_command_buffers(*mRenderQueue);
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -112,7 +185,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				})
 			})
 			.into_command_buffer(cmdBfr)
-			.then_submit_to(*mQueue)
+			.then_submit_to(*mRenderQueue)
 			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
 			.submit();
 
@@ -123,10 +196,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 private: // v== Member variables ==v
 
-	avk::queue* mQueue;
+	avk::queue* mRenderQueue;
+	avk::queue* mParticleQueue;
+	avk::buffer mParticleComputeBuffer;
+	avk::buffer mParticleIntermediateBuffer;
+	std::vector<avk::buffer> mParticleVertexBuffers;
+	avk::buffer mMetadataBuffer;
+	Metadata<10> mMetadata;
 	avk::graphics_pipeline mPipeline;
 
-}; // draw_a_triangle_app
+}; // draw_particle_system_app
 
 int main() // <== Starting point ==
 {
@@ -134,25 +213,28 @@ int main() // <== Starting point ==
 	try {
 		// Create a window and open it
 		auto mainWnd = avk::context().create_window("Particles & Timeline Semaphores");
-		mainWnd->set_resolution({ 640, 480 });
+		mainWnd->set_resolution({ 1920, 1080 });
 		mainWnd->enable_resizing(true);
 		mainWnd->set_presentaton_mode(avk::presentation_mode::mailbox);
-		mainWnd->set_number_of_concurrent_frames(3u);
+		mainWnd->set_number_of_concurrent_frames(kConcurrentFrames);
 		mainWnd->set_number_of_presentable_images(3u);
 		mainWnd->open();
 
-		auto& singleQueue = avk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
-		mainWnd->set_queue_family_ownership(singleQueue.family_index());
-		mainWnd->set_present_queue(singleQueue);
+		auto& renderQueue = avk::context().create_queue({}, avk::queue_selection_preference::versatile_queue, mainWnd);
+		mainWnd->set_queue_family_ownership(renderQueue.family_index());
+		mainWnd->set_present_queue(renderQueue);
+		
+		auto& particleQueue = avk::context().create_queue(vk::QueueFlagBits::eCompute, avk::queue_selection_preference::specialized_queue, mainWnd);
+		mainWnd->set_queue_family_ownership(particleQueue.family_index());
 		
 		// Create an instance of our main "invokee" which contains all the functionality:
-		auto app = draw_a_triangle_app(singleQueue);
+		auto app = draw_particle_system_app(renderQueue, particleQueue);
 		// Create another invokee for drawing the UI with ImGui
-		auto ui = avk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(renderQueue);
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
-			avk::application_name("Hello, Auto-Vk-Toolkit World!"),
+			avk::application_name("Particles & Timeline Semaphores!"),
 			[](avk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
