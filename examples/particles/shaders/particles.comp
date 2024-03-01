@@ -43,25 +43,28 @@ layout(set = 0, binding = 0) buffer Particles {
 	Particle p[];
 } particles;
 
-/*layout (set = 0, binding = 1) uniform Metadata {
-	uint targetBuffer;
+layout (set = 0, binding = 1) uniform Metadata {
 	float deltaTime;
-	ParticleSystem systemProperties;
-	Colliders colliders;
-} metadata;*/
+	float runTime;
+	//ParticleSystem systemProperties;
+	//Colliders colliders;
+} metadata;
 
 void main() {
-	particles.p[0].pos = vec3(-0.5, -0.5, 0.0);
+	float rt = metadata.runTime;
+	vec3 offset = vec3(cos(rt), sin(rt), 0.) * 0.1;
+
+	particles.p[0].pos = vec3(-0.5, -0.5, 0.0) + offset;
 	particles.p[0].vel = vec3(0.);
 	particles.p[0].size = 0.5;
 	particles.p[0].age = 0.5;
 	
-	particles.p[1].pos = vec3(-0.5, 0.5, 0.0);
+	particles.p[1].pos = vec3(-0.5, 0.5, 0.0) + offset;
 	particles.p[1].vel = vec3(0.);
 	particles.p[1].size = 0.5;
 	particles.p[1].age = 0.5;
 	
-	particles.p[2].pos = vec3(0.5, -0.5, 0.0);
+	particles.p[2].pos = vec3(0.5, -0.5, 0.0) + offset;
 	particles.p[2].vel = vec3(0.);
 	particles.p[2].size = 0.5;
 	particles.p[2].age = 0.5;

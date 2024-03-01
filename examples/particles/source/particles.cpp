@@ -47,10 +47,10 @@ struct ParticleSystem{
 
 template<size_t COUNT = 10>
 struct Metadata {
-	alignas(16) glm::uint targetBuffer;
 	alignas(4) float deltaTime;
-	alignas(16) ParticleSystem systemProperties;
-	alignas(16) Colliders<COUNT> colliders;
+	alignas(4) float runTime;
+	//alignas(16) ParticleSystem systemProperties;
+	//alignas(16) Colliders<COUNT> colliders;
 };
 
 class draw_particle_system_app : public avk::invokee
@@ -79,7 +79,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		for(size_t i = 0; i < kConcurrentFrames; i++) {
 			mParticleVertexBuffers.push_back(
-				avk::context().create_buffer(avk::memory_usage::device, {}, avk::storage_buffer_meta::create_from_size(sizeof(Particle) * kParticleBufferSize))
+				avk::context().create_buffer(
+					avk::memory_usage::device, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eUniformBuffer,
+					avk::uniform_buffer_meta::create_from_size(sizeof(Particle) * kParticleBufferSize))
 			);
 		}
 
@@ -91,8 +93,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Create a particle pipeline:
 		mParticlePipeline = avk::context().create_compute_pipeline_for(
 			avk::compute_shader("shaders/particles.comp"),
-			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer())  // add a descriptor for the particle buffer
-			//,avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
+			avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),  // add a descriptor for the particle buffer
+			avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())			// add metadata buffer
 		);
 		
 		// Create a graphics pipeline:
@@ -187,12 +189,22 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		// Create a command buffer and render into the *current* swap chain image:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-		
+		mMetadata.deltaTime = ImGui::GetIO().DeltaTime;
+		mMetadata.runTime += mMetadata.deltaTime;
 
 		avk::context().record({
+			mMetadataBuffer->fill(&mMetadata, 0),
+
+			avk::sync::buffer_memory_barrier(
+				mMetadataBuffer.as_reference(),
+				avk::stage::host >> avk::stage::compute_shader,
+				avk::access::host_write >> avk::access::uniform_read
+			),
+
 			avk::command::bind_pipeline(mParticlePipeline.as_reference()),
 			avk::command::bind_descriptors(mParticlePipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
-				avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer())
+				avk::descriptor_binding(0,0, mParticleComputeBuffer->as_storage_buffer()),
+				avk::descriptor_binding(0,1, mMetadataBuffer->as_uniform_buffer())
 			})),
 			avk::command::dispatch(1,1,1),
 
