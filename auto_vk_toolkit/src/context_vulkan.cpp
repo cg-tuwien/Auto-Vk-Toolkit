@@ -490,8 +490,7 @@ namespace avk
 			.signaling_upon_completion(aSignalInfo)
 			.submit();
 
-		aSignalInfo.mSignalSemaphore.get().handle_lifetime_of(std::move(cmdBfr));
-		// TODO we probably need another way to handle the lifetime of resources since timeline semaphores aren't single use ==> live longer
+		aSignalInfo.mSignalSemaphore.get().handle_lifetime_of(std::move(cmdBfr), aSignalInfo.mValue);
 	}
 
 	avk::fence context_vulkan::record_and_submit_with_fence(std::vector<avk::recorded_commands_t> aRecordedCommandsAndSyncInstructions, const avk::queue& aQueue, vk::CommandBufferUsageFlags aUsageFlags)
