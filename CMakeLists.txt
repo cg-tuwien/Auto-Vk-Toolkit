@@ -53,6 +53,7 @@ option(avk_toolkit_BuildTextureCubemap "Build example: texture_cubemap." OFF)
 option(avk_toolkit_BuildVertexBuffers "Build example: vertex_buffers." OFF)
 option(avk_toolkit_BuildMultipleQueues "Build example: multiple_queues." OFF)
 option(avk_toolkit_BuildPresentFromCompute "Build example: present_from_compute." OFF)
+option(avk_toolkit_BuildParticles "Build example: particles." OFF)
 
 if (avk_toolkit_BuildExamples)
     set(avk_toolkit_BuildHelloWorld ON)
@@ -70,6 +71,7 @@ if (avk_toolkit_BuildExamples)
     set(avk_toolkit_BuildVertexBuffers ON)
     set(avk_toolkit_BuildMultipleQueues ON)
     set(avk_toolkit_BuildPresentFromCompute ON)
+    set(avk_toolkit_BuildParticles ON)
 endif()
 
 # ---------------------- Auto-Vk-Toolkit Framework ------------------------
@@ -289,4 +291,9 @@ endif()
 ## present_from_compute
 if (avk_toolkit_BuildPresentFromCompute)
     add_subdirectory(examples/present_from_compute)
+endif()
+
+## particles
+if (avk_toolkit_BuildParticles)
+    add_subdirectory(examples/particles)
 endif()

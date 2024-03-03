@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28531.58
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "auto_vk_toolkit", "auto_vk_toolkit\auto_vk_toolkit.vcxproj", "{602F842F-50C1-466D-8696-1707937D8AB9}"
 EndProject
@@ -45,6 +45,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiple_queues", "examples\multiple_queues\multiple_queues.vcxproj", "{3CD62905-610C-4EA1-A378-E1DFE6A6871C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "present_from_compute", "examples\present_from_compute\present_from_compute.vcxproj", "{14DC267E-090F-442E-82FB-31A16759ECDC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "particles", "examples\particles\particles.vcxproj", "{97CF00C4-F5AC-4E81-89DB-54B97C67857D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -149,6 +151,12 @@ Global
 		{14DC267E-090F-442E-82FB-31A16759ECDC}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
 		{14DC267E-090F-442E-82FB-31A16759ECDC}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
 		{14DC267E-090F-442E-82FB-31A16759ECDC}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Debug_Vulkan|x64.ActiveCfg = Debug_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Debug_Vulkan|x64.Build.0 = Debug_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Publish_Vulkan|x64.ActiveCfg = Publish_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Publish_Vulkan|x64.Build.0 = Publish_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Release_Vulkan|x64.ActiveCfg = Release_Vulkan|x64
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D}.Release_Vulkan|x64.Build.0 = Release_Vulkan|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -174,6 +182,7 @@ Global
 		{295E18F0-C25C-4864-9D61-4A7F6EE13EFB} = {B883882B-129A-4528-86E3-68638929D9EC}
 		{3CD62905-610C-4EA1-A378-E1DFE6A6871C} = {08A10CAA-9B1B-41DB-9EB5-8547AC3077EA}
 		{14DC267E-090F-442E-82FB-31A16759ECDC} = {E796A880-48FF-48FF-A7F0-A3A522223061}
+		{97CF00C4-F5AC-4E81-89DB-54B97C67857D} = {E796A880-48FF-48FF-A7F0-A3A522223061}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8961D43-F08D-46E3-B3BB-29BA8AA39C3E}

@@ -109,15 +109,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto idxFillCmd = newElement.mIndexBuffer->fill(newElement.mIndices.data(), 0);
 
 			// Submit all the fill commands to the queue:
-			auto fence = avk::context().record_and_submit_with_fence({
+			auto timelineSemaphore = avk::context().record_and_submit_with_timeline_semaphore({
 				std::move(posFillCmd),
 				std::move(tcoFillCmd),
 				std::move(nrmFillCmd),
 				std::move(idxFillCmd)
 				// ^ No need for any synchronization in-between, because the commands do not depend on each other.
-			}, *mQueue);
+				}, *mQueue, avk::stage::all_transfer, 1);
 			// Wait on the host until the device is done:
-			fence->wait_until_signalled();
+			timelineSemaphore->wait_until_signaled(1);
 		}
 
 		// For all the different materials, transfer them in structs which are well
@@ -139,11 +139,11 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 
 		// Submit the commands material commands and the materials buffer fill to the device:
-		auto matFence = avk::context().record_and_submit_with_fence({
+		auto matTSemaphore = avk::context().record_and_submit_with_timeline_semaphore({
 			std::move(materialCommands),
 			mMaterialBuffer->fill(gpuMaterials.data(), 0)
-		}, *mQueue);
-		matFence->wait_until_signalled();
+		}, *mQueue, avk::stage::all_commands, 1);
+		matTSemaphore->wait_until_signaled(1);
 
 		// Create a buffer for the transformation matrices in a host coherent memory region (one for each frame in flight):
 		for (int i = 0; i < 10; ++i) { // Up to 10 concurrent frames can be configured through the UI.
@@ -467,6 +467,9 @@ int main() // <== Starting point ==
 			avk::application_name("Auto-Vk-Toolkit Example: Model Loader"),
 			[](avk::validation_layers& config) {
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
+			[](vk::PhysicalDeviceVulkan12Features& features) {
+				features.setTimelineSemaphore(VK_TRUE);
 			},
 			// Pass windows:
 			mainWnd,
