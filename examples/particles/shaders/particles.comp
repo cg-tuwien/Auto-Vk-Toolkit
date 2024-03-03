@@ -1,7 +1,7 @@
 #version 450
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable
 
-#define PARTICLE_CNT 3
+#define PARTICLE_CNT 50
 #define COLLIDER_CNT 10
 
 struct Particle {
@@ -33,6 +33,7 @@ struct ParticleSystem{
 	float spawnRadius;
 	float spawnRate;
 	vec3 initialVelocity;
+	float velocityRandomization;
 	vec3 gravity;
 	float particleSize;
 	float particleLifetime;
@@ -47,26 +48,93 @@ layout(set = 0, binding = 0) buffer Particles {
 layout (set = 0, binding = 1) uniform Metadata {
 	uint64_t runTime;
 	uint64_t deltaTime;
-	//ParticleSystem systemProperties;
+	ParticleSystem systemProperties;
 	//Colliders colliders;
-} metadata;
+} m;
+
+
+// Hash without Sine
+// MIT License...
+/* Copyright (c)2014 David Hoskins.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.*/
+
+//----------------------------------------------------------------------------------------
+//  1 out, 2 in...
+float hash12(vec2 p)
+{
+	vec3 p3  = fract(vec3(p.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+//----------------------------------------------------------------------------------------
+///  2 out, 2 in...
+vec2 hash22(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yzx+33.33);
+    return fract((p3.xx+p3.yz)*p3.zy);
+
+}
+
+//----------------------------------------------------------------------------------------
+///  3 out, 2 in...
+vec3 hash32(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yxz+33.33);
+    return fract((p3.xxy+p3.yzz)*p3.zyx);
+}
 
 void main() {
-	float rt = float(metadata.runTime) / 1e+6;
-	vec3 offset = vec3(cos(rt), sin(rt), 0.) * 0.1;
+	float rt = float(m.runTime) / 1e6;
+	float dt = float(m.deltaTime) / 1e6;
 
-	particles.p[0].pos = vec3(-0.5, -0.5, 0.0) + offset;
-	particles.p[0].vel = vec3(0.);
-	particles.p[0].size = 0.5;
-	particles.p[0].age = 0.5;
-	
-	particles.p[1].pos = vec3(-0.5, 0.5, 0.0) + offset;
-	particles.p[1].vel = vec3(0.);
-	particles.p[1].size = 0.5;
-	particles.p[1].age = 0.5;
-	
-	particles.p[2].pos = vec3(0.5, -0.5, 0.0) + offset;
-	particles.p[2].vel = vec3(0.);
-	particles.p[2].size = 0.5;
-	particles.p[2].age = 0.5;
+	ParticleSystem sys = m.systemProperties;
+
+	int beginId = 0;
+	int endId = PARTICLE_CNT;
+	for(int i = beginId; i < endId; i++) {
+		Particle p = particles.p[i];
+
+		if(p.age > 0) {
+			p.vel += sys.gravity * dt;
+			p.pos += p.vel * dt;
+			p.age -= dt;
+		}else {
+			vec2 seed = vec2(rt, float(i)*0.34982);
+			if(hash12(seed) < sys.spawnRate * dt) {
+				seed = hash22(seed);
+				p.pos = sys.origin + normalize(hash32(seed)) * (hash12(seed) - 0.5) * 2. * sys.spawnRadius;
+				seed = hash22(seed);
+				p.vel = mix(sys.initialVelocity, (hash32(seed) - 0.5) * 2. * length(sys.initialVelocity), sys.velocityRandomization);
+				p.size = sys.particleSize;
+				p.age = sys.particleLifetime;
+
+
+			}else {
+				p.size = 0.;
+			}
+		}
+
+
+		particles.p[i] = p;
+	}
 }

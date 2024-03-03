@@ -12,7 +12,7 @@
 #include <chrono>
 
 constexpr static auto kConcurrentFrames = 3u;
-constexpr uint64_t kParticleBufferSize = 3;
+constexpr uint64_t kParticleBufferSize = 50;
 
 struct Particle {
 	alignas(16) glm::vec3 pos;
@@ -44,6 +44,7 @@ struct ParticleSystem{
 	alignas(4) float spawnRadius;
 	alignas(4) float spawnRate;
 	alignas(16) glm::vec3 initialVelocity;
+	alignas(4) float velocityRandomization;
 	alignas(16) glm::vec3 gravity;
 	alignas(4) float particleSize;
 	alignas(4) float particleLifetime;
@@ -53,7 +54,7 @@ template<size_t COUNT = 10>
 struct Metadata {
 	alignas(8) uint64_t runTime;
 	alignas(8) uint64_t deltaTime;
-	//alignas(16) ParticleSystem systemProperties;
+	alignas(16) ParticleSystem systemProperties;
 	//alignas(16) Colliders<COUNT> colliders;
 };
 
@@ -96,7 +97,17 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			);
 		}
 
-		mMetadata = {0, 0};
+		ParticleSystem ps = {};
+		ps.origin = glm::vec3(0);
+		ps.initialVelocity = glm::vec3(0, -1, 0);
+		ps.velocityRandomization = 0.5;
+		ps.gravity = glm::vec3(0, 1, 0);
+		ps.spawnRate = 0.1;
+		ps.spawnRadius = 0.1;
+		ps.particleLifetime = 2;
+		ps.particleSize = 0.1;
+
+		mMetadata = {0, 0, ps};
 		mMetadataBuffer = avk::context().create_buffer(avk::memory_usage::host_visible, {}, avk::uniform_buffer_meta::create_from_data(mMetadata));
 
 		// Create a particle pipeline:

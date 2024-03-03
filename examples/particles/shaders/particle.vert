@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define PART_CNT 3
+#define PART_CNT 50
 
 struct Particle {
     vec3 pos;
