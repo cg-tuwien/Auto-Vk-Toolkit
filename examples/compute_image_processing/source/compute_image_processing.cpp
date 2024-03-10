@@ -285,7 +285,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		auto submission = avk::context().record({
 				// Begin and end one renderpass:
-				avk::command::render_pass(*mGraphicsPipeline->renderpass_pointer().value(), avk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(mGraphicsPipeline->renderpass_reference().value(), avk::context().main_window()->current_backbuffer_reference(), {
 
 					// Draw left viewport:
 					avk::command::custom_commands([&,this](avk::command_buffer_t& cb) { // If there is no avk::command::... struct for a particular command, we can always use avk::command::custom_commands

@@ -544,7 +544,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
 		avk::context().record({
-				avk::command::render_pass(*mPipeline->renderpass_pointer().value(), avk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(mPipeline->renderpass_reference().value(), avk::context().main_window()->current_backbuffer_reference(), {
 					avk::command::bind_pipeline(mPipeline.as_reference()),
 					avk::command::bind_descriptors(mPipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						avk::descriptor_binding(0, 5, mViewProjBuffers[ifi]),

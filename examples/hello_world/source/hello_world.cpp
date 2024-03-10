@@ -111,7 +111,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		avk::context().record({
 				// Begin and end one renderpass:
-				avk::command::render_pass(*mPipeline->renderpass_pointer().value(), avk::context().main_window()->current_backbuffer_reference(), {
+				avk::command::render_pass(mPipeline->renderpass_reference().value(), avk::context().main_window()->current_backbuffer_reference(), {
 					// And within, bind a pipeline and draw three vertices:
 					avk::command::bind_pipeline(mPipeline.as_reference()),
 					avk::command::draw(3u, 1u, 0u, 0u)

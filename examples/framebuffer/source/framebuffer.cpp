@@ -191,7 +191,7 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 
 		avk::context().record({
 				// Begin and end one renderpass:
-				avk::command::render_pass(*mPipeline->renderpass_pointer().value(), mOneFramebuffer.as_reference(), {
+				avk::command::render_pass(mPipeline->renderpass_reference().value(), mOneFramebuffer.as_reference(), {
 					// And within, bind a pipeline and perform an indexed draw call:
 					avk::command::bind_pipeline(mPipeline.as_reference()),
 					avk::command::draw_indexed(mIndexBuffer.as_reference(), mVertexBuffers[inFlightIndex].as_reference())

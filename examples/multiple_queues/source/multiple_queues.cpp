@@ -194,7 +194,7 @@ public:
 				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex][1].as_reference(), stage::none + access::none >> stage::vertex_attribute_input + access::vertex_attribute_read)
 					.with_queue_family_ownership_transfer(mTransferQueues[1]->family_index(), mGraphicsQueue->family_index()),
 
-				command::render_pass(*mPipeline->renderpass_pointer().value(), avk::context().main_window()->current_backbuffer_reference(), {
+				command::render_pass(mPipeline->renderpass_reference().value(), avk::context().main_window()->current_backbuffer_reference(), {
 					// And within, bind a pipeline and perform an indexed draw call:
 					command::bind_pipeline(mPipeline.as_reference()),
 					// Two draw calls with all the buffer ownerships now transferred to the graphics queue:
