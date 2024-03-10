@@ -923,22 +923,12 @@ namespace avk
 	{
 		vk::PhysicalDeviceProperties2 physicalProperties;
 		device.getProperties2(&physicalProperties, dispatch_loader_core());
-		bool dynamicRenderingSupported = false;
 
-		// Dynamic rendering is promoted to core in vulkan 1.3
-		if(VK_API_VERSION_MINOR(physicalProperties.properties.apiVersion) >= 3)
-		{
-			dynamic_rendering_supported = true;
-		}
-		else
-		{
-			vk::PhysicalDeviceFeatures2 supportedExtFeatures;
-			auto dynamicRenderingFeatures = VkPhysicalDeviceDynamicRenderingFeaturesKHR{};
-			supportedExtFeatures.pNext = &dynamicRenderingFeatures;
-			device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
-			dynamic_rendering_supported = dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
-		}
-		return dynamic_rendering_supported;
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto dynamicRenderingFeatures = vk::PhysicalDeviceDynamicRenderingFeaturesKHR{};
+		supportedExtFeatures.pNext = &dynamicRenderingFeatures;
+		device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
+		return dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
 	}
 
 	bool context_vulkan::supports_mesh_shader_nv(const vk::PhysicalDevice& device)

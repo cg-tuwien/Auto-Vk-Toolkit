@@ -13,6 +13,7 @@
 
 #include "context_vulkan.hpp"
 #include <string>
+#include <cmath>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -21,8 +22,8 @@ class dynamic_rendering_app : public avk::invokee
 public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	dynamic_rendering_app(avk::queue& aQueue)
 		: mQueue{ &aQueue }
-		, mXSplit{0.5f}
-		, mYSplit{0.5f}
+		, mXSplit{960u}
+		, mYSplit{540u}
 		, mBorderThickness{2u}
 		, mFullscreenViewport{true}
 		, mClearColors{{
@@ -36,7 +37,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		const auto r = avk::context().main_window()->resolution();
-		auto colorAttachmentDescription = avk::dynamic_rendering_attachment::declare_for(avk::context().main_window()->current_image_view_reference());
+		auto colorAttachmentDescription = avk::attachment::declare_dynamic_for(avk::context().main_window()->current_image_view_reference());
 		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = avk::context().create_graphics_pipeline_for(
@@ -59,12 +60,16 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 				for(uint32_t i = 0; i < mClearColors.size(); i++)
 				{
-					ImGui::ColorEdit4((std::string("Clear color renderpass ") + std::to_string(i)).c_str(), mClearColors.at(i).data());
+					ImGui::ColorEdit4((std::string("Clear color draw ") + std::to_string(i)).c_str(), mClearColors.at(i).data());
 				}
-				const float minXSize = (1.0f + mBorderThickness) / static_cast<float>(r.x);
-				const float minYSize = (1.0f + mBorderThickness) / static_cast<float>(r.y);
-				ImGui::SliderFloat("Renderpass x split", &mXSplit, minXSize, 1.0f - minXSize, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-				ImGui::SliderFloat("Renderpass y split", &mYSplit, minYSize, 1.0f - minYSize, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+				const uint32_t minXSize = 2.0 * (1.0f + mBorderThickness);
+				const uint32_t minYSize = 2.0 * (1.0f + mBorderThickness);
+				const uint32_t maxXSize = r.x - minXSize;
+				const uint32_t maxYSize = r.y - minYSize;
+				ImGui::SliderInt("Draws x split", reinterpret_cast<int32_t*>(&mXSplit), minXSize, maxXSize, "%d", ImGuiSliderFlags_AlwaysClamp);
+				ImGui::SliderInt("Draws y split", reinterpret_cast<int32_t*>(&mYSplit), minYSize, maxYSize, "%d", ImGuiSliderFlags_AlwaysClamp);
+				mXSplit = std::max(std::min(mXSplit, maxXSize), minXSize);
+				mYSplit = std::max(std::min(mYSplit, maxYSize), minYSize);
 				ImGui::SliderInt("Border Thickness", reinterpret_cast<int32_t*>(&mBorderThickness), 0, 10);
 				ImGui::Checkbox("Fullscreen viewport", &mFullscreenViewport);
 				ImGui::End();
@@ -102,7 +107,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 		std::vector<avk::recorded_commands_t> renderCommands = {};
 		// First we transition the swapchain image into color attachment format
-		render_commands.emplace_back(
+		renderCommands.emplace_back(
 			avk::sync::image_memory_barrier(swapchainImage,
 				// source stage none because it is handled by imageAvailable semaphore
 				avk::stage::none >> avk::stage::color_attachment_output,
@@ -115,43 +120,47 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Set the dynamic viewport only once at the start if we want shared fullscreen viewport for each renderpass
 		if(mFullscreenViewport) {
 			auto const currentViewport = vk::Viewport(0.0f, 0.0f, windowResolution.x, windowResolution.y);
-			render_commands.emplace_back(avk::command::custom_commands([=](avk::command_buffer_t& cb) {
+			renderCommands.emplace_back(avk::command::custom_commands([=](avk::command_buffer_t& cb) {
 				cb.handle().setViewport(0, 1, &currentViewport);
 			}));
 		} 
 
-		// We render the image in four renderpasses - each renderpass has it's own clear value as well as offset and extent.
-		// Note that the renderpass extent acts as "clip" on top of the pipeline viewport (which is set to be the entire window).
-		// Because of this we still get a single triangle just drawn in four parts, if we instead wanted to see four triangles we would
-		// need to set the pipeline viewport to be 
-		for(uint32_t renderpassIdx = 0; renderpassIdx < 4; renderpassIdx++)
+		// We render the image in four draws - each draw has it's own clear value as well as offset and extent.
+		// Note that the renderpass extent acts as "clip" on top of the pipeline viewport.
+		// When we set the fullscreenViewport we thus get a single triangle just drawn in four parts
+		// Otherwise the viewport is set to be the current extent of the renderpass and we get four separate triangles
+		for(uint32_t drawIdx = 0; drawIdx < 4; drawIdx++)
 		{
-			float xCoord = renderpassIdx % 2;
-			float yCoord = renderpassIdx / 2u; //NOLINT(bugprone-integer-division) Standard way of unpacking 2d y coordinate from 1d encoding
+			float xCoord = drawIdx % 2;
+			float yCoord = drawIdx / 2u; //NOLINT(bugprone-integer-division) Standard way of unpacking 2d y coordinate from 1d encoding
 			vk::Offset2D const currOffset{
-				static_cast<int32_t>(std::min(static_cast<uint32_t>(xCoord * mXSplit * windowResolution.x + xCoord * mBorderThickness), windowResolution.x)),
-				static_cast<int32_t>(std::min(static_cast<uint32_t>(yCoord * mYSplit * windowResolution.y + yCoord * mBorderThickness), windowResolution.y))
+				static_cast<int32_t>(std::min(static_cast<uint32_t>(xCoord * mXSplit + xCoord * mBorderThickness), windowResolution.x)),
+				static_cast<int32_t>(std::min(static_cast<uint32_t>(yCoord * mYSplit + yCoord * mBorderThickness), windowResolution.y))
 			};
 			vk::Extent2D const currExtent{
-				static_cast<uint32_t>(std::max(static_cast<int32_t>(std::abs(xCoord - mXSplit) * windowResolution.x - mBorderThickness), 0)),
-				static_cast<uint32_t>(std::max(static_cast<int32_t>(std::abs(yCoord - mYSplit) * windowResolution.y - mBorderThickness), 0))
+				static_cast<uint32_t>(std::max(static_cast<int32_t>((1 - xCoord) * mXSplit - mBorderThickness + xCoord * (windowResolution.x - mXSplit)), 0)),
+				static_cast<uint32_t>(std::max(static_cast<int32_t>((1 - yCoord) * mYSplit - mBorderThickness + yCoord * (windowResolution.y - mYSplit)), 0)),
 			};
-			colorAttachment.set_clear_color(mClearColors.at(renderpassIdx));
+			if(currExtent.height == 0 || currExtent.width == 0)
+			{
+				break;
+			}
+			colorAttachment.set_clear_color(mClearColors.at(drawIdx));
 			// Set the dynamic viewport to be equal to each of the renderpass extent and offsets if don't want shared fullscreen viewport for all of them
-			render_commands.emplace_back(avk::command::begin_dynamic_rendering({colorAttachment}, {swapchainImageView}, currOffset, currExtent));
-			render_commands.emplace_back(avk::command::bind_pipeline(mPipeline.as_reference()));
+			renderCommands.emplace_back(avk::command::begin_dynamic_rendering({colorAttachment}, {swapchainImageView}, currOffset, currExtent));
+			renderCommands.emplace_back(avk::command::bind_pipeline(mPipeline.as_reference()));
 			if(!mFullscreenViewport)
 			{
 				auto const currentViewport = vk::Viewport(currOffset.x, currOffset.y, currExtent.width, currExtent.height);
-				render_commands.emplace_back(avk::command::custom_commands([=](avk::command_buffer_t& cb) {
+				renderCommands.emplace_back(avk::command::custom_commands([=](avk::command_buffer_t& cb) {
 					cb.handle().setViewport(0, 1, &currentViewport);
 				}));
 			}
-			render_commands.emplace_back(avk::command::draw(3u, 1u, 0u, 0u));
-			render_commands.emplace_back(avk::command::end_dynamic_rendering());
+			renderCommands.emplace_back(avk::command::draw(3u, 1u, 0u, 0u));
+			renderCommands.emplace_back(avk::command::end_dynamic_rendering());
 		}
 
-		avk::context().record(render_commands)
+		avk::context().record(renderCommands)
 		.into_command_buffer(cmdBfr[0])
 		.then_submit_to(*mQueue)
 		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
@@ -165,8 +174,8 @@ private: // v== Member variables ==v
 
 	avk::queue* mQueue;
 	avk::graphics_pipeline mPipeline;
-	float mXSplit;
-	float mYSplit;
+	uint32_t mXSplit;
+	uint32_t mYSplit;
 	uint32_t mBorderThickness;
 	bool mFullscreenViewport;
 	std::array<std::array<float, 4>, 4> mClearColors;
@@ -198,7 +207,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Dynamic rendering"),
 			[](avk::validation_layers& config) {
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				// config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			avk::required_device_extensions()
 			.add_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME),
