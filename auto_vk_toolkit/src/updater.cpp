@@ -48,7 +48,7 @@ namespace avk
 				aPreparedImage.create_info().extent.height = newExtent.height;
 			}
 			else {
-				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+				LOG_WARNING(std::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
 			}
 		});
 		newImage.enable_shared_ownership();
@@ -65,7 +65,7 @@ namespace avk
 				aPreparedImage.create_info().extent.height = newExtent.height;
 			}
 			else {
-				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+				LOG_WARNING(std::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
 			}
 		}, [&ed = mEventData](avk::image_view_t& aPreparedImageView) {
 			// Nothing to do here

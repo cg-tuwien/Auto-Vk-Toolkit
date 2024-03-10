@@ -321,9 +321,9 @@ namespace avk
 			}
 
 			if (!mData) {
-				LOG_INFO_EM(fmt::format("Result: {}", std::string(stbi_failure_reason())));
+				LOG_INFO_EM(std::format("Result: {}", std::string(stbi_failure_reason())));
 			
-				throw avk::runtime_error(fmt::format("Couldn't load image from '{}' using stbi_load{}", path(), mLoadHdrIfPossible ? "f" : ""));
+				throw avk::runtime_error(std::format("Couldn't load image from '{}' using stbi_load{}", path(), mLoadHdrIfPossible ? "f" : ""));
 			}
 			assert(mData != nullptr);
 
@@ -498,7 +498,7 @@ namespace avk
 
 		if (retval->empty())
 		{
-			throw avk::runtime_error(fmt::format("Could not load image from '{}'", aPath));
+			throw avk::runtime_error(std::format("Could not load image from '{}'", aPath));
 		}
 
 		return retval;

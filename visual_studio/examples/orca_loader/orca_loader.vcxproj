@@ -37,6 +37,11 @@
       <Project>{602f842f-50c1-466d-8696-1707937d8ab9}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\assets\3rd_party\fonts\JetBrainsMono-2.304\fonts\ttf\JetBrainsMono-Regular.ttf">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{8397baeb-c62f-4ee0-9402-e2d1b804a328}</ProjectGuid>

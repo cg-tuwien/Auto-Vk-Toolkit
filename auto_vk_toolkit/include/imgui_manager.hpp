@@ -11,12 +11,20 @@ namespace avk
 	{
 	public:
 		/**	Create an ImGui manager element.
-		 *	@param		aName				You *can* give it a name, but you can also leave it at the default name "imgui_manager".
+		 *	@param		aName								You *can* give it a name, but you can also leave it at the default name "imgui_manager".
+		 *	@param		aAlterSettingsBeforeInitialization	Allows to modify the ImGui style, e.g., like follows:
+		 *													[](float uiScale) {
+		 *														auto& style = ImGui::GetStyle();
+		 *														style = ImGuiStyle(); // reset to default style (for non-color settings, like rounded corners)
+		 *														ImGui::StyleColorsClassic(); // change color theme
+		 *														style.ScaleAllSizes(uiScale); // and scale
+		 *													}
 		 */
-		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {})
+		imgui_manager(avk::queue& aQueueToSubmitTo, std::string aName = "imgui_manager", std::optional<avk::renderpass> aRenderpassToUse = {}, std::function<void(float)> aAlterSettingsBeforeInitialization = {})
 			: invokee(std::move(aName))
 			, mQueue { &aQueueToSubmitTo }
 			, mUserInteractionEnabled{ true }
+			, mAlterSettingsBeforeInitialization{ std::move(aAlterSettingsBeforeInitialization) }
 		{
 			if (aRenderpassToUse.has_value()) {
 				mRenderpass = std::move(aRenderpassToUse.value());
@@ -89,6 +97,13 @@ namespace avk
 			mUsingSemaphoreInsteadOfFenceForFontUpload = true;
 		}
 
+		/** Configure imgui_manager which font to use. 
+		 *  @param aPathToTtfFont	Path to a custom TTF font file to be used, or empty for using ImGui's bundled default font.
+		 */
+        void set_custom_font(std::string aPathToTtfFont = {}) {
+			mCustomTtfFont = std::move(aPathToTtfFont);
+		}
+
         /** Indicates whether or not ImGui wants to occupy the mouse.
          *  This could be because the mouse is over a window, or currently dragging
          *	some ImGui control.
@@ -111,7 +126,6 @@ namespace avk
 		bool end_wanting_to_occupy_mouse() const {
 			return !mOccupyMouse && mOccupyMouseLastFrame;
 		}
-
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -138,6 +152,10 @@ namespace avk
 		bool mUsingSemaphoreInsteadOfFenceForFontUpload;
 		bool mOccupyMouse = false;
 		bool mOccupyMouseLastFrame = false;
+
+		// customization
+		std::function<void(float)> mAlterSettingsBeforeInitialization = {};
+		std::string mCustomTtfFont = {};
 	};
 
 }

@@ -406,7 +406,7 @@ namespace avk
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+			LOG_INFO(std::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			acquire_next_swap_chain_image_and_prepare_semaphores();
 			return;
@@ -417,7 +417,7 @@ namespace avk
 		// => Must handle this case!
 		assert(current_image_index() == mCurrentFrameImageIndex);
 		if (mImagesInFlightFenceIndices[current_image_index()] >= 0) {
-			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
+			LOG_DEBUG_VERBOSE(std::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
 			auto& xf = mFramesInFlightFences[mImagesInFlightFenceIndices[current_image_index()]];
 			xf->wait_until_signalled();
 			// But do not reset! Otherwise we will wait forever at the next wait_until_signalled that will happen for sure.
@@ -534,7 +534,7 @@ namespace avk
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+			LOG_INFO(std::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			// Just do nothing. Ignore the failure. This frame is lost.
 			// swap chain will be recreated in the next frame
@@ -649,7 +649,7 @@ namespace avk
 
 		// If the window is minimized, we've gotta wait even longer:
 		while (resolution().x * resolution().y == 0u) {
-			LOG_DEBUG(fmt::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
+			LOG_DEBUG(std::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
 			context().dispatch_to_main_thread([this](){
 				int width = 0, height = 0;
 				glfwGetFramebufferSize(handle()->mHandle, &width, &height);
@@ -690,7 +690,7 @@ namespace avk
 
 			switch (queueFamilyIndices.size()) {
 			case 0:
-				throw avk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use window::set_queue_family_ownership.", title()));
+				throw avk::runtime_error(std::format("You must assign at least set one queue(family) to window '{}'! You can use window::set_queue_family_ownership.", title()));
 			case 1:
 				mImageCreateInfoSwapChain
 					.setSharingMode(vk::SharingMode::eExclusive)
@@ -803,7 +803,7 @@ namespace avk
 				aPreparedImage.create_info().extent.height = extent.y;
 			}
 			else {
-				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+				LOG_WARNING(std::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
 			}
 		};
 		auto lifetimeHandlerLambda = [this](any_window_resource_t&& rhs) { this->handle_lifetime(std::move(rhs)); };

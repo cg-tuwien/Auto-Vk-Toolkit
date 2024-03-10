@@ -11,11 +11,11 @@ namespace avk
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
 		, mMinPivotDistance{ 1.f }
-		, mMaxPivotDistance{ 30.f }
-		, mPivotDistanceSlowDownRange{ 3.333f }
+		, mMaxPivotDistance{ 50.f }
+		, mPivotDistanceSlowDownRange{ 3.0f }
 		, mLateralSpeed{ 1.f }
-		, mFastMultiplier(6.0f)
-		, mSlowMultiplier(0.2f)
+		, mFastMultiplier(5.0f)
+		, mSlowMultiplier(0.1f)
 	{
 	}
 
@@ -76,7 +76,7 @@ namespace avk
 			* ((input().key_down(key_code::left_shift)   || input().key_down(key_code::right_shift))   ? mFastMultiplier : 1.f)
 			* ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
 
-		if (input().mouse_button_down(RMB) || input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
+		if (input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
 			// Move pivot along with the camera
 			translate(*this, front(*this) * scrollDist * pivDistSpeed);
 			// ...and leave mPivotDistance unchanged.

@@ -455,7 +455,12 @@ int main() // <== Starting point ==
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = model_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = avk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue, "imgui_manager", {}, [](float uiScale) {
+			auto& style = ImGui::GetStyle();
+			style = ImGuiStyle(); // reset to default style (for non-color settings, like rounded corners)
+			ImGui::StyleColorsClassic(); // change color theme
+			style.ScaleAllSizes(uiScale); // and scale
+		});
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(

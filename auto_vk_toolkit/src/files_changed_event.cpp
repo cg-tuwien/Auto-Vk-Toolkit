@@ -16,7 +16,7 @@ namespace avk
 	void files_changed_event::file_events_handler::handleFileAction(FW::WatchID watchid, const FW::String& dir, const FW::String& filename, FW::Action action)
 	{
 		if (FW::Actions::Modified == action) {
-			LOG_INFO(fmt::format("File '{}' in directory '{}' has been modified ({}#{})", filename, dir, fmt::ptr(this), watchid));
+			LOG_INFO(std::format("File '{}' in directory '{}' has been modified ({}#{})", filename, dir, reinterpret_cast<intptr_t>(this), watchid));
 
 			if (!mDirectoriesAndFilesModifiedInLastUpdate.contains(dir)) {
 				mDirectoriesAndFilesModifiedInLastUpdate.insert({dir, {}});
@@ -71,7 +71,7 @@ namespace avk
 			auto mapResult = mUniqueDirectoriesToFiles.insert({directory, {}});
 			auto setResult = mapResult.first->second.insert(filename);
 			auto alreadyWatched = sFileEventsHandler.is_directory_already_watched(directory);
-			LOG_DEBUG(fmt::format("Watching ({}) file[{}] in ({}) directory[{}] ({} to FileEventsHandler)", setResult.second ? "new" : "known", filename, mapResult.second ? "new" : "known", directory, alreadyWatched ? "known" : "new"));
+			LOG_DEBUG(std::format("Watching ({}) file[{}] in ({}) directory[{}] ({} to FileEventsHandler)", setResult.second ? "new" : "known", filename, mapResult.second ? "new" : "known", directory, alreadyWatched ? "known" : "new"));
 			if (!alreadyWatched) {
 				sFileEventsHandler.add_directory_watch(directory);
 			}

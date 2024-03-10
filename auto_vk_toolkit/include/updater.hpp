@@ -144,7 +144,7 @@ namespace avk
 				return static_cast<uint8_t>(std::distance(std::begin(mEvents), it));
 			}
 			if (mEvents.size() == cMaxEvents) {
-				throw avk::runtime_error(fmt::format("There can not be more than {} events handled by one updater instance. Sorry.", cMaxEvents));
+				throw avk::runtime_error(std::format("There can not be more than {} events handled by one updater instance. Sorry.", cMaxEvents));
 			}
 			mEvents.emplace_back(std::move(e));
 			return static_cast<uint8_t>(mEvents.size() - 1);

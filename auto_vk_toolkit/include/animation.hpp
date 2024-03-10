@@ -539,7 +539,7 @@ namespace avk
 			
 			size_t pos2 = pos1 + (pos1 < maxIndex ? 1 : 0);
 			while (pos2 + 1 < maxIndex && aCollection[pos2 + 1].mTime < aTime) {
-				LOG_WARNING(fmt::format("Now that's strange: keys[{}].mTime {} < {}, despite keys[{}].mTime {} <= {}", pos2 + 1, aCollection[pos2 + 1].mTime, aTime, pos1, aCollection[pos1].mTime, aTime));
+				LOG_WARNING(std::format("Now that's strange: keys[{}].mTime {} < {}, despite keys[{}].mTime {} <= {}", pos2 + 1, aCollection[pos2 + 1].mTime, aTime, pos1, aCollection[pos1].mTime, aTime));
 				++pos2;
 			}
 			
