@@ -40,6 +40,7 @@ option(avk_toolkit_CreateDependencySymlinks "Create symbolic links instead of co
 option(avk_toolkit_BuildExamples "Build all examples for Auto-Vk-Toolkit." OFF)
 option(avk_toolkit_BuildHelloWorld "Build example: hello_world." OFF)
 option(avk_toolkit_BuildFramebuffer "Build example: framebuffer." OFF)
+option(avk_toolkit_BuildDynamicRendering "Build example: dynamic_rendering." OFF)
 option(avk_toolkit_BuildComputeImageProcessing "Build example: compute_image_processing." OFF)
 option(avk_toolkit_BuildMultiInvokeeRendering "Build example: multi_invokee_rendering." OFF)
 option(avk_toolkit_BuildModelLoader "Build example: model_loader." OFF)
@@ -57,6 +58,7 @@ option(avk_toolkit_BuildPresentFromCompute "Build example: present_from_compute.
 if (avk_toolkit_BuildExamples)
     set(avk_toolkit_BuildHelloWorld ON)
     set(avk_toolkit_BuildFramebuffer ON)
+    set(avk_toolkit_BuildDynamicRendering ON)
     set(avk_toolkit_BuildComputeImageProcessing ON)
     set(avk_toolkit_BuildMultiInvokeeRendering ON)
     set(avk_toolkit_BuildModelLoader ON)
@@ -224,6 +226,11 @@ endif()
 ## framebuffer
 if (avk_toolkit_BuildFramebuffer)
     add_subdirectory(examples/framebuffer)
+endif()
+
+## dynamic_rendering
+if (avk_toolkit_BuildDynamicRendering)
+    add_subdirectory(examples/dynamic_rendering)
 endif()
 
 ## compute_image_processing
