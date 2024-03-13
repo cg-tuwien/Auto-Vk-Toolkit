@@ -105,7 +105,7 @@ jobs:
     name: ${{ matrix.config.name }}, windows-2019, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-2019
     env:
-      vulkan_sdk: "${{ github.workspace }}/vulkan_sdk/"
+      vulkan_sdk: "$HOME//vulkan_sdk/"
     strategy:
       fail-fast: false
       matrix:
@@ -175,7 +175,7 @@ jobs:
     name: ${{ matrix.config.name }}, windows-latest, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-latest
     env:
-      vulkan_sdk: "${{ github.workspace }}/vulkan_sdk/"
+      vulkan_sdk: "$HOME/vulkan_sdk/"
     strategy:
       fail-fast: false
       matrix:
