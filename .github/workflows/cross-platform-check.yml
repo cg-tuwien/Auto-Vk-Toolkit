@@ -125,11 +125,14 @@ jobs:
         with:
           submodules: recursive
 
-    - name: Setup Vulkan
-      run: |
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/1.1.126.0/windows/VulkanSDK-1.1.126.0-Installer.exe" -OutFile VulkanSDK.exe
-          $installer = Start-Process -FilePath VulkanSDK.exe -Wait -PassThru -ArgumentList @("/S");
-          $installer.WaitForExit();
+      - name: Setup Vulkan
+        run: |
+            $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
+            echo Version $ver
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+            echo Downloaded
+            .\VulkanSDK.exe --root C:\VulkanSDK  --accept-licenses --default-answer --confirm-command install
 
       - name: Create Build Environment
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}
@@ -189,11 +192,14 @@ jobs:
         with:
           submodules: recursive
 
-    - name: Setup Vulkan
-      run: |
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/1.1.126.0/windows/VulkanSDK-1.1.126.0-Installer.exe" -OutFile VulkanSDK.exe
-          $installer = Start-Process -FilePath VulkanSDK.exe -Wait -PassThru -ArgumentList @("/S");
-          $installer.WaitForExit();
+      - name: Setup Vulkan
+        run: |
+            $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
+            echo Version $ver
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+            echo Downloaded
+            .\VulkanSDK.exe --root C:\VulkanSDK  --accept-licenses --default-answer --confirm-command install
           
       - name: Create Build Environment
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}
