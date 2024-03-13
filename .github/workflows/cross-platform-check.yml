@@ -221,6 +221,9 @@ jobs:
         run: |
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
+          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
+          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
+          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
           cmake --debug-find `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
@@ -230,4 +233,4 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --debug-find --build . --config $BUILD_TYPE
+        run: VULKAN_SDK=${{ env.vulkan_sdk }} Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin" Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include" cmake --debug-find --build . --config $BUILD_TYPE
