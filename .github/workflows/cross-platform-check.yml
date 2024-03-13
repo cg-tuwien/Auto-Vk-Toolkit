@@ -192,15 +192,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Vulkan
-        run: |
-            $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
-            echo Version $ver
-            $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
-            echo Downloaded
-            .\VulkanSDK.exe --root C:\VulkanSDK  --accept-licenses --default-answer --confirm-command install
-          
       - name: Create Build Environment
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}
         shell: pwsh
@@ -216,6 +207,9 @@ jobs:
           7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
           mkdir "${{ env.vulkan_sdk }}Include/vma/"
           curl -LS -o "${{ env.vulkan_sdk }}Include/vma/vk_mem_alloc.h" https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h?raw=true
+          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
+          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
+          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
