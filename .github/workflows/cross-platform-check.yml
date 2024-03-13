@@ -152,7 +152,7 @@ jobs:
           $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
           $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
           $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
-          cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+          cmake --debug-find -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
         shell: pwsh
@@ -161,7 +161,7 @@ jobs:
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
-          cmake `
+          cmake --debug-find `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
@@ -169,7 +169,7 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
+        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --debug-find --build . --config $BUILD_TYPE
 
   windows-latest:
     name: ${{ matrix.config.name }}, windows-latest, VulkanSDK ${{ matrix.vulkan-sdk }}
@@ -213,7 +213,7 @@ jobs:
           $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
           $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
           $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
-          cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+          cmake --debug-find -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
         shell: pwsh
@@ -222,7 +222,7 @@ jobs:
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
-          cmake `
+          cmake --debug-find `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 17 2022" -A x64
@@ -230,4 +230,4 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
+        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --debug-find --build . --config $BUILD_TYPE
