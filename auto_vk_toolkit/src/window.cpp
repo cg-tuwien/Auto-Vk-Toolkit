@@ -533,7 +533,7 @@ namespace avk
 				// swap chain will be recreated in the next frame
 			}
 		}
-		catch (const vk::OutOfDateKHRError & omg) {
+		catch (const vk::OutOfDateKHRError& omg) {
 			LOG_INFO(std::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			// Just do nothing. Ignore the failure. This frame is lost.
