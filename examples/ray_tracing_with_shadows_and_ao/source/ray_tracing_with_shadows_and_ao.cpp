@@ -464,13 +464,14 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing with Shadows and AO"),
 			avk::required_device_extensions()
-			// We need several extensions for ray tracing:
-			.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
-			.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
-			.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
-			.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
-			.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
-			.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
+				// We need several extensions for ray tracing:
+				.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
+				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
+				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+				.add_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+				.add_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+				.add_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME),
 			[](vk::PhysicalDeviceVulkan12Features& aVulkan12Featues) {
 				// Also this Vulkan 1.2 feature is required for ray tracing:
 				aVulkan12Featues.setBufferDeviceAddress(VK_TRUE);
