@@ -105,7 +105,7 @@ jobs:
     name: ${{ matrix.config.name }}, windows-2019, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-2019
     env:
-      vulkan_sdk: "$HOME//vulkan_sdk/"
+      vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
     strategy:
       fail-fast: false
       matrix:
@@ -149,10 +149,7 @@ jobs:
           7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
           mkdir "${{ env.vulkan_sdk }}Include/vma/"
           curl -LS -o "${{ env.vulkan_sdk }}Include/vma/vk_mem_alloc.h" https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h?raw=true
-          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
-          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
-          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
-          cmake --debug-find -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+          cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
         shell: pwsh
@@ -161,6 +158,9 @@ jobs:
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
+          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
+          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
+          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           cmake --debug-find `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
@@ -169,13 +169,13 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --debug-find --build . --config $BUILD_TYPE
+        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
 
   windows-latest:
     name: ${{ matrix.config.name }}, windows-latest, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-latest
     env:
-      vulkan_sdk: "$HOME/vulkan_sdk/"
+      vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
     strategy:
       fail-fast: false
       matrix:
@@ -210,10 +210,7 @@ jobs:
           7z x vulkan-sdk.exe -o"${{ env.vulkan_sdk }}"
           mkdir "${{ env.vulkan_sdk }}Include/vma/"
           curl -LS -o "${{ env.vulkan_sdk }}Include/vma/vk_mem_alloc.h" https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h?raw=true
-          VULKAN_SDK="${{ env.vulkan_sdk }}"
-          Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
-          Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
-          cmake --debug-find -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
+          cmake -E make_directory ${{ runner.workspace }}/${{ github.event.repository.name }}/build
 
       - name: Configure CMake
         shell: pwsh
@@ -225,6 +222,9 @@ jobs:
           $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
           $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
+          echo $env:VULKAN_SDK
+          echo $env:Vulkan_LIBRARY
+          echo $env:Vulkan_INCLUDE_DIR
           cmake --debug-find `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
@@ -233,4 +233,4 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin" Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include" cmake --debug-find --build . --config $BUILD_TYPE
+        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
