@@ -19,7 +19,7 @@ namespace CgbPostBuildHelper.Deployers
 	{
 		private static readonly string VulkanSdkPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 		private static readonly string GlslangValidatorPath = Path.Combine(VulkanSdkPath, @"Bin\glslangValidator.exe");
-		private static readonly string GlslangValidatorParams = " --target-env vulkan1.2 -o \"{1}\" \"{0}\"";
+		private static readonly string GlslangValidatorParams = " --target-env vulkan1.3 -o \"{1}\" \"{0}\"";
 		private static readonly Regex FileAndLineNumberRegex = new Regex(@"ERROR:\s*(\w+\:([^\<\>\:\""\?\*\|\?\*])+)\:(\d+)\:", RegexOptions.Compiled);
 		private static readonly Regex LineNumberRegex = new Regex(@":(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 		private static readonly Regex IncludeDirectiveRegex = new Regex(@"#\s*include\s+\""(.+)\""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
