@@ -161,7 +161,7 @@ jobs:
           $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
           $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
           $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
-          cmake --debug-find `
+          cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 16 2019" -A x64
@@ -222,10 +222,7 @@ jobs:
           $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
           $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
-          echo $env:VULKAN_SDK
-          echo $env:Vulkan_LIBRARY
-          echo $env:Vulkan_INCLUDE_DIR
-          cmake --debug-find `
+          cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
             ${{ runner.workspace }}/${{ github.event.repository.name }} -G "Visual Studio 17 2022" -A x64
@@ -233,4 +230,4 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
+        run: cmake --build . --config $BUILD_TYPE
