@@ -8,6 +8,7 @@ get_target_property(multi_invokee_rendering_BINARY_DIR multi_invokee_rendering B
 add_post_build_commands(multi_invokee_rendering
     ${PROJECT_SOURCE_DIR}/examples/multi_invokee_rendering/shaders
     ${multi_invokee_rendering_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:multi_invokee_rendering>/assets
+    ${multi_invokee_rendering_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:multi_invokee_rendering>/assets
     ""
     ${avk_toolkit_CreateDependencySymlinks})

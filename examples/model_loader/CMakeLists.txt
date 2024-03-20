@@ -13,6 +13,7 @@ set(model_loader_assets
 add_post_build_commands(model_loader
     ${PROJECT_SOURCE_DIR}/examples/model_loader/shaders
     ${model_loader_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:model_loader>/assets
+    ${model_loader_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:model_loader>/assets
     "${model_loader_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

@@ -8,6 +8,7 @@ get_target_property(vertex_buffers_BINARY_DIR vertex_buffers BINARY_DIR)
 add_post_build_commands(vertex_buffers
     ${PROJECT_SOURCE_DIR}/examples/vertex_buffers/shaders
     ${vertex_buffers_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:vertex_buffers>/assets
+    ${vertex_buffers_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:vertex_buffers>/assets
     ""
     ${avk_toolkit_CreateDependencySymlinks})

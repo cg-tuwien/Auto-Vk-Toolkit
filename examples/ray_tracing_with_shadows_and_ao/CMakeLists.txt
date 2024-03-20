@@ -11,6 +11,7 @@ set(ray_tracing_with_shadows_and_ao_assets
 add_post_build_commands(ray_tracing_with_shadows_and_ao
     ${PROJECT_SOURCE_DIR}/examples/ray_tracing_with_shadows_and_ao/shaders
     ${ray_tracing_with_shadows_and_ao_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets
+    ${ray_tracing_with_shadows_and_ao_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:ray_tracing_with_shadows_and_ao>/assets
     "${ray_tracing_with_shadows_and_ao_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

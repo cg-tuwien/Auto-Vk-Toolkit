@@ -10,6 +10,7 @@ get_target_property(ray_tracing_custom_intersection_BINARY_DIR ray_tracing_custo
 add_post_build_commands(ray_tracing_custom_intersection
     ${PROJECT_SOURCE_DIR}/examples/ray_tracing_custom_intersection/shaders
     ${ray_tracing_custom_intersection_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/assets
+    ${ray_tracing_custom_intersection_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:ray_tracing_custom_intersection>/assets
     ""
     ${avk_toolkit_CreateDependencySymlinks})

@@ -13,6 +13,7 @@ set(skinned_meshlets_assets
 add_post_build_commands(skinned_meshlets
     ${PROJECT_SOURCE_DIR}/examples/skinned_meshlets/shaders
     ${skinned_meshlets_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:skinned_meshlets>/assets
+    ${skinned_meshlets_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:skinned_meshlets>/assets
     "${skinned_meshlets_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

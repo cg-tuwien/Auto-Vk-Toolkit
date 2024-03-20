@@ -3,7 +3,7 @@ project(Auto_Vk_Toolkit)
 
 if (MSVC)
     # <ranges> support requires /std:c++latest on MSVC
-    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD 20)
 else (MSVC)
     set(CMAKE_CXX_STANDARD 20)
 endif (MSVC)
@@ -199,16 +199,17 @@ else()
         stb)
 endif(UNIX)
 
+
+
 if (UNIX)
     # pthreads
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
     target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
         Threads::Threads)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+else()
     # explicitly link dbghelp to debug builds on Windows
-    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope}
-        dbghelp)
+    target_link_libraries(${PROJECT_NAME} ${avk_toolkit_IncludeScope} $<$<CONFIG:Debug>:dbghelp>)
 endif (UNIX)
 
 # add avk_toolkit.hpp as precomiled header

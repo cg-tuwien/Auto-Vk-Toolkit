@@ -13,6 +13,7 @@ set(texture_cubemap_assets
 add_post_build_commands(texture_cubemap
     ${PROJECT_SOURCE_DIR}/examples/texture_cubemap/shaders
     ${texture_cubemap_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:texture_cubemap>/assets
+    ${texture_cubemap_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:texture_cubemap>/assets
     "${texture_cubemap_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

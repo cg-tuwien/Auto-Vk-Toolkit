@@ -8,6 +8,7 @@ get_target_property(framebuffer_BINARY_DIR framebuffer BINARY_DIR)
 add_post_build_commands(framebuffer
     ${PROJECT_SOURCE_DIR}/examples/framebuffer/shaders
     ${framebuffer_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:framebuffer>/assets
+    ${framebuffer_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:framebuffer>/assets
     ""
     ${avk_toolkit_CreateDependencySymlinks})

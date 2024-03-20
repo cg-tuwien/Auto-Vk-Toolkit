@@ -1,0 +1,90 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "defaults",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/out/${presetName}",
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "avk_toolkit_BuildExamples" : true,
+                "gvk_CreateDependencySymlinks": false,
+                "CMAKE_EXPORT_COMPILE_COMMANDS" : true
+            }
+        },
+        {
+            "name": "defaults-windows",
+            "hidden": true,
+            "inherits": [
+                "defaults"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+            }
+        },
+        {
+            "name": "clang-x86_64-windows-msvc",
+            "displayName": "Clang x86_64 Windows (MSVC ABI)",
+            "inherits": [
+                "defaults-windows"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/toolchains/clang-x86_64-windows-msvc.cmake"
+        },
+        {
+            "name": "cl-x86_64-windows-msvc",
+            "displayName": "CL.exe x86_64 Windows (MSVC ABI)",
+            "inherits": [
+                "defaults-windows"
+                
+            ],
+            "toolchainFile": "${sourceDir}/cmake/toolchains/cl-x86_64-windows-msvc.cmake"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "clang-x86_64-windows-msvc-debug",
+            "displayName": "Clang x86_64 Windows (MSVC ABI) Debug",
+            "configurePreset": "clang-x86_64-windows-msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-x86_64-windows-msvc-relwithdebinfo",
+            "displayName": "Clang x86_64 Windows (MSVC ABI) RelWithDebInfo",
+            "configurePreset": "clang-x86_64-windows-msvc",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "clang-x86_64-windows-msvc-release",
+            "displayName": "Clang x86_64 Windows (MSVC ABI) Release",
+            "configurePreset": "clang-x86_64-windows-msvc",
+            "configuration": "Release"
+        },
+        {
+            "name": "cl-x86_64-windows-msvc-debug",
+            "displayName": "CL.exe x86_64 Windows (MSVC ABI) Debug",
+            "configurePreset": "cl-x86_64-windows-msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "cl-x86_64-windows-msvc-relwithdebinfo",
+            "displayName": "CL.exe x86_64 Windows (MSVC ABI) RelWithDebInfo",
+            "configurePreset": "cl-x86_64-windows-msvc",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "cl-x86_64-windows-msvc-release",
+            "displayName": "CL.exe x86_64 Windows (MSVC ABI) Release",
+            "configurePreset": "cl-x86_64-windows-msvc",
+            "configuration": "Release"
+        }
+    ]
+}

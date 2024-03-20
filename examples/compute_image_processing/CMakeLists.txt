@@ -11,6 +11,7 @@ set(compute_image_processing_assets
 add_post_build_commands(compute_image_processing
     ${PROJECT_SOURCE_DIR}/examples/compute_image_processing/shaders
     ${compute_image_processing_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:compute_image_processing>/assets
+    ${compute_image_processing_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:compute_image_processing>/assets
     "${compute_image_processing_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

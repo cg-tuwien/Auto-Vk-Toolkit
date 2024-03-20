@@ -13,6 +13,7 @@ set(ray_query_in_ray_tracing_shaders_assets
 add_post_build_commands(ray_query_in_ray_tracing_shaders
     ${PROJECT_SOURCE_DIR}/examples/ray_query_in_ray_tracing_shaders/shaders
     ${ray_query_in_ray_tracing_shaders_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets
+    ${ray_query_in_ray_tracing_shaders_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:ray_query_in_ray_tracing_shaders>/assets
     "${ray_query_in_ray_tracing_shaders_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

@@ -8,6 +8,7 @@ get_target_property(present_from_compute_BINARY_DIR present_from_compute BINARY_
 add_post_build_commands(present_from_compute
     ${PROJECT_SOURCE_DIR}/examples/present_from_compute/shaders
     ${present_from_compute_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:present_from_compute>/assets
+    ${present_from_compute_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:present_from_compute>/assets
     ""
     ${avk_toolkit_CreateDependencySymlinks})

@@ -13,6 +13,7 @@ set(orca_loader_assets
 add_post_build_commands(orca_loader
     ${PROJECT_SOURCE_DIR}/examples/orca_loader/shaders
     ${orca_loader_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:orca_loader>/assets
+    ${orca_loader_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:orca_loader>/assets
     "${orca_loader_assets}"
     ${avk_toolkit_CreateDependencySymlinks})

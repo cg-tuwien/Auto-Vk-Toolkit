@@ -13,6 +13,7 @@ set(static_meshlets_assets
 add_post_build_commands(static_meshlets
     ${PROJECT_SOURCE_DIR}/examples/static_meshlets/shaders
     ${static_meshlets_BINARY_DIR}/shaders
-    $<TARGET_FILE_DIR:static_meshlets>/assets
+    ${static_meshlets_BINARY_DIR}/assets
+    # $<TARGET_FILE_DIR:static_meshlets>/assets
     "${static_meshlets_assets}"
     ${avk_toolkit_CreateDependencySymlinks})
