@@ -223,12 +223,12 @@ public: // v== xk::invokee overrides which will be invoked by the framework ==v
 				// Transition the layouts before performing the transfer operation:
 				avk::sync::image_memory_barrier(mOneFramebuffer->image_at(mSelectedAttachmentToCopy),
 					// None here, because we're synchronizing with a semaphore
-					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
-					avk::access::none >> avk::access::transfer_read
+					avk::stage::color_attachment_output  >> avk::stage::copy | avk::stage::blit,
+					avk::access::color_attachment_write  >> avk::access::transfer_read
 				).with_layout_transition(sourceImageLayout >> avk::layout::transfer_src),
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer()->image_at(0),
-					avk::stage::none  >> avk::stage::copy | avk::stage::blit,
-					avk::access::none >> avk::access::transfer_write
+					avk::stage::color_attachment_output  >> avk::stage::copy | avk::stage::blit,
+					avk::access::color_attachment_write  >> avk::access::transfer_write
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
 				// Perform the transfer operation:
