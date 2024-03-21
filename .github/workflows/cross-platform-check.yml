@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout repository and submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -119,9 +119,9 @@ jobs:
         vulkan-sdk: ["latest", "1.3.204.1"]
 
     steps:
-      # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
+      # IMPORTANT: apparently checkout@v4 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
       - name: Checkout repository and submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -180,9 +180,9 @@ jobs:
         vulkan-sdk: ["latest", "1.3.204.1"]
 
     steps:
-      # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
+      # IMPORTANT: apparently checkout@v4 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
       - name: Checkout repository and submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
