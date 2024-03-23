@@ -37,7 +37,20 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 	void initialize() override
 	{
 		const auto r = avk::context().main_window()->resolution();
-		auto colorAttachmentDescription = avk::attachment::declare_dynamic_for(avk::context().main_window()->current_image_view_reference());
+		mColorImage = avk::context().create_image(
+			r.x, r.y,
+			{avk::context().main_window()->current_image_view_reference().create_info().format, vk::SampleCountFlagBits::e8},
+			1,
+			avk::memory_usage::device,
+			avk::image_usage::general_color_attachment
+		);
+		mColorImageView = avk::context().create_image_view(mColorImage);
+
+		auto resolveUsage = avk::subpass_usage_type::create_color(0);
+		resolveUsage.mResolve = true;
+		resolveUsage.mResolveAttachmentIndex = 1;
+		mColorAttachment = avk::attachment::declare_dynamic_for(mColorImageView.as_reference(), resolveUsage);
+		mResolveAttachment = avk::attachment::declare_dynamic_for(avk::context().main_window()->current_image_view_reference(), avk::subpass_usage_type::create_color(0));
 		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = avk::context().create_graphics_pipeline_for(
@@ -47,7 +60,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				avk::context().main_window()->backbuffer_reference_at_index(0)) // Get scissor and viewport settings from current window backbuffer
 				.enable_dynamic_viewport(),                                     // But also enable dynamic viewport
 			avk::cfg::dynamic_rendering::enabled,
-			colorAttachmentDescription
+			mColorAttachment.value()
+			// mResolveAttachment.value()
 		);
 
 		// Get hold of the "ImGui Manager" and add a callback that draws UI elements:
@@ -103,17 +117,40 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		avk::image_view swapchainImageView = mainWnd->current_image_view();
 		avk::image_t const & swapchainImage = mainWnd->current_image_reference(); 
-		avk::attachment colorAttachment = avk::attachment::declare_for(swapchainImageView.as_reference(), avk::on_load::clear, avk::usage::color(0), avk::on_store::store);
 
 		std::vector<avk::recorded_commands_t> renderCommands = {};
-		// First we transition the swapchain image into color attachment format
+		// First we transition the swapchain image into transfer dst layout
 		renderCommands.emplace_back(
 			avk::sync::image_memory_barrier(swapchainImage,
 				// source stage none because it is handled by imageAvailable semaphore
-				avk::stage::none >> avk::stage::color_attachment_output,
-				avk::access::none >> avk::access::color_attachment_write
+				avk::stage::none >> avk::stage::all_transfer,
+				avk::access::none >> avk::access::transfer_write
 				// We don't care about the previous contents of the swapchain image (they probably not even defined!)
-			).with_layout_transition(avk::layout::undefined >> avk::layout::color_attachment_optimal)
+			).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst)
+		);
+
+		// Then we clear the swapchain image
+		vk::Image vulkanSwapchainImage = swapchainImage.handle();
+		renderCommands.emplace_back(
+			avk::command::custom_commands([=](avk::command_buffer_t& cb) {
+				auto const clearValue = vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f};
+				auto const subresourceRange = vk::ImageSubresourceRange( vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u);
+				cb.handle().clearColorImage(
+					vulkanSwapchainImage,
+					vk::ImageLayout::eTransferDstOptimal,
+					&clearValue,
+					1,
+					&subresourceRange,
+					cb.root_ptr()->dispatch_loader_core()
+				);
+		}));
+
+		// Last we transition the swapchain image into color optimal for writing
+		renderCommands.emplace_back(
+			avk::sync::image_memory_barrier(swapchainImage,
+				avk::stage::all_transfer >> avk::stage::color_attachment_output,
+				avk::access::transfer_write >> avk::access::color_attachment_write
+			).with_layout_transition(avk::layout::transfer_dst >> avk::layout::color_attachment_optimal)
 		);
 
 		auto const windowResolution = mainWnd->resolution();
@@ -145,9 +182,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			{
 				break;
 			}
-			colorAttachment.set_clear_color(mClearColors.at(drawIdx));
+			mColorAttachment.value().set_clear_color(mClearColors.at(drawIdx));
+			mColorAttachment.value().set_load_operation({avk::on_load_behavior::clear, {}});
 			// Set the dynamic viewport to be equal to each of the renderpass extent and offsets if don't want shared fullscreen viewport for all of them
-			renderCommands.emplace_back(avk::command::begin_dynamic_rendering({colorAttachment}, {swapchainImageView}, currOffset, currExtent));
+			renderCommands.emplace_back(avk::command::begin_dynamic_rendering({mColorAttachment.value()}, {mColorImageView, swapchainImageView}, currOffset, currExtent));
 			renderCommands.emplace_back(avk::command::bind_pipeline(mPipeline.as_reference()));
 			if(!mFullscreenViewport)
 			{
@@ -161,10 +199,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		avk::context().record(renderCommands)
-		.into_command_buffer(cmdBfr[0])
-		.then_submit_to(*mQueue)
-		.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
-		.submit();
+			.into_command_buffer(cmdBfr[0])
+			.then_submit_to(*mQueue)
+			.waiting_for(imageAvailableSemaphore >> avk::stage::color_attachment_output)
+			.submit();
 
 		avk::context().main_window()->handle_lifetime(std::move(cmdBfr[0]));
 	}
@@ -179,6 +217,11 @@ private: // v== Member variables ==v
 	uint32_t mBorderThickness;
 	bool mFullscreenViewport;
 	std::array<std::array<float, 4>, 4> mClearColors;
+	avk::image mColorImage;
+	avk::image_view mColorImageView;
+	// subpass_usages have no default constructor... :(
+	std::optional<avk::attachment> mColorAttachment;
+	std::optional<avk::attachment> mResolveAttachment;
 
 }; // vertex_buffers_app
 
