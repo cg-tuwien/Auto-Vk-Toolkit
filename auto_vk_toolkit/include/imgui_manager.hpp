@@ -25,6 +25,7 @@ namespace avk
 			, mQueue { &aQueueToSubmitTo }
 			, mUserInteractionEnabled{ true }
 			, mAlterSettingsBeforeInitialization{ std::move(aAlterSettingsBeforeInitialization) }
+			, mIncomingLayout{ layout::color_attachment_optimal }
 		{
 			if (aRenderpassToUse.has_value()) {
 				mRenderpass = std::move(aRenderpassToUse.value());
@@ -126,6 +127,24 @@ namespace avk
 		bool end_wanting_to_occupy_mouse() const {
 			return !mOccupyMouse && mOccupyMouseLastFrame;
 		}
+
+		/** Gets the image layout that imgui_manager assumes the color attachment to be in when it starts
+		 *  to render into it.
+		 *	The default value is: avk::layout::color_attachment_optimal
+		 */
+		layout::image_layout previous_image_layout() const {
+			return mIncomingLayout;
+		}
+
+		/** Sets the image layout that imgui_manager shall expect the color attachment to be in
+		 *  before starting to render into it.
+		 *	Note: This change might only have effect BEFORE imgui_manager has been initialized,
+		 *	      i.e., before its ::initialize() method has been invoked by the framework for the
+		 *		  first time. => Ensure to configure this value before starting the composition!
+		 */
+		void set_previous_image_layout(layout::image_layout aIncomingLayout) {
+			mIncomingLayout = aIncomingLayout;
+		}
 	private:
 		void upload_fonts();
 		void construct_render_pass();
@@ -156,6 +175,7 @@ namespace avk
 		// customization
 		std::function<void(float)> mAlterSettingsBeforeInitialization = {};
 		std::string mCustomTtfFont = {};
+		layout::image_layout mIncomingLayout;
 	};
 
 }
