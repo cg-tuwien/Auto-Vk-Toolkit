@@ -46,11 +46,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		);
 		mColorImageView = avk::context().create_image_view(mColorImage);
 
-		auto resolveUsage = avk::subpass_usage_type::create_color(0);
-		resolveUsage.mResolve = true;
-		resolveUsage.mResolveAttachmentIndex = 1;
-		mColorAttachment = avk::attachment::declare_dynamic_for(mColorImageView.as_reference(), resolveUsage);
-		mResolveAttachment = avk::attachment::declare_dynamic_for(avk::context().main_window()->current_image_view_reference(), avk::subpass_usage_type::create_color(0));
+		mColorAttachment = avk::attachment::declare_dynamic_for(mColorImageView.as_reference(), avk::usage::color(0) + avk::usage::resolve_to(1));
+		mResolveAttachment = avk::attachment::declare_dynamic_for(avk::context().main_window()->current_image_view_reference(), avk::usage::unused);
 		
 		// Create graphics pipeline for rasterization with the required configuration:
 		mPipeline = avk::context().create_graphics_pipeline_for(
@@ -182,10 +179,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			{
 				break;
 			}
-			mColorAttachment.value().set_clear_color(mClearColors.at(drawIdx));
-			mColorAttachment.value().set_load_operation({avk::on_load_behavior::clear, {}});
+			mColorAttachment.value()
+				.set_clear_color(mClearColors.at(drawIdx))
+				.set_load_operation({avk::on_load_behavior::clear, {}});
 			// Set the dynamic viewport to be equal to each of the renderpass extent and offsets if don't want shared fullscreen viewport for all of them
-			renderCommands.emplace_back(avk::command::begin_dynamic_rendering({mColorAttachment.value()}, {mColorImageView, swapchainImageView}, currOffset, currExtent));
+			renderCommands.emplace_back(avk::command::begin_dynamic_rendering(
+				{mColorAttachment.value(), mResolveAttachment.value()},
+				{mColorImageView, swapchainImageView},
+				currOffset, currExtent
+			));
 			renderCommands.emplace_back(avk::command::bind_pipeline(mPipeline.as_reference()));
 			if(!mFullscreenViewport)
 			{
