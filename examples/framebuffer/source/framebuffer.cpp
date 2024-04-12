@@ -312,7 +312,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Framebuffers"),
 			[](avk::validation_layers& config) {
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,
