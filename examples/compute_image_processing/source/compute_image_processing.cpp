@@ -228,6 +228,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cmdbfr->begin_recording();
 
 			auto semaphore = avk::context().record_and_submit_with_semaphore({
+				// TODO: Why do auto barriers not work here?
+				avk::sync::global_memory_barrier(avk::stage::all_commands >> avk::stage::all_commands, avk::access::memory_write | avk::access::memory_read >> avk::access::memory_write | avk::access::memory_read),
+
 				// Bind the compute pipeline:
 				avk::command::bind_pipeline(mComputePipelines[computeIndex].as_reference()),
 
@@ -379,7 +382,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Compute Image Effects Exampl"),
 			[](avk::validation_layers& config) {
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,
