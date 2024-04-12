@@ -620,7 +620,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					return mBoneMatricesBuffersAni[inFlightIndex][std::get<animated_model_data>(tpl).mBoneMatricesBufferIndex]->fill(std::get<additional_animated_model_data>(tpl).mBoneMatricesAni.data(), 0);
 				}),
 
-				command::render_pass(pipeline->renderpass_reference().value(), context().main_window()->current_backbuffer_reference(), {
+				command::render_pass(pipeline->renderpass_reference(), context().main_window()->current_backbuffer_reference(), {
 					command::bind_pipeline(pipeline.as_reference()),
 					command::bind_descriptors(pipeline->layout(), mDescriptorCache->get_or_create_descriptor_sets({
 						descriptor_binding(0, 0, as_combined_image_samplers(mImageSamplers, layout::shader_read_only_optimal)),
