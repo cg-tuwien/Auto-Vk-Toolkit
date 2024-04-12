@@ -263,7 +263,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		
 		avk::context().record({
 				// Begin and end one renderpass:
-				avk::command::render_pass(mPipelineSkybox->renderpass_reference().value(), avk::context().main_window()->current_backbuffer_reference(), avk::command::gather(
+				avk::command::render_pass(mPipelineSkybox->renderpass_reference(), avk::context().main_window()->current_backbuffer_reference(), avk::command::gather(
 					// First, draw the skybox:
 					avk::command::bind_pipeline(mPipelineSkybox.as_reference()),
 					avk::command::bind_descriptors(mPipelineSkybox->layout(), mDescriptorCache->get_or_create_descriptor_sets({
