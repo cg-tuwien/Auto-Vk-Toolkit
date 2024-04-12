@@ -116,7 +116,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.204.1"]
+        vulkan-sdk: ["latest", "1.3.216.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -177,7 +177,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.204.1"]
+        vulkan-sdk: ["latest", "1.3.216.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
