@@ -228,8 +228,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cmdbfr->begin_recording();
 
 			auto semaphore = avk::context().record_and_submit_with_semaphore({
-				// TODO: Why do auto barriers not work here?
-				avk::sync::global_memory_barrier(avk::stage::all_commands >> avk::stage::all_commands, avk::access::memory_write | avk::access::memory_read >> avk::access::memory_write | avk::access::memory_read),
+				avk::sync::global_memory_barrier(avk::stage::auto_stage >> avk::stage::auto_stage, avk::access::auto_access >> avk::access::auto_access),
 
 				// Bind the compute pipeline:
 				avk::command::bind_pipeline(mComputePipelines[computeIndex].as_reference()),
