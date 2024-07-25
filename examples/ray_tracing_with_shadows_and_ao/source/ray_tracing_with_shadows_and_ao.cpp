@@ -341,9 +341,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::stage::ray_tracing_shader >> avk::stage::copy,
 					avk::access::shader_write      >> avk::access::transfer_read
 				).with_layout_transition(avk::layout::general >> avk::layout::transfer_src),
+				// Use dst stage + access to synchronize the image layout transition:
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0),
-					avk::stage::none               >> avk::stage::copy,
-					avk::access::none              >> avk::access::transfer_write
+					avk::stage::color_attachment_output    >> avk::stage::copy,
+					avk::access::color_attachment_write    >> avk::access::transfer_write
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
 				avk::copy_image_to_another(
@@ -463,6 +464,9 @@ int main() // <== Starting point ==
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing with Shadows and AO"),
+			[](avk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 			avk::required_device_extensions()
 				// We need several extensions for ray tracing:
 				.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
