@@ -148,6 +148,13 @@ public:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
 		avk::context().record({
+				// Synchronization validation is unable to figure out that frame-3 used this buffer, but is no longer needing it.
+				// => so we've gotta be explicitly synchronizing it with this barrier:
+				avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), 
+					avk::stage::vertex_attribute_input >> avk::stage::copy		     ,
+					avk::access::vertex_attribute_read >> avk::access::transfer_write
+				),
+
 				// Fill the vertex buffer that corresponds to this the current inFlightIndex:
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
 
@@ -219,7 +226,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Vertex Buffers"),
 			[](avk::validation_layers& config) {
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,
