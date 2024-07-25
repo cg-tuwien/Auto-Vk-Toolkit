@@ -834,8 +834,8 @@ namespace avk
 			auto newRenderPass = context().create_renderpass(renderpassAttachments, {
 				// We only create one subpass here => create default dependencies as per specification chapter 8.1) Render Pass Creation:
 				avk::subpass_dependency{avk::subpass::external >> avk::subpass::index(0),
-					stage::color_attachment_output    >>   stage::early_fragment_tests | stage::late_fragment_tests | stage::color_attachment_output,
-					access::none                      >>   access::color_attachment_read | access::color_attachment_write | access::depth_stencil_attachment_read | access::depth_stencil_attachment_write
+					stage::late_fragment_tests | stage::color_attachment_output    >>   stage::early_fragment_tests | stage::late_fragment_tests | stage::color_attachment_output,
+					access::depth_stencil_attachment_write                         >>   access::color_attachment_read | access::color_attachment_write | access::depth_stencil_attachment_read | access::depth_stencil_attachment_write
 				},
 				avk::subpass_dependency{avk::subpass::index(0) >> avk::subpass::external,
 					stage::color_attachment_output    >>   stage::color_attachment_output,
