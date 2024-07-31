@@ -48,7 +48,7 @@ namespace avk
 		float bottom_border() const { return mBottom; }
 
 		// sets the projection matrix
-		camera& set_projection_matrix(const glm::mat4& aMatrix);
+		camera& set_projection_matrix(const glm::mat4& aMatrix, avk::projection_type aProjectionType = avk::projection_type::unknown);
 		// Constructs and sets a perspective projection matrix with the given parameters
 		camera& set_perspective_projection(float aFov, float aAspect, float aNear, float aFar);
 		// Constructs and sets an orthographic projection matrix with the given parameters

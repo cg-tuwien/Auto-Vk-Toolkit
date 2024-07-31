@@ -119,9 +119,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// First we transition the swapchain image into transfer dst layout
 		renderCommands.emplace_back(
 			avk::sync::image_memory_barrier(swapchainImage,
-				// source stage none because it is handled by imageAvailable semaphore
-				avk::stage::none >> avk::stage::all_transfer,
-				avk::access::none >> avk::access::transfer_write
+				// source stage color_attachment_output in order to create a dependency chain with the imageAvailable semaphore
+				avk::stage::color_attachment_output >> avk::stage::all_transfer,
+				avk::access::none                   >> avk::access::transfer_write
 				// We don't care about the previous contents of the swapchain image (they probably not even defined!)
 			).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst)
 		);
@@ -145,7 +145,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		// Last we transition the swapchain image into color optimal for writing
 		renderCommands.emplace_back(
 			avk::sync::image_memory_barrier(swapchainImage,
-				avk::stage::all_transfer >> avk::stage::color_attachment_output,
+				avk::stage::all_transfer    >> avk::stage::color_attachment_output,
 				avk::access::transfer_write >> avk::access::color_attachment_write
 			).with_layout_transition(avk::layout::transfer_dst >> avk::layout::color_attachment_optimal)
 		);
@@ -252,7 +252,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Dynamic rendering"),
 			[](avk::validation_layers& config) {
-				// config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			avk::required_device_extensions()
 			.add_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME),

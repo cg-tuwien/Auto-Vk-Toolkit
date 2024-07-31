@@ -522,7 +522,7 @@ namespace avk
 
 		auto* wnd = context().main_window();
 		std::vector<attachment> attachments;
-		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load, usage::color(0), on_store::store.in_layout(layout::present_src)));
+		attachments.push_back(attachment::declare(format_from_window_color_buffer(wnd), on_load::load.from_previous_layout(mIncomingLayout), usage::color(0), on_store::store.in_layout(layout::present_src)));
 		for (auto a : wnd->get_additional_back_buffer_attachments()) {
 			// Well... who would have guessed the following (and, who understands??):
 			//
@@ -544,13 +544,13 @@ namespace avk
 				subpass_dependency(
 					subpass::external >> subpass::index(0),
 					// ... we have to synchronize all these stages with color+dept_stencil write access:
-					stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests >> stage::color_attachment_output | stage::early_fragment_tests | stage::late_fragment_tests,
-					access::color_attachment_write | access::depth_stencil_attachment_write >> access::color_attachment_read | access::depth_stencil_attachment_write
+					stage::color_attachment_output   >>   stage::color_attachment_output,
+					access::none                     >>   access::color_attachment_read | access::color_attachment_write // read && write due to layout transition
 				),
 				subpass_dependency(
 					subpass::index(0) >> subpass::external,
-					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
-					access::color_attachment_write >> access::none
+					stage::color_attachment_output   >>   stage::color_attachment_output,  // assume semaphore afterwards
+					access::color_attachment_write   >>   access::none                     //  ^ ...but still, gotta synchronize image layout transition with subsequent presentKHR :ohgodwhy:
 				)
 			}
 		);
@@ -562,13 +562,13 @@ namespace avk
 			, {
 				subpass_dependency(
 					subpass::external >> subpass::index(0),
-					stage::none >> stage::color_attachment_output,
-					access::none >> access::color_attachment_read | access::color_attachment_write
+					stage::color_attachment_output   >>   stage::color_attachment_output,
+					access::none                     >>   access::color_attachment_read | access::color_attachment_write // read && write due to layout transition
 				),
 				subpass_dependency(
 					subpass::index(0) >> subpass::external,
-					stage::color_attachment_output >> stage::none, // assume semaphore afterwards
-					access::color_attachment_write >> access::none
+					stage::color_attachment_output >> stage::color_attachment_output,  // assume semaphore afterwards
+					access::color_attachment_write >> access::none                     //  ^ ...but still, gotta synchronize image layout transition with subsequent presentKHR :ohgodwhy:
 				)
 			}
 		);

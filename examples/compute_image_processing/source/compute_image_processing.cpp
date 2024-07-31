@@ -228,6 +228,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cmdbfr->begin_recording();
 
 			auto semaphore = avk::context().record_and_submit_with_semaphore({
+				avk::sync::global_memory_barrier(avk::stage::auto_stage >> avk::stage::auto_stage, avk::access::auto_access >> avk::access::auto_access),
+
 				// Bind the compute pipeline:
 				avk::command::bind_pipeline(mComputePipelines[computeIndex].as_reference()),
 
@@ -379,7 +381,7 @@ int main() // <== Starting point ==
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Compute Image Effects Exampl"),
 			[](avk::validation_layers& config) {
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
 			mainWnd,
