@@ -13,9 +13,9 @@ Because dynamic rendering is an extension, it needs to be enabled. This is done 
 
 ## Pipeline creation
 
-The creation of the pipeline needs to be sligthly modified. First, the pipeline needs to be notified, that we intend to use it together with dynamic rendering. To do this the enum `avk::cfg::dynamic_rendering::enabled` needs to be passed as a parameter into the pipeline constructor. 
+The creation of the pipeline needs to be sligthly modified to enable dynamic rendering. First, the pipeline needs to be notified, stating that we intend to use it together with dynamic rendering by passing the enum value `avk::cfg::dynamic_rendering::enabled` as a parameter to the pipeline constructor or pipeline creation function `create_graphics_pipeline_for`.
 
-Second, the attachments passed into the pipeline also need to be different. For this purpose, analogous to how attachments for typical pipelines are created, the API offers three functions for creating dynamic attachments. These are:
+Second, the attachments passed into the pipeline also need to be differently declared: Analogous to how attachments for typical pipelines are created, the API offers three functions for creating dynamic attachments. These are:
 - `declare_dynamic(std::tuple<vk::Format, vk::SampleCountFlagBits> aFormatAndSamples, subpass_usages aUsage);`
 - `declare_dynamic(vk::Format aFormat, subpass_usages aUsage);`
 - `declare_dynamic_for(const image_view_t& aImageView, subpass_usages aUsage);`.
@@ -24,7 +24,7 @@ Compared to the typical attachment declaration, these don't contain the load and
 
 Finally, while the option to derive most of the required parameters from a given image view is provided, the attachments created in this way will be compatible with any other image view, that has the same parameters. That is, one can create a pipeline with dynamic attachment created by `declare_dynamic_for()` function, and then provide a completely different image view in the actuall `begin_dynamic_rendering()` call. 
 
-With this, an example of creating a pipeline for dynamic rendering is as follows:
+The following shows an example of creating a pipeline for dynamic rendering:
 ```cpp
 auto Pipeline = avk::context().create_graphics_pipeline_for(
 	avk::vertex_shader("shader.vert"),
