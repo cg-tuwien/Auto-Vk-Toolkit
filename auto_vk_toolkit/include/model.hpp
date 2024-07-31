@@ -381,6 +381,19 @@ namespace avk
 		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
 		 */
 		animation prepare_animation(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices);
+
+		/** Calculates the tangent space with Auto-Vk-Toolkit's implementation,
+		 *  possibly overwriting ASSIMPs tangents/bitangents.
+		 *	@param	aMeshIndex			Mesh which the tangent space shall be computed for
+		 *	@param	aConfigSourceUV		The set of UV coordinates to be used for tangent space calculation
+		 */
+		void calculate_tangent_space_for_mesh(mesh_index_t aMeshIndex, uint32_t aConfigSourceUV = 0);
+
+		/** Calculates the tangent space with Auto-Vk-Toolkit's implementation for all meshes,
+		 *  possibly overwriting ASSIMPs tangents/bitangents.
+		 *	@param	aConfigSourceUV		The set of UV coordinates to be used for tangent space calculation
+		 */
+		void calculate_tangent_space_for_all_meshes(uint32_t aConfigSourceUV = 0);
 		
 	private:
 		void initialize_materials();
@@ -418,6 +431,7 @@ namespace avk
 		std::string mModelPath;
 		const aiScene* mScene;
 		std::vector<std::optional<material_config>> mMaterialConfigPerMesh;
+		std::unordered_map<mesh_index_t, std::tuple<std::vector<glm::vec3>, std::vector<glm::vec3>>> mTangentsAndBitangents;
 	};
 
 	using model = avk::owning_resource<model_t>;
