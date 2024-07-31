@@ -9,7 +9,7 @@ on:
       - 'framework/**'
       - 'CMakeLists.txt'
   pull_request:
-  workflow_dispatch:
+  # workflow_dispatch:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -18,7 +18,7 @@ env:
 jobs:
   linux:
     name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +35,7 @@ jobs:
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
-        vulkan-sdk: ["latest", "1.3.216"]
+        vulkan-sdk: ["latest", "1.3.243"]
 
     steps:
       - name: Checkout repository and submodules
@@ -49,15 +49,17 @@ jobs:
         # We'll use this as our working directory for all subsequent commands
         run: |
           # Add lunarg apt sources
+          sudo sed -i -e 's|disco|jammy|g' /etc/apt/sources.list
+          sudo apt update
           wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
           if [ "${{ matrix.vulkan-sdk }}" = "latest" ]; then
-            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
           else
-            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-jammy.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-jammy.list
           fi
 
           # For GCC-13
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 
           # Update package lists
           sudo apt-get update -qq
@@ -116,7 +118,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.216.0"]
+        vulkan-sdk: ["latest", "1.3.243.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -177,7 +179,7 @@ jobs:
             cxx: "cl"
           }
         # note: if a specific vulkan version needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.3.216.0"]
+        vulkan-sdk: ["latest", "1.3.243.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
