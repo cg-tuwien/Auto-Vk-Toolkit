@@ -13,7 +13,7 @@ Because dynamic rendering is an extension, it needs to be enabled. This is done 
 
 ## Pipeline creation
 
-As said above the creation of the pipeline needs to be sligthly modified. First, the pipeline needs to be notified, that we intend to use it together with dynamic rendering. To do this the enum `avk::cfg::dynamic_rendering::enabled` needs to be passed as a parameter into the pipeline constructor. 
+The creation of the pipeline needs to be sligthly modified. First, the pipeline needs to be notified, that we intend to use it together with dynamic rendering. To do this the enum `avk::cfg::dynamic_rendering::enabled` needs to be passed as a parameter into the pipeline constructor. 
 
 Second, the attachments passed into the pipeline also need to be different. For this purpose, analogous to how attachments for typical pipelines are created, the API offers three functions for creating dynamic attachments. These are:
 - `declare_dynamic(std::tuple<vk::Format, vk::SampleCountFlagBits> aFormatAndSamples, subpass_usages aUsage);`
