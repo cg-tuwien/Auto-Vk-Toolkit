@@ -1,10 +1,9 @@
-# Table of Contents
-- [Dynamic rendering](#dynamic-rendering)
-  - [Enabling the extension](#enabling-the-extension) 
-  - [Pipeline creation](#pipeline-creation) 
-  - [Recording dynamic rendering commands](#recording-dynamic-rendering-commands) 
-
 # Dynamic rendering
+
+Table of Contents:     
+- [Enabling the extension](#enabling-the-extension) 
+- [Pipeline creation](#pipeline-creation) 
+- [Recording dynamic rendering commands](#recording-dynamic-rendering-commands) 
 
 The standard way of writing renderpasses and pipelines can become overly verbose when the codebase starts to grow. Specifically the need to recreate render pass objects and framebuffers for each pipeline iteration is of concern. To alleviate this issue Vulkan API provides an extension called dynamic rendering. With this extension, the renderpass and framebuffer construction are no longer constructed statically, typically before the command recording. Instead, thier creation is moved inside of the command recording phase, which offers much greater flexibility. Additionally, the pipeline creation needs to be modified to be compatible with the dynamic rendering equation.
 
