@@ -9,7 +9,7 @@ on:
       - 'framework/**'
       - 'CMakeLists.txt'
   pull_request:
-  workflow_dispatch:
+  # workflow_dispatch:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -35,7 +35,7 @@ jobs:
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
-        vulkan-sdk: ["latest", "1.3.216"]
+        vulkan-sdk: ["latest", "1.3.243"]
 
     steps:
       - name: Checkout repository and submodules
