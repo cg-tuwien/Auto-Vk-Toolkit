@@ -8,7 +8,7 @@ _Auto-Vk-Toolkit_ has been successfully used for rapid prototyping, research (e.
 
 ![Some screenshots of applications implemented with Auto-Vk-Toolkit](./docs/images/auto-vk-toolkit-teaser.jpg)
 
-This image showcases some work that has been developed using _Auto-Vk-Toolkit_ (from left to right): Usage in an advanced graphics course for teaching modern low-level GPU concepts; visualization of 19,600 spherical harmonics glyphs from a brain scan in real time; division of meshes into meshlets and rendering them with fine-grained view-frustum and backface culling in task and mesh shaders; ray traced shadows and reflections using the hardware-accelerated real-time ray tracing device extensions; rendering of 358k parametrically defined knit yarn curves in real time.
+This image showcases some work that has been developed using _Auto-Vk-Toolkit_ (from left to right): Usage in an advanced graphics course for teaching modern low-level GPU concepts; visualization of 19,600 spherical harmonics glyphs from a brain scan; division of meshes into meshlets and rendering them with fine-grained view-frustum and backface culling in task and mesh shaders; ray traced shadows and reflections using the hardware-accelerated real-time ray tracing device extensions; rendering of 358k parametrically-defined knit yarn curves in real time.
 
 Some of its highlight-features (besides the awesome features of [_Auto-Vk_](https://github.com/cg-tuwien/Auto-Vk)) include:
 - Window management and input handling through [GLFW](https://www.glfw.org/).
@@ -175,6 +175,7 @@ There are some documentation pages containing further information:
 - [Meshlets](./docs/meshlets.md)-specfic functionality for dividing geometry into small clusters and using them for rendering in graphics mesh pipelines (those with task and mesh shaders)
 - [Serializer](./docs/serializer.md) functionality for storing and loading resources to/from file, such as 3D models, images, or custom structs
 - [Automatic Resource-Updates](./docs/updater.md) through the `avk::updater` class, enabling shwapchain recreation and shader hot reloading
+- [Dynamic Rendering](./docs/dynamic_rendering.md): How to use dynamic rendering in Auto-Vk-Toolkit
 
 # FAQs, Known Issues, Troubleshooting
 
