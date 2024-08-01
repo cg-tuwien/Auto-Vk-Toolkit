@@ -205,7 +205,7 @@ public:
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
 
 				// Release exclusive ownership from the transfer queue:
-				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::auto_stage + access::auto_access >> stage::none + access::none)
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::auto_stage + access::auto_access >> stage::copy + access::transfer_write)
 					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index())
 			}, mTransferQueue,
 			stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
@@ -245,7 +245,7 @@ public:
 				),
 
 				// Acquire exclusive ownership for the graphics queue:
-				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::none + access::none >> stage::vertex_attribute_input + access::vertex_attribute_read)
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::copy + access::transfer_write >> stage::vertex_attribute_input + access::vertex_attribute_read)
 					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index()),
 
 				// Begin and end one renderpass:
@@ -322,7 +322,7 @@ public:
 		// Submit the dispatch calls to the compute queue:
 		avk::context().record({
 				// Acquire exclusive ownership from the graphics queue:
-				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::none + access::none >> stage::auto_stage + access::auto_access)
+				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::copy + access::transfer_write >> stage::auto_stage + access::auto_access)
 					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mComputeQueue.family_index()),
 
 				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access)
@@ -438,9 +438,6 @@ int main() // <== Starting point ==
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
-			[](avk::validation_layers& config) {
-				//config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-			},
 			// Pass windows:
 			mainWnd,
 			// Pass invokees:
