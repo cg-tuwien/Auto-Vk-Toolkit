@@ -226,6 +226,8 @@ namespace avk
 #endif
 		bool supports_mesh_shader_nv(const vk::PhysicalDevice& device);
 		bool is_mesh_shader_nv_requested();
+		bool supports_dynamic_rendering(const vk::PhysicalDevice& device);
+		bool is_dynamic_rendering_requested();
 
 #if VK_HEADER_VERSION >= 162
 		bool ray_tracing_pipeline_extension_requested();
@@ -238,11 +240,20 @@ namespace avk
 #endif
 		
 		/** Checks whether the given physical device supports given extensions.
-		 *	@return True if the physical device supports all the extensions, false otherwise.
-		 */
-		bool supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const;
+		 *  @param aPhysicalDevice			The physical device whose extensions shall be compared with the extensions in question
+		 *  @param aExtensionsInQuestion	The extensions in question, which we want to know of if the physical device supports them
+         *	@return True if the physical device supports all the extensions, false otherwise.
+         */
+        bool supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const;
 
-		/** Pick the physical device which looks to be the most promising one */
+		/** Checks whether the given physical device supports given extensions.
+         *  @param aPhysicalDeviceExtensionsAvailable	List of physical device extensions that are available 
+         *  @param aExtensionsInQuestion				The extensions in question, which we want to know of if they are contained in the list of available extensions
+         *	@return True if the physical device supports all the extensions, false otherwise.
+         */
+        bool supports_given_extensions(const std::vector<vk::ExtensionProperties>& aPhysicalDeviceExtensionsAvailable, const std::vector<const char*>& aExtensionsInQuestion) const;
+
+        /** Pick the physical device which looks to be the most promising one */
 		void pick_physical_device();
 
 		/** Gets the right resolution for the given window, considering the window's size and surface capabilities */

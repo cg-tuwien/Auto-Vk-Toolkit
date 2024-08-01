@@ -56,7 +56,7 @@ public:
 			fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 
 		// Create vertex buffers --- namely one for each frame in flight.
@@ -116,7 +116,7 @@ public:
 	void update() override
 	{
 		// On Esc pressed,
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -158,7 +158,8 @@ public:
 						[&]() {
 							// A queue family ownership transfer consists of two distinct parts (as per specification 7.7.4. Queue Family Ownership Transfer): 
 							//  2. Acquire exclusive ownership for the destination queue family
-							return sync::buffer_memory_barrier(vertexBuffer, stage::none + access::none >> stage::auto_stage + access::auto_access)
+
+							return sync::buffer_memory_barrier(vertexBuffer, stage::copy + access::transfer_write >> stage::auto_stage + access::auto_access)
 								.with_queue_family_ownership_transfer(mGraphicsQueue->family_index(), mTransferQueues[j]->family_index());
 						}
 					),

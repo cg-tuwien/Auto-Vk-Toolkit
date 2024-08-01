@@ -238,12 +238,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}
 				}
 				if (quakeCamEnabled) {
-				    ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
-					if (avk::input().key_pressed(avk::key_code::f1)) {
+				    ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[Esc] to exit Quake Camera navigation");
+					if (avk::input().key_pressed(avk::key_code::escape)) {
 						mOrbitCam.set_matrix(mQuakeCam.matrix());
 						mOrbitCam.enable();
 						mQuakeCam.disable();
 					}
+				}
+				else {
+					ImGui::TextColored(ImVec4(.8f, .4f, .4f, 1.f), "[Esc] to exit application");
 				}
 				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
 					mOrbitCam.disable();
@@ -356,7 +359,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto resolution = avk::context().main_window()->resolution();
 			avk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (!mQuakeCam.is_enabled() && avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -452,7 +455,12 @@ int main() // <== Starting point ==
 		// Create an instance of our main avk::element which contains all the functionality:
 		auto app = model_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
-		auto ui = avk::imgui_manager(singleQueue);
+		auto ui = avk::imgui_manager(singleQueue, "imgui_manager", {}, [](float uiScale) {
+			auto& style = ImGui::GetStyle();
+			style = ImGuiStyle(); // reset to default style (for non-color settings, like rounded corners)
+			ImGui::StyleColorsClassic(); // change color theme
+			style.ScaleAllSizes(uiScale); // and scale
+		});
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(

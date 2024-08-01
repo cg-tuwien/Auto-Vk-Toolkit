@@ -213,4 +213,14 @@ namespace avk
 		});
 	}
 
+	bool window_base::should_be_closed()
+	{
+		assert(handle());
+		context().dispatch_to_main_thread([this]{
+		    assert(handle());
+			// Note: The update of the value might not happen before the next frame:
+            this->mShouldClose = glfwWindowShouldClose(handle()->mHandle);
+		});
+		return mShouldClose;
+	}
 }

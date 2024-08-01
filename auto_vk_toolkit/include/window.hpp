@@ -21,7 +21,33 @@ namespace avk
 
 		using frame_id_t = int64_t;
 		using outdated_swapchain_t = std::tuple<vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE>, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>>;
-		using outdated_swapchain_resource_t = std::variant<vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE>, std::vector<avk::image_view>, avk::renderpass, std::vector<avk::framebuffer>, outdated_swapchain_t>;
+		
+		using any_window_resource_t = std::variant<
+			// Those from any_owning_resorce_t:
+		    bottom_level_acceleration_structure,
+		    buffer,
+		    buffer_view,
+		    command_buffer,
+		    command_pool,
+		    compute_pipeline,
+		    fence,
+		    framebuffer,
+		    graphics_pipeline,
+		    image,
+		    image_sampler,
+		    image_view,
+		    query_pool,
+		    ray_tracing_pipeline,
+		    renderpass,
+		    sampler,
+		    semaphore,
+		    top_level_acceleration_structure,
+		    // ...plus the "outdated swapchain" ones:
+            vk::UniqueHandle<vk::SwapchainKHR, DISPATCH_LOADER_CORE_TYPE>,
+	        std::vector<avk::image_view>,
+	        std::vector<avk::framebuffer>,
+	        outdated_swapchain_t
+	    >;
 
 		// A mutex used to protect concurrent command buffer submission
 		static std::mutex sSubmitMutex;
@@ -35,7 +61,7 @@ namespace avk
 		{
 			mCurrentFrameFinishedFence.reset();
 			mCurrentFrameImageAvailableSemaphore.reset();
-			mLifetimeHandledCommandBuffers.clear();
+			mLifetimeHandledResources.clear();
 			mPresentSemaphoreDependencies.clear();
 			mImageAvailableSemaphores.clear();
 			mFramesInFlightFences.clear();
@@ -300,27 +326,29 @@ namespace avk
 		 *	@param	aCommandBuffer	The command buffer to take ownership of and to handle lifetime of.
 		 *	@param	aFrameId		The frame this command buffer is associated to.
 		 */
-		void handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
+		//void handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId = {});
+	    void handle_lifetime(any_window_resource_t aResource, std::optional<frame_id_t> aFrameId = {});
 
-		/** Pass the resources of an outdated swap chain and have its lifetime automatically handled.
-		 *	@param aOutdatedSwapchain	Resources to be moved into this function and to be lifetime-handled
-		 *	@param aFrameId				The frame these resources are associated with. They will be deleted
-		 *								in frame #current_frame() + number_number_of_frames_in_flight().
-		 */
-		void handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
+		///** Pass the resources of an outdated swap chain and have its lifetime automatically handled.
+		// *	@param aOutdatedSwapchain	Resources to be moved into this function and to be lifetime-handled
+		// *	@param aFrameId				The frame these resources are associated with. They will be deleted
+		// *								in frame #current_frame() + number_number_of_frames_in_flight().
+		// */
+		//void handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId = {});
+
 
 		/**	Remove all the semaphores which were dependencies for one of the previous frames, but
 		 *	can now be safely destroyed.
 		 */
 		std::vector<avk::semaphore> remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId);
 
-		/** Remove all the "single use" command buffers for the given frame, also clear command buffer references.
-		 *	The command buffers are moved out of the internal storage and returned to the caller.
+		/** Remove all the resources (such as "single use" command buffers) for the given frame.
+		 *	The resources are moved out of the internal storage and returned to the caller.
 		 */
-		std::vector<avk::command_buffer> clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId);
+        std::vector<any_window_resource_t> clean_up_resources_for_frame(frame_id_t aPresentFrameId);
 
-		/** Remove all the outdated swap chain resources which are safe to be removed in this frame. */
-		void clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId);
+		///** Remove all the outdated swap chain resources which are safe to be removed in this frame. */
+		//void clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId);
 
 		/**
 		 *	Called BEFORE all the render callbacks are invoked.
@@ -344,7 +372,7 @@ namespace avk
 
 		/** Gets the backbuffer's render pass
 		 */
-		[[nodiscard]] avk::renderpass renderpass() const { return mBackBufferRenderpass; }
+		[[nodiscard]] avk::renderpass get_renderpass() const { return mBackBufferRenderpass; }
 
 		/**	This is intended to be used as a command buffer lifetime handler for `avk::old_sync::with_barriers`.
 		 *	The specified frame id is the frame where the command buffer has to be guaranteed to finish
@@ -542,13 +570,11 @@ namespace avk
 		// The render pass for this window's UI calls
 		vk::RenderPass mUiRenderPass;
 
-		// This container handles (single use) command buffers' lifetimes.
-		// A command buffer's lifetime lasts until the specified int64_t frame-id + number_of_in_flight_frames()
-		std::deque<std::tuple<frame_id_t, avk::command_buffer>> mLifetimeHandledCommandBuffers;
-
-		// This container handles old swap chain resources which are to be deleted at a certain future frame
-		std::deque<std::tuple<frame_id_t, outdated_swapchain_resource_t>> mOutdatedSwapChainResources;
-
+		// This container handles resource lifetimes, such as (single use) command buffers.
+		// A such-handled resource's lifetime lasts until the specified int64_t frame-id + number_of_in_flight_frames()
+		// This container also handles old swap chain resources which are to be deleted at a certain future frame
+		std::deque<std::tuple<frame_id_t, any_window_resource_t>> mLifetimeHandledResources;
+		
 		// The queue that is used for presenting. It MUST be set to a valid queue if window::render_frame() is ever going to be invoked.
 		avk::unique_function<avk::queue*()> mPresentationQueueGetter;
 

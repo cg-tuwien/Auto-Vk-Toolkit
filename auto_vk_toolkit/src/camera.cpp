@@ -16,9 +16,9 @@ namespace avk
 		, mBottom{ 0 }
 	{}
 	
-    camera& camera::set_projection_matrix(const glm::mat4& aMatrix)
+    camera& camera::set_projection_matrix(const glm::mat4& aMatrix, avk::projection_type aProjectionType)
 	{
-		mProjectionType = projection_type::unknown;
+		mProjectionType = aProjectionType;
 		mProjectionMatrix = aMatrix;
 		return *this;
 	}

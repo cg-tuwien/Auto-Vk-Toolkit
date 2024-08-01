@@ -64,7 +64,7 @@ namespace avk
 				mLayers.push_back(aLayerName);
 			}
 			else {
-				LOG_INFO(fmt::format("Validation layer '{}' was already added.", std::string(aLayerName)));
+				LOG_INFO(std::format("Validation layer '{}' was already added.", std::string(aLayerName)));
 			}
 			return *this;
 		}
@@ -76,7 +76,7 @@ namespace avk
 				mLayers.erase(it);
 			}
 			else {
-				LOG_INFO(fmt::format("Validation layer '{}' not found.", aLayerName));
+				LOG_INFO(std::format("Validation layer '{}' not found.", aLayerName));
 			}
 			return *this;
 		}
@@ -204,9 +204,9 @@ namespace avk
 	};
 
 	/** Pass a function to modify the requested Vulkan 1.2 device features.
-	*	@typedef	F		void(vk::PhysicalDeviceVulkan12Features&)
-	*						Modify the values of the passed reference to vk::PhysicalDeviceVulkan12Features& directly!
-	*/
+	 *	@typedef	F		void(vk::PhysicalDeviceVulkan12Features&)
+	 *						Modify the values of the passed reference to vk::PhysicalDeviceVulkan12Features& directly!
+	 */
 	struct alter_vulkan12_device_features
 	{
 		template <typename F>
@@ -214,6 +214,16 @@ namespace avk
 		{ }
 
 		std::function<void(vk::PhysicalDeviceVulkan12Features&)> mFunction;
+	};
+
+	/**	A struct which contains a pNext pointer to be added to the VkPhysicalFeatures2 pNext chain.
+	 *	Just let the only pNext member point to the address of a Vulkan configuration struct,
+	 *	and leave its pNext pointer at nullptr.
+	 *	The framework will internally take care of wiring together all the pNext pointers!
+	 */
+	struct physical_device_features_pNext_chain_entry
+	{
+		void* pNext;
 	};
 
 	struct settings
@@ -227,5 +237,6 @@ namespace avk
 		optional_device_extensions mOptionalDeviceExtensions;
 		vk::DebugUtilsMessageSeverityFlagsEXT mEnabledDebugUtilsMessageSeverities = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
 		vk::DebugUtilsMessageTypeFlagsEXT mEnabledDebugUtilsMessageTypes = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
+		std::vector<physical_device_features_pNext_chain_entry> mPhysicalDeviceFeaturesPNextChainEntries;
 	};
 }

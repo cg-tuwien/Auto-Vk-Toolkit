@@ -56,7 +56,7 @@ public:
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 
 		// Create vertex buffers --- namely one for each frame in flight.
@@ -102,7 +102,7 @@ public:
 	void update() override
 	{
 		// On Esc pressed,
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -148,6 +148,13 @@ public:
 		auto cmdBfr = commandPool->alloc_command_buffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 		
 		avk::context().record({
+				// Synchronization validation is unable to figure out that frame-3 used this buffer, but is no longer needing it.
+				// => so we've gotta be explicitly synchronizing it with this barrier:
+				avk::sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), 
+					avk::stage::vertex_attribute_input >> avk::stage::copy		     ,
+					avk::access::vertex_attribute_read >> avk::access::transfer_write
+				),
+
 				// Fill the vertex buffer that corresponds to this the current inFlightIndex:
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
 
