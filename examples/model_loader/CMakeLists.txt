@@ -15,4 +15,4 @@ add_post_build_commands(model_loader
     ${model_loader_BINARY_DIR}/shaders
     $<TARGET_FILE_DIR:model_loader>/assets
     "${model_loader_assets}"
-    ${gvk_CreateDependencySymlinks})
+    ${avk_toolkit_CreateDependencySymlinks})

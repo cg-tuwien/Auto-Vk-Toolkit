@@ -1,6 +1,7 @@
 #pragma once
 
 #include "composition.hpp"
+#include <vector>
 
 namespace avk
 {
@@ -43,21 +44,21 @@ namespace avk
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, required_instance_extensions& aValue, Args&... args)
 	{
-		s.mRequiredInstanceExtensions = aValue;
+		s.mRequiredInstanceExtensions.mExtensions.insert(std::end(s.mRequiredInstanceExtensions.mExtensions), std::begin(aValue.mExtensions), std::end(aValue.mExtensions));
 		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, required_device_extensions& aValue, Args&... args)
 	{
-		s.mRequiredDeviceExtensions = aValue;
+		s.mRequiredDeviceExtensions.mExtensions.insert(std::end(s.mRequiredDeviceExtensions.mExtensions), std::begin(aValue.mExtensions), std::end(aValue.mExtensions));
 		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
 	template <typename... Args>
 	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, optional_device_extensions& aValue, Args&... args)
 	{
-		s.mOptionalDeviceExtensions = aValue;
+		s.mOptionalDeviceExtensions.mExtensions.insert(std::end(s.mOptionalDeviceExtensions.mExtensions), std::begin(aValue.mExtensions), std::end(aValue.mExtensions));
 		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
 	}
 
@@ -163,6 +164,13 @@ namespace avk
 	}
 #endif
 
+	template <typename... Args>
+	static void add_config(settings& s, vk::PhysicalDeviceFeatures& phdf, vk::PhysicalDeviceVulkan11Features& v11f, vk::PhysicalDeviceVulkan12Features& v12f, CONFIG_STRUCTS_DECLARATIONS, std::vector<invokee*>& e, std::vector<window*>& w, physical_device_features_pNext_chain_entry& aValue, Args&... args)
+	{
+		s.mPhysicalDeviceFeaturesPNextChainEntries.push_back(aValue);
+		add_config(s, phdf, v11f, v12f, CONFIG_PARAMETERS_PASSED_ON, e, w, args...);
+	}
+	
 	/**	>>>>>>>>>>>>>> Start the Gears <<<<<<<<<<<<<<<
 	 *
 	 *	You may pass the following configuration parameters:
@@ -171,6 +179,7 @@ namespace avk
 	 *	- application_version&											              ... To declare the application version
 	 *	- required_instance_extensions&									              ... A struct to configure required instance extensions which must be supported by the Vulkan instance and shall be activated.
 	 *	- required_device_extensions&									              ... A struct to configure required device extensions which must be supported by the device.
+	 *	- physical_device_features_pNext_chain_entry                                  ... A struct that contains a pNext pointer to a configuration struct which is to be added to the vk::PhysicalDeviceFeatures2 pNext chain.
 	 *	- window*														              ... A window that shall be usable during the runtime of start().
 	 *	- invokee& or invokee*											              ... Pointer or reference to an invokee which outlives the runtime of start().
 	 *	- std::function<void(validation_layers&)						              ... A function which can be used to modify the struct containing config for validation layers and validation layer features

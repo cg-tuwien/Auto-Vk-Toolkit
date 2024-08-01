@@ -170,7 +170,7 @@ namespace avk
 				while (!sInputBufferCondVar.wait_for(lk, timeout, [thiz]{ return !thiz->mInputBufferSwapPending; })) {
 					cnt++;
 					totalWaitTime += timeout;
-					LOG_DEBUG(fmt::format("Condition variable waits for timed out. Total wait time in current frame is {}", totalWaitTime));	
+					LOG_DEBUG(std::format("Condition variable waits for timed out. Total wait time in current frame is {}", totalWaitTime));	
 				}
 #else
 				sInputBufferCondVar.wait(lk, [thiz]{ return !thiz->mInputBufferSwapPending; });
@@ -180,7 +180,7 @@ namespace avk
 //#ifdef _DEBUG
 //				if ((i+1) % 10000 == 0)
 //				{
-//					LOG_DEBUG(fmt::format("Warning: more than {} iterations in spin-lock", i+1));
+//					LOG_DEBUG(std::format("Warning: more than {} iterations in spin-lock", i+1));
 //				}
 //#endif
 #endif
@@ -297,9 +297,9 @@ namespace avk
 				mElementsToBeRemoved.erase(std::remove(std::begin(mElementsToBeRemoved), std::end(mElementsToBeRemoved), &pElement), std::end(mElementsToBeRemoved));
 			}
 			else {
-				LOG_DEBUG(fmt::format("Removing element with name[{}] and address[{}] issued from invokee's destructor",
+				LOG_DEBUG(std::format("Removing element with name[{}] and address[{}] issued from invokee's destructor",
 										 pElement.name(),
-										 fmt::ptr(&pElement)));
+										 reinterpret_cast<intptr_t>(&pElement)));
 			}
 		}
 
@@ -347,7 +347,9 @@ namespace avk
 
 #if !SINGLE_THREADED
 			// off it goes
-			std::thread renderThread(render_thread, this, std::move(aUpdateCallback), std::move(aRenderCallback));
+			std::thread renderThread(
+				render_thread<decltype(aUpdateCallback), decltype(aRenderCallback)>,
+				this, std::move(aUpdateCallback), std::move(aRenderCallback));
 #endif
 			
 			while (!mShouldStop)
@@ -418,7 +420,7 @@ namespace avk
 			context().end_composition(); // Performs a waitIdle
 
 			for (auto* w : mWindows) {
-				w->clean_up_command_buffers_for_frame(std::numeric_limits<window::frame_id_t>().max());
+				w->clean_up_resources_for_frame(std::numeric_limits<window::frame_id_t>().max());
 				w->remove_all_present_semaphore_dependencies_for_frame(std::numeric_limits<window::frame_id_t>().max());
 			}
 			mWindows.clear();

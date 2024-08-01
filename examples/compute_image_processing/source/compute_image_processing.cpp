@@ -228,6 +228,8 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			cmdbfr->begin_recording();
 
 			auto semaphore = avk::context().record_and_submit_with_semaphore({
+				avk::sync::global_memory_barrier(avk::stage::auto_stage >> avk::stage::auto_stage, avk::access::auto_access >> avk::access::auto_access),
+
 				// Bind the compute pipeline:
 				avk::command::bind_pipeline(mComputePipelines[computeIndex].as_reference()),
 
@@ -245,7 +247,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			mUpdateToRenderDependency = std::move(semaphore);
 		}
 
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::composition_interface::current()->stop();
 		}
@@ -382,10 +384,10 @@ int main() // <== Starting point ==
 				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
 			},
 			// Pass windows:
-				mainWnd,
-				// Pass invokees:
-				app, ui
-				);
+			mainWnd,
+			// Pass invokees:
+			app, ui
+		);
 
 		// Create an invoker object, which defines the way how invokees/elements are invoked
 		// (In this case, just sequentially in their execution order):

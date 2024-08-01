@@ -10,12 +10,10 @@ namespace avk
 		, mRotationSpeed(0.002f)
 		, mPivotDistance{ 10.f }
 		, mPivotDistanceSpeed{ .5f }
-		, mMinPivotDistance{ 1.f }
-		, mMaxPivotDistance{ 30.f }
-		, mPivotDistanceSlowDownRange{ 10.f }
+		, mZoomSpeed{ 0.07f }
 		, mLateralSpeed{ 1.f }
-		, mFastMultiplier(6.0f)
-		, mSlowMultiplier(0.2f)
+		, mFastMultiplier(5.0f)
+		, mSlowMultiplier(0.1f)
 	{
 	}
 
@@ -50,15 +48,15 @@ namespace avk
 
 			glm::quat rotHoriz = glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.x), up());
 
-		    rotSpeed = rotSpeed
-		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), back(*this)))
-		        * glm::smoothstep(.999f, 0.707f, glm::dot(up(), front(*this)));
-			glm::quat rotVert =  glm::angleAxis(rotSpeed * static_cast<float>(mouseMoved.y), right(*this));
-
-		    const auto oldPos = back(*this) * mPivotDistance;
-			const auto newPos = (rotHoriz * rotVert) * oldPos;
-			translate(*this, newPos - oldPos);
-			look_along(-newPos);
+			auto mouseMoveRot  = rotSpeed * static_cast<float>(mouseMoved.y);
+			auto maxAllowdRot  = 1.0f - glm::dot(up(), back(*this));
+			glm::quat rotVert  =  glm::angleAxis(mouseMoveRot, right(*this));
+		    const auto oldPos  = back(*this) * mPivotDistance;
+			const auto rotQuat = (rotHoriz * rotVert);
+			const auto newPos  = rotQuat * oldPos;
+		    // With everything at hand, translate and rotate:	
+		    translate(*this, newPos - oldPos);
+		    set_rotation(rotQuat * rotation()); // <-- Rotate existing rotation
 		}
 		if (input().mouse_button_down(RMB)) {
 			const auto latSpeed = mLateralSpeed
@@ -76,7 +74,7 @@ namespace avk
 			* ((input().key_down(key_code::left_shift)   || input().key_down(key_code::right_shift))   ? mFastMultiplier : 1.f)
 			* ((input().key_down(key_code::left_control) || input().key_down(key_code::right_control)) ? mSlowMultiplier : 1.f);
 
-		if (input().mouse_button_down(RMB) || input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
+		if (input().key_down(key_code::left_alt) || input().key_down(key_code::right_alt)) {
 			// Move pivot along with the camera
 			translate(*this, front(*this) * scrollDist * pivDistSpeed);
 			// ...and leave mPivotDistance unchanged.
@@ -86,26 +84,22 @@ namespace avk
 		    const auto moveCloser = scrollDist > 0.f;
 		    const auto moveAway   = scrollDist < 0.f;
 
-		    if (moveCloser) {
-			    auto len = glm::smoothstep(mMinPivotDistance, mMinPivotDistance + mPivotDistanceSlowDownRange, mPivotDistance);
-			    auto move = front(*this) * len * pivDistSpeed;
-			    translate(*this, move);
-			    mPivotDistance -= len * pivDistSpeed;
-				calculate_lateral_speed();
-			}
-		    if (moveAway) {
-			    auto len = glm::smoothstep(mMaxPivotDistance, mMaxPivotDistance - mPivotDistanceSlowDownRange, mPivotDistance);
-			    auto move = back(*this) * len * pivDistSpeed;
-			    translate(*this, move);
-			    mPivotDistance += len * pivDistSpeed;
-				calculate_lateral_speed();
+			if (scrollDist != 0.0f) {
+				auto moveAwayFactor = 1.f + mZoomSpeed;
+				auto moveCloserFactor = moveCloser ? 1.f + mZoomSpeed * glm::smoothstep(0.0f, 1.0f, mPivotDistance) : 1.0f;
+				auto newPos = scrollDist < 0.0
+					? mPivotDistance * moveAwayFactor
+					: mPivotDistance / moveCloserFactor;
+				translate(*this, front(*this) * (mPivotDistance - newPos));
+				set_pivot_distance(newPos);
 			}
 		}
 	}
 
 	void orbit_camera::set_pivot_distance(float aDistanceFromCamera) {
-		mPivotDistance = glm::clamp(aDistanceFromCamera, mMinPivotDistance, mMaxPivotDistance);
+		mPivotDistance = aDistanceFromCamera;
 		calculate_lateral_speed();
+		mPivotDistanceSpeed = mPivotDistance / 20.f;
 	}
 
 	float orbit_camera::pivot_distance() const {

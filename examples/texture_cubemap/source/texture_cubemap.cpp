@@ -167,7 +167,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::context().main_window()->renderpass(), // Just use the same renderpass
+			avk::context().main_window()->get_renderpass(), // Just use the same renderpass
 			// The following define additional data which we'll pass to the pipeline:
 			avk::descriptor_binding(0, 0, mViewProjBufferSkybox),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
@@ -186,7 +186,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
 			// We'll render to the back buffer, which has a color attachment always, and in our case additionally a depth 
 			// attachment, which has been configured when creating the window. See main() function!
-			avk::context().main_window()->renderpass(), // Just use the same renderpass
+			avk::context().main_window()->get_renderpass(), // Just use the same renderpass
 			// The following define additional data which we'll pass to the pipeline:
 			avk::descriptor_binding(0, 0, mViewProjBufferReflect),
 			avk::descriptor_binding(0, 1, mImageSamplerCubemap->as_combined_image_sampler(avk::layout::general))
@@ -298,7 +298,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 
 	void update() override
 	{
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}

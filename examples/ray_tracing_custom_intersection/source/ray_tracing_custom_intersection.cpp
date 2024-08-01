@@ -216,15 +216,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.6f, 1.f), "Modify Bottom Level Acceleration Structures:");
 				for (int i=0; i < mAabbs.size(); ++i) {
-					ImGui::DragFloat3(fmt::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].minX), 0.01f);
-					ImGui::DragFloat3(fmt::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].maxX), 0.01f);
+					ImGui::DragFloat3(std::format("AABB[{}].min", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].minX), 0.01f);
+					ImGui::DragFloat3(std::format("AABB[{}].max", i).c_str(), *reinterpret_cast<float(*)[3]>(&mAabbs[i].maxX), 0.01f);
 				}
 				ImGui::DragFloat3("Pyramid Spire", *reinterpret_cast<float(*)[3]>(&mPyramidVertices[0].mPosition), 0.01f);
 
 				ImGui::Separator();
 				ImGui::TextColored(ImVec4(0.8f, 0.0f, 0.6f, 1.f), "Modify Top Level Acceleration Structures:");
 				for (int i=0; i < mTranslations.size(); ++i) {
-					ImGui::DragFloat3(fmt::format("Instance[{}].translation", i).c_str(), *reinterpret_cast<float(*)[3]>(&mTranslations[i]), 0.01f);
+					ImGui::DragFloat3(std::format("Instance[{}].translation", i).c_str(), *reinterpret_cast<float(*)[3]>(&mTranslations[i]), 0.01f);
 				}
 
 				ImGui::Separator();
@@ -311,9 +311,9 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		if (avk::input().key_pressed(avk::key_code::space)) {
 			// Print the current camera position
 			auto pos = mQuakeCam.translation();
-			LOG_INFO(fmt::format("Current camera position: {}", avk::to_string(pos)));
+			LOG_INFO(std::format("Current camera position: {}", avk::to_string(pos)));
 		}
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -367,9 +367,10 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					avk::stage::ray_tracing_shader >> avk::stage::copy,
 					avk::access::shader_write      >> avk::access::transfer_read
 				).with_layout_transition(avk::layout::general >> avk::layout::transfer_src),
+				// Use dst stage + access to synchronize the image layout transition:
 				avk::sync::image_memory_barrier(mainWnd->current_backbuffer_reference().image_at(0),
-					avk::stage::none               >> avk::stage::copy,
-					avk::access::none              >> avk::access::transfer_write
+					avk::stage::color_attachment_output    >> avk::stage::copy,
+					avk::access::color_attachment_write    >> avk::access::transfer_write
 				).with_layout_transition(avk::layout::undefined >> avk::layout::transfer_dst),
 
 				avk::copy_image_to_another(
@@ -449,8 +450,13 @@ int main() // <== Starting point ==
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Real-Time Ray Tracing - Custom Intersection Example"),
+			[](avk::validation_layers& config) {
+				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
+			},
 #if VK_HEADER_VERSION >= 162
 			avk::required_device_extensions()
+				// We need several extensions for ray tracing:
+				.add_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
 				.add_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 				.add_extension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)
 				.add_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)

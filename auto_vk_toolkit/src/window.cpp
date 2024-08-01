@@ -233,27 +233,41 @@ namespace avk
 		}
 	}
 
-	void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
-	{
-		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
-		if (!aFrameId.has_value()) {
-			aFrameId = current_frame();
+	//void window::handle_lifetime(avk::command_buffer aCommandBuffer, std::optional<frame_id_t> aFrameId)
+	//{
+	//	std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
+	//	if (!aFrameId.has_value()) {
+	//		aFrameId = current_frame();
+	//	}
+
+	//	aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
+
+	//	auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
+	//	// ^ Prefer code duplication over recursive_mutex
+	//}
+
+    void window::handle_lifetime(any_window_resource_t aResource, std::optional<frame_id_t> aFrameId)
+    {
+        std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
+        if (!aFrameId.has_value()) {
+            aFrameId = current_frame();
+        }
+
+		if (std::holds_alternative<command_buffer>(aResource)) {
+            std::get<command_buffer>(aResource)->invoke_post_execution_handler(); // Yes, do it now!
 		}
 
-		aCommandBuffer->invoke_post_execution_handler(); // Yes, do it now!
+        mLifetimeHandledResources.emplace_back(aFrameId.value(), std::move(aResource));
+    }
 
-		auto& refTpl = mLifetimeHandledCommandBuffers.emplace_back(aFrameId.value(), std::move(aCommandBuffer));
-		// ^ Prefer code duplication over recursive_mutex
-	}
-
-	void window::handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId)
-	{
-		std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
-		if (!aFrameId.has_value()) {
-			aFrameId = current_frame();
-		}
-		mOutdatedSwapChainResources.emplace_back(aFrameId.value(), std::move(aOutdatedSwapchain));
-	}
+	//void window::handle_lifetime(outdated_swapchain_resource_t&& aOutdatedSwapchain, std::optional<frame_id_t> aFrameId)
+	//{
+	//	std::scoped_lock<std::mutex> guard(sSubmitMutex); // Protect against concurrent access from invokees
+	//	if (!aFrameId.has_value()) {
+	//		aFrameId = current_frame();
+	//	}
+	//	mOutdatedSwapChainResources.emplace_back(aFrameId.value(), std::move(aOutdatedSwapchain));
+	//}
 
 	std::vector<avk::semaphore> window::remove_all_present_semaphore_dependencies_for_frame(frame_id_t aPresentFrameId)
 	{
@@ -276,11 +290,11 @@ namespace avk
 		return moved_semaphores;
 	}
 
-	std::vector<avk::command_buffer> window::clean_up_command_buffers_for_frame(frame_id_t aPresentFrameId)
+	std::vector<window::any_window_resource_t> window::clean_up_resources_for_frame(frame_id_t aPresentFrameId)
 	{
-		std::vector<avk::command_buffer> removedBuffers;
-		if (mLifetimeHandledCommandBuffers.empty()) {
-			return removedBuffers;
+        std::vector<any_window_resource_t> deadResources;
+		if (mLifetimeHandledResources.empty()) {
+			return deadResources;
 		}
 		// No need to protect against concurrent access since that would be misuse of this function.
 		// This shall never be called from the invokee callbacks as being invoked through a parallel invoker.
@@ -292,40 +306,40 @@ namespace avk
 		// Can not use the erase-remove idiom here because that would invalidate iterators and references
 		// HOWEVER: "[...]unless the erased elements are at the end or the beginning of the container,
 		// in which case only the iterators and references to the erased elements are invalidated." => Let's do that!
-		auto eraseBegin = std::begin(mLifetimeHandledCommandBuffers);
-		if (std::end(mLifetimeHandledCommandBuffers) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
-			return removedBuffers;
+        auto eraseBegin = std::begin(mLifetimeHandledResources);
+        if (std::end(mLifetimeHandledResources) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
+			return deadResources;
 		}
 		// There are elements that we can remove => find position until where:
 		auto eraseEnd = eraseBegin;
-		while (eraseEnd != std::end(mLifetimeHandledCommandBuffers) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
+        while (eraseEnd != std::end(mLifetimeHandledResources) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
 			// return ownership of all the command_buffers to remove to the caller
-			removedBuffers.push_back(std::move(std::get<avk::command_buffer>(*eraseEnd)));
+            deadResources.push_back(std::move(std::get<any_window_resource_t>(*eraseEnd)));
 			++eraseEnd;
 		}
-		mLifetimeHandledCommandBuffers.erase(eraseBegin, eraseEnd);
-		return removedBuffers;
+        mLifetimeHandledResources.erase(eraseBegin, eraseEnd);
+		return deadResources;
 	}
 
-	void window::clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId)
-	{
-		if (mOutdatedSwapChainResources.empty()) {
-			return;
-		}
+	//void window::clean_up_outdated_swapchain_resources_for_frame(frame_id_t aPresentFrameId)
+	//{
+	//	if (mOutdatedSwapChainResources.empty()) {
+	//		return;
+	//	}
 
-		// Up to the frame with id 'maxTTL', all swap chain resources can be safely removed
-		const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
+	//	// Up to the frame with id 'maxTTL', all swap chain resources can be safely removed
+	//	const auto maxTTL = aPresentFrameId - number_of_frames_in_flight();
 
-		auto eraseBegin = std::begin(mOutdatedSwapChainResources);
-		if (std::end(mOutdatedSwapChainResources) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
-			return;
-		}
-		auto eraseEnd = eraseBegin;
-		while (eraseEnd != std::end(mOutdatedSwapChainResources) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
-			++eraseEnd;
-		}
-		mOutdatedSwapChainResources.erase(eraseBegin, eraseEnd);
-	}
+	//	auto eraseBegin = std::begin(mOutdatedSwapChainResources);
+	//	if (std::end(mOutdatedSwapChainResources) == eraseBegin || std::get<frame_id_t>(*eraseBegin) > maxTTL) {
+	//		return;
+	//	}
+	//	auto eraseEnd = eraseBegin;
+	//	while (eraseEnd != std::end(mOutdatedSwapChainResources) && std::get<frame_id_t>(*eraseEnd) <= maxTTL) {
+	//		++eraseEnd;
+	//	}
+	//	mOutdatedSwapChainResources.erase(eraseBegin, eraseEnd);
+	//}
 
 	void window::fill_in_present_semaphore_dependencies_for_frame(std::vector<vk::Semaphore>& aSemaphores, frame_id_t aFrameId) const
 	{
@@ -392,7 +406,7 @@ namespace avk
 			}
 		}
 		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+			LOG_INFO(std::format("Swap chain out of date in acquire_next_swap_chain_image_and_prepare_semaphores. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			acquire_next_swap_chain_image_and_prepare_semaphores();
 			return;
@@ -403,7 +417,7 @@ namespace avk
 		// => Must handle this case!
 		assert(current_image_index() == mCurrentFrameImageIndex);
 		if (mImagesInFlightFenceIndices[current_image_index()] >= 0) {
-			LOG_DEBUG_VERBOSE(fmt::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
+			LOG_DEBUG_VERBOSE(std::format("Frame #{}: Have to issue an extra fence-wait because swap chain returned image[{}] but fence[{}] is currently in use.", current_frame(), mCurrentFrameImageIndex, mImagesInFlightFenceIndices[current_image_index()]));
 			auto& xf = mFramesInFlightFences[mImagesInFlightFenceIndices[current_image_index()]];
 			xf->wait_until_signalled();
 			// But do not reset! Otherwise we will wait forever at the next wait_until_signalled that will happen for sure.
@@ -437,8 +451,8 @@ namespace avk
 		// At this point we are certain that the frame which has used the current fence before is done.
 		//  => Clean up the resources of that previous frame!
 		auto semaphoresToBeFreed = remove_all_present_semaphore_dependencies_for_frame(current_frame());
-		auto commandBuffersToBeFreed 	= clean_up_command_buffers_for_frame(current_frame());
-		clean_up_outdated_swapchain_resources_for_frame(current_frame());
+		auto commandBuffersToBeFreed 	= clean_up_resources_for_frame(current_frame());
+		//clean_up_outdated_swapchain_resources_for_frame(current_frame());
 
 		acquire_next_swap_chain_image_and_prepare_semaphores();
 	}
@@ -519,8 +533,8 @@ namespace avk
 				// swap chain will be recreated in the next frame
 			}
 		}
-		catch (vk::OutOfDateKHRError omg) {
-			LOG_INFO(fmt::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
+		catch (const vk::OutOfDateKHRError& omg) {
+			LOG_INFO(std::format("Swap chain out of date in render_frame. Reason[{}] in frame#{}. Going to recreate it...", omg.what(), current_frame()));
 			mResourceRecreationDeterminator.set_recreation_required_for(recreation_determinator::reason::invalid_swap_chain);
 			// Just do nothing. Ignore the failure. This frame is lost.
 			// swap chain will be recreated in the next frame
@@ -635,7 +649,7 @@ namespace avk
 
 		// If the window is minimized, we've gotta wait even longer:
 		while (resolution().x * resolution().y == 0u) {
-			LOG_DEBUG(fmt::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
+			LOG_DEBUG(std::format("Waiting for resolution {}x{} to change...", resolution().x, resolution().y));
 			context().dispatch_to_main_thread([this](){
 				int width = 0, height = 0;
 				glfwGetFramebufferSize(handle()->mHandle, &width, &height);
@@ -676,7 +690,7 @@ namespace avk
 
 			switch (queueFamilyIndices.size()) {
 			case 0:
-				throw avk::runtime_error(fmt::format("You must assign at least set one queue(family) to window '{}'! You can use window::set_queue_family_ownership.", title()));
+				throw avk::runtime_error(std::format("You must assign at least set one queue(family) to window '{}'! You can use window::set_queue_family_ownership.", title()));
 			case 1:
 				mImageCreateInfoSwapChain
 					.setSharingMode(vk::SharingMode::eExclusive)
@@ -789,10 +803,10 @@ namespace avk
 				aPreparedImage.create_info().extent.height = extent.y;
 			}
 			else {
-				LOG_WARNING(fmt::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
+				LOG_WARNING(std::format("No idea how to update a 3D image with dimensions {}x{}x{}", aPreparedImage.width(), aPreparedImage.height(), aPreparedImage.depth()));
 			}
 		};
-		auto lifetimeHandlerLambda = [this](outdated_swapchain_resource_t&& rhs) { this->handle_lifetime(std::move(rhs)); };
+		auto lifetimeHandlerLambda = [this](any_window_resource_t&& rhs) { this->handle_lifetime(std::move(rhs)); };
 
 		// Create the new image views:
 		std::vector<avk::image_view> newImageViews;
@@ -820,12 +834,12 @@ namespace avk
 			auto newRenderPass = context().create_renderpass(renderpassAttachments, {
 				// We only create one subpass here => create default dependencies as per specification chapter 8.1) Render Pass Creation:
 				avk::subpass_dependency{avk::subpass::external >> avk::subpass::index(0),
-					avk::stage::none  >> avk::stage::all_graphics,
-					avk::access::none >> avk::access::input_attachment_read | avk::access::color_attachment_read | avk::access::color_attachment_write | avk::access::depth_stencil_attachment_read | avk::access::depth_stencil_attachment_write
+					stage::late_fragment_tests | stage::color_attachment_output    >>   stage::early_fragment_tests | stage::late_fragment_tests | stage::color_attachment_output,
+					access::depth_stencil_attachment_write                         >>   access::color_attachment_read | access::color_attachment_write | access::depth_stencil_attachment_read | access::depth_stencil_attachment_write
 				},
 				avk::subpass_dependency{avk::subpass::index(0) >> avk::subpass::external,
-					avk::stage::all_graphics                                                          >> avk::stage::none,
-					avk::access::color_attachment_write | avk::access::depth_stencil_attachment_write >> avk::access::none
+					stage::color_attachment_output    >>   stage::color_attachment_output,
+					access::color_attachment_write    >>   access::none
 				}
 			});
 			if (mBackBufferRenderpass.has_value() && mBackBufferRenderpass.is_shared_ownership_enabled()) {

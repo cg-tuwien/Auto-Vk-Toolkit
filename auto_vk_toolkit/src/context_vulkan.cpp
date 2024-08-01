@@ -35,7 +35,7 @@ namespace avk
 				[](auto name) {
 					auto supported = is_validation_layer_supported(name);
 					if (!supported) {
-						LOG_WARNING(fmt::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
+						LOG_WARNING(std::format("Validation layer '{}' is not supported by this Vulkan instance and will not be activated.", name));
 					}
 					return supported;
 				});
@@ -99,7 +99,9 @@ namespace avk
 	void context_vulkan::check_vk_result(VkResult err)
 	{
 		const auto& inst = context().vulkan_instance();
-#if VK_HEADER_VERSION >= 204
+#if VK_HEADER_VERSION >= 290
+		vk::detail::createResultValueType(static_cast<vk::Result>(err), "check_vk_result");
+#elif VK_HEADER_VERSION >= 216
 		vk::createResultValueType(static_cast<vk::Result>(err), "check_vk_result");
 #else
 		createResultValue(static_cast<vk::Result>(err), inst, "check_vk_result");
@@ -293,11 +295,30 @@ namespace avk
 			deviceFeatures.setPNext(&meshShaderFeatureNV);
 		}
 
+		auto dynamicRenderingFeature = VkPhysicalDeviceDynamicRenderingFeaturesKHR{};
+		dynamicRenderingFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		dynamicRenderingFeature.dynamicRendering = VK_TRUE;
+		if(is_dynamic_rendering_requested() && supports_dynamic_rendering(context().physical_device())){
+			dynamicRenderingFeature.pNext = deviceFeatures.pNext;
+			deviceFeatures.setPNext(&dynamicRenderingFeature);
+		}
+
 		// Unconditionally enable Synchronization2, because synchronization abstraction depends on it; it is just not implemented for Synchronization1:
 		auto physicalDeviceSync2Features = vk::PhysicalDeviceSynchronization2FeaturesKHR{}
 			.setPNext(deviceFeatures.pNext)
 			.setSynchronization2(VK_TRUE);
 		deviceFeatures.setPNext(&physicalDeviceSync2Features);
+
+		// And here add all the pNext stuff from aPhysicalDeviceFeaturePNexts
+		struct DummyForVkStructs {
+			VkStructureType sType;
+			void* pNext;
+		};
+		for (auto extToBeAdded : mSettings.mPhysicalDeviceFeaturesPNextChainEntries) {
+			auto* extStruct = reinterpret_cast<DummyForVkStructs*>(extToBeAdded.pNext);
+			extStruct->pNext     = deviceFeatures.pNext;
+			deviceFeatures.pNext = extToBeAdded.pNext;
+		}
 
 		const auto& devex = get_all_enabled_device_extensions();
 		auto deviceCreateInfo = vk::DeviceCreateInfo()
@@ -559,7 +580,7 @@ namespace avk
 
 			VkSurfaceKHR surface;
 			if (VK_SUCCESS != glfwCreateWindowSurface(context().vulkan_instance(), wnd->handle()->mHandle, nullptr, &surface)) {
-				throw avk::runtime_error(fmt::format("Failed to create surface for window '{}'!", wnd->title()));
+				throw avk::runtime_error(std::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
 			vk::ObjectDestroy<vk::Instance, DISPATCH_LOADER_CORE_TYPE> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
@@ -602,8 +623,8 @@ namespace avk
 
 		// Information about the application for the instance creation call
 		auto appInfo = vk::ApplicationInfo(mSettings.mApplicationName.mValue.c_str(), mSettings.mApplicationVersion.mValue,
-										   "Auto-Vk-Toolkit", VK_MAKE_VERSION(0, 98, 1), // TODO: Real version of Auto-Vk-Toolkit
-										   VK_API_VERSION_1_2);
+										   "Auto-Vk-Toolkit", VK_MAKE_VERSION(0, 99, 1),
+										   VK_API_VERSION_1_3);
 
 		// GLFW requires several extensions to interface with the window system. Query them.
 		uint32_t glfwExtensionCount = 0;
@@ -689,43 +710,44 @@ namespace avk
 			typeDescription = "(" + typeDescription.substr(0, typeDescription.size() - 2) + ") ";
 		}
 
+		std::string messageIdName = nullptr == pCallbackData->pMessageIdName ? "(nullptr)" : std::string(pCallbackData->pMessageIdName);
 		if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_ERROR___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_ERROR___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber, 
-				pCallbackData->pMessageIdName,
+				messageIdName,
 				pCallbackData->pMessage));
 			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_WARNING___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_WARNING___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
-				pCallbackData->pMessageIdName,
+				messageIdName,
 				pCallbackData->pMessage));
 			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			assert(pCallbackData);
-			if (std::string("Loader Message") == pCallbackData->pMessageIdName) {
-				LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			if (std::string("Loader Message") == messageIdName) {
+				LOG_VERBOSE___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
-					pCallbackData->pMessageIdName,
+					messageIdName,
 					pCallbackData->pMessage));
 			}
 			else {
-				LOG_INFO___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+				LOG_INFO___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 					pCallbackData->messageIdNumber,
-					pCallbackData->pMessageIdName,
+					messageIdName,
 					pCallbackData->pMessage));
 			}
 			return VK_FALSE;
 		}
 		else if (pMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
 			assert(pCallbackData);
-			LOG_VERBOSE___(fmt::format("Debug utils callback with Id[{}|{}] and Message[{}]",
+			LOG_VERBOSE___(std::format("Debug utils callback with Id[{}|{}] and Message[{}]",
 				pCallbackData->messageIdNumber,
-				pCallbackData->pMessageIdName,
+				messageIdName,
 				pCallbackData->pMessage));
 			return VK_FALSE; 
 		}
@@ -796,27 +818,27 @@ namespace avk
 		void* pUserData)
 	{
 		if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0) {
-			LOG_ERROR___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_ERROR___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) != 0) {
-			LOG_WARNING___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_WARNING___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
 		if ((flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) != 0) {
-			LOG_DEBUG___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+			LOG_DEBUG___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 				to_string(vk::DebugReportFlagsEXT{ flags }),
 				to_string(vk::DebugReportObjectTypeEXT(objectType)),
 				pMessage));
 			return VK_FALSE;
 		}
-		LOG_INFO___(fmt::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
+		LOG_INFO___(std::format("Debug Report callback with flags[{}], object-type[{}], and Message[{}]",
 			to_string(vk::DebugReportFlagsEXT{ flags }),
 			to_string(vk::DebugReportObjectTypeEXT(objectType)),
 			pMessage));
@@ -900,6 +922,18 @@ namespace avk
 	}
 #endif
 
+	bool context_vulkan::supports_dynamic_rendering(const vk::PhysicalDevice& device)
+	{
+		vk::PhysicalDeviceProperties2 physicalProperties;
+		device.getProperties2(&physicalProperties, dispatch_loader_core());
+
+		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
+		auto dynamicRenderingFeatures = vk::PhysicalDeviceDynamicRenderingFeaturesKHR{};
+		supportedExtFeatures.pNext = &dynamicRenderingFeatures;
+		device.getFeatures2(&supportedExtFeatures, dispatch_loader_core());
+		return dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
+	}
+
 	bool context_vulkan::supports_mesh_shader_nv(const vk::PhysicalDevice& device)
 	{
 		vk::PhysicalDeviceFeatures2 supportedExtFeatures;
@@ -914,6 +948,11 @@ namespace avk
 		const auto& devex = get_all_enabled_device_extensions();
 		return std::find(std::begin(devex), std::end(devex), std::string(VK_NV_MESH_SHADER_EXTENSION_NAME)) != std::end(devex);
 	}	
+	bool context_vulkan::is_dynamic_rendering_requested()
+	{
+		const auto& devex = get_all_enabled_device_extensions();
+		return std::find(std::begin(devex), std::end(devex), std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) != std::end(devex);
+	}
 
 #if VK_HEADER_VERSION >= 162
 	bool context_vulkan::ray_tracing_pipeline_extension_requested()
@@ -956,19 +995,25 @@ namespace avk
 	bool context_vulkan::supports_given_extensions(const vk::PhysicalDevice& aPhysicalDevice, const std::vector<const char*>& aExtensionsInQuestion) const
 	{
 	    // Search for each extension requested!
+		auto deviceExtensions = aPhysicalDevice.enumerateDeviceExtensionProperties();
+        return supports_given_extensions(deviceExtensions, aExtensionsInQuestion);
+	}
+
+	bool context_vulkan::supports_given_extensions(const std::vector<vk::ExtensionProperties>& aPhysicalDeviceExtensionsAvailable, const std::vector<const char*>& aExtensionsInQuestion) const
+	{
 		for (const auto& extensionName : aExtensionsInQuestion) {
-			auto deviceExtensions = aPhysicalDevice.enumerateDeviceExtensionProperties();
-			// See if we can find the current requested extension in the array of all device extensions
-			auto result = std::ranges::find_if(deviceExtensions,
+			// See if we can find the current requested extension in the array of all device extensions:
+            auto result = std::ranges::find_if(aPhysicalDeviceExtensionsAvailable,
                                                [extensionName](const vk::ExtensionProperties& devext) {
                                                    return strcmp(extensionName, devext.extensionName) == 0;
                                                });
-			if (result == std::end(deviceExtensions)) {
+            if (result == std::end(aPhysicalDeviceExtensionsAvailable)) {
 				// could not find the device extension
 				return false;
 			}
 		}
 		return true; // All extensions supported
+
 	}
 
 	void context_vulkan::pick_physical_device()
@@ -1012,7 +1057,7 @@ namespace avk
 				score += 30;
 			}
 			else {
-				LOG_INFO(fmt::format("Physical device \"{}\" does not support samplerAnisotropy.", properties.deviceName));
+				LOG_INFO(std::format("Physical device \"{}\" does not support samplerAnisotropy.", properties.deviceName.data()));
 			}
 
 			// Check if descriptor indexing is supported
@@ -1025,19 +1070,38 @@ namespace avk
 				    score += 40;
 				}
 				else {
-					LOG_INFO(fmt::format("Physical device \"{}\" does not provide any descriptorBindingVariableDescriptor.", properties.deviceName));
+					LOG_INFO(std::format("Physical device \"{}\" does not provide any descriptorBindingVariableDescriptor.", properties.deviceName.data()));
 				}
 			}
 
-			// Check if extensions are required
-			if (!supports_given_extensions(physicalDevice, sRequiredDeviceExtensions)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName));
+			// Check if Auto-Vk-Toolkit-required extensions are supported
+            auto deviceExtensions = physicalDevice.enumerateDeviceExtensionProperties();
+            if (!supports_given_extensions(deviceExtensions, sRequiredDeviceExtensions)) {
+				LOG_WARNING(std::format("Depreciating physical device \"{}\" because it does not support all extensions required by Auto-Vk-Toolkit.", properties.deviceName.data()));
+                for (const auto& extensionName : sRequiredDeviceExtensions) {
+                    auto extensionInfo = std::string("    - ") + extensionName + " ...";
+                    while (extensionInfo.length() < 60) {
+                        extensionInfo += ".";
+                    }
+                    auto result = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName.data()) == 0; });
+                    extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
+                    LOG_WARNING(extensionInfo);
+                }
 				score = 0;
 			}
 
-			// Check if extensions are required
+			// Check if user-requested extensions are supported
 			if (!supports_given_extensions(physicalDevice, mSettings.mRequiredDeviceExtensions.mExtensions)) {
-				LOG_WARNING(fmt::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName));
+				LOG_WARNING(std::format("Depreciating physical device \"{}\" because it does not support all extensions required by the application.", properties.deviceName.data()));
+                for (const auto& extensionName : mSettings.mRequiredDeviceExtensions.mExtensions) {
+                    auto extensionInfo = std::string("    - ") + extensionName + " ...";
+                    while (extensionInfo.length() < 60) {
+                        extensionInfo += ".";
+                    }
+                    auto result           = std::ranges::find_if(deviceExtensions, [extensionName](const vk::ExtensionProperties& devext) { return strcmp(extensionName, devext.extensionName.data()) == 0; });
+                    extensionInfo += result != deviceExtensions.end() ? " supported" : " NOT supported";
+                    LOG_WARNING(extensionInfo);
+                }
 				score = 0;
 			}
 
@@ -1047,7 +1111,7 @@ namespace avk
 				    score += 100;
 			    }
 				else {
-					LOG_WARNING(fmt::format("Physical device \"{}\" does not support the optional extension \"{}\".", properties.deviceName, ex));
+					LOG_WARNING(std::format("Physical device \"{}\" does not support the optional extension \"{}\".", properties.deviceName.data(), ex));
 				}
 			}
 
@@ -1068,7 +1132,7 @@ namespace avk
 		// Handle success:
 		mPhysicalDevice = *currentSelection;
 		mContextState = avk::context_state::physical_device_selected;
-		LOG_INFO(fmt::format("Going to use {}", mPhysicalDevice.getProperties().deviceName));
+		LOG_INFO(std::format("Going to use {}", mPhysicalDevice.getProperties().deviceName.data()));
 	}
 
 	glm::uvec2 context_vulkan::get_resolution_for_window(window* aWindow)

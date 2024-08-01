@@ -128,7 +128,7 @@ namespace avk
 		 *				`tangents_for_mesh`, `bitangents_for_mesh`, `colors_for_mesh`, 
 		 *				and `texture_coordinates_for_mesh`
 		 */
-		inline size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
+		size_t number_of_vertices_for_mesh(mesh_index_t aMeshIndex) const;
 
 		/** Gets all the positions for the mesh at the given index.
 		 *	@param		aMeshIndex		The index corresponding to the mesh
@@ -260,7 +260,7 @@ namespace avk
 		 */
 		template <typename T> std::vector<T> texture_coordinates_for_mesh(T(*aTransformFunc)(const T&), mesh_index_t aMeshIndex, int aSet = 0) const
 		{
-			throw avk::logic_error(fmt::format("unsupported type {}", typeid(T).name()));
+			throw avk::logic_error(std::format("unsupported type {}", typeid(T).name()));
 		}
 
 		/** Gets all the texture coordinates of a UV-set for the mesh at the given index.
@@ -381,6 +381,19 @@ namespace avk
 		 *	@param	aMeshIndices				Vector of mesh indices to meshes which shall be included in the animation.
 		 */
 		animation prepare_animation(uint32_t aAnimationIndex, const std::vector<mesh_index_t>& aMeshIndices);
+
+		/** Calculates the tangent space with Auto-Vk-Toolkit's implementation,
+		 *  possibly overwriting ASSIMPs tangents/bitangents.
+		 *	@param	aMeshIndex			Mesh which the tangent space shall be computed for
+		 *	@param	aConfigSourceUV		The set of UV coordinates to be used for tangent space calculation
+		 */
+		void calculate_tangent_space_for_mesh(mesh_index_t aMeshIndex, uint32_t aConfigSourceUV = 0);
+
+		/** Calculates the tangent space with Auto-Vk-Toolkit's implementation for all meshes,
+		 *  possibly overwriting ASSIMPs tangents/bitangents.
+		 *	@param	aConfigSourceUV		The set of UV coordinates to be used for tangent space calculation
+		 */
+		void calculate_tangent_space_for_all_meshes(uint32_t aConfigSourceUV = 0);
 		
 	private:
 		void initialize_materials();
@@ -418,6 +431,7 @@ namespace avk
 		std::string mModelPath;
 		const aiScene* mScene;
 		std::vector<std::optional<material_config>> mMaterialConfigPerMesh;
+		std::unordered_map<mesh_index_t, std::tuple<std::vector<glm::vec3>, std::vector<glm::vec3>>> mTangentsAndBitangents;
 	};
 
 	using model = avk::owning_resource<model_t>;
@@ -432,7 +446,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0) for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f);
 			}
@@ -452,7 +466,7 @@ namespace avk
 				}
 				break;
 			default:
-				throw avk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
+				throw avk::logic_error(std::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
@@ -467,7 +481,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_TEXTURECOORDS);
 		if (nullptr == paiMesh->mTextureCoords[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a texture coordinates at index {}. Will return (0,0,0) for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f, 0.f);
 			}
@@ -491,7 +505,7 @@ namespace avk
 				}
 				break;
 			default:
-				throw avk::logic_error(fmt::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
+				throw avk::logic_error(std::format("Can't handle a number of {} uv components for mesh at index {}, set {}.", nuv, aMeshIndex, aSet));
 			}
 		}
 		return result;
@@ -512,7 +526,7 @@ namespace avk
 		// Check whether all of the vertex data has the same length!
 		auto countOfNext = get_vertex_count(aRest...);
 		if (countOfNext != aFirst.size()) {
-			throw avk::logic_error(fmt::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, aFirst.size()));
+			throw avk::logic_error(std::format("The vertex data passed are not all of the same length, namely {} vs. {}.", countOfNext, aFirst.size()));
 		}
 #endif
 		return aFirst.size();

@@ -54,10 +54,10 @@ namespace avk
 	extern void dispatch_log(avk::log_pack pToBeLogged);
 	
 	#if LOG_LEVEL > 0
-	#define LOG_ERROR(msg)			avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::error, avk::log_importance::normal })
-	#define LOG_ERROR_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "ERR:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::error, avk::log_importance::important})
-	#define LOG_ERROR___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), avk::log_type::error, avk::log_importance::normal })
-	#define LOG_ERROR_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "ERR:  ", msg), avk::log_type::error, avk::log_importance::important })
+	#define LOG_ERROR(msg)			avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "ERR:  ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::error, avk::log_importance::normal })
+	#define LOG_ERROR_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "ERR:  ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::error, avk::log_importance::important})
+	#define LOG_ERROR___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "ERR:  ", msg), avk::log_type::error, avk::log_importance::normal })
+	#define LOG_ERROR_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "ERR:  ", msg), avk::log_type::error, avk::log_importance::important })
 	#else
 	#define LOG_ERROR(msg)
 	#define LOG_ERROR_EM(msg)
@@ -66,10 +66,10 @@ namespace avk
 	#endif
 
 	#if LOG_LEVEL > 1
-	#define LOG_WARNING(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::warning, avk::log_importance::normal })
-	#define LOG_WARNING_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "WARN: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::warning, avk::log_importance::important })
-	#define LOG_WARNING___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), avk::log_type::warning, avk::log_importance::normal })
-	#define LOG_WARNING_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "WARN: ", msg), avk::log_type::warning, avk::log_importance::important })
+	#define LOG_WARNING(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "WARN: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::warning, avk::log_importance::normal })
+	#define LOG_WARNING_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "WARN: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::warning, avk::log_importance::important })
+	#define LOG_WARNING___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "WARN: ", msg), avk::log_type::warning, avk::log_importance::normal })
+	#define LOG_WARNING_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "WARN: ", msg), avk::log_type::warning, avk::log_importance::important })
 	#else 
 	#define LOG_WARNING(msg)
 	#define LOG_WARNING_EM(msg)
@@ -78,10 +78,10 @@ namespace avk
 	#endif
 
 	#if LOG_LEVEL > 2
-	#define LOG_INFO(msg)			avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::info, avk::log_importance::normal })
-	#define LOG_INFO_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "INFO: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::info, avk::log_importance::important })
-	#define LOG_INFO___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), avk::log_type::info, avk::log_importance::normal })
-	#define LOG_INFO_EM___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "INFO: ", msg), avk::log_type::info, avk::log_importance::important })
+	#define LOG_INFO(msg)			avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "INFO: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::info, avk::log_importance::normal })
+	#define LOG_INFO_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "INFO: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::info, avk::log_importance::important })
+	#define LOG_INFO___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "INFO: ", msg), avk::log_type::info, avk::log_importance::normal })
+	#define LOG_INFO_EM___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "INFO: ", msg), avk::log_type::info, avk::log_importance::important })
 	#else
 	#define LOG_INFO(msg)
 	#define LOG_INFO_EM(msg)
@@ -90,10 +90,10 @@ namespace avk
 	#endif
 
 	#if LOG_LEVEL > 3
-	#define LOG_VERBOSE(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::normal })
-	#define LOG_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "VRBS: ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::important })
-	#define LOG_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), avk::log_type::verbose, avk::log_importance::normal })
-	#define LOG_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "VRBS: ", msg), avk::log_type::verbose, avk::log_importance::important })
+	#define LOG_VERBOSE(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "VRBS: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::normal })
+	#define LOG_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "VRBS: ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::important })
+	#define LOG_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "VRBS: ", msg), avk::log_type::verbose, avk::log_importance::normal })
+	#define LOG_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "VRBS: ", msg), avk::log_type::verbose, avk::log_importance::important })
 	#else 
 	#define LOG_VERBOSE(msg)
 	#define LOG_VERBOSE_EM(msg)
@@ -102,10 +102,10 @@ namespace avk
 	#endif
 
 	#if LOG_LEVEL > 4
-	#define LOG_MEGA_VERBOSE(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "MVRBS:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::important })
-	#define LOG_MEGA_VERBOSE___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), avk::log_type::verbose, avk::log_importance::normal })
-	#define LOG_MEGA_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "MVRBS:", msg), avk::log_type::verbose, avk::log_importance::important })
+	#define LOG_MEGA_VERBOSE(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "MVRBS:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "MVRBS:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::verbose, avk::log_importance::important })
+	#define LOG_MEGA_VERBOSE___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "MVRBS:", msg), avk::log_type::verbose, avk::log_importance::normal })
+	#define LOG_MEGA_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "MVRBS:", msg), avk::log_type::verbose, avk::log_importance::important })
 	#else 
 	#define LOG_MEGA_VERBOSE(msg)
 	#define LOG_MEGA_VERBOSE_EM(msg)
@@ -114,10 +114,10 @@ namespace avk
 	#endif
 
 	#if defined(_DEBUG)
-	#define LOG_DEBUG(msg)			avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug, avk::log_importance::normal })
-	#define LOG_DEBUG_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG:  ", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug, avk::log_importance::important })
-	#define LOG_DEBUG___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), avk::log_type::debug, avk::log_importance::normal })
-	#define LOG_DEBUG_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG:  ", msg), avk::log_type::debug, avk::log_importance::important })
+	#define LOG_DEBUG(msg)			avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG:  ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug, avk::log_importance::normal })
+	#define LOG_DEBUG_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG:  ", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug, avk::log_importance::important })
+	#define LOG_DEBUG___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG:  ", msg), avk::log_type::debug, avk::log_importance::normal })
+	#define LOG_DEBUG_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG:  ", msg), avk::log_type::debug, avk::log_importance::important })
 	#else
 	#define LOG_DEBUG(msg)
 	#define LOG_DEBUG_EM(msg)
@@ -126,10 +126,10 @@ namespace avk
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 3
-	#define LOG_DEBUG_VERBOSE(msg)			avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG-V:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::important })
-	#define LOG_DEBUG_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), avk::log_type::debug_verbose, avk::log_importance::normal })
-	#define LOG_DEBUG_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG-V:", msg), avk::log_type::debug_verbose, avk::log_importance::important })
+	#define LOG_DEBUG_VERBOSE(msg)			avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG-V:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG-V:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::important })
+	#define LOG_DEBUG_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG-V:", msg), avk::log_type::debug_verbose, avk::log_importance::normal })
+	#define LOG_DEBUG_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG-V:", msg), avk::log_type::debug_verbose, avk::log_importance::important })
 	#else
 	#define LOG_DEBUG_VERBOSE(msg)
 	#define LOG_DEBUG_VERBOSE_EM(msg)   
@@ -138,10 +138,10 @@ namespace avk
 	#endif
 
 	#if defined(_DEBUG) && LOG_LEVEL > 4
-	#define LOG_DEBUG_MEGA_VERBOSE(msg)			avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}{}\n", "DBG-MV:", msg, fmt::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::important })
-	#define LOG_DEBUG_MEGA_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), avk::log_type::debug_verbose, avk::log_importance::normal })
-	#define LOG_DEBUG_MEGA_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ fmt::format("{}{}\n", "DBG-MV:", msg), avk::log_type::debug_verbose, avk::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE(msg)			avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG-MV:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}{}\n", "DBG-MV:", msg, std::format(" | file[{}] line[{}]", avk::extract_file_name(std::string(__FILE__)), __LINE__)), avk::log_type::debug_verbose, avk::log_importance::important })
+	#define LOG_DEBUG_MEGA_VERBOSE___(msg)		avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG-MV:", msg), avk::log_type::debug_verbose, avk::log_importance::normal })
+	#define LOG_DEBUG_MEGA_VERBOSE_EM___(msg)	avk::dispatch_log(avk::log_pack{ std::format("{}{}\n", "DBG-MV:", msg), avk::log_type::debug_verbose, avk::log_importance::important })
 	#else
 	#define LOG_DEBUG_MEGA_VERBOSE(msg)
 	#define LOG_DEBUG_MEGA_VERBOSE_EM(msg)   

@@ -9,7 +9,7 @@ on:
       - 'framework/**'
       - 'CMakeLists.txt'
   pull_request:
-  workflow_dispatch:
+  # workflow_dispatch:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -18,7 +18,7 @@ env:
 jobs:
   linux:
     name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -30,12 +30,12 @@ jobs:
           #}
           - {
             name: "linux: gcc",
-            cc: "gcc-10",
-            cxx: "g++-10"
+            cc: "gcc-13",
+            cxx: "g++-13"
           }
         # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
         # (not that ubuntu-latest (20.04) only supports >= v1.2.148 via apt)
-        vulkan-sdk: ["latest", "1.3.216"]
+        vulkan-sdk: ["latest", "1.3.243"]
 
     steps:
       - name: Checkout repository and submodules
@@ -49,12 +49,17 @@ jobs:
         # We'll use this as our working directory for all subsequent commands
         run: |
           # Add lunarg apt sources
+          sudo sed -i -e 's|disco|jammy|g' /etc/apt/sources.list
+          sudo apt update
           wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
           if [ "${{ matrix.vulkan-sdk }}" = "latest" ]; then
-            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
           else
-            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-focal.list
+            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${{ matrix.vulkan-sdk }}-jammy.list https://packages.lunarg.com/vulkan/${{ matrix.vulkan-sdk }}/lunarg-vulkan-${{ matrix.vulkan-sdk }}-jammy.list
           fi
+
+          # For GCC-13
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 
           # Update package lists
           sudo apt-get update -qq
@@ -62,7 +67,9 @@ jobs:
           sudo apt-get install -y \
             vulkan-sdk \
             libassimp-dev \
-            xorg-dev
+            xorg-dev \
+            g++-13 \
+            gcc-13
 
           # clang does not yet (<= 12) support "Down with typename" (P0634R3), which is used in libstdc++ >= 11 in the ranges-header
           if [ "${{ matrix.config.cc }}" = "clang" ]; then
@@ -97,7 +104,7 @@ jobs:
         run: cmake --build .
 
   windows:
-    name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
+    name: ${{ matrix.config.name }}, windows-2019, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-2019
     env:
       vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
@@ -110,8 +117,8 @@ jobs:
             cc: "cl",
             cxx: "cl"
           }
-        # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.2.176.1"]
+        # note: if a specific vulkan version needs testing, you can add it here:
+        vulkan-sdk: ["latest", "1.3.243.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -144,6 +151,9 @@ jobs:
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
+          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
+          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
+          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
             -Davk_toolkit_BuildHelloWorld=ON `
@@ -155,7 +165,7 @@ jobs:
         run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
 
   windows-latest:
-    name: ${{ matrix.config.name }}, VulkanSDK ${{ matrix.vulkan-sdk }}
+    name: ${{ matrix.config.name }}, windows-latest, VulkanSDK ${{ matrix.vulkan-sdk }}
     runs-on: windows-latest
     env:
       vulkan_sdk: "$GITHUB_WORKSPACE/vulkan_sdk/"
@@ -168,8 +178,8 @@ jobs:
             cc: "cl",
             cxx: "cl"
           }
-        # note: if a specific vulkan version (e.g. 1.1.x, or < 1.2.135) needs testing, you can add it here:
-        vulkan-sdk: ["latest", "1.2.176.1"]
+        # note: if a specific vulkan version needs testing, you can add it here:
+        vulkan-sdk: ["latest", "1.3.243.0"]
 
     steps:
       # IMPORTANT: apparently checkout@v3 pulls to ${{ github.event.repository.name }}/${{ github.event.repository.name }} instead of just ${{ github.event.repository.name }} on windows
@@ -201,6 +211,9 @@ jobs:
         run: |
           $env:CC="${{ matrix.config.cc }}"
           $env:CXX="${{ matrix.config.cxx }}"
+          $env:VULKAN_SDK="${{ env.vulkan_sdk }}"
+          $env:Vulkan_LIBRARY="${{ env.vulkan_sdk }}/Bin"
+          $env:Vulkan_INCLUDE_DIR="${{ env.vulkan_sdk }}/Include"
           $env:Path += ";${{ env.vulkan_sdk }}\;${{ env.vulkan_sdk }}\Bin\"
           cmake `
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
@@ -210,4 +223,4 @@ jobs:
       - name: Build
         shell: bash
         working-directory: ${{ runner.workspace }}/${{ github.event.repository.name }}/build
-        run: VULKAN_SDK=${{ env.vulkan_sdk }} cmake --build . --config $BUILD_TYPE
+        run: cmake --build . --config $BUILD_TYPE

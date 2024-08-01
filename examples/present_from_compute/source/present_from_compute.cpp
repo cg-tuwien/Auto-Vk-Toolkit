@@ -56,7 +56,7 @@ public:
 			avk::fragment_shader("shaders/color.frag"),											// Add a fragment shader
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),							// Front faces are in clockwise order
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)), // Align viewport with main window's resolution
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 
 		// Create compute pipeline:
@@ -82,7 +82,7 @@ public:
 								avk::on_store::store.in_layout(avk::layout::color_attachment_optimal)
 							)
 						},
-						mainWnd->renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
+						mainWnd->get_renderpass()->subpass_dependencies() // Use the same as the main window's renderpass
 					),
 					avk::context().create_image_view(avk::context().create_image(mainWnd->resolution().x, mainWnd->resolution().y, mainWnd->swap_chain_image_format(), 1, avk::memory_usage::device, avk::image_usage::general_color_attachment | avk::image_usage::sampled | avk::image_usage::shader_storage))
 				)
@@ -162,7 +162,7 @@ public:
 		mUiQueueSelectionPrevFrame = mUiQueueSelection;
 
 		// On Esc pressed,
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -205,7 +205,7 @@ public:
 				mVertexBuffers[inFlightIndex]->fill(vertexDataCurrentFrame.data(), 0),
 
 				// Release exclusive ownership from the transfer queue:
-				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::auto_stage + access::auto_access >> stage::none + access::none)
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::auto_stage + access::auto_access >> stage::copy + access::transfer_write)
 					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index())
 			}, mTransferQueue,
 			stage::auto_stage // Let the framework determine the (source) stage after which the semaphore can be signaled (will be stage::copy due to buffer_t::fill)
@@ -245,7 +245,7 @@ public:
 				),
 
 				// Acquire exclusive ownership for the graphics queue:
-				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::none + access::none >> stage::vertex_attribute_input + access::vertex_attribute_read)
+				sync::buffer_memory_barrier(mVertexBuffers[inFlightIndex].as_reference(), stage::copy + access::transfer_write >> stage::vertex_attribute_input + access::vertex_attribute_read)
 					.with_queue_family_ownership_transfer(mTransferQueue.family_index(), mGraphicsQueue.family_index()),
 
 				// Begin and end one renderpass:
@@ -322,7 +322,7 @@ public:
 		// Submit the dispatch calls to the compute queue:
 		avk::context().record({
 				// Acquire exclusive ownership from the graphics queue:
-				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::none + access::none >> stage::auto_stage + access::auto_access)
+				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::copy + access::transfer_write >> stage::auto_stage + access::auto_access)
 					.with_queue_family_ownership_transfer(mGraphicsQueue.family_index(), mComputeQueue.family_index()),
 
 				sync::image_memory_barrier(mFramebuffers[inFlightIndex]->image_at(0), stage::auto_stage + access::auto_access >> stage::auto_stage + access::auto_access)
@@ -438,9 +438,6 @@ int main() // <== Starting point ==
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
 			avk::application_name("Auto-Vk-Toolkit Example: Present from Compute"),
-			[](avk::validation_layers& config) {
-				config.enable_feature(vk::ValidationFeatureEnableEXT::eSynchronizationValidation);
-			},
 			// Pass windows:
 			mainWnd,
 			// Pass invokees:

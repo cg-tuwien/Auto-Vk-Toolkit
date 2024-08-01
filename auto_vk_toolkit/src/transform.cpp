@@ -220,7 +220,7 @@ namespace avk
 		assert(pParent);
 		assert(pChild);
 		if (!pChild->has_parent() || pChild->parent() != pParent) {
-			LOG_WARNING(fmt::format("Can not detach child[{}] from parent[{}]", fmt::ptr(pChild.get()), fmt::ptr(pParent.get())));
+			LOG_WARNING(std::format("Can not detach child[{}] from parent[{}]", reinterpret_cast<intptr_t>(pChild.get()), reinterpret_cast<intptr_t>(pParent.get())));
 			return;
 		}
 		pChild->mParent = nullptr;

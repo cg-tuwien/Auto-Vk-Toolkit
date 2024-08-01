@@ -25,7 +25,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			avk::cfg::front_face::define_front_faces_to_be_clockwise(),
 			avk::cfg::viewport_depth_scissors_config::from_framebuffer(avk::context().main_window()->backbuffer_reference_at_index(0)),
 			// Just use the main window's renderpass for this pipeline:
-			avk::context().main_window()->renderpass()
+			avk::context().main_window()->get_renderpass()
 		);
 		
 		// We want to use an updater => gotta create one:
@@ -77,7 +77,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		}
 
 		// On Esc pressed,
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// stop the current composition:
 			avk::current_composition()->stop();
 		}

@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "model.hpp"
+#include <assimp/qnan.h>
 
 namespace avk
 {
@@ -13,7 +14,7 @@ namespace avk
 		result.mImporter = std::make_unique<Assimp::Importer>();
 		result.mScene = result.mImporter->ReadFile(aPath, aAssimpFlags);
 		if (nullptr == result.mScene) {
-			throw avk::runtime_error(fmt::format("Loading model from '{}' failed.", aPath));
+			throw avk::runtime_error(std::format("Loading model from '{}' failed.", aPath));
 		}
 		result.initialize_materials();
 		return result;
@@ -584,7 +585,7 @@ namespace avk
 		std::vector<glm::vec3> result;
 		result.reserve(n);
 		if (nullptr == paiMesh->mNormals) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain normals. Will return (0,0,1) normals for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(0.f, 0.f, 1.f);
 			}
@@ -600,43 +601,57 @@ namespace avk
 
 	std::vector<glm::vec3> model_t::tangents_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
-		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
-		result.reserve(n);
-		if (nullptr == paiMesh->mTangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
-			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(1.f, 0.f, 0.f);
-			}
+
+		if (mTangentsAndBitangents.contains(aMeshIndex)) {
+			result = std::get<0>(mTangentsAndBitangents.at(aMeshIndex));
 		}
 		else {
-			// We've got tangents. Proceed as planned.
-			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(paiMesh->mTangents[i][0], paiMesh->mTangents[i][1], paiMesh->mTangents[i][2]);
+			const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+			auto n = paiMesh->mNumVertices;
+			result.reserve(n);
+			if (nullptr == paiMesh->mTangents) {
+				LOG_WARNING(std::format("The mesh at index {} does not contain tangents. Will return (1,0,0) tangents for each vertex.", aMeshIndex));
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(1.f, 0.f, 0.f);
+				}
+			}
+			else {
+				// We've got tangents. Proceed as planned.
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mTangents[i][0], paiMesh->mTangents[i][1], paiMesh->mTangents[i][2]);
+				}
 			}
 		}
+
 		return result;
 	}
 
 	std::vector<glm::vec3> model_t::bitangents_for_mesh(mesh_index_t aMeshIndex) const
 	{
-		const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
-		auto n = paiMesh->mNumVertices;
 		std::vector<glm::vec3> result;
-		result.reserve(n);
-		if (nullptr == paiMesh->mBitangents) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
-			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(0.f, 1.f, 0.f);
-			}
+
+		if (mTangentsAndBitangents.contains(aMeshIndex)) {
+			result = std::get<1>(mTangentsAndBitangents.at(aMeshIndex));
 		}
 		else {
-			// We've got bitangents. Proceed as planned.
-			for (decltype(n) i = 0; i < n; ++i) {
-				result.emplace_back(paiMesh->mBitangents[i][0], paiMesh->mBitangents[i][1], paiMesh->mBitangents[i][2]);
+			const aiMesh* paiMesh = mScene->mMeshes[aMeshIndex];
+			auto n = paiMesh->mNumVertices;
+			result.reserve(n);
+			if (nullptr == paiMesh->mBitangents) {
+				LOG_WARNING(std::format("The mesh at index {} does not contain bitangents. Will return (0,1,0) bitangents for each vertex.", aMeshIndex));
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(0.f, 1.f, 0.f);
+				}
+			}
+			else {
+				// We've got bitangents. Proceed as planned.
+				for (decltype(n) i = 0; i < n; ++i) {
+					result.emplace_back(paiMesh->mBitangents[i][0], paiMesh->mBitangents[i][1], paiMesh->mBitangents[i][2]);
+				}
 			}
 		}
+
 		return result;
 	}
 
@@ -648,7 +663,7 @@ namespace avk
 		result.reserve(n);
 		assert(aSet >= 0 && aSet < AI_MAX_NUMBER_OF_COLOR_SETS);
 		if (nullptr == paiMesh->mColors[aSet]) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
+			LOG_WARNING(std::format("The mesh at index {} does not contain a color set at index {}. Will return opaque magenta for each vertex.", aMeshIndex, aSet));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 1.f, 1.f);
 			}
@@ -669,7 +684,7 @@ namespace avk
 		std::vector<glm::vec4> result;
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain bones. Will return (1,0,0,0) bone weights for each vertex.", aMeshIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(1.f, 0.f, 0.f, 0.f);
 			}
@@ -714,7 +729,7 @@ namespace avk
 				}
 			}
 			if (hasNonNormalizedBoneWeights) {
-				LOG_WARNING(fmt::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
+				LOG_WARNING(std::format("The mesh at index {} contains non-normalized bone weights, adding up to more than 1.001.", aMeshIndex));
 			}
 		}
 		return result;
@@ -728,7 +743,7 @@ namespace avk
 		result.reserve(n);
 		if (!paiMesh->HasBones()) {
 			const uint32_t fallbackIndex = aBoneIndexOffset;
-			LOG_WARNING(fmt::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
+			LOG_WARNING(std::format("The mesh at index {} does not contain bones. Will return ({},{},{},{}) bone indices for each vertex.", aMeshIndex, fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex));
 			for (decltype(n) i = 0; i < n; ++i) {
 				result.emplace_back(fallbackIndex, fallbackIndex, fallbackIndex, fallbackIndex);
 			}
@@ -1202,7 +1217,7 @@ namespace avk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+				LOG_ERROR(std::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -1247,7 +1262,7 @@ namespace avk
 
 					auto it = mapNameToNode.find(to_string(bone->mName));
 					if (it == std::end(mapNameToNode)) {
-						LOG_ERROR(fmt::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
+						LOG_ERROR(std::format("Bone named '{}' could not be found in the nodeMap.", to_string(bone->mName)));
 						continue;
 					}
 
@@ -1284,7 +1299,7 @@ namespace avk
 			auto uniqueEnd = std::unique(std::begin(sanityCheck), std::end(sanityCheck));
 			if (uniqueEnd != std::end(sanityCheck)) {
 				LOG_WARNING(
-					fmt::format(
+					std::format(
 						"Some nodes are contained multiple times in the animation channels of animation[{}]. Don't know if that's going to lead to correct results."
 						, aAnimationIndex));
 			}
@@ -1297,7 +1312,7 @@ namespace avk
 
 			auto it = mapNameToNode.find(to_string(channel->mNodeName));
 			if (it == std::end(mapNameToNode)) {
-				LOG_ERROR(fmt::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
+				LOG_ERROR(std::format("Node name '{}', referenced from channel[{}], could not be found in the nodeMap.", to_string(channel->mNodeName), i));
 				continue;
 			}
 
@@ -1307,7 +1322,7 @@ namespace avk
 			while (nullptr != parent) {
 				if (isNodeModifiedByBones(parent) && !isNodeAlreadyAdded(parent).has_value()) {
 					boneAnimatedParents.push(parent);
-					LOG_DEBUG(fmt::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
+					LOG_DEBUG(std::format("Interesting: Node '{}' in parent-hierarchy of node '{}' is also bone-animated, but not encountered them while iterating through channels yet.", parent->mName.C_Str(), node->mName.C_Str()));
 				}
 				parent = parent->mParent;
 			}
@@ -1386,6 +1401,133 @@ namespace avk
 		aNodeMap[to_string(aNode->mName)] = aNode;
 		for (unsigned int i = 0; i < aNode->mNumChildren; ++i) {
 			add_all_to_node_map(aNodeMap, aNode->mChildren[i]);
+		}
+	}
+
+	void model_t::calculate_tangent_space_for_mesh(mesh_index_t aMeshIndex, uint32_t aConfigSourceUV)
+	{
+		mTangentsAndBitangents[aMeshIndex] = std::make_tuple(std::vector<glm::vec3>{}, std::vector<glm::vec3>{});
+		auto& [meshTang, meshBitang] = mTangentsAndBitangents[aMeshIndex];
+		auto numVerts = number_of_vertices_for_mesh(aMeshIndex);
+		// create space for the tangents and bitangents
+		meshTang.resize(numVerts);
+		meshBitang.resize(numVerts);
+
+		// The following is mostly a copy&paste from ASSIMP's code (but not necessarily from the latest version,
+		// since at some point, incorrect tangents/bitangents calculation has been introduced, namely s.t.
+		// the bitangents would always be orthogonal to the tangents. This is wrong.)
+
+		const aiMesh* pMesh = mScene->mMeshes[aMeshIndex];
+
+		// If the mesh consists of lines and/or points but not of
+		// triangles or higher-order polygons the normal vectors
+		// are undefined.
+		if (!(pMesh->mPrimitiveTypes & (aiPrimitiveType_TRIANGLE | aiPrimitiveType_POLYGON))) {
+		    LOG_INFO("Tangents are undefined for line and point meshes");
+		    return;
+		}
+
+		// what we can check, though, is if the mesh has normals and texture coordinates. That's a requirement
+		if (pMesh->mNormals == nullptr) {
+		    LOG_ERROR("Failed to compute tangents; need normals");
+		    return;
+		}
+		if (aConfigSourceUV >= AI_MAX_NUMBER_OF_TEXTURECOORDS || !pMesh->mTextureCoords[aConfigSourceUV]) {
+		    LOG_ERROR(std::format("Failed to compute tangents; need UV data in channel[{}]", aConfigSourceUV));
+		    return;
+		}
+
+		const float angleEpsilon = 0.9999f;
+
+		std::vector<bool> vertexDone(pMesh->mNumVertices, false);
+		const float qnan = std::numeric_limits<ai_real>::quiet_NaN();
+
+		const aiVector3D *meshPos = pMesh->mVertices;
+		const aiVector3D *meshNorm = pMesh->mNormals;
+		const aiVector3D *meshTex = pMesh->mTextureCoords[aConfigSourceUV];
+
+		// calculate the tangent and bitangent for every face
+		for (unsigned int a = 0; a < pMesh->mNumFaces; a++) {
+		    const aiFace &face = pMesh->mFaces[a];
+		    if (face.mNumIndices < 3) {
+		        // There are less than three indices, thus the tangent vector
+		        // is not defined. We are finished with these vertices now,
+		        // their tangent vectors are set to qnan.
+		        for (unsigned int i = 0; i < face.mNumIndices; ++i) {
+		            unsigned int idx = face.mIndices[i];
+		            vertexDone[idx] = true;
+		            meshTang[idx] = to_vec3(aiVector3D(qnan));
+		            meshBitang[idx] = to_vec3(aiVector3D(qnan));
+		        }
+
+		        continue;
+		    }
+
+		    // triangle or polygon... we always use only the first three indices. A polygon
+		    // is supposed to be planar anyways....
+		    // FIXME: (thom) create correct calculation for multi-vertex polygons maybe?
+		    const unsigned int p0 = face.mIndices[0], p1 = face.mIndices[1], p2 = face.mIndices[2];
+
+		    // position differences p1->p2 and p1->p3
+		    aiVector3D v = meshPos[p1] - meshPos[p0], w = meshPos[p2] - meshPos[p0];
+
+		    // texture offset p1->p2 and p1->p3
+		    float sx = meshTex[p1].x - meshTex[p0].x, sy = meshTex[p1].y - meshTex[p0].y;
+		    float tx = meshTex[p2].x - meshTex[p0].x, ty = meshTex[p2].y - meshTex[p0].y;
+		    float dirCorrection = (tx * sy - ty * sx) < 0.0f ? -1.0f : 1.0f;
+		    // when t1, t2, t3 in same position in UV space, just use default UV direction.
+		    if (sx * ty == sy * tx) {
+		        sx = 0.0;
+		        sy = 1.0;
+		        tx = 1.0;
+		        ty = 0.0;
+		    }
+
+		    // tangent points in the direction where to positive X axis of the texture coord's would point in model space
+		    // bitangent's points along the positive Y axis of the texture coord's, respectively
+		    aiVector3D tangent, bitangent;
+		    tangent.x = (w.x * sy - v.x * ty) * dirCorrection;
+		    tangent.y = (w.y * sy - v.y * ty) * dirCorrection;
+		    tangent.z = (w.z * sy - v.z * ty) * dirCorrection;
+		    bitangent.x = (w.x * sx - v.x * tx) * dirCorrection;
+		    bitangent.y = (w.y * sx - v.y * tx) * dirCorrection;
+		    bitangent.z = (w.z * sx - v.z * tx) * dirCorrection;
+
+		    // store for every vertex of that face
+		    for (unsigned int b = 0; b < face.mNumIndices; ++b) {
+		        unsigned int p = face.mIndices[b];
+
+		        // project tangent and bitangent into the plane formed by the vertex' normal
+		        aiVector3D localTangent = tangent - meshNorm[p] * (tangent * meshNorm[p]);
+		        aiVector3D localBitangent = bitangent - meshNorm[p] * (bitangent * meshNorm[p]);
+		        localTangent.NormalizeSafe();
+		        localBitangent.NormalizeSafe();
+
+		        // reconstruct tangent/bitangent according to normal and bitangent/tangent when it's infinite or NaN.
+		        bool invalid_tangent = is_special_float(localTangent.x) || is_special_float(localTangent.y) || is_special_float(localTangent.z);
+		        bool invalid_bitangent = is_special_float(localBitangent.x) || is_special_float(localBitangent.y) || is_special_float(localBitangent.z);
+		        if (invalid_tangent != invalid_bitangent) {
+		            if (invalid_tangent) {
+		                localTangent = meshNorm[p] ^ localBitangent;
+		                localTangent.NormalizeSafe();
+		            } else {
+		                localBitangent = localTangent ^ meshNorm[p];
+		                localBitangent.NormalizeSafe();
+		            }
+		        }
+
+		        // and write it into the mesh.
+		        meshTang[p] = to_vec3(localTangent);
+		        meshBitang[p] = to_vec3(localBitangent);
+		    }
+		}
+	}
+
+	void model_t::calculate_tangent_space_for_all_meshes(uint32_t aConfigSourceUV)
+	{
+		auto n = mScene->mNumMeshes;
+		for (decltype(n) i = 0; i < n; ++i) {
+			calculate_tangent_space_for_mesh(i, aConfigSourceUV);
 		}
 	}
 }

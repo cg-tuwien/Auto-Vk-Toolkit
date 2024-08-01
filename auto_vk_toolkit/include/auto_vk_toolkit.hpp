@@ -40,9 +40,7 @@
 
 // ----------------------- externals -----------------------
 #define FMT_HEADER_ONLY
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <fmt/chrono.h>
+#include <format>
 #include <stb_image.h>
 
 #include <assimp/Importer.hpp>  // C++ importer interface

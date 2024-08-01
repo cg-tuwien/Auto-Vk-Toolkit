@@ -69,7 +69,7 @@ public:
 	void update() override
 	{
 		// On Esc pressed,
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -160,7 +160,7 @@ int main() // <== Starting point ==
 
 			for (auto* app : apps) {
 				bool isEnabled = app->is_enabled();
-				std::string name = fmt::format("Disable/Enable Invokee [{}]", app->name());
+				std::string name = std::format("Disable/Enable Invokee [{}]", app->name());
 				ImGui::Checkbox(name.c_str(), &isEnabled);
 				if (isEnabled != app->is_enabled())
 				{

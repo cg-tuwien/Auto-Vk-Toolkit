@@ -64,7 +64,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					std::move(nrmCmds),
 					std::move(texCmds),
 					// Gotta wait until all buffers have been transfered before we can start the BLAS build:
-					avk::sync::global_memory_barrier(avk::stage::transfer >> avk::stage::acceleration_structure_build, avk::access::transfer_write >> avk::access::shader_read),
+					avk::sync::global_memory_barrier(avk::stage::transfer >> avk::stage::acceleration_structure_build, avk::access::transfer_write >> avk::access::acceleration_structure_read),
 					blas->build({ avk::vertex_index_buffer_pair{ posBfr, idxBfr } })
 				}, *mQueue)->wait_until_signalled();
 

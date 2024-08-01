@@ -161,12 +161,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = avk::context().get_time();
 
 		for (auto& t : times) {
-			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+			LOG_INFO(std::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
 		auto end = avk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("load_orca_scene took {} in total", diff));
+		LOG_INFO(std::format("load_orca_scene took {} in total", diff));
 
 
 		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
@@ -360,12 +360,12 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 		startPart = avk::context().get_time();
 
 		for (auto& t : times) {
-			LOG_INFO(fmt::format("{} took {}", std::get<0>(t), std::get<1>(t)));
+			LOG_INFO(std::format("{} took {}", std::get<0>(t), std::get<1>(t)));
 		}
 
 		auto end = avk::context().get_time();
 		auto diff = end - start;
-		LOG_INFO(fmt::format("load_orca_scene_cached took {} in total", diff));
+		LOG_INFO(std::format("load_orca_scene_cached took {} in total", diff));
 
 		auto swapChainFormat = avk::context().main_window()->swap_chain_image_format();
 		// Create our rasterization graphics pipeline with the required configuration:
@@ -449,12 +449,15 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 					}
 				}
 				if (quakeCamEnabled) {
-					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[F1] to exit Quake Camera navigation.");
-					if (avk::input().key_pressed(avk::key_code::f1)) {
+					ImGui::TextColored(ImVec4(0.f, .6f, .8f, 1.f), "[Esc] to exit Quake Camera navigation");
+					if (avk::input().key_pressed(avk::key_code::escape)) {
 						mOrbitCam.set_matrix(mQuakeCam.matrix());
 						mOrbitCam.enable();
 						mQuakeCam.disable();
 					}
+				}
+				else {
+					ImGui::TextColored(ImVec4(.8f, .4f, .4f, 1.f), "[Esc] to exit application");
 				}
 				if (imguiManager->begin_wanting_to_occupy_mouse() && mOrbitCam.is_enabled()) {
 					mOrbitCam.disable();
@@ -506,7 +509,7 @@ public: // v== avk::invokee overrides which will be invoked by the framework ==v
 			auto resolution = avk::context().main_window()->resolution();
 			avk::context().main_window()->set_cursor_pos({ resolution[0] / 2.0, resolution[1] / 2.0 });
 		}
-		if (avk::input().key_pressed(avk::key_code::escape)) {
+		if (!mQuakeCam.is_enabled() && avk::input().key_pressed(avk::key_code::escape) || avk::context().main_window()->should_be_closed()) {
 			// Stop the current composition:
 			avk::current_composition()->stop();
 		}
@@ -638,6 +641,7 @@ int main() // <== Starting point ==
 		auto app = orca_loader_app(singleQueue);
 		// Create another element for drawing the UI with ImGui
 		auto ui = avk::imgui_manager(singleQueue);
+		ui.set_custom_font("assets/JetBrainsMono-Regular.ttf");
 
 		// Compile all the configuration parameters and the invokees into a "composition":
 		auto composition = configure_and_compose(
