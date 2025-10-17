@@ -98,14 +98,28 @@
 #define AVK_LOG_DEBUG_VERBOSE	LOG_DEBUG_VERBOSE
 #include "log.hpp"
 
+// Note: Now, this is a bit ugly that we have to include vulkan_core.h 
+//       before we include avk.hpp, but the #if on the VK_HEADER_VERSION 
+//       below requires this, unfortunately. 
+#define VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL 0
+#define VK_ENABLE_BETA_EXTENSIONS
+#include <vulkan/vulkan_core.h>
+
 // Before including the Auto-Vk header, we define some settings
 // that influence Auto-Vk's behavior/workings:
 //  - We're going to use a dynamic dispatch loader for everything
 //	- We're going to use the global VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 //	  s.t. the dynamic dispatch loader is the default for all Vulkan-Hpp calls.
 //  - We're going to use the VMA library for memory allocations
+#if VK_HEADER_VERSION >= 302
+#define DISPATCH_LOADER_NAMESPACE vk::detail
+#define DISPATCH_LOADER_CORE_TYPE vk::detail::DispatchLoaderDynamic
+#define DISPATCH_LOADER_EXT_TYPE  vk::detail::DispatchLoaderDynamic
+#else 
+#define DISPATCH_LOADER_NAMESPACE vk
 #define DISPATCH_LOADER_CORE_TYPE vk::DispatchLoaderDynamic
-#define DISPATCH_LOADER_EXT_TYPE vk::DispatchLoaderDynamic
+#define DISPATCH_LOADER_EXT_TYPE  vk::DispatchLoaderDynamic
+#endif
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #define AVK_USE_VMA
 #include "avk/avk.hpp"

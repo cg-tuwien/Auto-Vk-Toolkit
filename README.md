@@ -1,4 +1,4 @@
-# Auto-Vk-Toolkit v1.0
+# Auto-Vk-Toolkit v1.0.1
 
 *Auto-Vk-Toolkit* is a framework for the Vulkan graphics API, implemented in modern C++.
 It aims to hit the sweet spot between programmer-convenience and efficiency while still supporting full Vulkan functionality.
@@ -54,7 +54,7 @@ A preconfigured project setup is provided for Visual Studio 2022 on Windows.
 ### Requirements
 * Windows 10 or 11
 * Visual Studio 2022 with a Windows 10 or 11 SDK installed (For detailed information about project setup and resource management please refer to [`visual_studio/README.md`](./visual_studio/README.md).)
-* A [Vulkan 1.3 SDK from LunarG](https://vulkan.lunarg.com/sdk/home), optimally Vulkan SDK 1.3.250.0 or newer.
+* A [Vulkan 1.3 or 1.4 SDK from LunarG](https://vulkan.lunarg.com/sdk/home)
 
 ### Setup and build instructions
 * Clone or download this repository

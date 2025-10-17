@@ -6,6 +6,12 @@
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #endif
 
+#if VK_HEADER_VERSION >= 302
+#define OBJECT_DESTROY_NAMESPACE vk::detail
+#else 
+#define OBJECT_DESTROY_NAMESPACE vk
+#endif
+
 namespace avk
 {
 	std::vector<const char*> context_vulkan::sRequiredInstanceExtensions = {
@@ -332,12 +338,12 @@ namespace avk
 			.setPpEnabledLayerNames(supportedValidationLayers.data());
 		context().mLogicalDevice = context().physical_device().createDevice(deviceCreateInfo);
 
-		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
-			reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_core()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+			reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(context().dispatch_loader_core()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
 		}
 		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
-			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
-				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+				reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(context().mLogicalDevice); // stupid, because it's a constexpr, but MSVC complains otherwise
 			}
 		}
 
@@ -583,7 +589,7 @@ namespace avk
 				throw avk::runtime_error(std::format("Failed to create surface for window '{}'!", wnd->title()));
 			}
 
-			vk::ObjectDestroy<vk::Instance, DISPATCH_LOADER_CORE_TYPE> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
+			OBJECT_DESTROY_NAMESPACE::ObjectDestroy<vk::Instance, DISPATCH_LOADER_CORE_TYPE> deleter(context().vulkan_instance(), nullptr, context().dispatch_loader_core());
 			window->mSurface = vk::UniqueHandle<vk::SurfaceKHR, DISPATCH_LOADER_CORE_TYPE>(surface, deleter);
 			return true;
 		});
@@ -612,12 +618,12 @@ namespace avk
 
 	void context_vulkan::create_instance()
 	{
-		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
-			reinterpret_cast<vk::DispatchLoaderDynamic&>(dispatch_loader_core()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+			reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(dispatch_loader_core()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
 		}
 		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
-			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
-				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+				reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(vkGetInstanceProcAddr); // stupid, because it's a constexpr, but MSVC complains otherwise
 			}
 		}
 
@@ -667,12 +673,12 @@ namespace avk
 		
 		// Create it, errors will result in an exception.
 		mInstance = vk::createInstance(instCreateInfo);
-		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, vk::DispatchLoaderDynamic&>) {
-			reinterpret_cast<vk::DispatchLoaderDynamic&>(dispatch_loader_core()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
+		if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_core())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+			reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(dispatch_loader_core()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
 		}
 		if (static_cast<void*>(&context().dispatch_loader_core()) != static_cast<void*>(&context().dispatch_loader_ext())) {
-			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, vk::DispatchLoaderDynamic&>) {
-				reinterpret_cast<vk::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
+			if constexpr (std::is_same_v<std::remove_cv_t<decltype(dispatch_loader_ext())>, DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>) {
+				reinterpret_cast<DISPATCH_LOADER_NAMESPACE::DispatchLoaderDynamic&>(context().dispatch_loader_ext()).init(mInstance); // stupid, because it's a constexpr, but MSVC complains otherwise
 			}
 		}
 
